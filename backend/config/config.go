@@ -18,6 +18,7 @@ type Config struct {
 	Redis         RedisConfig     `mapstructure:"redis"`
 	Auth          AuthConfig      `mapstructure:"auth"`
 	S3            S3Config        `mapstructure:"s3"`
+	AppBaseURL    string          `mapstructure:"APP_BASE_URL"`
 }
 
 type LogConfig struct {
@@ -147,6 +148,7 @@ func NewConfig() (*Config, error) {
 			SecretKey:   "",
 			MaxFileSize: 5242880, // 5MB
 		},
+		AppBaseURL: "http://localhost:3000",
 	}
 
 	viper.AddConfigPath(".")
@@ -195,6 +197,9 @@ func overrideWithEnv(c *Config) {
 	}
 	if env := os.Getenv("ADMIN_PASSWORD"); env != "" {
 		c.AdminPassword = env
+	}
+	if env := os.Getenv("APP_BASE_URL"); env != "" {
+		c.AppBaseURL = env
 	}
 }
 

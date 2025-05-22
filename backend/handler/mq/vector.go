@@ -3,6 +3,7 @@ package mq
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/google/uuid"
 
@@ -20,14 +21,16 @@ type VectorMQHandler struct {
 	logger   *log.Logger
 	vector   vector.VectorStore
 	docRepo  *pg.DocRepository
+	config   *config.Config
 }
 
-func NewVectorMQHandler(consumer mq.MQConsumer, logger *log.Logger, vector vector.VectorStore, docRepo *pg.DocRepository) (*VectorMQHandler, error) {
+func NewVectorMQHandler(consumer mq.MQConsumer, logger *log.Logger, vector vector.VectorStore, docRepo *pg.DocRepository, config *config.Config) (*VectorMQHandler, error) {
 	h := &VectorMQHandler{
 		consumer: consumer,
 		logger:   logger.WithModule("mq.vector"),
 		vector:   vector,
 		docRepo:  docRepo,
+		config:   config,
 	}
 	if err := consumer.RegisterHandler(domain.VectorTaskTopic, h.HandleDocVectorContentRequest); err != nil {
 		return nil, err
@@ -64,13 +67,17 @@ func (h *VectorMQHandler) HandleDocVectorContentRequest(ctx context.Context, msg
 				return err
 			}
 			for i, chunk := range chunks {
+				chunkURL := docContent.URL
+				if docContent.Source == domain.DocSourceFile || docContent.Source == domain.DocSourceManual {
+					chunkURL = fmt.Sprintf("%s/app/default/kb/%s/doc/%s", h.config.AppBaseURL, docContent.KBID, docContent.ID)
+				}
 				docChunks = append(docChunks, &domain.DocChunk{
 					ID:      uuid.New().String(),
 					KBID:    docContent.KBID,
 					DocID:   docContent.ID,
 					Seq:     uint(i),
 					Content: chunk,
-					URL:     docContent.URL,
+					URL:     chunkURL,
 					Title:   docContent.Title,
 				})
 			}
