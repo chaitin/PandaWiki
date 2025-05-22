@@ -69,7 +69,7 @@ func (h *VectorMQHandler) HandleDocVectorContentRequest(ctx context.Context, msg
 			for i, chunk := range chunks {
 				chunkURL := docContent.URL
 				if docContent.Source == domain.DocSourceFile || docContent.Source == domain.DocSourceManual {
-					chunkURL = fmt.Sprintf("%s/app/default/kb/%s/doc/%s", h.config.AppBaseURL, docContent.KBID, docContent.ID)
+					chunkURL = fmt.Sprintf("%s/kb/%s/doc/%s", h.config.AppBaseURL, docContent.KBID, docContent.ID)
 				}
 				docChunks = append(docChunks, &domain.DocChunk{
 					ID:      uuid.New().String(),
