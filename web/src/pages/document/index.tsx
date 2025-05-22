@@ -35,7 +35,7 @@ const Content = () => {
           onClick={() => window.open(`/doc/editor/${record.id}`, '_blank')}
         >
           <Icon type='icon-bangzhuwendang1' sx={{ fontSize: 18, color: '#2f80f7' }} />
-          <Ellipsis sx={{ cursor: 'pointer' }}>
+          <Ellipsis sx={{ cursor: 'pointer', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
             {text || record.url || '-'}
           </Ellipsis>
         </Stack>
