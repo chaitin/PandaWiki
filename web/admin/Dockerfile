@@ -5,16 +5,17 @@ WORKDIR /app
 # 安装 pnpm
 RUN npm install -g pnpm
 
-# 使用非 root 用户目录
-RUN pnpm config set store-dir /app/.pnpm-store
+# 首先复制缓存的 node_modules 和 .pnpm-store（如果存在）
+COPY --from=ghcr.io/actions/cache:latest /node_modules ./node_modules
+COPY --from=ghcr.io/actions/cache:latest /.pnpm-store ./.pnpm-store
 
-# 首先只复制依赖相关文件
+# 复制依赖相关文件
 COPY package.json pnpm-lock.yaml ./
 
-# 安装依赖，使用 BuildKit 缓存
-RUN --mount=type=cache,target=/app/.pnpm-store \
-    --mount=type=cache,target=/app/admin-node_modules \
-    pnpm install --frozen-lockfile --prefer-offline
+# 如果缓存不存在，则安装依赖
+RUN if [ ! -d "node_modules" ]; then \
+    pnpm install --frozen-lockfile --prefer-offline; \
+    fi
 
 # 然后复制其他源代码文件
 COPY . .

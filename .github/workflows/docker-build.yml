@@ -23,18 +23,24 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Ensure node_modules exists
-        run: mkdir -p web/admin/node_modules web/admin/.pnpm-store
-
       - name: Cache node_modules
         uses: actions/cache@v3
+        id: admin-cache
         with:
           path: |
-            web/admin/node_modules
-            web/admin/.pnpm-store
+            node_modules
+            .pnpm-store
           key: ${{ runner.os }}-admin-node-${{ hashFiles('web/admin/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-admin-node-
+
+      - name: Check admin cache hit
+        run: |
+          if [[ "${{ steps.admin-cache.outputs.cache-hit }}" == 'true' ]]; then
+            echo "::notice::Admin cache hit! Using cached node_modules"
+          else
+            echo "::warning::Admin cache miss! Installing dependencies from scratch"
+          fi
 
       - name: Login to Aliyun Container Registry
         if: startsWith(github.ref, 'refs/tags/admin-v') || startsWith(github.ref, 'refs/tags/v')
@@ -68,8 +74,12 @@ jobs:
           file: ./web/admin/Dockerfile
           push: ${{ startsWith(github.ref, 'refs/tags/admin-v') || startsWith(github.ref, 'refs/tags/v') }}
           tags: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-nginx:v${{ steps.get_version.outputs.VERSION }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha,scope=admin
+            type=registry,ref=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-nginx:buildcache
+          cache-to: |
+            type=gha,scope=admin,mode=max
+            type=registry,ref=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-nginx:buildcache,mode=max
 
   docker-app-build:
     runs-on: ubuntu-latest
@@ -82,18 +92,24 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Ensure node_modules exists
-        run: mkdir -p web/app/node_modules web/app/.pnpm-store
-
       - name: Cache node_modules
         uses: actions/cache@v3
+        id: app-cache
         with:
           path: |
-            web/app/node_modules
-            web/app/.pnpm-store
+            node_modules
+            .pnpm-store
           key: ${{ runner.os }}-app-node-${{ hashFiles('web/app/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-app-node-
+
+      - name: Check app cache hit
+        run: |
+          if [[ "${{ steps.app-cache.outputs.cache-hit }}" == 'true' ]]; then
+            echo "::notice::App cache hit! Using cached node_modules"
+          else
+            echo "::warning::App cache miss! Installing dependencies from scratch"
+          fi
 
       - name: Login to Aliyun Container Registry
         if: startsWith(github.ref, 'refs/tags/app-v') || startsWith(github.ref, 'refs/tags/v')
@@ -123,5 +139,9 @@ jobs:
           file: ./web/app/Dockerfile
           push: ${{ startsWith(github.ref, 'refs/tags/app-v') || startsWith(github.ref, 'refs/tags/v') }}
           tags: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-app:v${{ steps.get_version.outputs.VERSION }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: |
+            type=gha,scope=app
+            type=registry,ref=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-app:buildcache
+          cache-to: |
+            type=gha,scope=app,mode=max
+            type=registry,ref=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-app:buildcache,mode=max
