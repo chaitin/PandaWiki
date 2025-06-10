@@ -12,12 +12,9 @@ on:
       - "v[0-9]+.[0-9]+.[0-9]+*"
 
 jobs:
-  build:
+  build-admin:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        project: [admin, app]
-
+    if: startsWith(github.ref, 'refs/heads/admin-') || startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/tags/admin-v') || (startsWith(github.ref, 'refs/tags/v') && !startsWith(github.ref, 'refs/tags/app-v'))
     outputs:
       version: ${{ steps.get_version.outputs.VERSION }}
 
@@ -25,35 +22,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 8
-
-      - name: Get pnpm store directory
-        shell: bash
+      # 创建宿主机缓存目录
+      - name: Prepare cache directories
         run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+          mkdir -p ./.cache/admin/node_modules
+          mkdir -p ./.cache/admin/.pnpm-store
 
-      - name: Setup pnpm cache
+      # 缓存宿主机目录
+      - name: Cache PNPM dependencies
         uses: actions/cache@v3
         with:
-          path: ${{ env.STORE_PATH }}
-          key: ${{ runner.os }}-pnpm-store-${{ matrix.project }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          path: |
+            ./.cache/admin/node_modules
+            ./.cache/admin/.pnpm-store
+          key: ${{ runner.os }}-admin-${{ hashFiles('web/admin/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-pnpm-store-${{ matrix.project }}-
+            ${{ runner.os }}-admin-
 
       - name: Get version
         id: get_version
         run: |
           if [[ $GITHUB_REF == refs/tags/* ]]; then
-            if [[ $GITHUB_REF == refs/tags/${{ matrix.project }}-v* ]]; then
-              echo "VERSION=${GITHUB_REF#refs/tags/${{ matrix.project }}-v}" >> $GITHUB_OUTPUT
+            if [[ $GITHUB_REF == refs/tags/admin-v* ]]; then
+              echo "VERSION=${GITHUB_REF#refs/tags/admin-v}" >> $GITHUB_OUTPUT
             else
               echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
             fi
@@ -61,43 +55,33 @@ jobs:
             echo "VERSION=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
           fi
 
-      - name: Install dependencies
+      - name: Set environment variables
         run: |
-          cd web/${{ matrix.project }}
-          pnpm install
+          echo "VITE_APP_VERSION=${{ steps.get_version.outputs.VERSION }}" >> web/admin/.env.production
 
+      # 构建时挂载缓存目录
       - name: Build
-        run: |
-          cd web/${{ matrix.project }}
-          if [ "${{ matrix.project }}" == "admin" ]; then
-            echo "VITE_APP_VERSION=${{ steps.get_version.outputs.VERSION }}" >> .env.production
-          fi
-          pnpm run build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: docker/build-push-action@v5
         with:
-          name: ${{ matrix.project }}-build
-          path: web/${{ matrix.project }}/dist
-          if-no-files-found: error
+          context: ./web/admin
+          file: ./web/admin/Dockerfile
+          push: false
+          load: true
+          tags: local/admin:build
+          build-args: |
+            NODE_MODULES_CACHE=./.cache/admin/node_modules
+            PNPM_STORE_CACHE=./.cache/admin/.pnpm-store
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  package:
-    needs: build
+  package-admin:
+    needs: build-admin
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        project: [admin, app]
-    if: startsWith(github.ref, 'refs/tags/')
+    if: startsWith(github.ref, 'refs/tags/admin-v') || startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ matrix.project }}-build
-          path: dist
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -115,10 +99,98 @@ jobs:
       - name: Package and push
         uses: docker/build-push-action@v5
         with:
-          context: ./web/${{ matrix.project }}
-          file: ./web/${{ matrix.project }}/Dockerfile
+          context: ./web/admin
+          file: ./web/admin/Dockerfile
           push: true
-          platforms: linux/amd64, linux/arm64
-          tags: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-${{ matrix.project == 'admin' && 'nginx' || 'app' }}:v${{ needs.build.outputs.version }}
+          platforms: linux/amd64,linux/arm64
+          tags: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-nginx:v${{ needs.build-admin.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-app:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/app-') || startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/tags/app-v') || (startsWith(github.ref, 'refs/tags/v') && !startsWith(github.ref, 'refs/tags/admin-v'))
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Prepare cache directories
+        run: |
+          mkdir -p ./.cache/app/node_modules
+          mkdir -p ./.cache/app/.pnpm-store
+
+      - name: Cache PNPM dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ./.cache/app/node_modules
+            ./.cache/app/.pnpm-store
+          key: ${{ runner.os }}-app-${{ hashFiles('web/app/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-app-
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            if [[ $GITHUB_REF == refs/tags/app-v* ]]; then
+              echo "VERSION=${GITHUB_REF#refs/tags/app-v}" >> $GITHUB_OUTPUT
+            else
+              echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "VERSION=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web/app
+          file: ./web/app/Dockerfile
+          push: false
+          load: true
+          tags: local/app:build
+          build-args: |
+            NODE_MODULES_CACHE=./.cache/app/node_modules
+            PNPM_STORE_CACHE=./.cache/app/.pnpm-store
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  package-app:
+    needs: build-app
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/app-v') || startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Aliyun Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: chaitin-registry.cn-hangzhou.cr.aliyuncs.com
+          username: ${{ secrets.CT_ALIYUN_USER }}
+          password: ${{ secrets.CT_ALIYUN_PASS }}
+
+      - name: Package and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./web/app
+          file: ./web/app/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-app:v${{ needs.build-app.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
