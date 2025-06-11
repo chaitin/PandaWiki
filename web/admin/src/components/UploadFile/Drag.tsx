@@ -120,6 +120,7 @@ const Upload = ({
 
       <input
         type='file'
+        data-testid="select-file-input" // Added for testing
         ref={fileInputRef}
         hidden
         accept={accept}
