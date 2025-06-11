@@ -10,17 +10,17 @@ import (
 )
 
 type AppUsecase struct {
-	repo             *pg.AppRepository
-	nodeUsecase      *NodeUsecase
-	conversationRepo *pg.ConversationRepository
+	repo             pg.AppRepositoryInterface // Changed to interface
+	nodeUsecase      NodeUsecaseInterface      // Changed to interface
+	conversationRepo *pg.ConversationRepository // Assuming this remains concrete for now, or needs similar refactoring
 	logger           *log.Logger
 	config           *config.Config
 }
 
 func NewAppUsecase(
-	repo *pg.AppRepository,
-	nodeUsecase *NodeUsecase,
-	conversationRepo *pg.ConversationRepository,
+	repo pg.AppRepositoryInterface, // Changed to interface
+	nodeUsecase NodeUsecaseInterface, // Changed to interface
+	conversationRepo *pg.ConversationRepository, // Assuming this remains concrete for now
 	logger *log.Logger,
 	config *config.Config,
 ) *AppUsecase {
