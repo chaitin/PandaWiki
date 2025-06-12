@@ -8,6 +8,8 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // HTTPGet send http get request
@@ -89,4 +91,8 @@ func GetHeaderMap(header string) map[string]string {
 		}
 	}
 	return headerMap
+}
+
+func GenerateId() string {
+	return uuid.New().String()
 }

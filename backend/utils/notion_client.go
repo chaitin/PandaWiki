@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/jomei/notionapi"
 
@@ -36,16 +37,24 @@ type File struct {
 }
 
 type NotionClient struct {
+	root   *ProcessorTree
 	token  string
 	client *notionapi.Client
 	logger *log.Logger
+	wg     *sync.WaitGroup
 }
 
+func (c *NotionClient) GetTreeRes() []byte {
+	return c.root.GetResult()
+}
 func NewNotionClient(token string, logger *log.Logger) *NotionClient {
 	return &NotionClient{
+		root: NewProcessorTree(),
+
 		token:  token,
 		logger: logger.WithModule("usecase.NotionClient"),
 		client: notionapi.NewClient(notionapi.Token(token)),
+		wg:     &sync.WaitGroup{},
 	}
 }
 
@@ -107,7 +116,7 @@ func (c *NotionClient) GetPagesContent(Pages []domain.PageInfo) ([]domain.Page, 
 }
 
 func (c *NotionClient) getPageContent(Page domain.PageInfo) (*domain.Page, error) {
-	buf, err := c.getBlock(Page.Id)
+	err := c.getBlock(Page.Id, "", c.root.root)
 	if err != nil {
 		return nil, fmt.Errorf("get Page %s error: %s", Page.Id, err.Error())
 	}
@@ -115,44 +124,52 @@ func (c *NotionClient) getPageContent(Page domain.PageInfo) (*domain.Page, error
 	return &domain.Page{
 		ID:      Page.Id,
 		Title:   Page.Title,
-		Content: string(buf),
+		Content: string(c.GetTreeRes()),
 	}, nil
 }
-func (c *NotionClient) getBlock(id string) ([]byte, error) {
-	var result []byte
-	b, err := c.client.Block.Get(context.Background(), notionapi.BlockID(id))
 
+func (c *NotionClient) getBlock(id string, prefix string, node *Node) error {
+	c.wg.Add(1)
+	defer c.wg.Done()
+	b, err := c.client.Block.Get(context.Background(), notionapi.BlockID(id))
 	if err != nil {
 		c.logger.Error("get block error", log.String("block_id", id), log.Error(err))
-		return []byte{}, fmt.Errorf("get block %s error: %s", id, err.Error())
+		return fmt.Errorf("get block %s error: %s", id, err.Error())
 	}
 	if b.GetType() == notionapi.BlockType(notionapi.BlockTypeUnsupported) {
 		c.logger.Error("get block error", log.String("block_id", id), log.Error(err), log.String("block_type", b.GetType().String()))
-		return []byte{}, nil
+		return nil
 	}
 	c.logger.Info("block", log.String("block_id", id), log.String("block_type", b.GetType().String()))
 
+	err = c.root.Add(node, []byte(prefix+c.BlockToMarkdown(b)))
+	if err != nil {
+		return fmt.Errorf("add data %s error: %s", id, err.Error())
+	}
 	if !b.GetHasChildren() {
-		return []byte(c.BlockToMarkdown(b)), nil
+		return nil
 	}
 
 	childerns, err := c.client.Block.GetChildren(context.Background(), notionapi.BlockID(id), &notionapi.Pagination{})
 	if err != nil {
 		c.logger.Error("get block's children error", log.String("block_id", id), log.Error(err))
-		return []byte{}, fmt.Errorf("get block's children %s error: %s", id, err.Error())
+		return fmt.Errorf("get block's children %s error: %s", id, err.Error())
 	}
+
 	for _, childern := range childerns.Results {
 
 		Id := childern.GetID().String()
-
-		buf, err := c.getBlock(Id)
-		if err != nil {
-			c.logger.Error("get block child error", log.String("block_id", Id), log.Error(err))
+		if childern.GetType().String() == string(notionapi.BlockTypeBulletedListItem) {
+			prefix += "	"
 		}
-		result = append(result, buf...)
-
+		nowNode, err := c.root.GetNode(node)
+		if err != nil {
+			return fmt.Errorf("get node %s error: %s", id, err.Error())
+		}
+		go c.getBlock(Id, prefix, nowNode)
 	}
-	return result, nil
+
+	return nil
 }
 
 func (c *NotionClient) GetPages(req []domain.PageInfo) ([]*notionapi.Page, error) {
@@ -188,7 +205,6 @@ func (c *NotionClient) BlockToMarkdown(block notionapi.Block) string {
 	case notionapi.BlockTypeQuote:
 		return fmt.Sprintf("> %s\n", block.GetRichTextString())
 	case notionapi.BlockTypeCode:
-
 		return fmt.Sprintf("```\n%s\n```\n", block.GetRichTextString())
 	case notionapi.BlockTypeTableRowBlock:
 
@@ -277,7 +293,6 @@ func (c *NotionClient) getImageURL(block notionapi.Block) (string, error) {
 
 // 获取当前ListBlock的序号
 func (c *NotionClient) getNumberedListNumber(block notionapi.Block) int {
-
 	parentId := block.GetParent().BlockID.String()
 	children, err := c.client.Block.GetChildren(context.Background(), notionapi.BlockID(parentId), &notionapi.Pagination{})
 	if err != nil {
