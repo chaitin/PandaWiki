@@ -98,6 +98,22 @@ SUCCESS    密码: **********************
 
 欢迎提交 [Pull Request](https://github.com/chaitin/PandaWiki/pulls) 或创建 [Issue](https://github.com/chaitin/PandaWiki/issues) 来帮助改进项目。
 
+### 贡献者奖励
+
+我们为积极参与PandaWiki产品迭代和社区建设的用户准备了特制的 实体版纪念奖章。
+
+#### 如何获得
+1. 写优质的文章分享 PandaWiki，每篇文章发布到三个以上的媒体平台，同一篇文章可重复发送，对于流量高的文章还有额外周边赠送。
+
+2. 在 github 提交 issue ，issue 被采纳就可以获得社区贡献激励。
+
+3. 在 PandaWiki 微信交流群 里积极参与产品能力讨论，也有机会获得社区贡献激励。
+
+纪念奖章：数量有限，先到先得。
+
+#### 如何领取
+在 PandaWiki 微信交流群 里联系 @张华杰 获取奖励。
+
 ## 📝 许可证
 
 本项目采用 GNU Affero General Public License v3.0 (AGPL-3.0) 许可证。这意味着：
