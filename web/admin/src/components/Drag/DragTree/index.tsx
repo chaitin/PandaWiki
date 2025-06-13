@@ -1,5 +1,5 @@
 import { ITreeItem, moveNode } from "@/api";
-import { AppContext, getSiblingItemIds } from "@/constant/drag";
+import { AppContext, DragTreeProps, getSiblingItemIds } from "@/constant/drag";
 import { DndContext } from "@dnd-kit/core";
 import {
   SortableTree,
@@ -9,15 +9,17 @@ import { ItemChangedReason } from "dnd-kit-sortable-tree/dist/types";
 import { useEffect, useState } from "react";
 import TreeItem from "./TreeItem";
 
-interface DragTreeProps {
-  data: ITreeItem[]
-  refresh: () => void
-  batchOpen: boolean
-  type?: 'select' | 'move'
-  selected?: string[]
-  onSelectChange?: (value: string) => void
-}
-const DragTree = ({ data, refresh, batchOpen, type = 'move', selected, onSelectChange }: DragTreeProps) => {
+
+const DragTree = ({
+  data,
+  menu,
+  refresh,
+  ui = 'move',
+  selected,
+  onSelectChange,
+  supportSelect = true,
+  relativeSelect = true,
+}: DragTreeProps) => {
   const [items, setItems] = useState<TreeItems<ITreeItem>>(data);
 
   useEffect(() => {
@@ -25,13 +27,15 @@ const DragTree = ({ data, refresh, batchOpen, type = 'move', selected, onSelectC
   }, [data])
 
   return <AppContext.Provider value={{
+    ui,
+    menu,
     items,
     setItems,
     refresh,
-    type,
     selected,
     onSelectChange,
-    batchOpen,
+    supportSelect,
+    relativeSelect
   }}>
     <DndContext>
       <SortableTree

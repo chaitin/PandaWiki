@@ -23,10 +23,17 @@ const menus = [
     show: true,
   },
   {
+    label: '发布',
+    value: '/publish',
+    pathname: 'publish',
+    icon: 'icon-paper-full',
+    show: true,
+  },
+  {
     label: '设置',
     value: '/setting',
     pathname: 'application-setting',
-    icon: 'icon-aiyingyong1',
+    icon: 'icon-chilun',
     show: true,
   },
 ]

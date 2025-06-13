@@ -104,7 +104,7 @@ const DocEditor = () => {
     }
   }, [id])
 
-  if (!editorRef) return null
+  if (!editorRef) return <></>
 
   return <Box sx={{ color: 'text.primary', pb: 2 }}>
     <Box sx={{

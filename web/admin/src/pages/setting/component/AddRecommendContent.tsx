@@ -31,14 +31,6 @@ const AddRecommendContent = ({ open, selected, onChange, onClose }: AddRecommend
     })
   }, [kb_id])
 
-  const onSelectChange = useCallback((id: string) => {
-    if (selectedIds.includes(id)) {
-      setSelectedIds(selectedIds.filter(item => item !== id))
-    } else {
-      setSelectedIds([...selectedIds, id])
-    }
-  }, [selectedIds])
-
   useEffect(() => {
     setSelectedIds(selected)
   }, [selected])
@@ -49,7 +41,6 @@ const AddRecommendContent = ({ open, selected, onChange, onClose }: AddRecommend
 
   return <Modal
     title="添加卡片"
-    width={800}
     open={open}
     onOk={() => {
       onChange(selectedIds)
@@ -60,12 +51,14 @@ const AddRecommendContent = ({ open, selected, onChange, onClose }: AddRecommend
     {loading ? <Stack gap={2}>
       {new Array(10).fill(0).map((_, index) => <Skeleton variant='text' height={20} key={index} />)}
     </Stack> : list.length > 0 ? <DragTree
-      type='select'
+      ui='select'
       selected={selectedIds}
       data={list}
       refresh={getData}
-      batchOpen={true}
-      onSelectChange={onSelectChange}
+      onSelectChange={(value) => {
+        setSelectedIds(value)
+      }}
+      relativeSelect={false}
     /> : <Stack alignItems={'center'} justifyContent={'center'}>
       <img src={Nodata} alt="empty" style={{ width: 100, height: 100 }} />
       <Box sx={{ fontSize: 12, lineHeight: '20px', color: 'text.auxiliary', mt: 1 }}>

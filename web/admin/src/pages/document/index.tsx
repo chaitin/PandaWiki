@@ -1,6 +1,8 @@
 import { getNodeList, ITreeItem, NodeListFilterData, NodeListItem } from "@/api"
 import Card from "@/components/Card"
 import DragTree from "@/components/Drag/DragTree"
+import Summary from "@/components/Drag/DragTree/Summary"
+import { TreeMenuItem, TreeMenuOptions } from "@/components/Drag/DragTree/TreeMenu"
 import { convertToTree } from "@/constant/drag"
 import { useURLSearchParams } from "@/hooks"
 import { useAppSelector } from "@/store"
@@ -9,8 +11,10 @@ import { Box, Button, Checkbox, IconButton, Stack, useTheme } from "@mui/materia
 import { Icon, MenuSelect } from "ct-mui"
 import { useCallback, useEffect, useState } from "react"
 import DocAdd from "./component/DocAdd"
+import DocAddByUrl from "./component/DocAddByUrl"
 import DocDelete from "./component/DocDelete"
 import DocSearch from "./component/DocSearch"
+import DocStatus from "./component/DocStatus"
 
 const Content = () => {
   const { kb_id } = useAppSelector(state => state.config)
@@ -18,13 +22,65 @@ const Content = () => {
 
   const [searchParams] = useURLSearchParams()
   const search = searchParams.get('search') || ''
-  const [batchOpen, setBatchOpen] = useState(false)
+  const [supportSelect, setBatchOpen] = useState(false)
 
   const [list, setList] = useState<NodeListItem[]>([])
   const [selected, setSelected] = useState<string[]>([])
   const [data, setData] = useState<ITreeItem[]>([])
-  const [opraData, setOpraData] = useState<{ id: string, name: string, type: number }[]>([])
-  const [delOpen, setDelOpen] = useState(false)
+  const [opraData, setOpraData] = useState<{ id: string, name: string, type: number, summary?: string }[]>([])
+  const [statusOpen, setStatusOpen] = useState<number>(0)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [summaryOpen, setSummaryOpen] = useState(false)
+  const [urlOpen, setUrlOpen] = useState(false)
+  const [key, setKey] = useState<'URL' | 'RSS' | 'Sitemap' | 'OfflineFile' | 'Notion'>('URL')
+
+  const handleUrl = (item: ITreeItem, key: 'URL' | 'RSS' | 'Sitemap' | 'OfflineFile' | 'Notion') => {
+    setKey(key)
+    setUrlOpen(true)
+    setOpraData([{ id: item.id, name: item.name, type: item.type }])
+  }
+
+  const handleDelete = (item: ITreeItem) => {
+    setDeleteOpen(true)
+    setOpraData([{ id: item.id, name: item.name, type: item.type }])
+  }
+
+  const handleSummary = (item: ITreeItem) => {
+    setSummaryOpen(true)
+    setOpraData([{ id: item.id, name: item.name, type: item.type, summary: item.summary }])
+  }
+
+  const handleStatus = (item: ITreeItem, status: number) => {
+    setStatusOpen(status)
+    setOpraData([{ id: item.id, name: item.name, type: item.type }])
+  }
+
+  const menu = (opra: TreeMenuOptions): TreeMenuItem[] => {
+    const { item, createItem, renameItem, isEditting } = opra
+    return [
+      ...(item.type === 1 ? [
+        { label: '创建文件夹', key: 'folder', onClick: () => createItem(1) },
+        { label: '创建文档', key: 'doc', onClick: () => createItem(2) },
+        {
+          label: '导入文档', key: 'third', children: [
+            { label: '通过 URL 导入', key: 'URL', onClick: () => handleUrl(item, 'URL') },
+            { label: '通过 RSS 导入', key: 'RSS', onClick: () => handleUrl(item, 'RSS') },
+            { label: '通过 Sitemap 导入', key: 'Sitemap', onClick: () => handleUrl(item, 'Sitemap') },
+            { label: '通过离线文件导入', key: 'OfflineFile', onClick: () => handleUrl(item, 'OfflineFile') },
+            { label: '通过 Notion 导入', key: 'Notion', onClick: () => handleUrl(item, 'Notion') }
+          ]
+        }
+      ] : []),
+      ...(item.type === 2 ? [
+        { label: '设为公开', key: 'public', disabled: item.status === 1, onClick: () => handleStatus(item, 1) },
+        { label: '设为私有', key: 'private', disabled: item.status === 2, onClick: () => handleStatus(item, 2) },
+        ...(item.status === 3 ? [{ label: '更新发布', key: 'update_publish', onClick: () => handleStatus(item, 3) }] : []),
+        { label: item.summary ? '查看摘要' : '生成摘要', key: 'summary', onClick: () => handleSummary(item) },
+      ] : []),
+      ...(!isEditting ? [{ label: '重命名', key: 'rename', onClick: renameItem }] : []),
+      { label: '删除', key: 'delete', onClick: () => handleDelete(item) }
+    ]
+  }
 
   const getData = useCallback(() => {
     const params: NodeListFilterData = { kb_id }
@@ -35,122 +91,6 @@ const Content = () => {
       setData(v)
     })
   }, [search, kb_id])
-
-  const onSelectChange = useCallback((id: string) => {
-    // 递归获取所有子节点ID
-    const getAllChildrenIds = (node: ITreeItem): string[] => {
-      let ids = [node.id];
-      if (node.children) {
-        node.children.forEach(child => {
-          ids = ids.concat(getAllChildrenIds(child));
-        });
-      }
-      return ids;
-    };
-
-    // 递归获取所有父节点ID
-    const getAllParentIds = (): string[] => {
-      let ids: string[] = [];
-      const findParent = (items: ITreeItem[], targetId: string): ITreeItem | null => {
-        for (const item of items) {
-          if (item.id === targetId) return item;
-          if (item.children) {
-            const found = findParent(item.children, targetId);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-
-      const findParents = (items: ITreeItem[], targetId: string) => {
-        for (const item of items) {
-          if (item.children) {
-            const child = item.children.find(child => child.id === targetId);
-            if (child) {
-              ids.push(item.id);
-              findParents(data, item.id);
-              break;
-            }
-            findParents(item.children, targetId);
-          }
-        }
-      };
-
-      findParents(data, id);
-      return ids;
-    };
-
-    // 检查节点的所有子节点是否都被选中
-    const areAllChildrenSelected = (node: ITreeItem, currentId: string, willBeSelected: boolean, selectedIds: string[]): boolean => {
-      if (!node.children) return true;
-      return node.children.every(child => {
-        // 如果是当前正在修改的节点，使用 willBeSelected 作为其选中状态
-        if (child.id === currentId) {
-          return willBeSelected;
-        }
-        // 对于文件夹，需要递归检查其所有子节点
-        if (child.type === 1) {
-          return selectedIds.includes(child.id) && areAllChildrenSelected(child, currentId, willBeSelected, selectedIds);
-        }
-        // 对于文件，直接检查其选中状态
-        return selectedIds.includes(child.id);
-      });
-    };
-
-    // 获取当前节点
-    const getNodeById = (items: ITreeItem[], targetId: string): ITreeItem | null => {
-      for (const item of items) {
-        if (item.id === targetId) return item;
-        if (item.children) {
-          const found = getNodeById(item.children, targetId);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    const node = getNodeById(data, id);
-    if (!node) return;
-
-    let newSelected = [...selected];
-    const willBeSelected = !selected.includes(id);
-
-    if (node.type === 1) { // 文件夹
-      const childrenIds = getAllChildrenIds(node);
-      if (selected.includes(id)) {
-        // 取消选择文件夹及其所有子节点
-        newSelected = newSelected.filter(item => !childrenIds.includes(item));
-      } else {
-        // 选择文件夹及其所有子节点
-        newSelected = [...newSelected, ...childrenIds];
-      }
-    } else { // 文件
-      if (selected.includes(id)) {
-        // 取消选择文件
-        newSelected = newSelected.filter(item => item !== id);
-      } else {
-        // 选择文件
-        newSelected = [...newSelected, id];
-      }
-    }
-
-    // 处理父节点的选择状态
-    const parentIds = getAllParentIds();
-    parentIds.forEach(parentId => {
-      const parentNode = getNodeById(data, parentId);
-      if (parentNode) {
-        if (areAllChildrenSelected(parentNode, id, willBeSelected, newSelected)) {
-          if (!newSelected.includes(parentId)) {
-            newSelected.push(parentId);
-          }
-        } else {
-          newSelected = newSelected.filter(item => item !== parentId);
-        }
-      }
-    });
-    setOpraData(list.filter(item => newSelected.includes(item.id)).map(it => ({ id: it.id, name: it.name, type: it.type })))
-    setSelected(newSelected);
-  }, [selected, data]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -202,7 +142,7 @@ const Content = () => {
           />
         </Stack>
       </Stack>
-      {batchOpen && <Stack direction={'row'} alignItems={'center'} sx={{ px: 2, mb: 2 }}>
+      {supportSelect && <Stack direction={'row'} alignItems={'center'} sx={{ px: 2, mb: 2 }}>
         <Checkbox
           sx={{ color: 'text.disabled', width: '35px', height: '35px', mt: '-1px' }}
           checked={selected.length === list.length}
@@ -222,7 +162,7 @@ const Content = () => {
             已选中 {selected.length} 项
           </Box>
           <Button size="small" sx={{ minWidth: 0, p: 0 }} onClick={() => {
-            setDelOpen(true)
+            setDeleteOpen(true)
           }}>
             批量删除
           </Button>
@@ -242,15 +182,55 @@ const Content = () => {
         overflowY: 'auto',
         px: 2,
       }}>
-        <DragTree data={data} refresh={getData} selected={selected} onSelectChange={onSelectChange} batchOpen={batchOpen} />
+        <DragTree
+          data={data}
+          menu={menu}
+          refresh={getData}
+          selected={selected}
+          onSelectChange={(value) => {
+            setSelected(value)
+          }}
+          supportSelect={supportSelect}
+        />
       </Stack>
     </Card>
-    <DocDelete open={delOpen} onClose={() => {
-      setDelOpen(false)
+    <DocDelete open={deleteOpen} onClose={() => {
+      setDeleteOpen(false)
       setOpraData([])
       setSelected([])
       setBatchOpen(false)
     }} data={opraData} refresh={getData} />
+    <DocAddByUrl
+      type={key}
+      open={urlOpen}
+      onCancel={() => {
+        setUrlOpen(false)
+        setOpraData([])
+      }}
+      parentId={opraData[0]?.id}
+      refresh={getData}
+    />
+    <Summary
+      data={opraData[0]}
+      kb_id={kb_id}
+      open={summaryOpen}
+      refresh={getData}
+      onClose={() => {
+        setSummaryOpen(false)
+        setOpraData([])
+      }}
+    />
+    <DocStatus
+      status={statusOpen}
+      data={opraData}
+      kb_id={kb_id}
+      open={statusOpen > 0}
+      refresh={getData}
+      onClose={() => {
+        setStatusOpen(0)
+        setOpraData([])
+      }}
+    />
   </>
 }
 

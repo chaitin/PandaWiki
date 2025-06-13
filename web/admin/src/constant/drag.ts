@@ -1,22 +1,29 @@
 import { ITreeItem, NodeListItem } from "@/api";
+import { TreeMenuItem, TreeMenuOptions } from "@/components/Drag/DragTree/TreeMenu";
 import {
   TreeItems
 } from "dnd-kit-sortable-tree";
 import { createContext } from "react";
 
+export interface DragTreeProps {
+  data: ITreeItem[]
+  menu?: (opra: TreeMenuOptions) => TreeMenuItem[]
+  refresh?: () => void
+  ui?: 'select' | 'move'
+  selected?: string[]
+  supportSelect?: boolean
+  onSelectChange?: (value: string[]) => void
+  relativeSelect?: boolean
+}
+
 // 定义上下文类型
 export interface AppContextType {
   items: TreeItems<ITreeItem>;
   setItems: React.Dispatch<React.SetStateAction<TreeItems<ITreeItem>>>;
-  refresh: () => void
-  type: 'select' | 'move'
-  selected?: string[]
-  onSelectChange?: (value: string) => void
-  batchOpen: boolean
 }
 
 // 使用正确的类型创建上下文
-export const AppContext = createContext<AppContextType | null>(null);
+export const AppContext = createContext<(Omit<DragTreeProps, 'data'> & AppContextType) | null>(null);
 
 export const checkValidateInput = (value: string) => {
   if (!value) {

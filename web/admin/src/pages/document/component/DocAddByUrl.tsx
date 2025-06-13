@@ -12,7 +12,7 @@ type DocAddByUrlProps = {
   type: 'OfflineFile' | 'URL' | 'RSS' | 'Sitemap' | 'Notion'
   parentId?: string | null
   open: boolean
-  refresh: () => void
+  refresh?: () => void
   onCancel: () => void
 }
 
@@ -82,7 +82,7 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
     setUploadProgress(0)
     setLoading(false)
     onCancel()
-    refresh()
+    refresh?.()
   }
 
   const getUrlByUploadFile = async (file: File, onProgress: (progress: number) => void) => {
@@ -174,7 +174,7 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
   const handleOk = async () => {
     if (step === 3) {
       handleCancel()
-      refresh()
+      refresh?.()
     } else if (step === 1) {
       setLoading(true)
       setIsCancelled(false)

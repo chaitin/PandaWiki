@@ -102,6 +102,7 @@ export type NodeListItem = {
   summary: string,
   created_at: string,
   updated_at: string,
+  status: 1 | 2 | 3
 }
 
 export type GetNodeRecommendData = {
@@ -155,7 +156,8 @@ export type UpdateNodeData = {
   kb_id: string,
   name?: string,
   content?: string,
-  emoji?: string
+  emoji?: string,
+  status?: 1 | 2 | 3
 }
 
 // =============================================》crawler
@@ -379,4 +381,5 @@ export interface ITreeItem {
   isEditting?: boolean;
   canHaveChildren?: boolean;
   updated_at?: string;
+  status?: 1 | 2 | 3
 }
