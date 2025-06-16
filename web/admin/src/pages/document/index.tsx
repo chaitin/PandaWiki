@@ -27,7 +27,7 @@ const Content = () => {
   const [list, setList] = useState<NodeListItem[]>([])
   const [selected, setSelected] = useState<string[]>([])
   const [data, setData] = useState<ITreeItem[]>([])
-  const [opraData, setOpraData] = useState<{ id: string, name: string, type: number, summary?: string }[]>([])
+  const [opraData, setOpraData] = useState<NodeListItem[]>([])
   const [statusOpen, setStatusOpen] = useState<number>(0)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [summaryOpen, setSummaryOpen] = useState(false)
@@ -37,22 +37,22 @@ const Content = () => {
   const handleUrl = (item: ITreeItem, key: 'URL' | 'RSS' | 'Sitemap' | 'OfflineFile' | 'Notion') => {
     setKey(key)
     setUrlOpen(true)
-    setOpraData([{ id: item.id, name: item.name, type: item.type }])
+    setOpraData(list.filter(it => it.id === item.id))
   }
 
   const handleDelete = (item: ITreeItem) => {
     setDeleteOpen(true)
-    setOpraData([{ id: item.id, name: item.name, type: item.type }])
+    setOpraData(list.filter(it => it.id === item.id))
   }
 
   const handleSummary = (item: ITreeItem) => {
     setSummaryOpen(true)
-    setOpraData([{ id: item.id, name: item.name, type: item.type, summary: item.summary }])
+    setOpraData(list.filter(it => it.id === item.id))
   }
 
   const handleStatus = (item: ITreeItem, status: number) => {
     setStatusOpen(status)
-    setOpraData([{ id: item.id, name: item.name, type: item.type }])
+    setOpraData(list.filter(it => it.id === item.id))
   }
 
   const menu = (opra: TreeMenuOptions): TreeMenuItem[] => {
@@ -153,7 +153,7 @@ const Content = () => {
               setOpraData([])
             } else {
               setSelected(list.map(item => item.id))
-              setOpraData(data)
+              setOpraData(list)
             }
           }}
         />
@@ -163,6 +163,7 @@ const Content = () => {
           </Box>
           <Button size="small" sx={{ minWidth: 0, p: 0 }} onClick={() => {
             setDeleteOpen(true)
+            setOpraData(list.filter(item => selected.includes(item.id)))
           }}>
             批量删除
           </Button>

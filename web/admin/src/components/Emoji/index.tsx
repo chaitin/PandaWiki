@@ -6,6 +6,7 @@ import React, { useCallback } from 'react';
 
 interface EmojiPickerProps {
   type: 1 | 2
+  readOnly?: boolean
   value?: string;
   collapsed?: boolean;
   onChange: (emoji: string) => void;
@@ -14,6 +15,7 @@ interface EmojiPickerProps {
 
 const EmojiPicker: React.FC<EmojiPickerProps> = ({
   type,
+  readOnly,
   value,
   onChange,
   collapsed,
@@ -23,6 +25,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
+    if (readOnly) return;
     setAnchorEl(event.currentTarget);
   };
 

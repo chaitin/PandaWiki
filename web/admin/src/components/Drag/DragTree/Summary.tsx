@@ -1,4 +1,4 @@
-import { createNodeSummary } from "@/api"
+import { createNodeSummary, type NodeListItem } from "@/api"
 import Card from "@/components/Card"
 import { CheckCircle } from "@mui/icons-material"
 import { Button, Stack } from "@mui/material"
@@ -7,7 +7,7 @@ import { useEffect, useState } from "react"
 
 interface SummaryProps {
   kb_id: string
-  data: { id: string, name: string, type: number, summary?: string }
+  data: NodeListItem
   open: boolean
   refresh?: () => void
   onClose: () => void
@@ -59,9 +59,9 @@ const Summary = ({ open, data, kb_id, refresh, onClose }: SummaryProps) => {
     showCancel={!data?.summary}
     okButtonProps={{ loading }}
   >
-    {!data?.summary && !summary && <Stack direction='row' alignItems='center' gap={0.5}>
+    {!data?.summary && !summary && <Stack sx={{ fontSize: 14 }} direction='row' alignItems='center' gap={1}>
       <Icon type='icon-wenjian' />
-      <Ellipsis sx={{ fontSize: 14 }}>{data?.name}</Ellipsis>
+      <Ellipsis >{data?.name}</Ellipsis>
     </Stack>}
     {summary && <Card sx={{ p: 2, bgcolor: 'background.paper2', fontSize: 14 }}>
       {summary}

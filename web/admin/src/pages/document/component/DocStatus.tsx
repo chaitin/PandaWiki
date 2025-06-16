@@ -1,3 +1,4 @@
+import { NodeListItem } from '@/api/type';
 import ErrorIcon from '@mui/icons-material/Error';
 import { Box, Stack, Typography } from "@mui/material";
 import { Card, Ellipsis, Icon, Modal } from "ct-mui";
@@ -7,7 +8,7 @@ interface DocStatusProps {
   status: number
   kb_id: string
   onClose: () => void
-  data: { id: string, name: string, type: number }[]
+  data: NodeListItem[]
   refresh?: () => void
 }
 

@@ -21,7 +21,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
 
   if (!context) throw new Error("TreeItem 必须在 AppContext.Provider 内部使用");
 
-  const { items, setItems, ui = 'move', selected = [], onSelectChange, supportSelect = false, menu, relativeSelect = true } = context;
+  const { items, setItems, ui = 'move', selected = [], onSelectChange, readOnly, supportSelect = false, menu, relativeSelect = true } = context;
 
   const [value, setValue] = useState(item.name)
   const [emoji, setEmoji] = useState(item.emoji)
@@ -113,6 +113,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
           ref={ref}
           indentationWidth={23}
           disableCollapseOnItemClick
+          manualDrag={readOnly}
           showDragHandle={false}
         >
           <Stack
@@ -123,6 +124,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
             flex={1}
             sx={{ pr: 2 }}
             onClick={() => {
+              if (readOnly) return;
               if (ui === 'select') {
                 handleSelectChange(item.id)
                 return
@@ -203,7 +205,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
               sx={{ fontSize: 14, cursor: 'pointer', ...(ui === 'select' && { width: '100%', flex: 1 }) }}
             >
               <Box onClick={(e) => e.stopPropagation()} sx={{ flexShrink: 0, cursor: 'pointer' }}>
-                <Emoji sx={{ width: 24, height: 24, fontSize: 14 }} type={item.type} collapsed={collapsed} value={item.emoji} onChange={async (value) => {
+                <Emoji readOnly={readOnly} sx={{ width: 24, height: 24, fontSize: 14 }} type={item.type} collapsed={collapsed} value={item.emoji} onChange={async (value) => {
                   try {
                     await updateNode({ id: item.id, kb_id: id, emoji: value })
                     Message.success('更新成功')
