@@ -106,7 +106,7 @@ export const ModelProvider = {
     urlWrite: false,
     secretRequired: true,
     customHeader: false,
-    modelDocumentUrl: 'https://modelsquare.docs.baizhi.cloud/',
+    modelDocumentUrl: 'https://model-square.app.baizhi.cloud/token',
     defaultBaseUrl: 'https://model-square.app.baizhi.cloud/v1',
   },
   DeepSeek: {
