@@ -266,7 +266,12 @@ export type CustomCodeSetting = {
   body_code: string
 }
 
-export type AppSetting = HeaderSetting & WelcomeSetting & SEOSetting & CustomCodeSetting & DingBotSetting & WecomBotSetting & FeishuBotSetting & {
+export type StyleSetting = {
+  default_mode: 1 | 2,
+  visible_mode_switch: boolean,
+}
+
+export type AppSetting = HeaderSetting & WelcomeSetting & SEOSetting & CustomCodeSetting & DingBotSetting & WecomBotSetting & FeishuBotSetting & StyleSetting & {
   base_url: string
 }
 
