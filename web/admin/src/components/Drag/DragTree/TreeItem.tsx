@@ -117,7 +117,6 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
       {supportSelect && <Checkbox
         sx={{ flexShrink: 0, color: 'text.disabled', width: '35px', height: '35px' }}
         checked={selected.includes(item.id)}
-        indeterminate={item.type === 2 ? false : selected.includes(item.id) && item.children?.some(item => !selected.includes(item.id))}
         onChange={(e) => {
           e.stopPropagation()
           handleSelectChange(item.id)

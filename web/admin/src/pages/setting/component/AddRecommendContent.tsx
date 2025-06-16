@@ -3,6 +3,7 @@ import Nodata from '@/assets/images/nodata.png'
 import DragTree from "@/components/Drag/DragTree"
 import { convertToTree } from "@/constant/drag"
 import { useAppSelector } from "@/store"
+import { filterEmptyFolders } from "@/utils/tree"
 import { Box, Skeleton, Stack } from "@mui/material"
 import { Modal } from "ct-mui"
 import { useCallback, useEffect, useState } from "react"
@@ -24,8 +25,10 @@ const AddRecommendContent = ({ open, selected, onChange, onClose }: AddRecommend
     setLoading(true)
     const params: NodeListFilterData = { kb_id }
     getNodeList(params).then(res => {
-      const v = convertToTree(res || [])
-      setList(v)
+      const filterData = res?.filter(item => (item.type === 1 || item.visibility === 2)) || []
+      const filterTreeData = convertToTree(filterData)
+      const showTreeData = filterEmptyFolders(filterTreeData)
+      setList(showTreeData)
     }).finally(() => {
       setLoading(false)
     })

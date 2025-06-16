@@ -1,9 +1,10 @@
 import { NodeListItem, updateNodeAction } from "@/api";
+import Card from "@/components/Card";
 import DragTree from "@/components/Drag/DragTree";
 import { convertToTree } from "@/constant/drag";
 import { useAppSelector } from "@/store";
 import ErrorIcon from '@mui/icons-material/Error';
-import { Box, Stack } from "@mui/material";
+import { Stack } from "@mui/material";
 import { Message, Modal } from "ct-mui";
 
 interface DocDeleteProps {
@@ -39,7 +40,9 @@ const DocDelete = ({ open, onClose, data, refresh }: DocDeleteProps) => {
     onCancel={onClose}
     onOk={submit}
   >
-    <Box sx={{
+    <Card sx={{
+      py: 1,
+      bgcolor: 'background.paper2',
       '& .dndkit-drag-handle': {
         top: '-2px !important'
       }
@@ -49,7 +52,7 @@ const DocDelete = ({ open, onClose, data, refresh }: DocDeleteProps) => {
         readOnly={true}
         supportSelect={false}
       />
-    </Box>
+    </Card>
   </Modal>
 }
 
