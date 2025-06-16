@@ -3,6 +3,7 @@ module github.com/chaitin/panda-wiki
 go 1.24.3
 
 require (
+	github.com/JohannesKaufmann/html-to-markdown/v2 v2.3.3
 	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.7
 	github.com/alibabacloud-go/dingtalk v1.6.73
 	github.com/alibabacloud-go/tea v1.3.9
@@ -43,6 +44,7 @@ require (
 )
 
 require (
+	github.com/JohannesKaufmann/dom v0.2.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/alibabacloud-go/alibabacloud-gateway-spi v0.0.5 // indirect
 	github.com/alibabacloud-go/debug v1.0.1 // indirect

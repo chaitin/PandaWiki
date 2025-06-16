@@ -250,6 +250,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/crawler/epub/convert": {
+            "post": {
+                "description": "QpubConvert",
+                "consumes": [
+                    "multipart/form-data"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "crawler"
+                ],
+                "summary": "QpubConvert",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "kb_id",
+                        "name": "kb_id",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.EpubResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/crawler/notion/get_doc": {
             "post": {
                 "description": "GetDocs",
@@ -2283,8 +2334,22 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.EpubResp": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.GetDocsReq": {
             "type": "object",
+            "required": [
+                "kb_id"
+            ],
             "properties": {
                 "integration": {
                     "type": "string"

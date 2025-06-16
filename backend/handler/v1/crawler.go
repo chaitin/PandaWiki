@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"io"
+
 	"github.com/labstack/echo/v4"
 
 	"github.com/chaitin/panda-wiki/config"
@@ -17,16 +19,26 @@ type CrawlerHandler struct {
 	logger          *log.Logger
 	usecase         *usecase.CrawlerUsecase
 	notnion_usecase *usecase.NotionUseCase
+	epub_usecase    *usecase.EpubUsecase
 	config          *config.Config
 }
 
-func NewCrawlerHandler(echo *echo.Echo, baseHandler *handler.BaseHandler, auth middleware.AuthMiddleware, logger *log.Logger, config *config.Config, usecase *usecase.CrawlerUsecase, notnion_usecase *usecase.NotionUseCase) *CrawlerHandler {
+func NewCrawlerHandler(echo *echo.Echo,
+	baseHandler *handler.BaseHandler,
+	auth middleware.AuthMiddleware,
+	logger *log.Logger,
+	config *config.Config,
+	usecase *usecase.CrawlerUsecase,
+	notnion_usecase *usecase.NotionUseCase,
+	epub_usecase *usecase.EpubUsecase,
+) *CrawlerHandler {
 	h := &CrawlerHandler{
 		BaseHandler:     baseHandler,
 		logger:          logger.WithModule("handler.v1.crawler"),
 		config:          config,
 		usecase:         usecase,
 		notnion_usecase: notnion_usecase,
+		epub_usecase:    epub_usecase,
 	}
 	group := echo.Group("/api/v1/crawler", auth.Authorize)
 	group.POST("/parse_rss", h.ParseRSS)
@@ -35,6 +47,8 @@ func NewCrawlerHandler(echo *echo.Echo, baseHandler *handler.BaseHandler, auth m
 	// notion app
 	group.POST("/notion/get_list", h.NotionGetList)
 	group.POST("/notion/get_doc", h.GetDocs)
+	//  epub
+	group.POST("/epub/convert", h.QpubConvert)
 	return h
 }
 
@@ -202,4 +216,45 @@ func (h *CrawlerHandler) Scrape(c echo.Context) error {
 		return h.NewResponseWithError(c, "scrape url failed", err)
 	}
 	return h.NewResponseWithData(c, resp)
+}
+
+// QpubConvert
+//
+//	@Summary		QpubConvert
+//	@Description	QpubConvert
+//	@Tags			crawler
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			file	formData	file	true	"file"
+//	@Param			kb_id	formData	string	true	"kb_id"
+//	@Success		200		{object}	domain.Response{data=domain.EpubResp}
+//	@Router			/api/v1/crawler/epub/convert [post]
+func (h *CrawlerHandler) QpubConvert(c echo.Context) error {
+	//uplad a file
+	var req domain.EpubReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "bind failed", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate failed", err)
+	}
+
+	f, err := c.FormFile("file")
+	if err != nil {
+		return h.NewResponseWithError(c, "get file failed", err)
+	}
+	file, err := f.Open()
+	if err != nil {
+		return h.NewResponseWithError(c, "open file failed", err)
+	}
+	defer file.Close()
+	data, err := io.ReadAll(file)
+	if err != nil {
+		return h.NewResponseWithError(c, "read file failed", err)
+	}
+	resq, err := h.epub_usecase.Convert(c.Request().Context(), req.KbID, data)
+	if err != nil {
+		return h.NewResponseWithError(c, "convert failed", err)
+	}
+	return h.NewResponseWithData(c, resq)
 }

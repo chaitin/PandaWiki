@@ -26,4 +26,5 @@ var ProviderSet = wire.NewSet(
 	NewCrawlerUsecase,
 	NewCreationUsecase,
 	NewNotionUsecase,
+	NewEpubUsecase,
 )

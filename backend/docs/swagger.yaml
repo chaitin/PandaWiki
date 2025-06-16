@@ -392,6 +392,13 @@ definitions:
     required:
     - user_id
     type: object
+  domain.EpubResp:
+    properties:
+      content:
+        type: string
+      title:
+        type: string
+    type: object
   domain.GetDocsReq:
     properties:
       integration:
@@ -402,6 +409,8 @@ definitions:
         items:
           $ref: '#/definitions/domain.PageInfo'
         type: array
+    required:
+    - kb_id
     type: object
   domain.GetProviderModelListResp:
     properties:
@@ -1034,6 +1043,37 @@ paths:
       summary: get conversation detail
       tags:
       - conversation
+  /api/v1/crawler/epub/convert:
+    post:
+      consumes:
+      - multipart/form-data
+      description: QpubConvert
+      parameters:
+      - description: file
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: kb_id
+        in: formData
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.EpubResp'
+              type: object
+      summary: QpubConvert
+      tags:
+      - crawler
   /api/v1/crawler/notion/get_doc:
     post:
       consumes:
