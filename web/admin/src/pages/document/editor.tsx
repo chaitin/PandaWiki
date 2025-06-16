@@ -121,7 +121,7 @@ const DocEditor = () => {
         borderColor: 'divider',
         py: 1,
       }}>
-        <EditorHeader editorRef={editorRef} detail={detail} onSave={handleSave} refresh={async () => {
+        <EditorHeader editorRef={editorRef} detail={detail} onSave={() => handleSave()} refresh={async () => {
           await handleSave(false)
           getDetail()
         }} />

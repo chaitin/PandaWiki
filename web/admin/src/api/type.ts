@@ -116,16 +116,16 @@ export type CreateNodeSummaryData = {
 }
 
 export type NodeDetail = {
+  id: string,
+  name: string,
   type: 1 | 2,
   content: string,
-  created_at: string,
-  id: string,
   kb_id: string,
   meta: {
     emoji?: string,
     summary?: string
   },
-  name: string,
+  created_at: string,
   updated_at: string
 }
 

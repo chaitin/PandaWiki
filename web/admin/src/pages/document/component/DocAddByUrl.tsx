@@ -282,7 +282,7 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
         onChange={(accept, reject) => onChangeFile(accept, reject)}
         type='drag'
         multiple
-        accept='.txt, .md, .xls, .xlsx, .docx, .pdf'
+        accept='.txt, .md, .xls, .xlsx, .docx, .pdf, .html'
         size={size}
       />
       {isUploading === 1 && <Box sx={{ mt: 2 }}>

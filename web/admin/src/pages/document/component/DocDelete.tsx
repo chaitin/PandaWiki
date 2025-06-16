@@ -17,7 +17,6 @@ const DocDelete = ({ open, onClose, data, refresh }: DocDeleteProps) => {
   const { kb_id } = useAppSelector(state => state.config)
   if (!data) return null
 
-  const tree = convertToTree(data)
 
   const submit = () => {
     updateNodeAction({ ids: data.map(item => item.id), kb_id, action: 'delete' }).then(() => {
@@ -27,6 +26,7 @@ const DocDelete = ({ open, onClose, data, refresh }: DocDeleteProps) => {
     })
   }
 
+  const tree = convertToTree(data)
   return <Modal
     title={<Stack direction='row' alignItems='center' gap={1}>
       <ErrorIcon sx={{ color: 'warning.main' }} />

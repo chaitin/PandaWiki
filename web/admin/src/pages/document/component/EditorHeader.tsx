@@ -1,4 +1,4 @@
-import { createNode, NodeDetail, updateNode } from "@/api"
+import { createNode, NodeDetail, NodeListItem, updateNode } from "@/api"
 import Emoji from "@/components/Emoji"
 import DocAddByCustomText from "@/pages/document/component/DocAddByCustomText"
 import DocDelete from "@/pages/document/component/DocDelete"
@@ -197,7 +197,7 @@ const EditorHeader = ({ editorRef, detail, onSave, refresh }: EditorHeaderProps)
     }} data={{ id: detail.id, name: detail.name, emoji: detail.meta?.emoji || '' }} refresh={refresh} />
     <DocDelete open={delOpen} onClose={() => {
       setDelOpen(false)
-    }} data={[{ id: detail.id, name: detail.name, type: detail.type }]} refresh={() => {
+    }} data={[{ ...detail, emoji: detail.meta?.emoji || '', parent_id: '', summary: detail.meta?.summary || '', position: 0, status: 1 } as NodeListItem]} refresh={() => {
       setTimeout(() => {
         window.close();
       }, 1500)
