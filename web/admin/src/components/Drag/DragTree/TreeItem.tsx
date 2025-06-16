@@ -167,16 +167,18 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
                     Message.error('文档名称不能为空')
                     return
                   }
-                  createNode({ name: value, content: '', kb_id: id, parent_id: item.parentId, type: item.type, emoji }).then(() => {
+                  createNode({ name: value, content: '', kb_id: id, parent_id: item.parentId, type: item.type, emoji }).then((res) => {
                     Message.success('创建成功')
                     const temp = [...items];
                     updateTree(temp, item.id, {
                       ...item,
+                      id: res.id,
                       name: value,
                       emoji,
                       isEditting: false,
                       updated_at: dayjs().toString(),
                     });
+                    console.log(temp)
                     setItems(temp);
                   })
                 }
