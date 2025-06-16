@@ -91,6 +91,14 @@ export interface CardWebHeaderBtn {
   target: '_blank' | '_self'
 }
 
+export type ReleaseListItem = {
+  created_at: string,
+  id: string,
+  kb_id: string,
+  message: string,
+  tag: string
+}
+
 // =============================================》node
 export type NodeListItem = {
   id: string,
@@ -102,7 +110,8 @@ export type NodeListItem = {
   summary: string,
   created_at: string,
   updated_at: string,
-  status: 1 | 2 | 3
+  status: 1 | 2 // 1 草稿 2 发布
+  visibility: 1 | 2 // 1 私有 2 公开
 }
 
 export type GetNodeRecommendData = {
@@ -152,13 +161,32 @@ export type UpdateNodeActionData = {
 }
 
 export type UpdateNodeData = {
-  id: string,
   kb_id: string,
-  name?: string,
   content?: string,
+  id: string,
+  name?: string,
   emoji?: string,
-  status?: 1 | 2 | 3
+  status?: 1 | 2
+  visibility?: 1 | 2
 }
+
+export interface ITreeItem {
+  id: string;
+  name: string;
+  level: number;
+  order?: number;
+  emoji?: string
+  parentId?: string | null;
+  summary?: string
+  children?: ITreeItem[];
+  type: 1 | 2;
+  isEditting?: boolean;
+  canHaveChildren?: boolean;
+  updated_at?: string;
+  status?: 1 | 2
+  visibility?: 1 | 2
+}
+
 
 // =============================================》crawler
 
@@ -366,20 +394,4 @@ export type ConversationDetail = {
 export type ChatConversationItem = {
   role: 'assistant' | 'user',
   content: string,
-}
-
-export interface ITreeItem {
-  id: string;
-  name: string;
-  level: number;
-  order?: number;
-  emoji?: string
-  parentId?: string | null;
-  summary?: string
-  children?: ITreeItem[];
-  type: 1 | 2;
-  isEditting?: boolean;
-  canHaveChildren?: boolean;
-  updated_at?: string;
-  status?: 1 | 2 | 3
 }

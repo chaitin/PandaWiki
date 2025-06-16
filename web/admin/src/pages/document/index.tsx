@@ -10,6 +10,7 @@ import { addOpacityToColor } from "@/utils"
 import { Box, Button, Checkbox, IconButton, Stack, useTheme } from "@mui/material"
 import { Icon, MenuSelect } from "ct-mui"
 import { useCallback, useEffect, useState } from "react"
+import VersionPublish from "../release/components/VersionPublish"
 import DocAdd from "./component/DocAdd"
 import DocAddByUrl from "./component/DocAddByUrl"
 import DocDelete from "./component/DocDelete"
@@ -28,10 +29,11 @@ const Content = () => {
   const [selected, setSelected] = useState<string[]>([])
   const [data, setData] = useState<ITreeItem[]>([])
   const [opraData, setOpraData] = useState<NodeListItem[]>([])
-  const [statusOpen, setStatusOpen] = useState<number>(0)
+  const [statusOpen, setStatusOpen] = useState<'private' | 'public' | null>(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [summaryOpen, setSummaryOpen] = useState(false)
   const [urlOpen, setUrlOpen] = useState(false)
+  const [publishOpen, setPublishOpen] = useState('')
   const [key, setKey] = useState<'URL' | 'RSS' | 'Sitemap' | 'OfflineFile' | 'Notion'>('URL')
 
   const handleUrl = (item: ITreeItem, key: 'URL' | 'RSS' | 'Sitemap' | 'OfflineFile' | 'Notion') => {
@@ -50,8 +52,13 @@ const Content = () => {
     setOpraData(list.filter(it => it.id === item.id))
   }
 
-  const handleStatus = (item: ITreeItem, status: number) => {
+  const handleStatus = (item: ITreeItem, status: 'public' | 'private') => {
     setStatusOpen(status)
+    setOpraData(list.filter(it => it.id === item.id))
+  }
+
+  const handlePublish = (item: ITreeItem) => {
+    setPublishOpen(item.id)
     setOpraData(list.filter(it => it.id === item.id))
   }
 
@@ -72,9 +79,9 @@ const Content = () => {
         }
       ] : []),
       ...(item.type === 2 ? [
-        { label: '设为公开', key: 'public', disabled: item.status === 1, onClick: () => handleStatus(item, 1) },
-        { label: '设为私有', key: 'private', disabled: item.status === 2, onClick: () => handleStatus(item, 2) },
-        ...(item.status === 3 ? [{ label: '更新发布', key: 'update_publish', onClick: () => handleStatus(item, 3) }] : []),
+        ...(item.visibility === 1 ? [{ label: '设为公开', key: 'public', onClick: () => handleStatus(item, 'public') }] : []),
+        ...(item.visibility === 2 ? [{ label: '设为私有', key: 'private', onClick: () => handleStatus(item, 'private') }] : []),
+        ...(item.status === 1 && item.visibility === 2 ? [{ label: '更新发布', key: 'update_publish', onClick: () => handlePublish(item) }] : []),
         { label: item.summary ? '查看摘要' : '生成摘要', key: 'summary', onClick: () => handleSummary(item) },
       ] : []),
       ...(!isEditting ? [{ label: '重命名', key: 'rename', onClick: renameItem }] : []),
@@ -222,15 +229,24 @@ const Content = () => {
       }}
     />
     <DocStatus
-      status={statusOpen}
+      status={statusOpen || 'public'}
       data={opraData}
       kb_id={kb_id}
-      open={statusOpen > 0}
+      open={!!statusOpen}
       refresh={getData}
       onClose={() => {
-        setStatusOpen(0)
+        setStatusOpen(null)
         setOpraData([])
       }}
+    />
+    <VersionPublish
+      open={!!publishOpen}
+      defaultSelected={publishOpen ? [publishOpen] : []}
+      onClose={() => {
+        setPublishOpen('')
+        setOpraData([])
+      }}
+      refresh={getData}
     />
   </>
 }

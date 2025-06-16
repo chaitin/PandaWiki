@@ -15,7 +15,9 @@ import {
   NodeDetail,
   NodeListFilterData,
   NodeListItem,
+  Paging,
   RecommendNode,
+  ReleaseListItem,
   ResposeList,
   ScrapeRSSItem,
   UpdateAppDetailData,
@@ -66,6 +68,12 @@ export const createKnowledgeBase = (data: Partial<UpdateKnowledgeBaseData>): Pro
 
 export const deleteKnowledgeBase = (params: { id: string }): Promise<void> =>
   request({ url: 'api/v1/knowledge_base/detail', method: 'delete', params })
+
+export const getReleaseList = (params: { kb_id: string } & Paging): Promise<ResposeList<ReleaseListItem>> =>
+  request({ url: 'api/v1/knowledge_base/release/list', method: 'get', params })
+
+export const addRelease = (data: { kb_id: string, tag: string, message: string, node_ids: string[] }): Promise<void> =>
+  request({ url: 'api/v1/knowledge_base/release', method: 'post', data })
 
 // =============================================》node
 

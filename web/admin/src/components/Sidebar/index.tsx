@@ -24,8 +24,8 @@ const menus = [
   },
   {
     label: '发布',
-    value: '/publish',
-    pathname: 'publish',
+    value: '/release',
+    pathname: 'release',
     icon: 'icon-paper-full',
     show: true,
   },

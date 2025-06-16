@@ -1,11 +1,13 @@
-import { NodeListItem } from '@/api/type';
+import { updateNode } from '@/api';
+import { NodeListItem, UpdateNodeData } from '@/api/type';
+import Card from '@/components/Card';
 import ErrorIcon from '@mui/icons-material/Error';
 import { Box, Stack, Typography } from "@mui/material";
-import { Card, Ellipsis, Icon, Modal } from "ct-mui";
+import { Ellipsis, Icon, Message, Modal } from "ct-mui";
 
 interface DocStatusProps {
   open: boolean
-  status: number
+  status: 'public' | 'private'
   kb_id: string
   onClose: () => void
   data: NodeListItem[]
@@ -13,30 +15,33 @@ interface DocStatusProps {
 }
 
 const textMap = {
-  1: {
+  public: {
     title: '确认将以下文档设为公开？',
-    text: '已发布后，文档将在前台可以访问。',
+    text: '公开后，文档将在前台可以访问。',
     btn: '公开'
   },
-  2: {
+  private: {
     title: '确认将以下文档设为私有？',
     text: '私有后，文档将在前台无法访问。',
     btn: '私有'
   },
-  3: {
-    title: '确认将以下文档更新发布？',
-    text: '更新发布后，文档将在前台可以访问。',
-    btn: '更新发布'
-  }
 }
 
 const DocStatus = ({ open, status, kb_id, onClose, data, refresh }: DocStatusProps) => {
   const submit = () => {
-    // updateNode({ id, kb_id, status: status as 1 | 2 | 3 }).then(() => {
-    //   Message.success('更新成功')
-    //   onClose()
-    //   refresh?.();
-    // })
+    const temp: UpdateNodeData = { id: data[0].id, kb_id }
+    if (status === 'public') {
+      temp.visibility = 2
+    } else if (status === 'private') {
+      temp.visibility = 1
+    } else if (status === 'publish') {
+      temp.status = 2
+    }
+    updateNode(temp).then(() => {
+      Message.success('更新成功')
+      onClose()
+      refresh?.();
+    })
   }
   if (!open) return <></>
   return <Modal

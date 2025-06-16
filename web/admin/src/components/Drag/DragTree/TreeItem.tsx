@@ -3,8 +3,9 @@ import Emoji from "@/components/Emoji";
 import { AppContext, updateTree } from "@/constant/drag";
 import { treeSx } from "@/constant/styles";
 import { useAppSelector } from "@/store";
-import { handleMultiSelect } from "@/utils/tree";
-import { Box, Button, Checkbox, Stack, TextField } from "@mui/material";
+import { addOpacityToColor } from "@/utils";
+import { handleMultiSelect, updateAllParentStatus } from "@/utils/tree";
+import { Box, Button, Checkbox, Stack, TextField, useTheme } from "@mui/material";
 import { Ellipsis, Message } from "ct-mui";
 import dayjs from "dayjs";
 import {
@@ -15,6 +16,7 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from "rea
 import TreeMenu from "./TreeMenu";
 
 const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeItem>>((props, ref) => {
+  const theme = useTheme()
   const { kb_id: id } = useAppSelector(state => state.config)
   const { item, collapsed } = props;
   const context = useContext(AppContext);
@@ -39,7 +41,8 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
           name: "",
           level: 2,
           type,
-          status: type === 2 ? 3 : undefined,
+          status: type === 2 ? 1 : undefined,
+          visibility: type === 2 ? 1 : undefined,
           isEditting: true,
           parentId: item.id,
         }
@@ -85,6 +88,18 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
       }
     }
   }, [onSelectChange, selected, items, relativeSelect]);
+
+  useEffect(() => {
+    if (relativeSelect && selected.length > 0) {
+      const temp = [...items];
+      const selectedSet = new Set(selected);
+      updateAllParentStatus(temp, selectedSet);
+      const newSelected = Array.from(selectedSet);
+      if (newSelected.length !== selected.length) {
+        onSelectChange?.(newSelected);
+      }
+    }
+  }, [selected, items, relativeSelect, onSelectChange]);
 
   useEffect(() => {
     setValue(item.name)
@@ -226,6 +241,15 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
             {menu && <>
               <Box sx={{ flex: 1, alignSelf: 'center', borderBottom: '1px dashed', borderColor: 'divider' }} />
               <Stack direction="row" alignItems={'center'} gap={2} sx={{ flexShrink: 0 }}>
+                {item.type === 2 && <Box sx={{ flexShrink: 0, fontSize: 12 }}>
+                  {item.visibility === 1 ? <Box sx={{ color: 'warning.main', border: '1px solid', borderColor: 'warning.main', borderRadius: '10px', px: 1, bgcolor: addOpacityToColor(theme.palette.warning.main, 0.1) }}>
+                    私有的
+                  </Box> : item.status === 1 ? <Box sx={{ color: 'info.main', border: '1px solid', borderColor: 'info.main', borderRadius: '10px', px: 1, bgcolor: addOpacityToColor(theme.palette.info.main, 0.1) }}>
+                    更新未发布
+                  </Box> : <Box sx={{ color: 'success.main', border: '1px solid', borderColor: 'success.main', borderRadius: '10px', px: 1, bgcolor: addOpacityToColor(theme.palette.success.main, 0.1) }}>
+                    已发布
+                  </Box>}
+                </Box>}
                 <Box sx={{ fontSize: 12, fontFamily: 'monospace', color: 'text.auxiliary' }}>{dayjs(item.updated_at).fromNow()}</Box>
                 <Box onClick={(e) => e.stopPropagation()}>
                   <TreeMenu menu={menu({ item, createItem, renameItem, isEditting, removeItem })} />

@@ -37,7 +37,7 @@ const getNodeById = (value: ITreeItem[], targetId: string): ITreeItem | null => 
 };
 
 // 更新所有父节点状态
-const updateAllParentStatus = (value: ITreeItem[], selectedIds: Set<string>) => {
+export const updateAllParentStatus = (value: ITreeItem[], selectedIds: Set<string>) => {
   // 递归检查每个节点
   const checkNode = (nodes: ITreeItem[]) => {
     for (const node of nodes) {

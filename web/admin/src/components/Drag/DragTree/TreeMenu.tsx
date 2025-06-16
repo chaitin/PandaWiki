@@ -11,6 +11,7 @@ export type TreeMenuItem = {
   children?: {
     key: string
     label: string
+    disabled?: boolean
     onClick?: () => void
   }[]
 }
@@ -37,7 +38,7 @@ const TreeMenu = ({ menu }: { menu: TreeMenuItem[] }) => {
       key: value.key,
       children: value.children?.map(it => ({
         key: it.key,
-        onClick: it.onClick,
+        onClick: it?.disabled ? undefined : it.onClick,
         label: <Box key={it.key}>
           <Stack
             direction={'row'}
@@ -62,9 +63,11 @@ const TreeMenu = ({ menu }: { menu: TreeMenuItem[] }) => {
           sx={{
             fontSize: 14, pl: 2, pr: 1, lineHeight: '40px', height: 40, width: 180,
             borderRadius: '5px',
-            cursor: 'pointer', ':hover': { bgcolor: addOpacityToColor(theme.palette.primary.main, 0.1) }
+            color: value?.disabled ? 'text.disabled' : 'text.primary',
+            cursor: value?.disabled ? 'not-allowed' : 'pointer',
+            ':hover': { bgcolor: addOpacityToColor(theme.palette.primary.main, 0.1) }
           }}
-          onClick={value.onClick}
+          onClick={value?.disabled ? undefined : value.onClick}
         >
           {value.label}
           {value.children && <Icon type='icon-xiala' sx={{ fontSize: 20, transform: 'rotate(-90deg)' }} />}

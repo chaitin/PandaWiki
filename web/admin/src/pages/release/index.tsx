@@ -1,3 +1,4 @@
+import { getReleaseList, ReleaseListItem } from '@/api'
 import NoData from '@/assets/images/nodata.png'
 import Card from "@/components/Card"
 import { tableSx } from '@/constant/styles'
@@ -10,7 +11,7 @@ import VersionDelete from './components/VersionDelete'
 import VersionPublish from './components/VersionPublish'
 import VersionReset from './components/VersionReset'
 
-const Publish = () => {
+const Release = () => {
   const { kb_id } = useAppSelector(state => state.config)
   const [loading, setLoading] = useState(false)
   const [page, setPage] = useState(1)
@@ -19,30 +20,19 @@ const Publish = () => {
   const [curData, setCurData] = useState<any>(null)
   const [resetOpen, setResetOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [publishOpen, setPublishOpen] = useState(false)
+  const [curVersionId, setCurVersionId] = useState('')
 
-  const [data, setData] = useState<any[]>([
-    {
-      id: 1,
-      version: '1.0.0',
-      created_at: '2021-01-01',
-      remark: '备注',
-    },
-    {
-      id: 2,
-      version: '1.0.1',
-      created_at: '2021-01-01',
-      remark: '备注',
-    },
-  ])
+  const [data, setData] = useState<ReleaseListItem[]>([])
 
   const columns = [
     {
-      dataIndex: 'version',
+      dataIndex: 'tag',
       title: '版本号',
-      render: (text: string, record: any) => {
+      render: (text: string, record: ReleaseListItem) => {
         return <Stack direction={'row'} alignItems={'center'} gap={1}>
           <Box>{text}</Box>
-          <Box sx={{
+          {curVersionId === record.id && <Box sx={{
             fontSize: 12,
             lineHeight: '16px',
             border: '1px solid',
@@ -52,7 +42,7 @@ const Publish = () => {
             color: 'success.main'
           }}>
             当前版本
-          </Box>
+          </Box>}
         </Stack>
       }
     },
@@ -65,36 +55,37 @@ const Publish = () => {
       }
     },
     {
-      dataIndex: 'remark',
+      dataIndex: 'message',
       title: '备注',
     },
-    {
-      dataIndex: 'action',
-      title: '操作',
-      width: 120,
-      render: (text: string, record: any) => {
-        return <Stack direction={'row'} gap={2}>
-          <Button sx={{ minWidth: 0, p: 0 }} size='small' onClick={() => {
-            setCurData(record)
-            setResetOpen(true)
-          }}>回滚</Button>
-          <Button sx={{ minWidth: 0, p: 0 }} size='small' color='error' onClick={() => {
-            setCurData(record)
-            setDeleteOpen(true)
-          }}>删除</Button>
-        </Stack>
-      }
-    }
+    // {
+    //   dataIndex: 'action',
+    //   title: '操作',
+    //   width: 120,
+    //   render: (text: string, record: ReleaseListItem) => {
+    //     return <Stack direction={'row'} gap={2}>
+    //       <Button sx={{ minWidth: 0, p: 0 }} size='small' onClick={() => {
+    //         setCurData(record)
+    //         setResetOpen(true)
+    //       }}>回滚</Button>
+    //       <Button sx={{ minWidth: 0, p: 0 }} size='small' color='error' onClick={() => {
+    //         setCurData(record)
+    //         setDeleteOpen(true)
+    //       }}>删除</Button>
+    //     </Stack>
+    //   }
+    // }
   ]
 
   const getData = () => {
-    // setLoading(true)
-    // getPublishList({ page, per_page: pageSize, kb_id }).then(res => {
-    //   setData(res.data)
-    //   setTotal(res.total)
-    // }).finally(() => {
-    //   setLoading(false)
-    // })
+    setLoading(true)
+    getReleaseList({ kb_id, page, per_page: pageSize }).then(res => {
+      setData(res.data)
+      setTotal(res.total)
+      if (res.data && res.data.length > 0) setCurVersionId(res.data[0].id)
+    }).finally(() => {
+      setLoading(false)
+    })
   }
 
   useEffect(() => {
@@ -109,7 +100,7 @@ const Publish = () => {
         <Box component='span' sx={{ color: 'text.primary', mx: 0.5, fontFamily: 'Gbold' }}>{total}</Box>
         个历史版本
       </Box>
-      <VersionPublish />
+      <Button variant='contained' size='small' onClick={() => setPublishOpen(true)}>发布新版本</Button>
     </Stack>
     <Table
       columns={columns}
@@ -150,7 +141,8 @@ const Publish = () => {
     />
     <VersionDelete open={deleteOpen} onClose={() => setDeleteOpen(false)} data={curData} />
     <VersionReset open={resetOpen} onClose={() => setResetOpen(false)} data={curData} />
+    <VersionPublish open={publishOpen} onClose={() => setPublishOpen(false)} refresh={getData} />
   </Card>
 }
 
-export default Publish
+export default Release

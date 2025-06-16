@@ -43,8 +43,8 @@ const router = [
     element: createElement(LazyLoadable(lazy(() => import('./pages/setting')))),
   },
   {
-    path: '/publish',
-    element: createElement(LazyLoadable(lazy(() => import('./pages/publish')))),
+    path: '/release',
+    element: createElement(LazyLoadable(lazy(() => import('./pages/release')))),
   },
   {
     path: '/conversation',

@@ -186,9 +186,3 @@ export const MAC_SYMBOLS = {
   alt: "⌥",
   shift: "⇧",
 }
-
-export const NodeStatus = {
-  1: { label: '已发布', color: '#82DDAF', bgcolor: '#F2FBF7' },
-  2: { label: '私有的', color: '#FE4545', bgcolor: '#FEECEC' },
-  3: { label: '更新未发布', color: '#3248F2', bgcolor: '#EBEFFE' },
-}

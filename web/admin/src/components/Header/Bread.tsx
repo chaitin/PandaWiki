@@ -10,7 +10,7 @@ const OtherBread = {
   'document': { title: '文档', to: '/' },
   'conversation': { title: '分析', to: '/conversation' },
   'application': { title: '设置', to: '/setting' },
-  'publish': { title: '发布', to: '/publish' },
+  'release': { title: '发布', to: '/release' },
 }
 
 const Bread = () => {
