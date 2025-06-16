@@ -41,8 +41,8 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
           name: "",
           level: 2,
           type,
-          status: type === 2 ? 1 : undefined,
-          visibility: type === 2 ? 1 : undefined,
+          status: 1,
+          visibility: type === 2 ? 1 : 2,
           isEditting: true,
           parentId: item.id,
         }
@@ -117,6 +117,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
       {supportSelect && <Checkbox
         sx={{ flexShrink: 0, color: 'text.disabled', width: '35px', height: '35px' }}
         checked={selected.includes(item.id)}
+        indeterminate={item.type === 2 ? false : selected.includes(item.id) && item.children?.some(item => !selected.includes(item.id))}
         onChange={(e) => {
           e.stopPropagation()
           handleSelectChange(item.id)
@@ -175,6 +176,7 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
                       name: value,
                       emoji,
                       isEditting: false,
+                      status: item.name === value ? item.status : 1,
                       updated_at: dayjs().toString(),
                     });
                     setItems(temp);
@@ -195,7 +197,6 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
                       isEditting: false,
                       updated_at: dayjs().toString(),
                     });
-                    console.log(temp)
                     setItems(temp);
                   })
                 }

@@ -81,7 +81,7 @@ const Content = () => {
       ...(item.type === 2 ? [
         ...(item.visibility === 1 ? [{ label: '设为公开', key: 'public', onClick: () => handleStatus(item, 'public') }] : []),
         ...(item.visibility === 2 ? [{ label: '设为私有', key: 'private', onClick: () => handleStatus(item, 'private') }] : []),
-        ...(item.status === 1 && item.visibility === 2 ? [{ label: '更新发布', key: 'update_publish', onClick: () => handlePublish(item) }] : []),
+        ...(item.status === 1 ? [{ label: '更新发布', key: 'update_publish', onClick: () => handlePublish(item) }] : []),
         { label: item.summary ? '查看摘要' : '生成摘要', key: 'summary', onClick: () => handleSummary(item) },
       ] : []),
       ...(!isEditting ? [{ label: '重命名', key: 'rename', onClick: renameItem }] : []),
@@ -168,12 +168,26 @@ const Content = () => {
           <Box sx={{ fontSize: 14, color: 'text.secondary', mr: 2 }}>
             已选中 {selected.length} 项
           </Box>
-          <Button size="small" sx={{ minWidth: 0, p: 0 }} onClick={() => {
-            setDeleteOpen(true)
-            setOpraData(list.filter(item => selected.includes(item.id)))
-          }}>
-            批量删除
-          </Button>
+          <Stack direction={'row'} alignItems={'center'} gap={1}>
+            <Button size="small" sx={{ minWidth: 0, p: 0 }} onClick={() => {
+              setDeleteOpen(true)
+              setOpraData(list.filter(item => selected.includes(item.id)))
+            }}>
+              批量删除
+            </Button>
+            {/* <Button size="small" sx={{ minWidth: 0, p: 0 }} onClick={() => {
+              setStatusOpen('public')
+              setOpraData(list.filter(item => selected.includes(item.id)))
+            }}>
+              设为公开
+            </Button>
+            <Button size="small" sx={{ minWidth: 0, p: 0 }} onClick={() => {
+              setStatusOpen('private')
+              setOpraData(list.filter(item => selected.includes(item.id)))
+            }}>
+              设为私有
+            </Button> */}
+          </Stack>
         </> : <Box sx={{ fontSize: 14, color: 'text.secondary' }} >
           全选
         </Box>}

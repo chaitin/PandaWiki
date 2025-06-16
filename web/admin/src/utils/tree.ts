@@ -90,8 +90,6 @@ export const handleMultiSelect = (value: ITreeItem[], id: string, selected: stri
   return Array.from(selectedSet);
 }
 
-
-
 export const filterEmptyFolders = (data: ITreeItem[]): ITreeItem[] => {
   return data
     .map(item => {
@@ -118,6 +116,18 @@ export const getAllType2Items = (data: ITreeItem[]): string[] => {
     }
     if (item.children && item.children.length > 0) {
       result = result.concat(getAllType2Items(item.children));
+    }
+  });
+  return result;
+};
+
+// 获取所有节点的ID（平铺结构）
+export const getFlattenIds = (data: ITreeItem[]): string[] => {
+  let result: string[] = [];
+  data.forEach(item => {
+    result.push(item.id);
+    if (item.children && item.children.length > 0) {
+      result = result.concat(getFlattenIds(item.children));
     }
   });
   return result;

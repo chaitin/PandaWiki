@@ -30,7 +30,7 @@ const DocDelete = ({ open, onClose, data, refresh }: DocDeleteProps) => {
   return <Modal
     title={<Stack direction='row' alignItems='center' gap={1}>
       <ErrorIcon sx={{ color: 'warning.main' }} />
-      确认删除以下？
+      确认删除以下文档/文件夹？
     </Stack>}
     open={open}
     width={600}

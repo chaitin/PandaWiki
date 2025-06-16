@@ -1,9 +1,11 @@
 import { updateNode } from '@/api';
 import { NodeListItem, UpdateNodeData } from '@/api/type';
 import Card from '@/components/Card';
+import DragTree from '@/components/Drag/DragTree';
+import { convertToTree } from '@/constant/drag';
 import ErrorIcon from '@mui/icons-material/Error';
-import { Box, Stack, Typography } from "@mui/material";
-import { Ellipsis, Icon, Message, Modal } from "ct-mui";
+import { Stack, Typography } from "@mui/material";
+import { Message, Modal } from "ct-mui";
 
 interface DocStatusProps {
   open: boolean
@@ -44,6 +46,8 @@ const DocStatus = ({ open, status, kb_id, onClose, data, refresh }: DocStatusPro
     })
   }
   if (!open) return <></>
+
+  const tree = convertToTree(data)
   return <Modal
     title={<Stack direction='row' alignItems='center' gap={1}>
       <ErrorIcon sx={{ color: 'warning.main' }} />
@@ -59,20 +63,18 @@ const DocStatus = ({ open, status, kb_id, onClose, data, refresh }: DocStatusPro
       {textMap[status as keyof typeof textMap].text}
     </Typography>
     <Card sx={{
-      fontSize: 14, p: 1, px: 2, maxHeight: 'calc(100vh - 250px)', overflowY: 'auto', overflowX: 'hidden',
-      bgcolor: 'background.paper2', mt: 2,
+      mt: 2,
+      py: 1,
+      bgcolor: 'background.paper2',
+      '& .dndkit-drag-handle': {
+        top: '-2px !important'
+      }
     }}>
-      {data.map(item => <Stack key={item.id} direction='row' alignItems={'center'} gap={2} sx={{
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        py: 1,
-      }}>
-        {item.type === 1 ? <Icon sx={{ flexShrink: 0 }} type={'icon-wenjianjia'} />
-          : <Icon sx={{ flexShrink: 0 }} type='icon-wenjian' />}
-        <Box sx={{ width: '100%' }}>
-          <Ellipsis sx={{ width: 'calc(100% - 40px)' }}>{item.name || '-'}</Ellipsis>
-        </Box>
-      </Stack>)}
+      <DragTree
+        data={tree}
+        readOnly={true}
+        supportSelect={false}
+      />
     </Card>
   </Modal>
 }

@@ -2,7 +2,6 @@ import { getAppDetail, KnowledgeBaseListItem } from "@/api"
 import Card from "@/components/Card"
 import { Box, Divider } from "@mui/material"
 import { useEffect, useState } from "react"
-import CardStyle from "./CardStyle"
 import CardVisit from "./CardVisit"
 import CardWebCustomCode from "./CardWebCustomCode"
 import CardWebHeader from "./CardWebHeader"
@@ -32,7 +31,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
     <Box sx={{ fontWeight: 'bold', px: 2, py: 1.5, bgcolor: 'background.paper2' }}>门户网站</Box>
     <CardVisit kb={kb} refresh={refresh} />
     <Divider sx={{ my: 2 }} />
-    <CardStyle
+    {/* <CardStyle
       id={info.id}
       data={info}
       refresh={(value) => {
@@ -45,7 +44,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
         })
       }}
     />
-    <Divider sx={{ my: 2 }} />
+    <Divider sx={{ my: 2 }} /> */}
     <CardWebHeader
       id={info.id}
       data={info}

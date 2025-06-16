@@ -1,12 +1,12 @@
-import { addRelease, getNodeList, ITreeItem, NodeListItem } from "@/api";
+import { addRelease, getNodeList, ITreeItem } from "@/api";
 import Card from "@/components/Card";
 import DragTree from "@/components/Drag/DragTree";
 import { convertToTree } from "@/constant/drag";
 import { useAppSelector } from "@/store";
-import { filterEmptyFolders } from "@/utils/tree";
+import { filterEmptyFolders, getFlattenIds } from "@/utils/tree";
 import { Box, Checkbox, Stack, TextField } from "@mui/material";
 import { Message, Modal } from "ct-mui";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
 interface VersionPublishProps {
@@ -20,8 +20,8 @@ const VersionPublish = ({ open, defaultSelected = [], onClose, refresh }: Versio
   const { kb_id } = useAppSelector(state => state.config)
 
   const [selected, setSelected] = useState<string[]>([])
-  const [total, setTotal] = useState(0)
-  const [list, setList] = useState<NodeListItem[]>([])
+  const [folderIds, setFolderIds] = useState<string[]>([])
+  const [allIds, setAllIds] = useState<string[]>([])
   const [treeList, setTreeList] = useState<ITreeItem[]>([])
 
   const { handleSubmit, control, formState: { errors }, reset } = useForm({
@@ -34,18 +34,18 @@ const VersionPublish = ({ open, defaultSelected = [], onClose, refresh }: Versio
 
   const getData = () => {
     getNodeList({ kb_id }).then(res => {
-      const unPublishedData = res?.filter(item => ((item.visibility === 2 && item.status === 1) || item.type === 1)) || []
-      setList(unPublishedData)
-      setTotal(unPublishedData.filter(item => item.type === 2).length)
+      const unPublishedData = res?.filter(item => (item.status === 1 || item.type === 1)) || []
       const treeData = convertToTree(unPublishedData || [])
       const showTreeData = filterEmptyFolders(treeData)
       setTreeList(showTreeData)
+      setAllIds(getFlattenIds(showTreeData))
+      setFolderIds(res.filter(item => item.type === 1).map(item => item.id))
     })
   }
 
   const onSubmit = (data: any) => {
     if (selected.length > 0) {
-      addRelease({ kb_id, ...data, node_ids: selected }).then(() => {
+      addRelease({ kb_id, ...data, node_ids: [...selected, ...folderIds] }).then(() => {
         Message.success(`${data.tag} 版本发布成功`)
         reset()
         setSelected([])
@@ -53,7 +53,7 @@ const VersionPublish = ({ open, defaultSelected = [], onClose, refresh }: Versio
         refresh()
       })
     } else {
-      Message.error(total > 0 ? '请选择要发布的文档' : '暂无未发布文档')
+      Message.error(allIds.length > 0 ? '请选择要发布的文档' : '暂无未发布文档')
     }
   }
 
@@ -63,10 +63,6 @@ const VersionPublish = ({ open, defaultSelected = [], onClose, refresh }: Versio
       getData();
     }
   }, [open, kb_id]);
-
-  const selectedTotal = useMemo(() => {
-    return list.filter(item => selected.includes(item.id) && item.type === 2).length;
-  }, [selected, list]);
 
   return <Modal
     title='发布新版本'
@@ -116,14 +112,14 @@ const VersionPublish = ({ open, defaultSelected = [], onClose, refresh }: Versio
         <Box>
           更新未发布文档
           <Box component='span' sx={{ color: 'text.auxiliary', fontSize: 12, pl: 1 }}>
-            共 {total} 个，已选中 {selectedTotal} 个
+            共 {allIds.length} 个，已选中 {selected.length} 个
           </Box>
         </Box>
         <Stack direction='row' alignItems={'center'}>
           <Box sx={{ color: 'text.auxiliary', fontSize: 12 }}>全选</Box>
           <Checkbox size='small' sx={{ p: 0, color: 'text.disabled', width: '35px', height: '35px' }}
-            checked={selected.length === list.length} onChange={() => {
-              setSelected(selected.length === list.length ? [] : list.map(item => item.id))
+            checked={selected.length === allIds.length} onChange={() => {
+              setSelected(selected.length === allIds.length ? [] : allIds)
             }} />
         </Stack>
       </Stack>
