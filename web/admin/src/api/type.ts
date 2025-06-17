@@ -271,7 +271,11 @@ export type StyleSetting = {
   visible_mode_switch: boolean,
 }
 
-export type AppSetting = HeaderSetting & WelcomeSetting & SEOSetting & CustomCodeSetting & DingBotSetting & WecomBotSetting & FeishuBotSetting & StyleSetting & {
+export type CatalogSetting = {
+  catalog_expend: boolean,
+}
+
+export type AppSetting = HeaderSetting & WelcomeSetting & SEOSetting & CustomCodeSetting & DingBotSetting & WecomBotSetting & FeishuBotSetting & StyleSetting & CatalogSetting & {
   base_url: string
 }
 

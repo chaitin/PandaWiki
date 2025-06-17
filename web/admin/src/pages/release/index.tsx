@@ -47,16 +47,16 @@ const Release = () => {
       }
     },
     {
+      dataIndex: 'message',
+      title: '备注',
+    },
+    {
       dataIndex: 'created_at',
       title: '发布时间',
-      width: 170,
+      width: 120,
       render: (text: string) => {
         return dayjs(text).fromNow()
       }
-    },
-    {
-      dataIndex: 'message',
-      title: '备注',
     },
     // {
     //   dataIndex: 'action',

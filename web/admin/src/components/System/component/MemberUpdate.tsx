@@ -91,7 +91,7 @@ const MemberUpdate = ({ user, refresh, type }: UpdateMemberProps) => {
       }}
     >
       <Box sx={{ fontSize: 14, lineHeight: '32px' }}>
-        用户名 <Box component={'span'} sx={{ color: 'red' }}>*</Box>
+        用户名 <Box component={'span'} sx={{ color: 'red', mb: 1 }}>*</Box>
       </Box>
       <Box sx={{
         lineHeight: '36px',
@@ -102,7 +102,7 @@ const MemberUpdate = ({ user, refresh, type }: UpdateMemberProps) => {
         fontFamily: "Gbold",
         cursor: 'not-allowed'
       }}>{user.account}</Box>
-      <Box sx={{ fontSize: 14, lineHeight: '32px', mt: 2 }}>
+      <Box sx={{ fontSize: 14, lineHeight: '32px', mt: 2, mb: 1 }}>
         密码 <Box component={'span'} sx={{ color: 'red' }}>*</Box>
       </Box>
       <Stack direction={'row'} alignItems={'center'} gap={2}>
@@ -128,6 +128,7 @@ const MemberUpdate = ({ user, refresh, type }: UpdateMemberProps) => {
             fullWidth
             autoFocus
             size='small'
+            placeholder='输入密码'
             error={!!errors.password}
             helperText={errors.password?.message}
           />}

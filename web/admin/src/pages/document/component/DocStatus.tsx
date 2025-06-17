@@ -36,8 +36,6 @@ const DocStatus = ({ open, status, kb_id, onClose, data, refresh }: DocStatusPro
       temp.visibility = 2
     } else if (status === 'private') {
       temp.visibility = 1
-    } else if (status === 'publish') {
-      temp.status = 2
     }
     updateNode(temp).then(() => {
       Message.success('更新成功')

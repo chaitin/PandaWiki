@@ -82,7 +82,7 @@ const MemberAdd = ({ refresh }: { refresh: () => void }) => {
         loading,
       }}
     >
-      <Box sx={{ fontSize: 14, lineHeight: '32px' }}>
+      <Box sx={{ fontSize: 14, lineHeight: '32px', mb: 1 }}>
         用户名 <Box component={'span'} sx={{ color: 'red' }}>*</Box>
       </Box>
       <Controller
@@ -99,6 +99,7 @@ const MemberAdd = ({ refresh }: { refresh: () => void }) => {
           fullWidth
           autoFocus
           size='small'
+          placeholder='输入用户名'
           error={!!errors.account}
           helperText={errors.account?.message}
         />}

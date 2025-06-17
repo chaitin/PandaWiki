@@ -33,7 +33,8 @@ const Content = () => {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [summaryOpen, setSummaryOpen] = useState(false)
   const [urlOpen, setUrlOpen] = useState(false)
-  const [publishOpen, setPublishOpen] = useState('')
+  const [publishIds, setPublishIds] = useState<string[]>([])
+  const [publishOpen, setPublishOpen] = useState(false)
   const [key, setKey] = useState<'URL' | 'RSS' | 'Sitemap' | 'OfflineFile' | 'Notion'>('URL')
 
   const handleUrl = (item: ITreeItem, key: 'URL' | 'RSS' | 'Sitemap' | 'OfflineFile' | 'Notion') => {
@@ -58,8 +59,8 @@ const Content = () => {
   }
 
   const handlePublish = (item: ITreeItem) => {
-    setPublishOpen(item.id)
-    setOpraData(list.filter(it => it.id === item.id))
+    setPublishOpen(true)
+    setPublishIds([item.id])
   }
 
   const menu = (opra: TreeMenuOptions): TreeMenuItem[] => {
@@ -124,28 +125,45 @@ const Content = () => {
           <DocSearch />
           <DocAdd refresh={getData} />
           <MenuSelect
-            list={[{
-              key: 'batch',
-              label: <Stack
-                direction={'row'}
-                alignItems={'center'}
-                gap={1}
-                sx={{
-                  fontSize: 14, px: 2, lineHeight: '40px', height: 40, width: 180,
-                  borderRadius: '5px',
-                  cursor: 'pointer', ':hover': { bgcolor: addOpacityToColor(theme.palette.primary.main, 0.1) }
-                }}
-                onClick={() => setBatchOpen(true)}
-              >
-                批量操作
-              </Stack>
-            }]}
-            context={
-              <Box>
-                <IconButton size="small">
-                  <Icon type="icon-gengduo" />
-                </IconButton>
-              </Box>}
+            list={[
+              {
+                key: 'batch',
+                label: <Stack
+                  direction={'row'}
+                  alignItems={'center'}
+                  gap={1}
+                  sx={{
+                    fontSize: 14, px: 2, lineHeight: '40px', height: 40, width: 180,
+                    borderRadius: '5px',
+                    cursor: 'pointer', ':hover': { bgcolor: addOpacityToColor(theme.palette.primary.main, 0.1) }
+                  }}
+                  onClick={() => setBatchOpen(true)}
+                >
+                  批量操作
+                </Stack>
+              },
+              {
+                key: 'publish',
+                label: <Stack
+                  direction={'row'}
+                  alignItems={'center'}
+                  gap={1}
+                  sx={{
+                    fontSize: 14, px: 2, lineHeight: '40px', height: 40, width: 180,
+                    borderRadius: '5px',
+                    cursor: 'pointer', ':hover': { bgcolor: addOpacityToColor(theme.palette.primary.main, 0.1) }
+                  }}
+                  onClick={() => setPublishOpen(true)}
+                >
+                  批量发布
+                </Stack>
+              }
+            ]}
+            context={<Box>
+              <IconButton size="small">
+                <Icon type="icon-gengduo" />
+              </IconButton>
+            </Box>}
           />
         </Stack>
       </Stack>
@@ -254,11 +272,11 @@ const Content = () => {
       }}
     />
     <VersionPublish
-      open={!!publishOpen}
-      defaultSelected={publishOpen ? [publishOpen] : []}
+      open={publishOpen}
+      defaultSelected={publishIds}
       onClose={() => {
-        setPublishOpen('')
-        setOpraData([])
+        setPublishOpen(false)
+        setPublishIds([])
       }}
       refresh={getData}
     />

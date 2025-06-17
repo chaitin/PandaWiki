@@ -65,7 +65,7 @@ const AddRecommendContent = ({ open, selected, onChange, onClose }: AddRecommend
     /> : <Stack alignItems={'center'} justifyContent={'center'}>
       <img src={Nodata} alt="empty" style={{ width: 100, height: 100 }} />
       <Box sx={{ fontSize: 12, lineHeight: '20px', color: 'text.auxiliary', mt: 1 }}>
-        暂无数据，前往文档页面创建文档
+        暂无数据，前往文档页面创建并发布文档
       </Box>
     </Stack>}
   </Modal>

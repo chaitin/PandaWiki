@@ -241,16 +241,17 @@ const TreeItem = React.forwardRef<HTMLDivElement, TreeItemComponentProps<ITreeIt
             {menu && <>
               <Box sx={{ flex: 1, alignSelf: 'center', borderBottom: '1px dashed', borderColor: 'divider' }} />
               <Stack direction="row" alignItems={'center'} gap={2} sx={{ flexShrink: 0 }}>
-                {item.type === 2 && <Box sx={{ flexShrink: 0, fontSize: 12 }}>
+                {item.type === 2 && <Stack direction="row" alignItems={'center'} gap={1} sx={{ flexShrink: 0, fontSize: 12 }}>
                   {item.visibility === 1 ? <Box sx={{ color: 'warning.main', border: '1px solid', borderColor: 'warning.main', borderRadius: '10px', px: 1, bgcolor: addOpacityToColor(theme.palette.warning.main, 0.1) }}>
                     私有的
-                  </Box> : item.status === 1 ? <Box sx={{ color: 'info.main', border: '1px solid', borderColor: 'info.main', borderRadius: '10px', px: 1, bgcolor: addOpacityToColor(theme.palette.info.main, 0.1) }}>
-                    更新未发布
-                  </Box> : <Box sx={{ color: 'success.main', border: '1px solid', borderColor: 'success.main', borderRadius: '10px', px: 1, bgcolor: addOpacityToColor(theme.palette.success.main, 0.1) }}>
-                    已发布
+                  </Box> : item.status === 2 && <Box sx={{ color: 'success.main', border: '1px solid', borderColor: 'success.main', borderRadius: '10px', px: 1, bgcolor: addOpacityToColor(theme.palette.success.main, 0.1) }}>
+                    公开的
                   </Box>}
-                </Box>}
-                <Box sx={{ fontSize: 12, fontFamily: 'monospace', color: 'text.auxiliary' }}>{dayjs(item.updated_at).fromNow()}</Box>
+                  {item.status === 1 && <Box sx={{ color: 'info.main', border: '1px solid', borderColor: 'info.main', borderRadius: '10px', px: 1, bgcolor: addOpacityToColor(theme.palette.info.main, 0.1) }}>
+                    更新未发布
+                  </Box>}
+                </Stack>}
+                <Box sx={{ fontSize: 12, fontFamily: 'monospace', color: 'text.disabled', width: 60, textAlign: 'right' }}>{dayjs(item.updated_at).fromNow()}</Box>
                 <Box onClick={(e) => e.stopPropagation()}>
                   <TreeMenu menu={menu({ item, createItem, renameItem, isEditting, removeItem })} />
                 </Box>

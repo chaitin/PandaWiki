@@ -62,7 +62,7 @@ const CardStyle = ({ id, data, refresh }: CardStyleProps) => {
           setIsEdit(true)
         }}>
           <FormControlLabel value={1} control={<Radio size='small' />} label={<Box sx={{ width: 120 }}>问答模式</Box>} />
-          <FormControlLabel value={2} control={<Radio size='small' />} label={<Box sx={{ width: 90 }}>文档模式</Box>} />
+          <FormControlLabel value={2} control={<Radio size='small' />} label={<Box sx={{ width: 120 }}>文档模式</Box>} />
         </RadioGroup>}
       />
     </Stack>
@@ -76,7 +76,7 @@ const CardStyle = ({ id, data, refresh }: CardStyleProps) => {
           setIsEdit(true)
         }}>
           <FormControlLabel value={true} control={<Radio size='small' />} label={<Box sx={{ width: 120 }}>展示切换按钮</Box>} />
-          <FormControlLabel value={false} control={<Radio size='small' />} label={<Box sx={{ width: 90 }}>隐藏切换按钮</Box>} />
+          <FormControlLabel value={false} control={<Radio size='small' />} label={<Box sx={{ width: 120 }}>隐藏切换按钮</Box>} />
         </RadioGroup>}
       />
     </Stack>
