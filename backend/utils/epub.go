@@ -11,8 +11,10 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	htmltomarkdown "github.com/JohannesKaufmann/html-to-markdown/v2"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/store/s3"
@@ -22,6 +24,7 @@ import (
 
 type EpubConverter struct {
 	logger      *log.Logger
+	mu          sync.Mutex
 	minioClient *s3.MinioClient
 	//relative path -> oss path
 	resources map[string]string
@@ -50,7 +53,7 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data []byte) (
 		return "", nil, err
 	}
 
-	//read ./OEBPS/content.opf
+	//read ./path/to/content.opf
 	var p *Package
 	if p, err = getOpf(zipReader); err != nil {
 		return "", nil, err
@@ -63,14 +66,31 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data []byte) (
 	if kbID == "" {
 		kbID = "default_kbID"
 	}
+
 	//reslove resource file
 	if err := e.uploadFile(ctx, kbID, zipReader); err != nil {
 		return "", nil, err
 	}
 
+	conv := converter.NewConverter()
+
+	conv.Register.TagType("a", converter.TagTypeRemove, converter.PriorityStandard)
+
 	res := make(map[string]*bytes.Buffer)
+	var toc []map[string]string
 	for _, f := range zipReader.File {
 		ext := strings.ToLower(filepath.Ext(f.Name))
+		if ext == ".ncx" {
+			F, err := f.Open()
+			if err != nil {
+				return "", nil, err
+			}
+			defer F.Close()
+			toc, err = ParseNCX(F)
+			if err != nil {
+				return "", nil, err
+			}
+		}
 		if ext != ".html" && ext != ".hml" && ext != ".xhtml" {
 			continue
 		}
@@ -83,7 +103,7 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data []byte) (
 		if err != nil {
 			return "", nil, err
 		}
-		mdStr, err := htmltomarkdown.ConvertString(preprocess(string(htmlStr)))
+		mdStr, err := htmltomarkdown.ConvertString((string(htmlStr)))
 		if err != nil {
 			return "", nil, err
 		}
@@ -91,7 +111,19 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data []byte) (
 	}
 	//page sequence
 	result := &bytes.Buffer{}
+	//写目录
+	result.WriteString("# 目录\n\n")
+	for _, v := range toc {
+		result.WriteString(fmt.Sprintf("- [%s](#%s)\n", v["title"], v["playOrder"]))
+	}
+	temp := make(map[string]string)
+	for _, v := range toc {
+		temp[v["src"]] = v["playOrder"]
+	}
 	for _, itemRef := range p.Spine.ItemRefs {
+		title := temp[e.resourcesIdMap[itemRef.IDRef].Href]
+		result.WriteString("<span id=" + title + "></span>\n\n")
+		//
 		io.Copy(result, res[e.resourcesIdMap[itemRef.IDRef].Href])
 		result.WriteString("\n\n")
 	}
@@ -100,45 +132,69 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data []byte) (
 }
 
 func (e *EpubConverter) uploadFile(ctx context.Context, kbID string, zipReader *zip.Reader) error {
+	var wg sync.WaitGroup
+	errCh := make(chan error, len(zipReader.File))
+	sem := make(chan struct{}, 10) // 控制并发数（如10）
 
 	for _, f := range zipReader.File {
-		if f.Name == "META-INF/container.xml" || f.Name == "mimetype" {
+		if isSkippableFile(f.Name) {
 			continue
 		}
 
-		ext := strings.ToLower(filepath.Ext(f.Name))
+		sem <- struct{}{} // 获取信号量
+		wg.Add(1)
 
-		if ext == ".html" || ext == ".hml" || ext == ".css" || ext == ".xml" || ext == ".nck" || ext == ".opf" {
-			continue
-		}
-		//图片 视频 音频
-		F, err := f.Open()
-		if err != nil {
-			return err
-		}
+		go func(f *zip.File) {
+			defer func() {
+				<-sem
+				wg.Done()
+			}()
 
-		go func() {
-			defer F.Close()
-			ossPath := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), ext)
-			e.resources[f.Name] = fmt.Sprintf("/%s/%s", domain.Bucket, ossPath)
-			_, name := filepath.Split(f.Name)
-			e.minioClient.PutObject(
-				ctx,
-				domain.Bucket,
-				ossPath,
-				F,
-				f.FileInfo().Size(),
-				minio.PutObjectOptions{
-					ContentType: e.resourcesIdMap[e.relavitePath[f.Name]].MediaType,
-					UserMetadata: map[string]string{
-						"originalname": name,
-					},
-				},
-			)
-		}()
-
+			if err := e.processFile(ctx, f, kbID); err != nil {
+				errCh <- err
+			}
+		}(f)
 	}
-	return nil
+
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	return <-errCh // 返回第一个错误（或 nil）
+}
+
+func (e *EpubConverter) processFile(ctx context.Context, f *zip.File, kbID string) error {
+	file, err := f.Open()
+	if err != nil {
+		return fmt.Errorf("打开文件 %s 失败: %v", f.Name, err)
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(f.Name))
+	ossPath := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), ext)
+
+	e.mu.Lock()
+	e.resources[f.Name] = fmt.Sprintf("/%s/%s", domain.Bucket, ossPath)
+	e.mu.Unlock()
+
+	_, err = e.minioClient.PutObject(
+		ctx,
+		domain.Bucket,
+		ossPath,
+		file,
+		f.FileInfo().Size(),
+		minio.PutObjectOptions{
+			ContentType:  e.resourcesIdMap[e.relavitePath[f.Name]].MediaType,
+			UserMetadata: map[string]string{"originalname": filepath.Base(f.Name)},
+		},
+	)
+	return err
+}
+
+func isSkippableFile(name string) bool {
+	skipExts := map[string]bool{".html": true, ".css": true, ".xml": true /* 其他扩展名 */}
+	return name == "META-INF/container.xml" || name == "mimetype" || skipExts[filepath.Ext(name)]
 }
 
 func (e *EpubConverter) exchangeUrl(content string) ([]byte, error) {
@@ -277,14 +333,48 @@ func getOpf(zipReader *zip.Reader) (*Package, error) {
 	return nil, errors.New("content.opf not found")
 }
 
-func preprocess(html string) string {
-	// 匹配自闭合 <a> 标签（如 <a /> 或 <a href="/" />）
-	re := regexp.MustCompile(`<a\s+([^>]*?)/>`)
-	// 替换为 <a $1></a>
-	html = re.ReplaceAllString(html, `<a $1></a>`)
-	// 匹配 <a> 标签中的 href 属性
-	re = regexp.MustCompile(`\s+href="[^"]*"`)
-	// 替换为空字符串，即移除 href 属性
-	html = re.ReplaceAllString(html, "")
-	return html
+// NCX 结构体定义
+type NCX struct {
+	XMLName xml.Name `xml:"ncx"`
+	NavMap  NavMap   `xml:"navMap"`
+}
+
+type NavMap struct {
+	NavPoints []NavPoint `xml:"navPoint"`
+}
+
+type NavPoint struct {
+	ID        string   `xml:"id,attr"`
+	PlayOrder string   `xml:"playOrder,attr"`
+	NavLabel  NavLabel `xml:"navLabel"`
+	Content   Content  `xml:"content"`
+}
+
+type NavLabel struct {
+	Text string `xml:"text"`
+}
+
+type Content struct {
+	Src string `xml:"src,attr"`
+}
+
+// ParseNCX 解析 NCX 文件并返回目录信息
+func ParseNCX(r io.Reader) ([]map[string]string, error) {
+	var ncx NCX
+	if err := xml.NewDecoder(r).Decode(&ncx); err != nil {
+		return nil, fmt.Errorf("解析NCX失败: %v", err)
+	}
+
+	var toc []map[string]string
+	for _, np := range ncx.NavMap.NavPoints {
+		entry := map[string]string{
+			"id":        np.ID,
+			"playOrder": np.PlayOrder,
+			"title":     np.NavLabel.Text,
+			"src":       np.Content.Src,
+		}
+		toc = append(toc, entry)
+	}
+
+	return toc, nil
 }
