@@ -25,7 +25,7 @@ const AddRecommendContent = ({ open, selected, onChange, onClose }: AddRecommend
     setLoading(true)
     const params: NodeListFilterData = { kb_id }
     getNodeList(params).then(res => {
-      const filterData = res?.filter(item => (item.type === 1 || item.visibility === 2)) || []
+      const filterData = res?.filter(item => (item.type === 1 || (item.visibility === 2 && item.status === 2))) || []
       const filterTreeData = convertToTree(filterData)
       const showTreeData = filterEmptyFolders(filterTreeData)
       setList(showTreeData)
