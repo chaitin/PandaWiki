@@ -14,6 +14,9 @@ const (
 	ModelProviderBrandSiliconFlow ModelProvider = "SiliconFlow"
 	ModelProviderBrandAzureOpenAI ModelProvider = "AzureOpenAI"
 	ModelProviderBrandBaiZhiCloud ModelProvider = "BaiZhiCloud"
+	ModelProviderBrandHunyuan     ModelProvider = "Hunyuan"
+	ModelProviderBrandBaiLian     ModelProvider = "BaiLian"
+	ModelProviderBrandVolcengine  ModelProvider = "Volcengine"
 	ModelProviderBrandOther       ModelProvider = "Other"
 )
 
@@ -80,7 +83,7 @@ type CheckModelReq struct {
 }
 
 type BaseModelInfo struct {
-	Provider   ModelProvider `json:"provider" validate:"required,oneof=OpenAI Ollama DeepSeek SiliconFlow Moonshot Other AzureOpenAI BaiZhiCloud"`
+	Provider   ModelProvider `json:"provider" validate:"required,oneof=OpenAI Ollama DeepSeek SiliconFlow Moonshot Other AzureOpenAI BaiZhiCloud Hunyuan BaiLian Volcengine"`
 	Model      string        `json:"model" validate:"required"`
 	BaseURL    string        `json:"base_url" validate:"required"`
 	APIKey     string        `json:"api_key"`
@@ -122,10 +125,17 @@ var ModelProviderBrandModelsList = map[ModelProvider][]ProviderModelListItem{
 		{Model: "o3-mini"},
 		{Model: "o4-mini"},
 	},
+	ModelProviderBrandVolcengine: {
+		{Model: "doubao-seed-1.6-250615"},
+		{Model: "doubao-seed-1.6-flash-250615"},
+		{Model: "doubao-seed-1.6-thinking-250615"},
+		{Model: "doubao-1.5-thinking-vision-pro-250428"},
+		{Model: "deepseek-r1-250528"},
+	},
 }
 
 type GetProviderModelListReq struct {
-	Provider  string    `json:"provider" query:"provider" validate:"required,oneof=SiliconFlow OpenAI Ollama DeepSeek Moonshot AzureOpenAI BaiZhiCloud"`
+	Provider  string    `json:"provider" query:"provider" validate:"required,oneof=SiliconFlow OpenAI Ollama DeepSeek Moonshot AzureOpenAI BaiZhiCloud Hunyuan BaiLian Volcengine"`
 	BaseURL   string    `json:"base_url" query:"base_url" validate:"required"`
 	APIKey    string    `json:"api_key" query:"api_key"`
 	APIHeader string    `json:"api_header" query:"api_header"`

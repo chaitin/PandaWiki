@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"time"
 
 	"github.com/cloudwego/eino/schema"
@@ -207,16 +208,16 @@ func (u *ModelUsecase) UpdateUsage(ctx context.Context, modelID string, usage *s
 
 func (u *ModelUsecase) GetUserModelList(ctx context.Context, req *domain.GetProviderModelListReq) (*domain.GetProviderModelListResp, error) {
 	switch provider := domain.ModelProvider(req.Provider); provider {
-	case domain.ModelProviderBrandMoonshot, domain.ModelProviderBrandDeepSeek, domain.ModelProviderBrandAzureOpenAI:
+	case domain.ModelProviderBrandMoonshot, domain.ModelProviderBrandDeepSeek, domain.ModelProviderBrandAzureOpenAI, domain.ModelProviderBrandVolcengine:
 		return &domain.GetProviderModelListResp{
 			Models: domain.ModelProviderBrandModelsList[domain.ModelProvider(req.Provider)],
 		}, nil
-	case domain.ModelProviderBrandOpenAI:
+	case domain.ModelProviderBrandOpenAI, domain.ModelProviderBrandHunyuan, domain.ModelProviderBrandBaiLian:
 		u, err := url.Parse(req.BaseURL)
 		if err != nil {
 			return nil, err
 		}
-		u.Path = "/v1/models"
+		u.Path = path.Join(u.Path, "/models")
 		request, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 		if err != nil {
 			return nil, err
@@ -225,6 +226,9 @@ func (u *ModelUsecase) GetUserModelList(ctx context.Context, req *domain.GetProv
 		resp, err := http.DefaultClient.Do(request)
 		if err != nil {
 			return nil, err
+		}
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("failed to get models: %s", resp.Status)
 		}
 		defer resp.Body.Close()
 		body, err := io.ReadAll(resp.Body)
