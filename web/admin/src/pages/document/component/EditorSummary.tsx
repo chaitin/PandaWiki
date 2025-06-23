@@ -34,7 +34,7 @@ const EditorSummary = ({ kb_id, id, name, summary: defaultSummary }: EditorSumma
           fontWeight: 'bold',
         }}>内容摘要</Box>
         {!!summary && <Button sx={{ minWidth: 0, p: 0, height: 24 }} onClick={() => setOpen(true)}>
-          重新生成
+          修改
         </Button>}
       </Stack>
       <Stack gap={1} sx={{
@@ -46,6 +46,7 @@ const EditorSummary = ({ kb_id, id, name, summary: defaultSummary }: EditorSumma
           暂无摘要，<Button sx={{ minWidth: 0, p: 0, fontSize: 12 }} onClick={() => setOpen(true)}>去生成</Button>
         </Stack> : <Box sx={{
           fontSize: 14,
+          color: 'text.secondary',
           wordBreak: 'break-all',
           maxHeight: '210px',
           overflowY: 'auto',

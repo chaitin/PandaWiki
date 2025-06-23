@@ -17,15 +17,19 @@ type DocAddByUrlProps = {
 }
 
 const StepText = {
-  1: {
+  'pull': {
     okText: '拉取数据',
     showCancel: true,
   },
-  2: {
+  'pull-done': {
+    okText: '拉取数据',
+    showCancel: true,
+  },
+  'import': {
     okText: '导入数据',
     showCancel: true,
   },
-  3: {
+  'done': {
     okText: '完成',
     showCancel: false,
   }
@@ -42,7 +46,7 @@ type Item = {
 const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddByUrlProps) => {
 
   const { kb_id } = useAppSelector(state => state.config)
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [step, setStep] = useState<keyof typeof StepText>('pull')
   const [loading, setLoading] = useState(false)
   const [url, setUrl] = useState('')
   const [items, setItems] = useState<Item[]>([])
@@ -71,7 +75,7 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
   const handleCancel = () => {
     setIsCancelled(true)
     setRequestQueue([])
-    setStep(1)
+    setStep('pull')
     setUrl('')
     setItems([])
     setSelectIds([])
@@ -115,10 +119,10 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
           console.error(`文件 ${acceptedFiles[i].name} 上传失败:`, error)
         }
       }
-      setStep(2)
+      setStep('import')
       for (const { url, title } of urls) {
         const res = await scrapeCrawler({ url, kb_id })
-        setItems(prev => [...prev, { ...res, url, title: title || res.title, success: -1, id: '' }])
+        setItems(prev => [{ ...res, url, title: title || res.title, success: -1, id: '' }, ...prev])
       }
       setLoading(false)
     } catch (error) {
@@ -133,20 +137,11 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
       for (const url of urls) {
         newQueue.push(async () => {
           const { title = url, content } = await scrapeCrawler({ url, kb_id })
-          setItems(prev => [...prev, { title, content, url, success: -1, id: '' }])
+          setItems(prev => [{ title, content, url, success: -1, id: '' }, ...prev])
         })
       }
-    }
-    if (type === 'RSS') {
-      const { items = [] } = await scrapeRSS({ url })
-      for (const item of items) {
-        if (item.url) {
-          newQueue.push(async () => {
-            const res = await scrapeCrawler({ url: item.url, kb_id })
-            setItems(prev => [...prev, { ...res, url: item.url, success: -1, id: '' }])
-          })
-        }
-      }
+      setStep('import')
+      setRequestQueue(newQueue)
     }
     if (type === 'Sitemap') {
       const res = await scrapeSitemap({ url })
@@ -154,33 +149,64 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
       for (const url of urls) {
         newQueue.push(async () => {
           const res = await scrapeCrawler({ url, kb_id })
-          setItems(prev => [...prev, { ...res, url, success: -1, id: '' }])
+          setItems(prev => [{ ...res, url, success: -1, id: '' }, ...prev])
+        })
+      }
+      setStep('import')
+      setRequestQueue(newQueue)
+    }
+    if (type === 'RSS') {
+      const { items = [] } = await scrapeRSS({ url })
+      setItems(items.map(item => ({ title: item.title, content: item.desc, url: item.url, success: -1, id: '' })))
+      setStep('pull-done')
+      setLoading(false)
+    }
+    if (type === 'Notion') {
+      const data = await getNotionIntegration({ integration: url })
+      setItems(data.map(item => ({ title: item.title, content: '', url: item.id, success: -1, id: '' })))
+      setStep('pull-done')
+      setLoading(false)
+    }
+  }
+
+  const handleSelectedExportedData = async () => {
+    const newQueue: (() => Promise<any>)[] = []
+    if (type === 'RSS') {
+      for (const url of selectIds) {
+        newQueue.push(async () => {
+          const res = await scrapeCrawler({ url, kb_id })
+          setItems(prev => [{ ...res, url, success: -1, id: '' }, ...prev])
         })
       }
     }
     if (type === 'Notion') {
-      const data = await getNotionIntegration({ integration: url })
-      for (const item of data) {
+      const notionData = items.filter(item => selectIds.includes(item.url))
+      for (const item of notionData) {
         newQueue.push(async () => {
-          const res = await getNotionIntegrationDetail({ pages: [item], integration: url, kb_id })
-          setItems(prev => [...prev, { ...res[0], url: item.id, success: -1, id: '' }])
+          const res = await getNotionIntegrationDetail({ pages: [{ id: item.url, title: item.title }], integration: url, kb_id })
+          setItems(prev => [{ ...res[0], url: item.url, success: -1, id: '' }, ...prev])
         })
       }
     }
-    setStep(2)
+    setStep('import')
     setRequestQueue(newQueue)
   }
 
   const handleOk = async () => {
-    if (step === 3) {
+    if (step === 'done') {
       handleCancel()
       refresh?.()
-    } else if (step === 1) {
+    } else if (step === 'pull') {
       setLoading(true)
       setIsCancelled(false)
       if (type === 'OfflineFile') handleOfflineFile()
       else handleURL()
-    } else if (step === 2) {
+    } else if (step === 'pull-done') {
+      setLoading(true)
+      setItems([])
+      setIsCancelled(false)
+      handleSelectedExportedData()
+    } else if (step === 'import') {
       if (selectIds.length === 0) {
         Message.error('请选择要导入的文档')
         return
@@ -224,7 +250,7 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
       const allSuccess = newItems.every(item => item.success === 1 && item.id !== '-1' && item.id !== '')
       setItems(newItems)
       if (allSuccess) {
-        setStep(3)
+        setStep('done')
       }
     }
   }
@@ -276,7 +302,7 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
     showCancel={StepText[step].showCancel}
     okButtonProps={{ loading }}
   >
-    {step === 1 && (type === 'OfflineFile' ? <Box>
+    {step === 'pull' && (type === 'OfflineFile' ? <Box>
       <Upload
         file={acceptedFiles}
         onChange={(accept, reject) => onChangeFile(accept, reject)}
@@ -352,7 +378,7 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
       }}>
         {type === 'Notion' ? 'Integration Secret' : `${type} 地址`}
         {type === 'Notion' && <Box component='a'
-          href='https://pandawiki.docs.baizhi.cloud/node/01975f23-1c18-74aa-9a05-955b5128c49d' target='_blank'
+          href='https://pandawiki.docs.baizhi.cloud/node/01976929-0e76-77a9-aed9-842e60933464#%E9%80%9A%E8%BF%87%20Notion%20%E5%AF%BC%E5%85%A5' target='_blank'
           sx={{ fontSize: 12, color: 'primary.main' }}>
           使用方法
         </Box>}
@@ -367,7 +393,7 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
         onChange={(e) => setUrl(e.target.value)}
       />
     </>)}
-    {step !== 1 && <Box sx={{
+    {step !== 'pull' && <Box sx={{
       borderRadius: '10px',
       border: '1px solid',
       borderColor: 'divider',
@@ -375,7 +401,7 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
       overflowX: 'hidden',
       overflowY: 'auto',
     }}>
-      {step === 2 && <Stack direction={'row'} alignItems={'center'} gap={1} sx={{
+      {['pull-done', 'import'].includes(step) && <Stack direction={'row'} alignItems={'center'} gap={1} sx={{
         px: 2,
         py: 1,
         borderBottom: '1px solid',
@@ -396,6 +422,20 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
         <Box sx={{ fontSize: 14 }}>全选</Box>
       </Stack>}
       <Stack>
+        {loading && <Stack direction={'row'} alignItems={'center'} gap={1} sx={{
+          px: 2,
+          py: 1,
+          cursor: 'pointer',
+          bgcolor: 'background.paper2'
+        }}>
+          <Stack direction={'row'} justifyContent={'center'} alignItems={'center'} sx={{ flexShrink: 0, width: 20, height: 20 }}>
+            <Icon type='icon-shuaxin' sx={{ fontSize: 18, color: 'text.auxiliary', animation: 'loadingRotate 1s linear infinite' }} />
+          </Stack>
+          <Box component="label" sx={{ flexGrow: 1 }}>
+            <Skeleton variant="text" width={200} height={21} />
+            <Skeleton variant="text" height={18} />
+          </Box>
+        </Stack>}
         {items.map((item, idx) => <Stack direction={'row'} alignItems={'center'} gap={1} key={item.url} sx={{
           px: 2,
           py: 1,
@@ -445,20 +485,6 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
             })
           }}>重新导入</Button> : null}
         </Stack>)}
-        {loading && <Stack direction={'row'} alignItems={'center'} gap={1} sx={{
-          px: 2,
-          py: 1,
-          cursor: 'pointer',
-          bgcolor: 'background.paper2'
-        }}>
-          <Stack direction={'row'} justifyContent={'center'} alignItems={'center'} sx={{ flexShrink: 0, width: 20, height: 20 }}>
-            <Icon type='icon-shuaxin' sx={{ fontSize: 18, color: 'text.auxiliary', animation: 'loadingRotate 1s linear infinite' }} />
-          </Stack>
-          <Box component="label" sx={{ flexGrow: 1 }}>
-            <Skeleton variant="text" width={200} height={21} />
-            <Skeleton variant="text" height={18} />
-          </Box>
-        </Stack>}
       </Stack>
     </Box>}
   </Modal>
