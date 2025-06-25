@@ -158,7 +158,7 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 							{
 								"match": []map[string]any{
 									{
-										"path": []string{"/share/v1/node/detail"},
+										"path": []string{"/share/v1/node/detail", "/share/v1/app/wechat/callback"},
 									},
 								},
 								"handle": []map[string]any{

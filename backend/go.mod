@@ -28,6 +28,7 @@ require (
 	github.com/redis/go-redis/v9 v9.8.0
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/samber/lo v1.50.0
+	github.com/sbzhu/weworkapi_golang v0.0.0-20210525081115-1799804a7c8d
 	github.com/spf13/viper v1.20.1
 	github.com/swaggo/echo-swagger v1.4.1
 	github.com/swaggo/swag v1.16.4

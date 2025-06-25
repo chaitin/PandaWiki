@@ -1972,6 +1972,22 @@ const docTemplate = `{
                     "description": "nav",
                     "type": "string"
                 },
+                "we_againt_id": {
+                    "type": "string"
+                },
+                "we_secret": {
+                    "type": "string"
+                },
+                "wechat_bot_token": {
+                    "description": "WechatBot",
+                    "type": "string"
+                },
+                "wechat_corpid": {
+                    "type": "string"
+                },
+                "wechat_encodingaeskey": {
+                    "type": "string"
+                },
                 "welcome_str": {
                     "description": "welcome",
                     "type": "string"
@@ -2061,6 +2077,22 @@ const docTemplate = `{
                     "description": "nav",
                     "type": "string"
                 },
+                "we_againt_id": {
+                    "type": "string"
+                },
+                "we_secret": {
+                    "type": "string"
+                },
+                "wechat_bot_token": {
+                    "description": "WechatBot",
+                    "type": "string"
+                },
+                "wechat_corpid": {
+                    "type": "string"
+                },
+                "wechat_encodingaeskey": {
+                    "type": "string"
+                },
                 "welcome_str": {
                     "description": "welcome",
                     "type": "string"
@@ -2073,13 +2105,15 @@ const docTemplate = `{
                 1,
                 2,
                 3,
-                4
+                4,
+                5
             ],
             "x-enum-varnames": [
                 "AppTypeWeb",
                 "AppTypeWidget",
                 "AppTypeDingTalkBot",
-                "AppTypeFeishuBot"
+                "AppTypeFeishuBot",
+                "AppTypeWechatBot"
             ]
         },
         "domain.BrandGroup": {

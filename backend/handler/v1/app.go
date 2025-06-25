@@ -33,6 +33,7 @@ func NewAppHandler(e *echo.Echo, baseHandler *handler.BaseHandler, logger *log.L
 		conversationUsecase: conversationUsecase,
 		config:              config,
 	}
+
 	group := e.Group("/api/v1/app", h.auth.Authorize)
 	group.GET("/detail", h.GetAppDetail)
 	group.PUT("", h.UpdateApp)
