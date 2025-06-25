@@ -16,6 +16,7 @@ const (
 	AppTypeDingTalkBot
 	AppTypeFeishuBot
 	AppTypeWechatBot
+	AppTypeWechatBot
 )
 
 var AppTypes = []AppType{
@@ -23,6 +24,7 @@ var AppTypes = []AppType{
 	AppTypeWidget,
 	AppTypeDingTalkBot,
 	AppTypeFeishuBot,
+	AppTypeWechatBot,
 	AppTypeWechatBot,
 }
 

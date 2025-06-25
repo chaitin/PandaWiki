@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"encoding/xml"
+	"fmt"
 	"sync"
 
 	"github.com/chaitin/panda-wiki/config"
@@ -9,7 +11,9 @@ import (
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/pkg/bot/dingtalk"
 	"github.com/chaitin/panda-wiki/pkg/bot/feishu"
+	"github.com/chaitin/panda-wiki/pkg/bot/wechat"
 	"github.com/chaitin/panda-wiki/repo/pg"
+	"github.com/sbzhu/weworkapi_golang/wxbizmsgcrypt"
 )
 
 type AppUsecase struct {
@@ -322,4 +326,116 @@ func (u *AppUsecase) GetWebAppInfo(ctx context.Context, kbID string) (*domain.Ap
 		appInfo.RecommendNodes = nodes
 	}
 	return appInfo, nil
+}
+
+// 验证企业微信的回调 -- 先查询数据库得到用户传入的token来解密
+func (u *AppUsecase) VerifiyUrl(ctx context.Context, signature, timestamp, nonce, echostr, KbId string) ([]byte, error) {
+
+	// 找到对应的企业微信配置
+	appres, err := u.GetAppDetailByKBIDAndAppType(ctx, KbId, domain.AppTypeWechatBot)
+	if err != nil {
+		u.logger.Error("find Appdetail failed")
+	}
+	u.logger.Info("拿到了map中的第一个企业微信机器人的消息", appres)
+
+	// 先查询对应的企业微信的配置--拿到wechatbot的配置
+	wc, err := wechat.NewWechatConfig(
+		ctx,
+		appres.Settings.WeCorpID,
+		appres.Settings.WeChatToken,
+		appres.Settings.WeEncodingAESKey,
+		KbId,
+		appres.Settings.WeSecret,
+		appres.Settings.WeAgantID,
+	)
+
+	if err != nil {
+		u.logger.Error("failed to create WechatConfig", log.Error(err))
+		return nil, err
+	}
+
+	body, err := wc.VerifiyUrl(signature, timestamp, nonce, echostr)
+	if err != nil {
+		u.logger.Error("wc verifiyUrl failed", log.Error(err))
+		return nil, err
+	}
+	return body, nil
+}
+
+// 接受企业微信发送的消息
+func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce string, body []byte, KbId string, remoteip string) error {
+
+	// 找到对应的企业微信配置--类型为apptype
+	appres, err := u.GetAppDetailByKBIDAndAppType(ctx, KbId, domain.AppTypeWechatBot)
+
+	if err != nil {
+		u.logger.Error("find Appdetail failed")
+	}
+
+	// 查询获取到配置
+	wc, err := wechat.NewWechatConfig(
+		ctx,
+		appres.Settings.WeCorpID,
+		appres.Settings.WeChatToken,
+		appres.Settings.WeEncodingAESKey,
+		KbId,
+		appres.Settings.WeSecret,
+		appres.Settings.WeAgantID,
+	)
+
+	if err != nil {
+		u.logger.Error("failed to create WechatConfig", log.Error(err))
+		return err
+	}
+	u.logger.Info("remote ip :", remoteip)
+
+	// 大模型的chat方法--拿到的就是chan string的大模型回答的结果
+	getQA := u.wechatQAFunc(KbId, appres.Type, remoteip)
+
+	err = wc.Wechat(signature, timestamp, nonce, body, getQA)
+
+	if err != nil {
+		u.logger.Error("wc wechat failed", log.Error(err))
+		return err
+	}
+	return nil
+}
+
+func (u *AppUsecase) SendImmediateResponse(ctx context.Context, signature, timestamp, nonce string, body []byte, kbID string) ([]byte, error) {
+	// 查询配置
+	appres, err := u.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppTypeWechatBot)
+	if err != nil {
+		return nil, err
+	}
+
+	wc, err := wechat.NewWechatConfig(
+		ctx,
+		appres.Settings.WeCorpID,
+		appres.Settings.WeChatToken,
+		appres.Settings.WeEncodingAESKey,
+		kbID,
+		appres.Settings.WeSecret,
+		appres.Settings.WeAgantID,
+	)
+
+	u.logger.Info("sendimi wechat-bot:", appres)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 解析消息以获取FromUserName,一定要解析数据，拿到可以恢复的东西，才能恢复
+	wxcpt := wxbizmsgcrypt.NewWXBizMsgCrypt(wc.Token, wc.EncodingAESKey, wc.CorpID, wxbizmsgcrypt.XmlType)
+	decryptMsg, errCode := wxcpt.DecryptMsg(signature, timestamp, nonce, body)
+	if errCode != nil {
+		return nil, fmt.Errorf("解密消息失败，错误码: %v", errCode)
+	}
+
+	var msg wechat.ReceivedMessage
+	if err := xml.Unmarshal(decryptMsg, &msg); err != nil {
+		return nil, err
+	}
+
+	// 发送"正在思考"响应
+	return wc.SendResponse(msg, "正在思考您的问题，请稍候...")
 }
