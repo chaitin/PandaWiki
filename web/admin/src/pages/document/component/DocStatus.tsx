@@ -1,5 +1,5 @@
-import { updateNode } from '@/api';
-import { NodeListItem, UpdateNodeData } from '@/api/type';
+import { updateNodeAction } from '@/api';
+import { NodeListItem } from '@/api/type';
 import Card from '@/components/Card';
 import DragTree from '@/components/Drag/DragTree';
 import { convertToTree } from '@/constant/drag';
@@ -33,18 +33,13 @@ const textMap = {
 const DocStatus = ({ open, status, kb_id, onClose, data, refresh }: DocStatusProps) => {
 
   const submit = () => {
-    const temp: UpdateNodeData = { id: data[0].id, kb_id }
-    if (status === 'public') {
-      temp.visibility = 2
-    } else if (status === 'private') {
-      temp.visibility = 1
-    }
-    updateNode(temp).then(() => {
+    updateNodeAction({ ids: data.map(it => it.id), kb_id, action: status }).then(() => {
       Message.success('更新成功')
       onClose()
       refresh?.();
     })
   }
+
   if (!open) return <></>
 
   const tree = filterEmptyFolders(convertToTree(data.filter(it => (it.visibility === (status === 'public' ? 1 : 2) || it.type === 1))))
@@ -53,7 +48,7 @@ const DocStatus = ({ open, status, kb_id, onClose, data, refresh }: DocStatusPro
     title={tree.length > 0 ? <Stack direction='row' alignItems='center' gap={1}>
       <ErrorIcon sx={{ color: 'warning.main' }} />
       {textMap[status as keyof typeof textMap].title}
-    </Stack> : '设为公开'}
+    </Stack> : textMap[status as keyof typeof textMap].btn}
     open={open}
     width={600}
     okText={textMap[status as keyof typeof textMap].btn}

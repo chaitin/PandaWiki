@@ -91,7 +91,14 @@ const EditorHeader = ({ editorRef, detail, onSave, refresh }: EditorHeaderProps)
             </Stack>,
             onClick: () => {
               if (kb_id) {
-                createNode({ name: detail.name + ' [副本]', content: detail.content, kb_id: kb_id, type: 2 }).then((res) => {
+                createNode({
+                  name: detail.name + ' [副本]',
+                  content: detail.content,
+                  kb_id: detail.kb_id,
+                  parent_id: detail.parent_id || null,
+                  type: detail.type,
+                  emoji: detail.meta.emoji,
+                }).then((res) => {
                   Message.success('复制成功')
                   window.open(`/doc/editor/${res.id}`, '_blank')
                 })

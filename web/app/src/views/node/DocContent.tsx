@@ -19,8 +19,8 @@ const DocContent = ({ info, editorRef }: { info?: NodeDetail, editorRef: UseTipt
   const catalogSetting = kbDetail?.settings?.catalog_settings
 
   return <Box sx={{
-    width: `calc(100% - ${catalogShow ? catalogSetting?.catalog_width ?? 260 : 16}px - 225px)`,
-    ml: catalogShow ? `${catalogSetting?.catalog_width ?? 260}px` : '16px',
+    width: `calc(100% - ${catalogSetting?.catalog_width ?? 260}px - 225px)`,
+    ml: `${catalogSetting?.catalog_width ?? 260}px`,
     wordBreak: 'break-all',
     color: 'text.primary',
     px: 10,
@@ -51,7 +51,7 @@ const DocContent = ({ info, editorRef }: { info?: NodeDetail, editorRef: UseTipt
       </Stack>
       <Stack
         direction={mobile ? 'row' : 'column'}
-        alignItems={'center'}
+        alignItems={mobile ? 'center' : 'flex-end'}
         gap={1}
         sx={{
           fontSize: 12,

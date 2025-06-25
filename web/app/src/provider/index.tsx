@@ -40,9 +40,10 @@ export default function StoreProvider({
   nodeList: initialNodeList,
   mobile,
 }: StoreContextType & { children: React.ReactNode }) {
+  const catalogSettings = kbDetail?.settings?.catalog_settings
   const [nodeList, setNodeList] = useState<NodeListItem[] | undefined>(initialNodeList);
   const [loading, setLoading] = useState(false);
-  const [catalogShow, setCatalogShow] = useState(kbDetail?.settings?.catalog_settings?.catalog_visible === 1);
+  const [catalogShow, setCatalogShow] = useState(catalogSettings?.catalog_visible === undefined ? true : catalogSettings?.catalog_visible === 1);
   const theme = useTheme();
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'), {

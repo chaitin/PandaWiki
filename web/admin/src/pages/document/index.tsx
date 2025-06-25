@@ -195,7 +195,7 @@ const Content = () => {
             已选中 {selected.length} 项
           </Box>
           <Stack direction={'row'} alignItems={'center'} gap={1}>
-            {/* <Button size="small" sx={{ minWidth: 0, p: 0 }} onClick={() => {
+            <Button size="small" sx={{ minWidth: 0, p: 0 }} onClick={() => {
               setStatusOpen('public')
               setOpraData(list.filter(item => selected.includes(item.id)))
             }}>
@@ -206,7 +206,7 @@ const Content = () => {
               setOpraData(list.filter(item => selected.includes(item.id)))
             }}>
               设为私有
-            </Button> */}
+            </Button>
             <Button size="small" sx={{ minWidth: 0, p: 0 }} onClick={() => {
               setMoreSummaryOpen(true)
               setOpraData(list.filter(item => selected.includes(item.id)))

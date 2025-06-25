@@ -137,6 +137,7 @@ export type NodeDetail = {
   type: 1 | 2,
   content: string,
   kb_id: string,
+  parent_id: string | null,
   meta: {
     emoji?: string,
     summary?: string
@@ -159,7 +160,7 @@ export type NodeListFilterData = {
   search?: string
 }
 
-export type NodeAction = 'delete'
+export type NodeAction = 'delete' | 'public' | 'private'
 
 export type UpdateNodeActionData = {
   ids: string[],
