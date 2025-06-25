@@ -45,25 +45,6 @@ const CatalogH5 = ({
     zIndex: 2,
     bgcolor: 'background.paper'
   }}>
-    {/* <Box sx={{
-      position: 'absolute',
-      zIndex: 1,
-      top: 0,
-      left: 0,
-      right: 0,
-      height: '76px',
-      overflow: 'hidden',
-    }}>
-      <StyledHeaderBgi
-        bgi={docHeaderBgi.src}
-        sx={{
-          position: 'absolute',
-          backgroundSize: 'cover',
-          zIndex: 1,
-          mt: '-60px',
-        }}
-      />
-    </Box> */}
     <Stack direction='row' alignItems='center' justifyContent='space-between'
       sx={{
         py: 3,

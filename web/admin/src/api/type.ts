@@ -275,13 +275,7 @@ export type CustomCodeSetting = {
 }
 
 export type StyleSetting = {
-  default_display_mode: 1 | 2,
-  mode_switch_visible: 1 | 2,
   theme_mode: 'light' | 'dark'
-}
-
-export type CatalogSetting = {
-  catalog_expanded: 1 | 2,
 }
 
 export type FooterSetting = {
@@ -300,6 +294,12 @@ export type FooterSetting = {
   }[]
 }
 
+export type CatalogSetting = {
+  catalog_visible: 1 | 2,
+  catalog_folder: 1 | 2,
+  catalog_width: number,
+}
+
 export type AppSetting = HeaderSetting &
   WelcomeSetting &
   SEOSetting &
@@ -307,9 +307,9 @@ export type AppSetting = HeaderSetting &
   DingBotSetting &
   WecomBotSetting &
   FeishuBotSetting &
-  StyleSetting &
-  CatalogSetting & {
+  StyleSetting & {
     footer_settings: FooterSetting,
+    catalog_settings: CatalogSetting,
     base_url: string
   }
 

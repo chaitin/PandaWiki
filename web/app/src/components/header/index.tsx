@@ -1,147 +1,118 @@
-"use client"
+'use client'
 
-import h5HeaderBgi from '@/assets/images/h5-header-bg.png';
-import headerBgi from '@/assets/images/header-bg.jpg';
 import Logo from '@/assets/images/logo.png';
-import { useKBDetail } from '@/provider/kb-provider';
-import { useMobile } from '@/provider/mobile-provider';
-import { AppBar, Box, Button, IconButton, Stack } from "@mui/material";
-import Image from 'next/image';
+import { IconSearch } from "@/components/icons";
+import { useStore } from "@/provider";
+import { Box, Button, IconButton, Stack, TextField } from "@mui/material";
+import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from 'next/navigation';
-import { StyledContainer } from "../StyledHTML";
-import { IconSearch } from '../icons';
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from 'react';
 import NavBtns from './NavBtns';
-import PageChange from './PageChange';
 
 const Header = () => {
-  const { mobile } = useMobile()
-  const { kbDetail } = useKBDetail()
   const router = useRouter();
   const pathname = usePathname();
-  // const [searchValue, setSearchValue] = useState('');
+  const { mobile = false, kbDetail, catalogShow } = useStore()
+  const [searchValue, setSearchValue] = useState('');
 
-  const isChat = pathname.includes('/chat')
-  const modeSwitchVisible = kbDetail?.settings?.mode_switch_visible !== 2
+  const catalogSetting = kbDetail?.settings?.catalog_settings
 
-  const bgi = mobile ? h5HeaderBgi.src : headerBgi.src
-  const bgiHeight = !mobile ? '573px' : '326px'
-  const headerHeight = mobile ? '60px' : '68px'
+  const handleSearch = () => {
+    if (searchValue.trim()) {
+      sessionStorage.setItem('chat_search_query', searchValue.trim());
+      router.push('/chat');
+    }
+  };
 
-  // const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-  //   if (e.key === 'Enter') {
-  //     const params = new URLSearchParams();
-  //     params.set('search', searchValue);
-  //     setSearchValue('');
-  //     router.push(`/chat?${params.toString()}`);
-  //   }
-  // };
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  }
 
-  return <>
-    {/* {!isChat && <StyledHeaderBgi height={bgiHeight} bgi={bgi} />} */}
-    <AppBar position='fixed' sx={{
-      bgcolor: 'background.default',
-      color: 'text.primary',
-      boxShadow: 'none',
-      borderBottom: '1px solid',
-      borderColor: 'divider',
-    }}>
-      {/* {!isChat && <Box sx={{
-        height: headerHeight,
-        overflow: 'hidden',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0
-      }}>
-        <StyledHeaderBgi
-          bgi={bgi}
-          height={bgiHeight}
+  return <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{
+    position: 'fixed',
+    zIndex: 10,
+    top: 0,
+    left: catalogShow ? catalogSetting?.catalog_width ?? 260 : 16,
+    right: 0,
+    pr: 10,
+    pl: 10,
+    height: 64,
+    bgcolor: 'background.default',
+    borderBottom: '1px solid',
+    borderColor: 'divider',
+    ...(mobile && {
+      left: 0,
+      pl: 3,
+      pr: 1,
+    }),
+  }}>
+    <Link href={'/'}>
+      <Stack direction='row' alignItems='center' gap={1.5} sx={{ py: '20px', cursor: 'pointer', color: 'text.primary', '&:hover': { color: 'primary.main' } }} >
+        {kbDetail?.settings?.icon ? <img src={kbDetail?.settings?.icon} alt='logo' width={32} height={32} />
+          : <Image src={Logo.src} width={32} height={32} alt='logo' />}
+        <Box sx={{ fontSize: 18 }}>{kbDetail?.settings?.title}</Box>
+      </Stack>
+    </Link>
+    <Stack direction="row" alignItems="center" gap={2}>
+      {pathname !== '/welcome' && pathname !== '/chat' && (
+        mobile ? <IconButton
+          size='small'
+          sx={{ width: 40, height: 40, color: 'text.primary' }}
+        >
+          <IconSearch
+            sx={{ fontSize: 20 }}
+            onClick={() => {
+              router.push(`/chat`);
+            }}
+          />
+        </IconButton> : <TextField
+          size="small"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="搜索..."
           sx={{
-            position: 'absolute',
-            backgroundSize: 'cover',
-            zIndex: 1,
+            width: '300px',
+            bgcolor: 'background.default',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            '& .MuiInputBase-input': {
+              lineHeight: '24px',
+              height: '24px',
+              fontFamily: 'Mono',
+            },
+            '& .MuiOutlinedInput-root': {
+              pr: '18px',
+              '& fieldset': {
+                borderRadius: '10px',
+                borderColor: 'divider',
+                px: 2,
+              },
+            }
           }}
-        />
-      </Box>} */}
-      <StyledContainer sx={{
-        zIndex: 1,
-        ...(mobile && {
-          pl: 3,
-          pr: '10px',
-        }),
-      }}>
-        <Stack direction='row' alignItems='center' justifyContent='space-between' sx={{ height: headerHeight }}>
-          <Link href={'/'}>
-            <Stack direction='row' alignItems='center' gap={1.5} sx={{ py: '20px', cursor: 'pointer', color: 'text.primary', '&:hover': { color: 'primary.main' } }} >
-              {kbDetail?.settings?.icon ? <img src={kbDetail?.settings?.icon} alt='logo' width={32} height={32} />
-                : <Image src={Logo.src} width={32} height={32} alt='logo' />}
-              <Box sx={{ fontSize: 18 }}>{kbDetail?.settings?.title}</Box>
-            </Stack>
-          </Link>
-          <Stack direction='row' gap={mobile ? 0 : 3} alignItems="center">
-            {pathname.includes('/node/') && (
-              mobile ? <IconButton
-                size='small'
-                sx={{ width: 40, height: 40, color: 'text.primary' }}
-              >
-                <IconSearch
-                  sx={{ fontSize: 20 }}
-                  onClick={() => {
-                    router.push(`/chat`);
-                  }}
-                />
-              </IconButton> : null
-              // <TextField
-              //   size="small"
-              //   value={searchValue}
-              //   onChange={(e) => setSearchValue(e.target.value)}
-              //   onKeyDown={handleKeyDown}
-              //   placeholder="搜索..."
-              //   sx={{
-              //     width: '300px',
-              //     bgcolor: 'background.default',
-              //     borderRadius: '10px',
-              //     overflow: 'hidden',
-              //     '& .MuiInputBase-input': {
-              //       lineHeight: '24px',
-              //       height: '24px',
-              //       fontFamily: 'Mono',
-              //     },
-              //     '& .MuiOutlinedInput-root': {
-              //       pr: '18px',
-              //       '& fieldset': {
-              //         borderRadius: '10px',
-              //         borderColor: 'divider',
-              //         px: 2,
-              //       },
-              //     }
-              //   }}
-              //   InputProps={{
-              //     endAdornment: <IconSearch
-              //       sx={{ cursor: 'pointer', color: 'text.tertiary' }}
-              //     />
-              //   }}
-              // />
-            )}
-            {!mobile && kbDetail?.settings?.btns?.map((item, index) => (
-              <Link key={index} href={item.url} target={item.target}>
-                <Button
-                  variant={item.variant}
-                  startIcon={item.showIcon && item.icon ? <img src={item.icon} alt='logo' width={24} height={24} /> : null}
-                  sx={{ textTransform: 'none' }}
-                >
-                  <Box sx={{ lineHeight: '24px' }}>{item.text}</Box>
-                </Button>
-              </Link>
-            ))}
-            {mobile && <NavBtns detail={kbDetail} />}
-            {!mobile && modeSwitchVisible && <PageChange />}
-          </Stack>
-        </Stack>
-      </StyledContainer>
-    </AppBar>
-  </>
-};
+          InputProps={{
+            endAdornment: <IconSearch
+              sx={{ cursor: 'pointer', color: 'text.tertiary' }}
+            />
+          }}
+        />)}
+      {!mobile && kbDetail?.settings?.btns?.map((item, index) => (
+        <Link key={index} href={item.url} target={item.target}>
+          <Button
+            variant={item.variant}
+            startIcon={item.showIcon && item.icon ? <img src={item.icon} alt='logo' width={24} height={24} /> : null}
+            sx={{ textTransform: 'none' }}
+          >
+            <Box sx={{ lineHeight: '24px' }}>{item.text}</Box>
+          </Button>
+        </Link>
+      ))}
+      {mobile && <NavBtns detail={kbDetail} />}
+    </Stack>
+  </Stack>
+}
 
 export default Header;

@@ -2,7 +2,7 @@
 
 import { NodeDetail } from "@/assets/type";
 import { IconFile, IconFolder } from "@/components/icons";
-import { useMobile } from "@/provider/mobile-provider";
+import { useStore } from "@/provider";
 import { Box, Stack } from "@mui/material";
 import { TiptapReader, UseTiptapEditorReturn } from 'ct-tiptap-editor';
 import dayjs from "dayjs";
@@ -13,12 +13,14 @@ dayjs.extend(relativeTime);
 dayjs.locale('zh-cn')
 
 const DocContent = ({ info, editorRef }: { info?: NodeDetail, editorRef: UseTiptapEditorReturn }) => {
-  const { mobile = false } = useMobile()
+  const { mobile = false, kbDetail, catalogShow } = useStore()
   if (!editorRef || !info) return null
 
+  const catalogSetting = kbDetail?.settings?.catalog_settings
+
   return <Box sx={{
-    width: 'calc(100% - 485px)',
-    marginLeft: '261px',
+    width: `calc(100% - ${catalogShow ? catalogSetting?.catalog_width ?? 260 : 16}px - 225px)`,
+    ml: catalogShow ? `${catalogSetting?.catalog_width ?? 260}px` : '16px',
     wordBreak: 'break-all',
     color: 'text.primary',
     px: 10,

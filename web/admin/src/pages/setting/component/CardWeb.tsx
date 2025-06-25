@@ -73,7 +73,10 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
           ...info,
           settings: {
             ...info.settings,
-            ...value,
+            catalog_settings: {
+              ...info.settings?.catalog_settings,
+              ...value,
+            },
           }
         })
       }}

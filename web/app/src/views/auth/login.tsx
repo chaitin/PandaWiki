@@ -3,9 +3,7 @@
 import Logo from '@/assets/images/logo.png';
 import Footer from '@/components/footer';
 import { IconLock } from '@/components/icons';
-import { useKBDetail } from '@/provider/kb-provider';
-import { useMobile } from '@/provider/mobile-provider';
-import { useNodeList } from '@/provider/nodelist-provider';
+import { useStore } from '@/provider';
 import { setAuthStatus } from '@/utils/auth';
 import { Box, Button, InputAdornment, Stack, TextField } from '@mui/material';
 import { message } from 'ct-mui';
@@ -17,10 +15,8 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { mobile = false } = useMobile()
 
-  const { kbDetail, kb_id, themeMode } = useKBDetail();
-  const { refreshNodeList } = useNodeList();
+  const { kbDetail, kb_id, themeMode, mobile = false, refreshNodeList } = useStore();
 
   const handleLogin = async () => {
     if (!password.trim()) {
@@ -37,7 +33,7 @@ export default function Login() {
 
     try {
       setAuthStatus(kb_id, password, 30);
-      await refreshNodeList();
+      await refreshNodeList?.();
       router.push('/');
     } catch (error) {
       message.error('登录失败，请重试');

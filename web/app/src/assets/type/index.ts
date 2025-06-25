@@ -31,6 +31,12 @@ export interface AuthSetting {
   password?: string
 }
 
+export interface CatalogSetting {
+  catalog_visible: 1 | 2,
+  catalog_folder: 1 | 2,
+  catalog_width: number,
+}
+
 export interface KBDetail {
   name: string,
   settings: {
@@ -46,12 +52,10 @@ export interface KBDetail {
     auto_sitemap: boolean,
     head_code: string,
     body_code: string,
-    catalog_expanded: 1 | 2,
-    default_display_mode: 1 | 2, // 1 是智能问答，2 是知识库
-    mode_switch_visible: 1 | 2,
     theme_mode?: 'light' | 'dark',
     simple_auth?: AuthSetting | null,
     footer_settings?: FooterSetting | null,
+    catalog_settings?: CatalogSetting | null,
   },
   recommend_nodes: RecommendNode[]
 }

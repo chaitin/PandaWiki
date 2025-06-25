@@ -2,10 +2,10 @@
 
 import { NodeDetail } from "@/assets/type";
 import { IconArrowDown } from "@/components/icons";
+import useScroll from "@/utils/useScroll";
 import { Box, IconButton, Stack } from "@mui/material";
 import { UseTiptapEditorReturn } from "ct-tiptap-editor";
 import { useEffect, useState } from "react";
-import useScroll from "./useScroll";
 
 interface Heading {
   id: string
@@ -28,6 +28,7 @@ const HeadingSx = [
 const DocAnchor = ({ summary, node, editorRef }: DocAnchorProps) => {
   const [headings, setHeadings] = useState<Heading[]>([])
   const { activeHeading, scrollToElement } = useScroll(headings)
+
   const [expand, setExpand] = useState(true)
 
   const levels = Array.from(new Set(headings.map(it => it.heading).sort((a, b) => a - b))).slice(0, 3)
@@ -37,7 +38,6 @@ const DocAnchor = ({ summary, node, editorRef }: DocAnchorProps) => {
     if (scrollToElement) {
       scrollToElement(heading.id, 80);
     } else {
-      // 降级处理，如果没有传递滚动方法
       const element = document.getElementById(heading.id);
       if (element) {
         const offset = 80;
@@ -48,7 +48,6 @@ const DocAnchor = ({ summary, node, editorRef }: DocAnchorProps) => {
           top: offsetPosition,
           behavior: 'smooth'
         });
-        // 降级模式下也要更新hash
         location.hash = encodeURIComponent(heading.title);
       }
     }

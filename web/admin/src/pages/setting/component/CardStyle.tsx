@@ -1,6 +1,6 @@
 import { updateAppDetail } from "@/api"
 import { AppDetail, StyleSetting } from "@/api/type"
-import { Box, Button, FormControlLabel, MenuItem, Radio, RadioGroup, Select, Stack } from "@mui/material"
+import { Box, Button, MenuItem, Select, Stack } from "@mui/material"
 import { Message } from "ct-mui"
 import { useEffect, useState } from "react"
 import { Controller, useForm } from "react-hook-form"
@@ -15,8 +15,6 @@ const CardStyle = ({ id, data, refresh }: CardStyleProps) => {
   const [isEdit, setIsEdit] = useState(false)
   const { control, handleSubmit, setValue } = useForm<StyleSetting>({
     defaultValues: {
-      default_display_mode: 1,
-      mode_switch_visible: 1,
       theme_mode: 'light',
     }
   })
@@ -35,8 +33,6 @@ const CardStyle = ({ id, data, refresh }: CardStyleProps) => {
   }
 
   useEffect(() => {
-    setValue('default_display_mode', data.settings?.default_display_mode)
-    setValue('mode_switch_visible', data.settings?.mode_switch_visible)
     setValue('theme_mode', data.settings?.theme_mode)
   }, [data])
 
@@ -58,34 +54,6 @@ const CardStyle = ({ id, data, refresh }: CardStyleProps) => {
         },
       }}>样式与风格</Box>
       {isEdit && <Button variant="contained" size="small" onClick={handleSubmit(onSubmit)}>保存</Button>}
-    </Stack>
-    <Stack direction={'row'} alignItems={'center'} justifyContent={'space-between'} sx={{ mx: 2 }}>
-      <Box sx={{ fontSize: 14, lineHeight: '32px' }}>页面模式</Box>
-      <Controller
-        control={control}
-        name="default_display_mode"
-        render={({ field }) => <RadioGroup row {...field} onChange={(e) => {
-          field.onChange(+e.target.value as 1 | 2)
-          setIsEdit(true)
-        }}>
-          <FormControlLabel value={1} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>问答模式</Box>} />
-          <FormControlLabel value={2} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>文档模式</Box>} />
-        </RadioGroup>}
-      />
-    </Stack>
-    <Stack direction={'row'} alignItems={'center'} justifyContent={'space-between'} sx={{ mx: 2 }}>
-      <Box sx={{ fontSize: 14, lineHeight: '32px' }}>页面模式切换按钮</Box>
-      <Controller
-        control={control}
-        name="mode_switch_visible"
-        render={({ field }) => <RadioGroup row {...field} onChange={(e) => {
-          field.onChange(+e.target.value as 1 | 2)
-          setIsEdit(true)
-        }}>
-          <FormControlLabel value={1} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>展示切换按钮</Box>} />
-          <FormControlLabel value={2} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>隐藏切换按钮</Box>} />
-        </RadioGroup>}
-      />
     </Stack>
     <Box sx={{ fontSize: 14, lineHeight: '32px', mx: 2, mb: 1 }}>配色方案</Box>
     <Controller

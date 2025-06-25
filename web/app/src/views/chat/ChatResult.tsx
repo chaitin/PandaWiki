@@ -3,10 +3,9 @@
 
 import { IconArrowUp } from '@/components/icons';
 import MarkDown from '@/components/markdown';
-import { useKBDetail } from '@/provider/kb-provider';
-import { useMobile } from '@/provider/mobile-provider';
+import { useStore } from '@/provider';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { Accordion, AccordionDetails, AccordionSummary, Box, IconButton, Stack, TextField } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Box, IconButton, Skeleton, Stack, TextField } from "@mui/material";
 import { useEffect, useState } from 'react';
 import ChatLoading from './ChatLoading';
 import { AnswerStatus } from './constant';
@@ -23,8 +22,7 @@ interface ChatResultProps {
 
 const ChatResult = ({ conversation, answer, loading, thinking, onSearch, handleSearchAbort, setThinking }: ChatResultProps) => {
   const [input, setInput] = useState('')
-  const { mobile = false } = useMobile()
-  const { themeMode } = useKBDetail()
+  const { mobile = false, themeMode = 'light' } = useStore()
 
   const handleSearch = () => {
     if (input.length > 0) {
@@ -79,6 +77,10 @@ const ChatResult = ({ conversation, answer, loading, thinking, onSearch, handleS
           </AccordionSummary>
           <AccordionDetails>
             <MarkDown content={item.a} />
+            {index === conversation.length - 1 && loading && !answer && <>
+              <Skeleton variant="text" width="100%" />
+              <Skeleton variant="text" width="70%" />
+            </>}
             {index === conversation.length - 1 && answer && <MarkDown content={answer} />}
           </AccordionDetails>
         </Accordion>

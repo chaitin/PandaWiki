@@ -1,7 +1,6 @@
 import { RecommendNode } from "@/assets/type";
 import { IconFile, IconFolder } from "@/components/icons";
-import { useKBDetail } from "@/provider/kb-provider";
-import { useMobile } from "@/provider/mobile-provider";
+import { useStore } from "@/provider";
 import { Box, Stack } from "@mui/material";
 import { Ellipsis } from "ct-mui";
 import Link from "next/link";
@@ -19,7 +18,7 @@ const NodeFolder = ({ node }: { node: RecommendNode }) => {
           key={it.id}
           sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
         >
-          <Link href={`/node/${it.id}`} target="_blank">
+          <Link href={`/node/${it.id}`}>
             <Stack direction="row" alignItems={'center'} gap={1} sx={{ fontSize: 14, lineHeight: '21px' }}>
               {it.emoji ? <Box sx={{ flexShrink: 0, color: 'text.primary', fontSize: 12 }}>{it.emoji}</Box> : <IconFile sx={{ mt: '-2px' }} />}
               <Ellipsis>{it.name}</Ellipsis>
@@ -28,7 +27,7 @@ const NodeFolder = ({ node }: { node: RecommendNode }) => {
         </Box>)}
     </Box>
     <Stack direction="row" gap={2} justifyContent="flex-end" sx={{ mt: 2, flexShrink: 0 }}>
-      <Link href={`/node/${children[0]?.id || node.id}`} target="_blank">
+      <Link href={`/node/${children[0]?.id || node.id}`}>
         <Box sx={{
           color: 'primary.main', fontSize: 14, ':hover': {
             fontWeight: 'bold'
@@ -42,7 +41,7 @@ const NodeFolder = ({ node }: { node: RecommendNode }) => {
 }
 
 const NodeFile = ({ node }: { node: RecommendNode }) => {
-  return <Link href={`/node/${node.id}`} target="_blank">
+  return <Link href={`/node/${node.id}`}>
     <Stack direction="column" justifyContent="space-between" sx={{ cursor: 'pointer', height: '100%' }}>
       <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 2, flexShrink: 0 }}>
         {node.emoji ? <Box sx={{ flexShrink: 0, fontSize: 14 }}>{node.emoji}</Box> : <IconFile sx={{ flexShrink: 0 }} />}
@@ -66,8 +65,7 @@ const NodeFile = ({ node }: { node: RecommendNode }) => {
 }
 
 const DocCard = ({ node }: { node: RecommendNode }) => {
-  const { themeMode } = useKBDetail()
-  const { mobile = false } = useMobile()
+  const { themeMode = 'light', mobile = false } = useStore()
   return <Box sx={{
     border: `1px solid`,
     borderColor: 'divider',

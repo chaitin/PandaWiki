@@ -1,9 +1,7 @@
 "use client";
 
-import Footer from "@/components/footer";
 import { IconSearch } from "@/components/icons";
-import { useKBDetail } from "@/provider/kb-provider";
-import { useMobile } from "@/provider/mobile-provider";
+import { useStore } from "@/provider";
 import { Box, TextField } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -11,9 +9,9 @@ import NodeList from "./NodeList";
 import QuestionList from "./QuestionList";
 
 const Home = () => {
-  const { mobile = false } = useMobile()
-  const { kbDetail, themeMode } = useKBDetail()
+  const { mobile = false, kbDetail, themeMode = 'light', catalogShow } = useStore()
 
+  const catalogSetting = kbDetail?.settings?.catalog_settings
   const footerSetting = kbDetail?.settings?.footer_settings
   const [footerHeight, setFooterHeight] = useState(0);
 
@@ -63,92 +61,78 @@ const Home = () => {
     }
   };
 
-  return <>
+  return <Box sx={{
+    pt: 18,
+    ml: catalogShow ? `${catalogSetting?.catalog_width ?? 260}px` : '16px',
+    minHeight: `calc(100vh - ${footerHeight + 1}px)`,
+    ...(mobile && {
+      ml: 0,
+      pt: 13,
+    }),
+  }}>
     <Box sx={{
-      pt: mobile ? 13 : 18,
-      minHeight: `calc(100vh - ${footerHeight + 1}px)`,
-      bgcolor: themeMode === 'dark' ? 'background.default' : 'background.paper',
+      maxWidth: '1200px',
+      mx: 'auto',
     }}>
       <Box sx={{
-        margin: '0 auto',
-        maxWidth: '1200px',
+        color: 'text.primary',
+        fontSize: '40px',
+        textAlign: 'center',
+        fontWeight: '700',
+        lineHeight: '44px',
+        ...(mobile && {
+          fontSize: '32px',
+          lineHeight: '40px',
+        }),
       }}>
-        <Box>
-          <Box sx={{
-            color: 'text.primary',
-            fontSize: '40px',
-            textAlign: 'center',
-            fontWeight: '700',
-            lineHeight: '44px',
-            ...(mobile && {
-              fontSize: '32px',
-              lineHeight: '40px',
-            }),
-          }}>
-            {kbDetail?.settings?.welcome_str}
-          </Box>
-          <Box sx={{
-            width: '656px',
-            margin: '40px auto 0',
-            ...(mobile && {
-              width: 'calc(100% - 48px)',
-            }),
-          }}>
-            <TextField
-              fullWidth
-              sx={{
-                width: '100%',
+        {kbDetail?.settings?.welcome_str}
+      </Box>
+      <Box sx={{
+        width: '656px',
+        margin: '40px auto 0',
+        ...(mobile && {
+          width: 'calc(100% - 48px)',
+        }),
+      }}>
+        <TextField
+          fullWidth
+          sx={{
+            width: '100%',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            '& .MuiInputBase-input': {
+              p: 2,
+              lineHeight: '24px',
+              height: '24px',
+              fontFamily: 'Mono',
+            },
+            '& .MuiOutlinedInput-root': {
+              pr: '18px',
+              bgcolor: themeMode === 'dark' ? 'background.paper' : 'background.default',
+              '& fieldset': {
                 borderRadius: '10px',
-                overflow: 'hidden',
-                '& .MuiInputBase-input': {
-                  p: 2,
-                  lineHeight: '24px',
-                  height: '24px',
-                  fontFamily: 'Mono',
-                },
-                '& .MuiOutlinedInput-root': {
-                  pr: '18px',
-                  bgcolor: themeMode === 'dark' ? 'background.paper' : 'background.default',
-                  '& fieldset': {
-                    borderRadius: '10px',
-                    borderColor: 'divider',
-                    px: 2,
-                  },
-                }
-              }}
-              placeholder={kbDetail?.settings?.search_placeholder || "开始搜索"}
-              autoComplete="off"
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              InputProps={{
-                endAdornment: <IconSearch
-                  sx={{ cursor: 'pointer', color: 'text.tertiary' }}
-                  onClick={handleSearch}
-                />
-              }}
+                borderColor: 'divider',
+                px: 2,
+              },
+            }
+          }}
+          placeholder={kbDetail?.settings?.search_placeholder || "开始搜索"}
+          autoComplete="off"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          InputProps={{
+            endAdornment: <IconSearch
+              sx={{ cursor: 'pointer', color: 'text.tertiary' }}
+              onClick={handleSearch}
             />
-          </Box>
-          {!mobile && <QuestionList />}
-          <NodeList />
-        </Box>
+          }}
+        />
       </Box>
+      {!mobile && <QuestionList />}
+      <NodeList />
     </Box>
-    <Box sx={{
-      bgcolor: themeMode === 'dark' ? 'background.default' : 'background.paper',
-      ...(footerSetting?.footer_style === 'complex' && {
-        borderTop: '1px solid',
-        borderColor: 'divider',
-      }),
-    }}>
-      <Box sx={{
-        margin: '0 auto',
-        maxWidth: '1200px',
-      }}>
-        <Footer />
-      </Box>
-    </Box>
-  </>;
+  </Box>
 };
 
 export default Home;

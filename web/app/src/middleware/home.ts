@@ -1,7 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { apiClient } from '../api';
-import { convertToTree, findFirstType2Node } from '../utils/drag';
 
 export async function middleware(request: NextRequest, kb_id: string, authToken: string) {
   const url = request.nextUrl.clone()
@@ -23,17 +22,7 @@ export async function middleware(request: NextRequest, kb_id: string, authToken:
     }
 
     if (url.pathname === '/') {
-      if (kbDetail?.settings?.default_display_mode === 2) {
-        if (nodeListResult.data && !nodeListResult.error) {
-          const nodeList = nodeListResult.data;
-          const id = findFirstType2Node(convertToTree(nodeList || []))
-          if (id) {
-            return NextResponse.redirect(new URL(`/node/${id}`, request.url))
-          }
-        }
-      } else {
-        return NextResponse.redirect(new URL('/welcome', request.url))
-      }
+      return NextResponse.redirect(new URL('/welcome', request.url))
     }
 
     return NextResponse.next()

@@ -1,9 +1,9 @@
-import { useKBDetail } from "@/provider/kb-provider";
+import { useStore } from "@/provider";
 import { Box, Stack } from "@mui/material";
 import { useRouter } from "next/navigation";
 
 const QuestionList = () => {
-  const { kbDetail, themeMode } = useKBDetail()
+  const { kbDetail, themeMode = 'light' } = useStore()
   const router = useRouter();
 
   if (!kbDetail?.settings?.recommend_questions) return null

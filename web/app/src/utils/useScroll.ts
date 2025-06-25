@@ -10,9 +10,8 @@ const useScroll = (headings: Heading[]) => {
   const [activeHeading, setActiveHeading] = useState<Heading | null>(null)
   const isFirstLoad = useRef(true)
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const isManualScroll = useRef(false) // 标记是否为手动滚动，避免循环
+  const isManualScroll = useRef(false)
 
-  // 防抖函数
   const debounce = <T extends (...args: any[]) => any>(func: T, delay: number) => {
     return (...args: Parameters<T>) => {
       if (scrollTimeoutRef.current) {
@@ -22,13 +21,11 @@ const useScroll = (headings: Heading[]) => {
     }
   }
 
-  // 滚动到指定元素（通过ID）
   const scrollToElement = useCallback((elementId: string, offset = 80) => {
     const element = document.getElementById(elementId)
     if (element) {
       const targetHeading = headings.find(h => h.id === elementId)
       if (targetHeading) {
-        // 标记为手动滚动，避免在滚动过程中触发hash更新
         isManualScroll.current = true
         setActiveHeading(targetHeading)
         location.hash = encodeURIComponent(targetHeading.title)
@@ -41,7 +38,6 @@ const useScroll = (headings: Heading[]) => {
           behavior: 'smooth'
         })
 
-        // 滚动完成后重置标记
         setTimeout(() => {
           isManualScroll.current = false
         }, 1000)
@@ -49,21 +45,15 @@ const useScroll = (headings: Heading[]) => {
     }
   }, [headings])
 
-  // 找到当前可视窗口的第一个标题
   const findActiveHeading = useCallback(() => {
-    const hash = decodeURIComponent(location.hash).slice(1)
-    if (!hash) {
-      return null
-    }
     const levels = Array.from(new Set(headings.map(it => it.heading).sort((a, b) => a - b))).slice(0, 3)
     const visibleHeadings = headings.filter(header => levels.includes(header.heading))
 
     if (visibleHeadings.length === 0) return null
 
-    const offset = 100 // 偏移量，考虑header高度
+    const offset = 100
     let activeHeader: Heading | null = null
 
-    // 找到当前滚动位置之上最近的标题
     for (let i = visibleHeadings.length - 1; i >= 0; i--) {
       const header = visibleHeadings[i]
       const element = document.getElementById(header.id)
@@ -76,7 +66,6 @@ const useScroll = (headings: Heading[]) => {
       }
     }
 
-    // 如果没有找到（说明在第一个标题之前），使用第一个标题
     if (!activeHeader && visibleHeadings.length > 0) {
       activeHeader = visibleHeadings[0]
     }
@@ -84,7 +73,18 @@ const useScroll = (headings: Heading[]) => {
     return activeHeader
   }, [headings])
 
-  // 处理首次加载时的hash滚动
+  const debouncedScrollHandler = useCallback(
+    debounce(() => {
+      if (isManualScroll.current) return
+
+      const activeHeader = findActiveHeading()
+      if (activeHeader && activeHeader.id !== activeHeading?.id) {
+        setActiveHeading(activeHeader)
+      }
+    }, 100),
+    [findActiveHeading, activeHeading]
+  )
+
   useEffect(() => {
     if (isFirstLoad.current && headings.length > 0) {
       const hash = decodeURIComponent(location.hash).slice(1)
@@ -92,7 +92,6 @@ const useScroll = (headings: Heading[]) => {
         const targetHeading = headings.find(header => header.title === hash)
         if (targetHeading) {
           setActiveHeading(targetHeading)
-          // 延迟滚动确保DOM已渲染
           setTimeout(() => {
             isManualScroll.current = true
             const element = document.getElementById(targetHeading.id)
@@ -122,9 +121,21 @@ const useScroll = (headings: Heading[]) => {
     }
   }, [headings, findActiveHeading])
 
+  useEffect(() => {
+    if (headings.length === 0) return
+    window.addEventListener('scroll', debouncedScrollHandler)
+    debouncedScrollHandler()
+    return () => {
+      window.removeEventListener('scroll', debouncedScrollHandler)
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+    }
+  }, [debouncedScrollHandler, headings])
+
   return {
     activeHeading,
-    scrollToElement, // 暴露滚动方法供点击大纲使用
+    scrollToElement,
   }
 }
 

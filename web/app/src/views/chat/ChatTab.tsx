@@ -15,7 +15,7 @@ const ChatTab = ({ showType, setShowType }: { showType: 'chat' | 'search', setSh
         height: '28px',
         ...(showType === 'chat' && {
           color: 'primary.main',
-          '::after': {
+          '&::after': {
             position: 'absolute',
             bottom: '-10px',
             left: '50%',

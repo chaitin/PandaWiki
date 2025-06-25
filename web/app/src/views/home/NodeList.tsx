@@ -1,12 +1,10 @@
 import { RecommendNode } from "@/assets/type";
-import { useKBDetail } from "@/provider/kb-provider";
-import { useMobile } from "@/provider/mobile-provider";
+import { useStore } from "@/provider";
 import { Stack } from "@mui/material";
 import NodeCard from "./NodeCard";
 
 const NodeList = () => {
-  const { mobile = false } = useMobile()
-  const { kbDetail } = useKBDetail()
+  const { mobile = false, kbDetail } = useStore()
 
   return <Stack
     direction={mobile ? "column" : "row"}

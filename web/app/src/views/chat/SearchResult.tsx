@@ -1,12 +1,12 @@
 import { ChunkResultItem } from "@/assets/type";
 import { IconArrowUp } from "@/components/icons";
-import { useMobile } from "@/provider/mobile-provider";
+import { useStore } from "@/provider";
 import { Box, Skeleton, Stack } from "@mui/material";
 import { Ellipsis } from "ct-mui";
 import Link from "next/link";
 
 const SearchResult = ({ list, loading }: { list: ChunkResultItem[], loading: boolean }) => {
-  const { mobile = false } = useMobile()
+  const { mobile = false } = useStore()
 
   return <Box sx={{
     height: 'calc(100vh - 254px)',
@@ -22,6 +22,7 @@ const SearchResult = ({ list, loading }: { list: ChunkResultItem[], loading: boo
       borderColor: 'divider',
       borderRadius: '10px',
       px: 3,
+      py: 1,
     })
   }}>
     {list.map(item => (

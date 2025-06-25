@@ -1,4 +1,4 @@
-import { useKBDetail } from '@/provider/kb-provider';
+import { useStore } from '@/provider';
 import { addOpacityToColor, copyText } from '@/utils';
 import { Box, IconButton, useTheme } from '@mui/material';
 import { Icon } from 'ct-mui';
@@ -18,7 +18,7 @@ interface MarkDownProps {
 
 const MarkDown = ({ loading = false, content }: MarkDownProps) => {
   const theme = useTheme();
-  const { themeMode } = useKBDetail();
+  const { themeMode = 'light' } = useStore();
   const [showThink, setShowThink] = useState(false)
 
   let answer = content

@@ -1,34 +1,53 @@
 "use client";
 
-import { NodeListItem } from '@/assets/type';
+import { KBDetail, NodeListItem } from '@/assets/type';
 import { getAuthStatus } from '@/utils/auth';
+import { useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useKBDetail } from './kb-provider';
 
-interface NodeListContextType {
-  nodeList?: NodeListItem[];
-  loading: boolean;
-  refreshNodeList: () => Promise<void>;
+interface StoreContextType {
+  kbDetail?: KBDetail
+  kb_id?: string
+  catalogShow?: boolean
+  setCatalogShow: (value: boolean) => void
+  themeMode?: 'light' | 'dark'
+  mobile?: boolean
+  nodeList?: NodeListItem[]
+  loading?: boolean;
+  refreshNodeList?: () => Promise<void>;
 }
 
-export const NodeListContext = createContext<NodeListContextType>({
+export const StoreContext = createContext<StoreContextType>({
+  kbDetail: undefined,
+  kb_id: undefined,
+  catalogShow: true,
+  setCatalogShow: () => { },
+  themeMode: 'light',
+  mobile: false,
   nodeList: undefined,
   loading: false,
   refreshNodeList: async () => { },
-});
+})
 
-export const useNodeList = () => useContext(NodeListContext);
+export const useStore = () => useContext(StoreContext);
 
-export default function NodeListProvider({
+export default function StoreProvider({
   children,
+  kbDetail,
+  kb_id,
+  themeMode,
   nodeList: initialNodeList,
-}: {
-  children: React.ReactNode
-  nodeList?: NodeListItem[]
-}) {
+  mobile,
+}: StoreContextType & { children: React.ReactNode }) {
   const [nodeList, setNodeList] = useState<NodeListItem[] | undefined>(initialNodeList);
   const [loading, setLoading] = useState(false);
-  const { kb_id } = useKBDetail();
+  const [catalogShow, setCatalogShow] = useState(kbDetail?.settings?.catalog_settings?.catalog_visible === 1);
+  const theme = useTheme();
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'), {
+    defaultMatches: mobile,
+  });
 
   const fetchNodeList = async () => {
     if (!kb_id) return;
@@ -72,18 +91,26 @@ export default function NodeListProvider({
   };
 
   useEffect(() => {
+    setCatalogShow(kbDetail?.settings?.catalog_settings?.catalog_visible === 1);
+  }, [kbDetail]);
+
+  useEffect(() => {
     if (!initialNodeList && kb_id && getAuthStatus(kb_id)) {
       fetchNodeList();
     }
   }, [kb_id, initialNodeList]);
 
-  return (
-    <NodeListContext.Provider value={{
+  return <StoreContext.Provider
+    value={{
+      kbDetail,
+      kb_id,
+      themeMode,
       nodeList,
+      catalogShow,
+      setCatalogShow,
+      mobile: isMobile,
       loading,
-      refreshNodeList
-    }}>
-      {children}
-    </NodeListContext.Provider>
-  );
+      refreshNodeList,
+    }}
+  >{children}</StoreContext.Provider>
 }

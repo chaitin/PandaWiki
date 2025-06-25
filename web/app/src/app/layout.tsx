@@ -1,7 +1,5 @@
 import { apiClient } from "@/api";
-import KBProvider from "@/provider/kb-provider";
-import MobileProvider from "@/provider/mobile-provider";
-import NodeListProvider from "@/provider/nodelist-provider";
+import StoreProvider from "@/provider";
 import { darkTheme, lightTheme } from "@/theme";
 import { AppRouterCacheProvider } from "@mui/material-nextjs/v13-appRouter";
 import { ThemeProvider } from "ct-mui";
@@ -126,13 +124,15 @@ export default async function RootLayout({
       <body className={`${gilory.variable} ${puhuiti.variable}`}>
         <ThemeProvider theme={themeMode === 'dark' ? darkTheme : lightTheme}>
           <AppRouterCacheProvider>
-            <KBProvider kbDetail={kbDetail} kb_id={kb_id} themeMode={themeMode || 'light'}>
-              <NodeListProvider nodeList={nodeList} >
-                <MobileProvider mobile={isMobile}>
-                  {children}
-                </MobileProvider>
-              </NodeListProvider>
-            </KBProvider>
+            <StoreProvider
+              kbDetail={kbDetail}
+              kb_id={kb_id}
+              themeMode={themeMode || 'light'}
+              nodeList={nodeList || []}
+              mobile={isMobile}
+            >
+              {children}
+            </StoreProvider>
           </AppRouterCacheProvider>
         </ThemeProvider>
         {kbDetail?.settings?.body_code && (

@@ -1,9 +1,7 @@
 'use client';
 
 import { ChunkResultItem } from '@/assets/type';
-import Footer from '@/components/footer';
-import { useKBDetail } from '@/provider/kb-provider';
-import { useMobile } from '@/provider/mobile-provider';
+import { useStore } from '@/provider';
 import { isInIframe } from '@/utils';
 import SSEClient from '@/utils/fetch';
 import { Box, Stack } from '@mui/material';
@@ -16,8 +14,7 @@ import { AnswerStatus } from './constant';
 
 const Chat = () => {
   const inIframe = isInIframe();
-  const { mobile = false } = useMobile()
-  const { themeMode, kb_id, kbDetail } = useKBDetail()
+  const { mobile = false, themeMode = 'light', kb_id, kbDetail, catalogShow } = useStore()
 
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const sseClientRef = useRef<SSEClient<{
@@ -25,8 +22,6 @@ const Chat = () => {
     content: string;
     chunk_result: ChunkResultItem[];
   }> | null>(null);
-
-  const footerSetting = kbDetail?.settings?.footer_settings
 
   const [conversation, setConversation] = useState<{ q: string, a: string }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -39,6 +34,8 @@ const Chat = () => {
   const [isUserScrolling, setIsUserScrolling] = useState(false);
 
   const [showType, setShowType] = useState<'chat' | 'search'>('chat');
+
+  const catalogSetting = kbDetail?.settings?.catalog_settings
 
   const chatAnswer = async (q: string) => {
     setChunkLoading(true);
@@ -190,75 +187,51 @@ const Chat = () => {
           handleSearchAbort={handleSearchAbort}
         /> : <SearchResult list={chunkResult} loading={chunkLoading} />}
       </Box>
-      <Box sx={{
-        mt: 5,
-        ...(footerSetting?.footer_style === 'complex' && {
-          borderTop: '1px solid',
-          borderColor: 'divider',
-        }),
-      }}>
-        <Footer />
-      </Box>
     </Box>
   }
 
   return (
     <Box sx={{
       pt: 12,
+      ml: catalogShow ? `${catalogSetting?.catalog_width ?? 260}px` : '16px',
+      px: 10,
       minHeight: '100vh',
-      bgcolor: themeMode === 'dark' ? 'background.default' : 'background.paper'
     }}>
-      <Box sx={{
-        margin: '0 auto',
+      <Stack alignItems="stretch" direction="row" gap={3} sx={{
+        height: 'calc(100vh - 120px)',
+        mb: 3,
         maxWidth: '1200px',
+        mx: 'auto',
       }}>
-        <Stack alignItems="stretch" direction="row" gap={3} sx={{
-          height: 'calc(100vh - 120px)',
-          mb: 3,
-        }}>
-          <Box sx={{ position: 'relative', flex: 1 }}>
-            <ChatResult
-              conversation={conversation}
-              answer={answer}
-              loading={loading}
-              thinking={thinking}
-              setThinking={setThinking}
-              onSearch={onSearch}
-              handleSearchAbort={handleSearchAbort}
-            />
-          </Box>
-          <Box sx={{
-            flexShrink: 0,
-            width: 388,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: '10px',
-            p: 3,
-            bgcolor: themeMode === 'dark' ? 'background.paper' : 'background.default',
-          }}>
-            <Box sx={{
-              fontSize: '20px',
-              fontWeight: '700',
-              lineHeight: '28px',
-              mb: 2,
-            }}>搜索结果</Box>
-            <SearchResult list={chunkResult} loading={chunkLoading} />
-          </Box>
-        </Stack>
-      </Box>
-      <Box sx={{
-        ...(footerSetting?.footer_style === 'complex' && {
-          borderTop: '1px solid',
-          borderColor: 'divider',
-        }),
-      }}>
-        <Box sx={{
-          margin: '0 auto',
-          maxWidth: '1200px',
-        }}>
-          <Footer />
+        <Box sx={{ position: 'relative', flex: 1, width: 0 }}>
+          <ChatResult
+            conversation={conversation}
+            answer={answer}
+            loading={loading}
+            thinking={thinking}
+            setThinking={setThinking}
+            onSearch={onSearch}
+            handleSearchAbort={handleSearchAbort}
+          />
         </Box>
-      </Box>
+        <Box sx={{
+          flexShrink: 0,
+          width: 388,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: '10px',
+          p: 3,
+          bgcolor: themeMode === 'dark' ? 'background.paper' : 'background.default',
+        }}>
+          <Box sx={{
+            fontSize: '20px',
+            fontWeight: '700',
+            lineHeight: '28px',
+            mb: 2,
+          }}>搜索结果</Box>
+          <SearchResult list={chunkResult} loading={chunkLoading} />
+        </Box>
+      </Stack>
     </Box>
   );
 };
