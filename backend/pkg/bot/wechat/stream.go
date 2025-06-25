@@ -62,7 +62,6 @@ type BackendResponse struct {
 	} `json:"data"`
 }
 
-// 创建拥有对应token的wechatclint对象，方便后续的校验和传递消息
 func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, kbid string, secret string, againtid string) (*WechatConfig, error) {
 	return &WechatConfig{
 		Ctx:            ctx,
@@ -114,18 +113,16 @@ func (cfg *WechatConfig) Wechat(signature, timestamp, nonce string, body []byte,
 		return err
 	}
 
-	// 转发消息到大模型---并且得到后端知识库的处理结果
 	err = cfg.Processmessage(msg, getQA, token)
 	if err != nil {
-		log.Printf("转发到Ai知识库的API失败: %v", err)
+		log.Printf("send to ai failed! : %v", err)
 		return err
 	}
-	log.Printf("后端处理数据成功")
 
 	return nil
 }
 
-// forwardToBackend ----处理消息，调用后端的大模型数据-->得到对应的反馈
+// forwardToBackend
 func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx context.Context, msg string) (chan string, error), token string) error {
 
 	wccontent, err := GetQA(cfg.Ctx, msg.Content)
@@ -150,14 +147,14 @@ func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx cont
 
 	jsonData, err := json.Marshal(msgData)
 	if err != nil {
-		return fmt.Errorf("序列化消息失败: %w", err)
+		return fmt.Errorf("json Marshal failed: %w", err)
 	}
 
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s", token)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 
 	if err != nil {
-		return fmt.Errorf("发送请求失败: %w", err)
+		return fmt.Errorf("post to we failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -169,20 +166,19 @@ func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx cont
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
-		return fmt.Errorf("解析响应失败: %w", err)
+		return fmt.Errorf("json Unmarshal failed: %w", err)
 	}
 
 	if result.Errcode != 0 {
-		return fmt.Errorf("企业微信API错误: %s (code: %d)", result.Errmsg, result.Errcode)
+		return fmt.Errorf("wechat Api fialed! : %s (code: %d)", result.Errmsg, result.Errcode)
 	}
 
 	return nil
 }
 
-// SendResponse 发送响应消息-- 加密后端ai服务器发送给企业微信的响应
+// SendResponse
 func (cfg *WechatConfig) SendResponse(msg ReceivedMessage, content string) ([]byte, error) {
 
-	// 构建响应消息
 	responseMsg := ResponseMessage{
 		ToUserName:   CDATA{msg.FromUserName},
 		FromUserName: CDATA{msg.ToUserName},
@@ -191,22 +187,19 @@ func (cfg *WechatConfig) SendResponse(msg ReceivedMessage, content string) ([]by
 		Content:      CDATA{content},
 	}
 
-	// 序列化为XML
+	// XML
 	responseXML, err := xml.Marshal(responseMsg)
 	if err != nil {
-		log.Printf("序列化响应消息失败: %v", err)
+		log.Printf("xml Marshal failed: %v", err)
 		return nil, err
 	}
 
 	wxcpt := wxbizmsgcrypt.NewWXBizMsgCrypt(cfg.Token, cfg.EncodingAESKey, cfg.CorpID, wxbizmsgcrypt.XmlType)
 
-	// 加密响应
+	// responese
 	var encryptMsg []byte
 	encryptMsg, errCode := wxcpt.EncryptMsg(string(responseXML), "", "")
 	if errCode != nil {
-
-		log.Printf("加密响应消息失败，错误码: %v\n", errCode)
-
 		return nil, errors.New("encryotMsg err")
 	}
 
@@ -215,17 +208,15 @@ func (cfg *WechatConfig) SendResponse(msg ReceivedMessage, content string) ([]by
 
 func (cfg *WechatConfig) GetAccessToken() (string, error) {
 
-	// 检查AccessToken是否有效
 	if cfg.AccessToken != "" && time.Now().Before(cfg.TokenExpire) {
 		return cfg.AccessToken, nil
 	}
 
-	//
 	if cfg.Secret == "" {
 		return "", errors.New("secret is not right")
 	}
 
-	// 请求AccessToken--访问官方的路由
+	// get AccessToken
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=%s&corpsecret=%s", cfg.CorpID, cfg.Secret)
 
 	resp, err := http.Get(url)
