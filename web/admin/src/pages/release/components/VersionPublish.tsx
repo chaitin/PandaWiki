@@ -141,7 +141,7 @@ const VersionPublish = ({ open, defaultSelected = [], onClose, refresh }: Versio
         </Stack>
       </Stack>
       <Card sx={{ bgcolor: 'background.paper2', py: 1 }}>
-        <Stack gap={0.25} sx={{ fontSize: 14, maxHeight: 'calc(100vh - 520px)', overflow: 'auto', px: 2 }}>
+        <Stack gap={0.25} sx={{ fontSize: 14, maxHeight: 'calc(100vh - 520px)', overflowY: 'auto', px: 2 }}>
           <DragTree
             ui='select'
             selected={selected}

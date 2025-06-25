@@ -11,19 +11,28 @@ import dayjs from "dayjs"
 import { useState } from "react"
 
 interface EditorHeaderProps {
+  edited: boolean
   editorRef: UseTiptapEditorReturn
   detail: NodeDetail | null
   onSave: (auto?: boolean, publish?: boolean) => void
   refresh?: () => void
 }
 
-const EditorHeader = ({ editorRef, detail, onSave, refresh }: EditorHeaderProps) => {
+const EditorHeader = ({ edited, editorRef, detail, onSave, refresh }: EditorHeaderProps) => {
   const editor = editorRef?.editor || null
   const theme = useTheme()
   const { kb_id } = useAppSelector(state => state.config)
 
   const [renameOpen, setRenameOpen] = useState(false)
   const [delOpen, setDelOpen] = useState(false)
+
+  const handleSave = (publish?: boolean) => {
+    if (publish && !edited && detail?.status === 2) {
+      Message.info('内容未更新，无需发版')
+    } else {
+      onSave(undefined, publish)
+    }
+  }
 
   const handleExport = async (type: string) => {
     if (!editor) return
@@ -147,16 +156,6 @@ const EditorHeader = ({ editorRef, detail, onSave, refresh }: EditorHeaderProps)
           }
         ]} context={<IconButton size="small"><Icon type='icon-gengduo' /></IconButton>} />
         <MenuSelect list={[
-          // {
-          //   key: 'pdf',
-          //   label: '导出 PDF',
-          //   onClick: () => handleExport('pdf')
-          // },
-          // {
-          //   key: 'docx',
-          //   label: '导出 Docx',
-          //   onClick: () => handleExport('docx')
-          // },
           {
             key: 'html',
             label: <Stack
@@ -173,30 +172,52 @@ const EditorHeader = ({ editorRef, detail, onSave, refresh }: EditorHeaderProps)
             </Stack>,
             onClick: () => handleExport('html')
           },
-          // {
-          //   key: 'md',
-          //   label: <Stack
-          //     direction={'row'}
-          //     alignItems={'center'}
-          //     gap={1}
-          //     sx={{
-          //       fontSize: 14, px: 2, lineHeight: '40px', height: 40, width: 140,
-          //       borderRadius: '5px',
-          //       cursor: 'pointer', ':hover': { bgcolor: addOpacityToColor(theme.palette.primary.main, 0.1) }
-          //     }}
-          //   >
-          //     导出 Markdown
-          //   </Stack>,
-          //   onClick: () => handleExport('md')
-          // }
-        ]} context={<Button size="small" variant="outlined"
-          startIcon={<Icon type='icon-daochu' />}>导出</Button>} />
-        <Tooltip title={<Box>
-          {getShortcutKeyText(['ctrl', 's'])}
-        </Box>} placement="bottom" arrow>
-          <Button size="small" variant="contained" onClick={() => onSave(false, true)}
-            startIcon={<Icon type='icon-baocun' />}>保存并发布</Button>
-        </Tooltip>
+        ]} context={<Button
+          size="small"
+          variant="outlined"
+          startIcon={<Icon type='icon-daochu' />}
+        >导出</Button>} />
+        <MenuSelect list={[
+          {
+            key: 'save',
+            label: <Tooltip title={<Box>
+              {getShortcutKeyText(['ctrl', 's'])}
+            </Box>} placement="right" arrow>
+              <Stack
+                direction={'row'}
+                alignItems={'center'}
+                gap={1}
+                sx={{
+                  fontSize: 14, px: 2, lineHeight: '40px', height: 40, width: 140,
+                  borderRadius: '5px',
+                  cursor: 'pointer', ':hover': { bgcolor: addOpacityToColor(theme.palette.primary.main, 0.1) }
+                }}
+              >
+                保存
+              </Stack>
+            </Tooltip>,
+            onClick: () => handleSave(false)
+          },
+          {
+            key: 'save_publish',
+            label: <Stack
+              direction={'row'}
+              alignItems={'center'}
+              gap={1}
+              sx={{
+                fontSize: 14, px: 2, lineHeight: '40px', height: 40, width: 140,
+                borderRadius: '5px',
+                cursor: 'pointer', ':hover': { bgcolor: addOpacityToColor(theme.palette.primary.main, 0.1) }
+              }}
+            >
+              保存并发布
+            </Stack>,
+            onClick: () => handleSave(true)
+          },
+        ]} context={
+          <Button size="small" variant="contained"
+            startIcon={<Icon type='icon-baocun' />}>保存</Button>
+        } />
       </Stack>
     </Stack>
     <DocAddByCustomText type={detail.type} open={renameOpen} onClose={() => {

@@ -137,6 +137,7 @@ export type NodeDetail = {
   type: 1 | 2,
   content: string,
   kb_id: string,
+  status: 1 | 2,
   parent_id: string | null,
   meta: {
     emoji?: string,

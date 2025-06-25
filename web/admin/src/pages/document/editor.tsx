@@ -37,7 +37,7 @@ const DocEditor = () => {
   }
 
   const handleSave = async (auto?: boolean, publish?: boolean) => {
-    if (!editorRef || !detail || !edited) return
+    if (!editorRef || !detail) return
     const { editor } = editorRef
     const content = editor.getHTML()
     try {
@@ -128,7 +128,7 @@ const DocEditor = () => {
         borderColor: 'divider',
         py: 1,
       }}>
-        <EditorHeader editorRef={editorRef} detail={detail} onSave={(auto, publish) => handleSave(auto, publish)} refresh={async () => {
+        <EditorHeader edited={edited} editorRef={editorRef} detail={detail} onSave={(auto, publish) => handleSave(auto, publish)} refresh={async () => {
           await handleSave(false)
           getDetail()
         }} />
