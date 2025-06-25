@@ -228,11 +228,10 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		// FeishuBot
 		FeishuBotAppID:     app.Settings.FeishuBotAppID,
 		FeishuBotAppSecret: app.Settings.FeishuBotAppSecret,
-		// web app nav settings
-		CatalogExpanded:    app.Settings.CatalogExpanded,
-		DefaultDisplayMode: app.Settings.DefaultDisplayMode,
-		ModeSwitchVisible:  app.Settings.ModeSwitchVisible,
-		ThemeMode:          app.Settings.ThemeMode,
+		// theme
+		ThemeMode: app.Settings.ThemeMode,
+		// catalog settings
+		CatalogSettings: app.Settings.CatalogSettings,
 		// footer settings
 		FooterSettings: app.Settings.FooterSettings,
 	}
@@ -269,11 +268,10 @@ func (u *AppUsecase) GetWebAppInfo(ctx context.Context, kbID string) (*domain.Ap
 			AutoSitemap:        app.Settings.AutoSitemap,
 			HeadCode:           app.Settings.HeadCode,
 			BodyCode:           app.Settings.BodyCode,
-			// web app nav settings
-			CatalogExpanded:    app.Settings.CatalogExpanded,
-			DefaultDisplayMode: app.Settings.DefaultDisplayMode,
-			ModeSwitchVisible:  app.Settings.ModeSwitchVisible,
-			ThemeMode:          app.Settings.ThemeMode,
+			// theme
+			ThemeMode: app.Settings.ThemeMode,
+			// catalog settings
+			CatalogSettings: app.Settings.CatalogSettings,
 			// footer settings
 			FooterSettings: app.Settings.FooterSettings,
 		},

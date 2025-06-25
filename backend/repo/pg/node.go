@@ -164,6 +164,17 @@ func (r *NodeRepository) GetByID(ctx context.Context, id string) (*domain.NodeDe
 func (r *NodeRepository) Delete(ctx context.Context, kbID string, ids []string) ([]string, error) {
 	docIDs := make([]string, 0)
 	if err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// check if node.parent_id in ids
+		var parentIDs []string
+		if err := tx.Model(&domain.Node{}).
+			Where("parent_id IN ?", ids).
+			Select("parent_id").
+			Find(&parentIDs).Error; err != nil {
+			return err
+		}
+		if len(parentIDs) > 0 {
+			return domain.ErrNodeParentIDInIDs
+		}
 		var nodes []*domain.Node
 		if err := tx.Model(&domain.Node{}).
 			Where("id IN ?", ids).

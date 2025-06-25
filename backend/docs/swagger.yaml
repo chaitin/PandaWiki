@@ -48,12 +48,10 @@ definitions:
       btns:
         items: {}
         type: array
-      catalog_expanded:
-        description: web app nav settings
-        type: integer
-      default_display_mode:
-        description: '1: QA mode, 2: doc mode'
-        type: integer
+      catalog_settings:
+        allOf:
+        - $ref: '#/definitions/domain.CatalogSettings'
+        description: catalog settings
       desc:
         description: seo
         type: string
@@ -80,8 +78,6 @@ definitions:
         type: string
       keyword:
         type: string
-      mode_switch_visible:
-        type: integer
       recommend_node_ids:
         items:
           type: string
@@ -93,6 +89,7 @@ definitions:
       search_placeholder:
         type: string
       theme_mode:
+        description: theme
         type: string
       title:
         description: nav
@@ -110,12 +107,10 @@ definitions:
       btns:
         items: {}
         type: array
-      catalog_expanded:
-        description: web nav settings
-        type: integer
-      default_display_mode:
-        description: '1: QA mode, 2: doc mode'
-        type: integer
+      catalog_settings:
+        allOf:
+        - $ref: '#/definitions/domain.CatalogSettings'
+        description: catalog settings
       desc:
         description: seo
         type: string
@@ -142,8 +137,6 @@ definitions:
         type: string
       keyword:
         type: string
-      mode_switch_visible:
-        type: integer
       recommend_node_ids:
         items:
           type: string
@@ -155,6 +148,7 @@ definitions:
       search_placeholder:
         type: string
       theme_mode:
+        description: theme
         type: string
       title:
         description: nav
@@ -183,6 +177,18 @@ definitions:
         type: array
       name:
         type: string
+    type: object
+  domain.CatalogSettings:
+    properties:
+      catalog_folder:
+        description: '1: 展开, 2: 折叠, default: 1'
+        type: integer
+      catalog_visible:
+        description: '1: 显示, 2: 隐藏, default: 1'
+        type: integer
+      catalog_width:
+        description: '200 - 300, default: 260'
+        type: integer
     type: object
   domain.ChatRequest:
     properties:

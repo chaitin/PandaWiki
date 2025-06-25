@@ -60,13 +60,18 @@ type AppSettings struct {
 	// FeishuBot
 	FeishuBotAppID     string `json:"feishu_bot_app_id,omitempty"`
 	FeishuBotAppSecret string `json:"feishu_bot_app_secret,omitempty"`
-	// web app nav settings
-	CatalogExpanded    int    `json:"catalog_expanded,omitempty"`
-	DefaultDisplayMode int    `json:"default_display_mode,omitempty"` // 1: QA mode, 2: doc mode
-	ModeSwitchVisible  int    `json:"mode_switch_visible,omitempty"`
-	ThemeMode          string `json:"theme_mode,omitempty"`
+	// theme
+	ThemeMode string `json:"theme_mode,omitempty"`
+	// catalog settings
+	CatalogSettings CatalogSettings `json:"catalog_settings"`
 	// footer settings
 	FooterSettings FooterSettings `json:"footer_settings"`
+}
+
+type CatalogSettings struct {
+	CatalogFolder  int `json:"catalog_folder,omitempty"`  // 1: 展开, 2: 折叠, default: 1
+	CatalogWidth   int `json:"catalog_width,omitempty"`   // 200 - 300, default: 260
+	CatalogVisible int `json:"catalog_visible,omitempty"` // 1: 显示, 2: 隐藏, default: 1
 }
 
 type FooterSettings struct {
@@ -137,11 +142,10 @@ type AppSettingsResp struct {
 	// FeishuBot
 	FeishuBotAppID     string `json:"feishu_bot_app_id,omitempty"`
 	FeishuBotAppSecret string `json:"feishu_bot_app_secret,omitempty"`
-	// web nav settings
-	CatalogExpanded    int    `json:"catalog_expanded,omitempty"`
-	DefaultDisplayMode int    `json:"default_display_mode,omitempty"` // 1: QA mode, 2: doc mode
-	ModeSwitchVisible  int    `json:"mode_switch_visible,omitempty"`
-	ThemeMode          string `json:"theme_mode,omitempty"`
+	// theme
+	ThemeMode string `json:"theme_mode,omitempty"`
+	// catalog settings
+	CatalogSettings CatalogSettings `json:"catalog_settings"`
 	// footer settings
 	FooterSettings FooterSettings `json:"footer_settings"`
 }

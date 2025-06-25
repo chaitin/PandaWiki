@@ -1902,13 +1902,13 @@ const docTemplate = `{
                     "type": "array",
                     "items": {}
                 },
-                "catalog_expanded": {
-                    "description": "web app nav settings",
-                    "type": "integer"
-                },
-                "default_display_mode": {
-                    "description": "1: QA mode, 2: doc mode",
-                    "type": "integer"
+                "catalog_settings": {
+                    "description": "catalog settings",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.CatalogSettings"
+                        }
+                    ]
                 },
                 "desc": {
                     "description": "seo",
@@ -1949,9 +1949,6 @@ const docTemplate = `{
                 "keyword": {
                     "type": "string"
                 },
-                "mode_switch_visible": {
-                    "type": "integer"
-                },
                 "recommend_node_ids": {
                     "type": "array",
                     "items": {
@@ -1968,6 +1965,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "theme_mode": {
+                    "description": "theme",
                     "type": "string"
                 },
                 "title": {
@@ -1993,13 +1991,13 @@ const docTemplate = `{
                     "type": "array",
                     "items": {}
                 },
-                "catalog_expanded": {
-                    "description": "web nav settings",
-                    "type": "integer"
-                },
-                "default_display_mode": {
-                    "description": "1: QA mode, 2: doc mode",
-                    "type": "integer"
+                "catalog_settings": {
+                    "description": "catalog settings",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.CatalogSettings"
+                        }
+                    ]
                 },
                 "desc": {
                     "description": "seo",
@@ -2040,9 +2038,6 @@ const docTemplate = `{
                 "keyword": {
                     "type": "string"
                 },
-                "mode_switch_visible": {
-                    "type": "integer"
-                },
                 "recommend_node_ids": {
                     "type": "array",
                     "items": {
@@ -2059,6 +2054,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "theme_mode": {
+                    "description": "theme",
                     "type": "string"
                 },
                 "title": {
@@ -2097,6 +2093,23 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                }
+            }
+        },
+        "domain.CatalogSettings": {
+            "type": "object",
+            "properties": {
+                "catalog_folder": {
+                    "description": "1: 展开, 2: 折叠, default: 1",
+                    "type": "integer"
+                },
+                "catalog_visible": {
+                    "description": "1: 显示, 2: 隐藏, default: 1",
+                    "type": "integer"
+                },
+                "catalog_width": {
+                    "description": "200 - 300, default: 260",
+                    "type": "integer"
                 }
             }
         },

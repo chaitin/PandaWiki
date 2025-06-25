@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"time"
@@ -49,12 +50,20 @@ func NewKnowledgeBaseRepository(db *pg.DB, config *config.Config, logger *log.Lo
 }
 
 func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Context, kbList []*domain.KnowledgeBaseListItem) error {
+	if len(kbList) == 0 {
+		return nil
+	}
+	firstKB := kbList[0]
+	firstHost := ""
+	if len(firstKB.AccessSettings.Hosts) > 0 {
+		firstHost = firstKB.AccessSettings.Hosts[0]
+	}
 	pems := make([]map[string]any, 0)
 	portHostKBMap := make(map[string]map[string]*domain.KnowledgeBaseListItem)
-	ports := make(map[string]struct{})
+	httpPorts := make(map[string]struct{})
 	for _, kb := range kbList {
 		for _, port := range kb.AccessSettings.Ports {
-			ports[fmt.Sprintf(":%d", port)] = struct{}{}
+			httpPorts[fmt.Sprintf(":%d", port)] = struct{}{}
 			if _, ok := portHostKBMap[fmt.Sprintf(":%d", port)]; !ok {
 				portHostKBMap[fmt.Sprintf(":%d", port)] = make(map[string]*domain.KnowledgeBaseListItem)
 			}
@@ -100,7 +109,7 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 				},
 			},
 		}
-		if _, ok := ports[port]; ok {
+		if _, ok := httpPorts[port]; ok {
 			server["automatic_https"] = map[string]any{
 				"disable": true,
 			}
@@ -212,6 +221,12 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 					},
 				},
 			}
+			if host == firstHost {
+				// first host as default host
+				// copy route without the host match
+				routeCopy := maps.Clone(route)
+				routes = append(routes, routeCopy)
+			}
 			if host != "*" {
 				route["match"] = []map[string]any{
 					{
@@ -273,7 +288,9 @@ func (r *KnowledgeBaseRepository) CreateKnowledgeBase(ctx context.Context, kb *d
 		}
 		// get all kb list
 		var kbs []*domain.KnowledgeBaseListItem
-		if err := tx.Model(&domain.KnowledgeBase{}).Find(&kbs).Error; err != nil {
+		if err := tx.Model(&domain.KnowledgeBase{}).
+			Order("created_at ASC").
+			Find(&kbs).Error; err != nil {
 			return err
 		}
 		if len(kbs) >= 10 {
@@ -366,7 +383,10 @@ func (r *KnowledgeBaseRepository) checkUniquePortHost(kbList []*domain.Knowledge
 
 func (r *KnowledgeBaseRepository) GetKnowledgeBaseList(ctx context.Context) ([]*domain.KnowledgeBaseListItem, error) {
 	var kbs []*domain.KnowledgeBaseListItem
-	if err := r.db.WithContext(ctx).Model(&domain.KnowledgeBase{}).Find(&kbs).Error; err != nil {
+	if err := r.db.WithContext(ctx).
+		Model(&domain.KnowledgeBase{}).
+		Order("created_at ASC").
+		Find(&kbs).Error; err != nil {
 		return nil, err
 	}
 	return kbs, nil
@@ -393,7 +413,9 @@ func (r *KnowledgeBaseRepository) UpdateKnowledgeBase(ctx context.Context, req *
 		}
 		// get all kb list
 		var kbs []*domain.KnowledgeBaseListItem
-		if err := tx.Model(&domain.KnowledgeBase{}).Find(&kbs).Error; err != nil {
+		if err := tx.Model(&domain.KnowledgeBase{}).
+			Order("created_at ASC").
+			Find(&kbs).Error; err != nil {
 			return err
 		}
 		if err := r.checkUniquePortHost(kbs); err != nil {
@@ -427,7 +449,9 @@ func (r *KnowledgeBaseRepository) DeleteKnowledgeBase(ctx context.Context, kbID 
 		}
 		// get all kb list
 		var kbs []*domain.KnowledgeBaseListItem
-		if err := tx.Model(&domain.KnowledgeBase{}).Find(&kbs).Error; err != nil {
+		if err := tx.Model(&domain.KnowledgeBase{}).
+			Order("created_at ASC").
+			Find(&kbs).Error; err != nil {
 			return err
 		}
 		if err := r.SyncKBAccessSettingsToCaddy(ctx, kbs); err != nil {

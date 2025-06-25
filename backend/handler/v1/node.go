@@ -141,6 +141,9 @@ func (h *NodeHandler) NodeAction(c echo.Context) error {
 	}
 	ctx := c.Request().Context()
 	if err := h.usecase.NodeAction(ctx, req); err != nil {
+		if err == domain.ErrNodeParentIDInIDs {
+			return h.NewResponseWithError(c, "文件夹下有子文件，不能删除~", nil)
+		}
 		return h.NewResponseWithError(c, "node action failed", err)
 	}
 	return h.NewResponseWithData(c, nil)
