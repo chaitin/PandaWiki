@@ -9,8 +9,8 @@ import CatalogFolder from "./CatalogFolder";
 
 const Catalog = () => {
   const { kbDetail, nodeList = [], mobile = false, catalogShow, setCatalogShow } = useStore()
-  if (mobile) return null
   const { id = '' }: { id: string } = useParams()
+  if (mobile) return null
   const catalogSetting = kbDetail?.settings?.catalog_settings
   const catalogFolderExpand = catalogSetting?.catalog_folder !== 2
   const tree = addExpandState(filterEmptyFolders(convertToTree(nodeList) || []), id as string, catalogFolderExpand)
