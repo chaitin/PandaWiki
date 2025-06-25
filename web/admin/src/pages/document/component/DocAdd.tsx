@@ -13,7 +13,7 @@ const DocAdd = ({ refresh }: InputContentProps) => {
   const theme = useTheme()
   const [customDocOpen, setCustomDocOpen] = useState(false)
   const [urlOpen, setUrlOpen] = useState(false)
-  const [key, setKey] = useState<'OfflineFile' | 'URL' | 'RSS' | 'Sitemap' | 'Notion' | 'Epub'>('URL')
+  const [key, setKey] = useState<'OfflineFile' | 'URL' | 'RSS' | 'Sitemap' | 'Notion' | 'Epub' | 'Wiki.js'>('URL')
   const [docFileKey, setDocFileKey] = useState<1 | 2>(1)
 
   const ImportContentWays = {
@@ -71,6 +71,13 @@ const DocAdd = ({ refresh }: InputContentProps) => {
       onClick: () => {
         setUrlOpen(true)
         setKey('Epub')
+      }
+    },
+    'Wiki.js': {
+      label: '通过 Wiki.js 导入',
+      onClick: () => {
+        setUrlOpen(true)
+        setKey('Wiki.js')
       }
     }
   }

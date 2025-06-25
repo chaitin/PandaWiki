@@ -1,11 +1,5 @@
 import { KBDetail, NodeDetail, NodeListItem } from '@/assets/type';
 
-interface ApiResponse<T = any> {
-  data: T;
-  message?: string;
-  code?: number;
-}
-
 interface ApiClientConfig {
   kb_id?: string;
   headers?: Record<string, string>;

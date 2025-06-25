@@ -41,9 +41,9 @@ const Content = () => {
   const [urlOpen, setUrlOpen] = useState(false)
   const [publishIds, setPublishIds] = useState<string[]>([])
   const [publishOpen, setPublishOpen] = useState(false)
-  const [key, setKey] = useState<'URL' | 'RSS' | 'Sitemap' | 'OfflineFile' | 'Notion' | 'Epub'>('URL')
+  const [key, setKey] = useState<'URL' | 'RSS' | 'Sitemap' | 'OfflineFile' | 'Notion' | 'Epub' | 'Wiki.js'>('URL')
 
-  const handleUrl = (item: ITreeItem, key: 'URL' | 'RSS' | 'Sitemap' | 'OfflineFile' | 'Notion' | 'Epub') => {
+  const handleUrl = (item: ITreeItem, key: 'URL' | 'RSS' | 'Sitemap' | 'OfflineFile' | 'Notion' | 'Epub' | 'Wiki.js') => {
     setKey(key)
     setUrlOpen(true)
     setOpraData(list.filter(it => it.id === item.id))
@@ -82,7 +82,8 @@ const Content = () => {
             { label: '通过 Sitemap 导入', key: 'Sitemap', onClick: () => handleUrl(item, 'Sitemap') },
             { label: '通过离线文件导入', key: 'OfflineFile', onClick: () => handleUrl(item, 'OfflineFile') },
             { label: '通过 Notion 导入', key: 'Notion', onClick: () => handleUrl(item, 'Notion') },
-            { label: '通过 Epub 导入', key: 'Epub', onClick: () => handleUrl(item, 'Epub') }
+            { label: '通过 Epub 导入', key: 'Epub', onClick: () => handleUrl(item, 'Epub') },
+            { label: '通过 Wiki.js 导入', key: 'Wiki.js', onClick: () => handleUrl(item, 'Wiki.js') }
           ]
         }
       ] : []),

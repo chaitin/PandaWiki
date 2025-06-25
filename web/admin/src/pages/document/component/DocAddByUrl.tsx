@@ -1,4 +1,4 @@
-import { convertEpub, createNode, getNotionIntegration, getNotionIntegrationDetail, scrapeCrawler, scrapeRSS, scrapeSitemap, uploadFile } from "@/api"
+import { convertEpub, createNode, getNotionIntegration, getNotionIntegrationDetail, parseWikijs, scrapeCrawler, scrapeRSS, scrapeSitemap, uploadFile } from "@/api"
 import Upload from "@/components/UploadFile/Drag"
 import { useAppSelector } from "@/store"
 import { formatByte } from "@/utils"
@@ -9,11 +9,17 @@ import { useEffect, useState } from "react"
 import { FileRejection } from "react-dropzone"
 
 type DocAddByUrlProps = {
-  type: 'OfflineFile' | 'URL' | 'RSS' | 'Sitemap' | 'Notion' | 'Epub'
+  type: 'OfflineFile' | 'URL' | 'RSS' | 'Sitemap' | 'Notion' | 'Epub' | 'Wiki.js'
   parentId?: string | null
   open: boolean
   refresh?: () => void
   onCancel: () => void
+}
+
+const AcceptTypes = {
+  OfflineFile: '.txt, .md, .xls, .xlsx, .docx, .pdf, .html, .epub',
+  Epub: '.epub',
+  'Wiki.js': '.gz',
 }
 
 const StepText = {
@@ -108,6 +114,8 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
     try {
       if (type === 'Epub') {
         for (let i = 0; i < acceptedFiles.length; i++) {
+          setCurrentFileIndex(i)
+          setUploadProgress(0)
           try {
             const formData = new FormData()
             formData.append("file", acceptedFiles[i])
@@ -118,6 +126,16 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
           } catch (error) {
             errorIdx.push(i)
             console.error(`文件 ${acceptedFiles[i].name} 转换失败:`, error)
+          }
+        }
+      }
+      if (type === 'Wiki.js') {
+        for (let i = 0; i < acceptedFiles.length; i++) {
+          const formData = new FormData()
+          formData.append("file", acceptedFiles[i])
+          const pages = await parseWikijs(formData)
+          for (const page of pages) {
+            setItems(prev => [{ url: page.id, title: page.title, content: page.content, success: -1, id: '' }, ...prev])
           }
         }
       }
@@ -217,7 +235,7 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
     } else if (step === 'pull') {
       setLoading(true)
       setIsCancelled(false)
-      if (['OfflineFile', 'Epub'].includes(type)) handleFile()
+      if (['OfflineFile', 'Epub', 'Wiki.js'].includes(type)) handleFile()
       else handleURL()
     } else if (step === 'pull-done') {
       setLoading(true)
@@ -320,13 +338,13 @@ const DocAddByUrl = ({ type, open, refresh, onCancel, parentId = null }: DocAddB
     showCancel={StepText[step].showCancel}
     okButtonProps={{ loading }}
   >
-    {step === 'pull' && (['OfflineFile', 'Epub'].includes(type) ? <Box>
+    {step === 'pull' && (['OfflineFile', 'Epub', 'Wiki.js'].includes(type) ? <Box>
       <Upload
         file={acceptedFiles}
         onChange={(accept, reject) => onChangeFile(accept, reject)}
         type='drag'
-        multiple
-        accept={type === 'Epub' ? '.epub' : '.txt, .md, .xls, .xlsx, .docx, .pdf, .html, .epub'}
+        multiple={type !== 'Wiki.js'}
+        accept={AcceptTypes[type as keyof typeof AcceptTypes] || '*'}
         size={size}
       />
       {isUploading === 1 && <Box sx={{ mt: 2 }}>
