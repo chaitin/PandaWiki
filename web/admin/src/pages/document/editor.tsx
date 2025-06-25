@@ -6,6 +6,7 @@ import { Message } from "ct-mui";
 import { TiptapEditor, TiptapToolbar, useTiptapEditor } from 'ct-tiptap-editor';
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
+import VersionPublish from "../release/components/VersionPublish";
 import EditorDocNav from "./component/EditorDocNav";
 import EditorFolder from "./component/EditorFolder";
 import EditorHeader from "./component/EditorHeader";
@@ -19,6 +20,7 @@ const DocEditor = () => {
   const [detail, setDetail] = useState<NodeDetail | null>(null)
   const [headings, setHeadings] = useState<{ id: string, title: string, heading: number }[]>([])
   const [maxH, setMaxH] = useState(0)
+  const [publishOpen, setPublishOpen] = useState(false)
 
   const getDetail = () => {
     getNodeDetail({ id }).then(res => {
@@ -34,7 +36,7 @@ const DocEditor = () => {
     setMaxH(Math.min(...headings.map((h: any) => h.heading)))
   }
 
-  const handleSave = async (auto?: boolean) => {
+  const handleSave = async (auto?: boolean, publish?: boolean) => {
     if (!editorRef || !detail || !edited) return
     const { editor } = editorRef
     const content = editor.getHTML()
@@ -43,6 +45,7 @@ const DocEditor = () => {
       if (auto === true) Message.success('自动保存成功')
       else if (auto === undefined) Message.success('保存成功')
       setEdited(false)
+      if (publish) setPublishOpen(true)
       getDetail()
       updateNav()
     } catch (error) {
@@ -125,7 +128,7 @@ const DocEditor = () => {
         borderColor: 'divider',
         py: 1,
       }}>
-        <EditorHeader editorRef={editorRef} detail={detail} onSave={() => handleSave()} refresh={async () => {
+        <EditorHeader editorRef={editorRef} detail={detail} onSave={(auto, publish) => handleSave(auto, publish)} refresh={async () => {
           await handleSave(false)
           getDetail()
         }} />
@@ -178,6 +181,7 @@ const DocEditor = () => {
         </Stack>
       </Stack>
     </Stack>
+    <VersionPublish open={publishOpen} defaultSelected={[id]} onClose={() => setPublishOpen(false)} refresh={() => getDetail()} />
   </Box>
 }
 

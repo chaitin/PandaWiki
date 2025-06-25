@@ -13,7 +13,7 @@ import { useState } from "react"
 interface EditorHeaderProps {
   editorRef: UseTiptapEditorReturn
   detail: NodeDetail | null
-  onSave?: () => void
+  onSave: (auto?: boolean, publish?: boolean) => void
   refresh?: () => void
 }
 
@@ -194,8 +194,8 @@ const EditorHeader = ({ editorRef, detail, onSave, refresh }: EditorHeaderProps)
         <Tooltip title={<Box>
           {getShortcutKeyText(['ctrl', 's'])}
         </Box>} placement="bottom" arrow>
-          <Button size="small" variant="contained" onClick={onSave}
-            startIcon={<Icon type='icon-baocun' />}>保存</Button>
+          <Button size="small" variant="contained" onClick={() => onSave(false, true)}
+            startIcon={<Icon type='icon-baocun' />}>保存并发布</Button>
         </Tooltip>
       </Stack>
     </Stack>
