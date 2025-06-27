@@ -113,8 +113,6 @@ func (h *ShareAppHandler) WechatHandler(c echo.Context) error {
 		return h.NewResponseWithError(c, "kb_id is required", nil)
 	}
 
-	RemoteIP := ""
-
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		h.logger.Error("get request failed", log.Error(err))
@@ -130,13 +128,13 @@ func (h *ShareAppHandler) WechatHandler(c echo.Context) error {
 		return h.NewResponseWithError(c, "Failed to send immediate response", err)
 	}
 
-	go func(signature, timestamp, nonce string, body []byte, KbId string, remoteip string) {
+	go func(signature, timestamp, nonce string, body []byte, KbId string) {
 		ctx := context.Background()
-		err := h.usecase.Wechat(ctx, signature, timestamp, nonce, body, KbId, remoteip)
+		err := h.usecase.Wechat(ctx, signature, timestamp, nonce, body, KbId)
 		if err != nil {
 			h.logger.Error("wechat async failed")
 		}
-	}(signature, timestamp, nonce, body, kbID, RemoteIP)
+	}(signature, timestamp, nonce, body, kbID)
 
 	return c.XMLBlob(http.StatusOK, []byte(immediateResponse))
 }

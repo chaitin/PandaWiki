@@ -44,7 +44,7 @@ func (u *AppUsecase) VerifiyUrl(ctx context.Context, signature, timestamp, nonce
 	return body, nil
 }
 
-func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce string, body []byte, KbId string, remoteip string) error {
+func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce string, body []byte, KbId string) error {
 
 	// find wechat-bot
 	appres, err := u.GetAppDetailByKBIDAndAppType(ctx, KbId, domain.AppTypeWechatBot)
@@ -67,10 +67,9 @@ func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce str
 		u.logger.Error("failed to create WechatConfig", log.Error(err))
 		return err
 	}
-	u.logger.Info("remote ip", log.String("ip", remoteip))
 
 	// use ai
-	getQA := u.wechatQAFunc(KbId, appres.Type, remoteip)
+	getQA := u.getQAFunc(KbId, appres.Type)
 
 	err = wc.Wechat(signature, timestamp, nonce, body, getQA)
 

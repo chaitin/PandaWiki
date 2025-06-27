@@ -108,33 +108,6 @@ func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) func(ctx con
 	}
 }
 
-func (u *AppUsecase) wechatQAFunc(kbID string, appType domain.AppType, remoteip string) func(ctx context.Context, msg string) (chan string, error) {
-	return func(ctx context.Context, msg string) (chan string, error) {
-		eventCh, err := u.chatUsecase.Chat(ctx, &domain.ChatRequest{
-			Message:  msg,
-			KBID:     kbID,
-			AppType:  appType,
-			RemoteIP: remoteip,
-		})
-		if err != nil {
-			return nil, err
-		}
-		contentCh := make(chan string, 10)
-		go func() {
-			defer close(contentCh)
-			for event := range eventCh { // get content from eventch
-				if event.Type == "done" || event.Type == "error" {
-					break
-				}
-				if event.Type == "data" {
-					contentCh <- event.Content
-				}
-			}
-		}()
-		return contentCh, nil
-	}
-}
-
 func (u *AppUsecase) updateFeishuBot(app *domain.App) {
 	u.feishuMutex.Lock()
 	defer u.feishuMutex.Unlock()
