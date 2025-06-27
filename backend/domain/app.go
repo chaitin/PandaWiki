@@ -16,7 +16,6 @@ const (
 	AppTypeDingTalkBot
 	AppTypeFeishuBot
 	AppTypeWechatBot
-	AppTypeWechatBot
 )
 
 var AppTypes = []AppType{
@@ -24,7 +23,6 @@ var AppTypes = []AppType{
 	AppTypeWidget,
 	AppTypeDingTalkBot,
 	AppTypeFeishuBot,
-	AppTypeWechatBot,
 	AppTypeWechatBot,
 }
 
@@ -65,19 +63,11 @@ type AppSettings struct {
 	FeishuBotAppID     string `json:"feishu_bot_app_id,omitempty"`
 	FeishuBotAppSecret string `json:"feishu_bot_app_secret,omitempty"`
 	// WechatAppBot
-<<<<<<< HEAD
 	WeChatAppToken          string `json:"wechat_app_token,omitempty"`
 	WeChatAppEncodingAESKey string `json:"wechat_app_encodingaeskey,omitempty"`
 	WeChatAppCorpID         string `json:"wechat_app_corpid,omitempty"`
 	WeChatAppSecret         string `json:"wechat_app_secret,omitempty"`
 	WeChatAppAgentID        string `json:"wechat_app_agent_id,omitempty"`
-=======
-	WeChatAppToken          string `json:"wechat_app_bot_token,omitempty"`
-	WeChatAppEncodingAESKey string `json:"wechat_app_encodingaeskey,omitempty"`
-	WeChatAppCorpID         string `json:"wechat_app_corpid,omitempty"`
-	WeChatAppSecret         string `json:"we_app_secret,omitempty"`
-	WeChatAppAgantID        string `json:"we_app_againt_id,omitempty"`
->>>>>>> a8e0c07 (change name for wechatapp)
 
 	// theme
 	ThemeMode string `json:"theme_mode,omitempty"`
@@ -163,19 +153,11 @@ type AppSettingsResp struct {
 	FeishuBotAppSecret string `json:"feishu_bot_app_secret,omitempty"`
 
 	// WechatAppBot
-<<<<<<< HEAD
 	WeChatAppToken          string `json:"wechat_app_token,omitempty"`
 	WeChatAppEncodingAESKey string `json:"wechat_app_encodingaeskey,omitempty"`
 	WeChatAppCorpID         string `json:"wechat_app_corpid,omitempty"`
 	WeChatAppSecret         string `json:"wechat_app_secret,omitempty"`
 	WeChatAppAgentID        string `json:"wechat_app_agent_id,omitempty"`
-=======
-	WeChatAppToken          string `json:"wechat_app_bot_token,omitempty"`
-	WeChatAppEncodingAESKey string `json:"wechat_app_encodingaeskey,omitempty"`
-	WeChatAppCorpID         string `json:"wechat_app_corpid,omitempty"`
-	WeChatAppSecret         string `json:"we_app_secret,omitempty"`
-	WeChatAppAgantID        string `json:"we_app_againt_id,omitempty"`
->>>>>>> a8e0c07 (change name for wechatapp)
 
 	// theme
 	ThemeMode string `json:"theme_mode,omitempty"`

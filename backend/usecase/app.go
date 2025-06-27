@@ -261,11 +261,7 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		WeChatAppCorpID:         app.Settings.WeChatAppCorpID,
 		WeChatAppEncodingAESKey: app.Settings.WeChatAppEncodingAESKey,
 		WeChatAppSecret:         app.Settings.WeChatAppSecret,
-<<<<<<< HEAD
 		WeChatAppAgentID:        app.Settings.WeChatAppAgentID,
-=======
-		WeChatAppAgantID:        app.Settings.WeChatAppAgantID,
->>>>>>> a8e0c07 (change name for wechatapp)
 
 		// theme
 		ThemeMode: app.Settings.ThemeMode,

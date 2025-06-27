@@ -2026,7 +2026,6 @@ const docTemplate = `{
                     "description": "nav",
                     "type": "string"
                 },
-<<<<<<< HEAD
                 "wechat_app_agent_id": {
                     "type": "string"
                 },
@@ -2041,22 +2040,6 @@ const docTemplate = `{
                 },
                 "wechat_app_token": {
                     "description": "WechatAppBot",
-=======
-                "we_app_againt_id": {
-                    "type": "string"
-                },
-                "we_app_secret": {
-                    "type": "string"
-                },
-                "wechat_app_bot_token": {
-                    "description": "WechatAppBot",
-                    "type": "string"
-                },
-                "wechat_app_corpid": {
-                    "type": "string"
-                },
-                "wechat_app_encodingaeskey": {
->>>>>>> a8e0c07 (change name for wechatapp)
                     "type": "string"
                 },
                 "welcome_str": {
@@ -2148,7 +2131,6 @@ const docTemplate = `{
                     "description": "nav",
                     "type": "string"
                 },
-<<<<<<< HEAD
                 "wechat_app_agent_id": {
                     "type": "string"
                 },
@@ -2163,22 +2145,6 @@ const docTemplate = `{
                 },
                 "wechat_app_token": {
                     "description": "WechatAppBot",
-=======
-                "we_app_againt_id": {
-                    "type": "string"
-                },
-                "we_app_secret": {
-                    "type": "string"
-                },
-                "wechat_app_bot_token": {
-                    "description": "WechatAppBot",
-                    "type": "string"
-                },
-                "wechat_app_corpid": {
-                    "type": "string"
-                },
-                "wechat_app_encodingaeskey": {
->>>>>>> a8e0c07 (change name for wechatapp)
                     "type": "string"
                 },
                 "welcome_str": {
