@@ -2,8 +2,6 @@ package usecase
 
 import (
 	"context"
-	"encoding/xml"
-	"fmt"
 	"sync"
 
 	"github.com/chaitin/panda-wiki/config"
@@ -11,9 +9,7 @@ import (
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/pkg/bot/dingtalk"
 	"github.com/chaitin/panda-wiki/pkg/bot/feishu"
-	"github.com/chaitin/panda-wiki/pkg/bot/wechat"
 	"github.com/chaitin/panda-wiki/repo/pg"
-	"github.com/sbzhu/weworkapi_golang/wxbizmsgcrypt"
 )
 
 type AppUsecase struct {
@@ -265,7 +261,11 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		WeChatAppCorpID:         app.Settings.WeChatAppCorpID,
 		WeChatAppEncodingAESKey: app.Settings.WeChatAppEncodingAESKey,
 		WeChatAppSecret:         app.Settings.WeChatAppSecret,
+<<<<<<< HEAD
 		WeChatAppAgentID:        app.Settings.WeChatAppAgentID,
+=======
+		WeChatAppAgantID:        app.Settings.WeChatAppAgantID,
+>>>>>>> a8e0c07 (change name for wechatapp)
 
 		// theme
 		ThemeMode: app.Settings.ThemeMode,
@@ -326,112 +326,4 @@ func (u *AppUsecase) GetWebAppInfo(ctx context.Context, kbID string) (*domain.Ap
 		appInfo.RecommendNodes = nodes
 	}
 	return appInfo, nil
-}
-
-func (u *AppUsecase) VerifiyUrl(ctx context.Context, signature, timestamp, nonce, echostr, KbId string) ([]byte, error) {
-
-	// find wechat-bot
-	appres, err := u.GetAppDetailByKBIDAndAppType(ctx, KbId, domain.AppTypeWechatBot)
-	if err != nil {
-		u.logger.Error("find Appdetail failed")
-	}
-	u.logger.Info("拿到了map中的第一个企业微信机器人的消息", appres)
-
-	wc, err := wechat.NewWechatConfig(
-		ctx,
-		appres.Settings.WeCorpID,
-		appres.Settings.WeChatToken,
-		appres.Settings.WeEncodingAESKey,
-		KbId,
-		appres.Settings.WeSecret,
-		appres.Settings.WeAgantID,
-	)
-
-	if err != nil {
-		u.logger.Error("failed to create WechatConfig", log.Error(err))
-		return nil, err
-	}
-
-	body, err := wc.VerifiyUrl(signature, timestamp, nonce, echostr)
-	if err != nil {
-		u.logger.Error("wc verifiyUrl failed", log.Error(err))
-		return nil, err
-	}
-	return body, nil
-}
-
-func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce string, body []byte, KbId string, remoteip string) error {
-
-	// find wechat-bot
-	appres, err := u.GetAppDetailByKBIDAndAppType(ctx, KbId, domain.AppTypeWechatBot)
-
-	if err != nil {
-		u.logger.Error("find Appdetail failed")
-	}
-
-	wc, err := wechat.NewWechatConfig(
-		ctx,
-		appres.Settings.WeCorpID,
-		appres.Settings.WeChatToken,
-		appres.Settings.WeEncodingAESKey,
-		KbId,
-		appres.Settings.WeSecret,
-		appres.Settings.WeAgantID,
-	)
-
-	if err != nil {
-		u.logger.Error("failed to create WechatConfig", log.Error(err))
-		return err
-	}
-	u.logger.Info("remote ip :", remoteip)
-
-	// use ai
-	getQA := u.wechatQAFunc(KbId, appres.Type, remoteip)
-
-	err = wc.Wechat(signature, timestamp, nonce, body, getQA)
-
-	if err != nil {
-		u.logger.Error("wc wechat failed", log.Error(err))
-		return err
-	}
-	return nil
-}
-
-func (u *AppUsecase) SendImmediateResponse(ctx context.Context, signature, timestamp, nonce string, body []byte, kbID string) ([]byte, error) {
-	appres, err := u.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppTypeWechatBot)
-
-	if err != nil {
-		return nil, err
-	}
-
-	wc, err := wechat.NewWechatConfig(
-		ctx,
-		appres.Settings.WeCorpID,
-		appres.Settings.WeChatToken,
-		appres.Settings.WeEncodingAESKey,
-		kbID,
-		appres.Settings.WeSecret,
-		appres.Settings.WeAgantID,
-	)
-
-	u.logger.Info("sendimi wechat-bot:", appres)
-
-	if err != nil {
-		return nil, err
-	}
-
-	wxcpt := wxbizmsgcrypt.NewWXBizMsgCrypt(wc.Token, wc.EncodingAESKey, wc.CorpID, wxbizmsgcrypt.XmlType)
-	decryptMsg, errCode := wxcpt.DecryptMsg(signature, timestamp, nonce, body)
-
-	if errCode != nil {
-		return nil, fmt.Errorf("Decryp Msg failed: %v", errCode)
-	}
-
-	var msg wechat.ReceivedMessage
-	if err := xml.Unmarshal(decryptMsg, &msg); err != nil {
-		return nil, err
-	}
-
-	// send response "正在思考"
-	return wc.SendResponse(msg, "正在思考您的问题，请稍候...")
 }
