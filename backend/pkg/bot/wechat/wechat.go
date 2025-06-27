@@ -83,7 +83,7 @@ func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, 
 	}, nil
 }
 
-func (cfg *WechatConfig) VerifiyUrl(signature, timestamp, nonce, echostr string) ([]byte, error) {
+func (cfg *WechatConfig) VerifyUrl(signature, timestamp, nonce, echostr string) ([]byte, error) {
 	wxcpt := wxbizmsgcrypt.NewWXBizMsgCrypt(
 		cfg.Token,
 		cfg.EncodingAESKey,

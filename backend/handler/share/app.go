@@ -44,7 +44,7 @@ func NewShareAppHandler(
 		})
 	share.GET("/web/info", h.GetWebAppInfo)
 
-	share.GET("/wechat/app", h.VerifiyUrl)
+	share.GET("/wechat/app", h.VerifyUrl)
 	share.POST("/wechat/app", h.WechatHandler)
 
 	return h
@@ -72,7 +72,7 @@ func (h *ShareAppHandler) GetWebAppInfo(c echo.Context) error {
 	return h.NewResponseWithData(c, appInfo)
 }
 
-func (h *ShareAppHandler) VerifiyUrl(c echo.Context) error {
+func (h *ShareAppHandler) VerifyUrl(c echo.Context) error {
 	signature := c.QueryParam("msg_signature")
 	timestamp := c.QueryParam("timestamp")
 	nonce := c.QueryParam("nonce")
@@ -92,7 +92,7 @@ func (h *ShareAppHandler) VerifiyUrl(c echo.Context) error {
 
 	ctx := c.Request().Context()
 
-	req, err := h.usecase.VerifiyUrl(ctx, signature, timestamp, nonce, echostr, kbID)
+	req, err := h.usecase.VerifyUrl(ctx, signature, timestamp, nonce, echostr, kbID)
 	if err != nil {
 		return h.NewResponseWithError(c, "VerifyURL failed", err)
 	}
@@ -128,9 +128,9 @@ func (h *ShareAppHandler) WechatHandler(c echo.Context) error {
 		return h.NewResponseWithError(c, "Failed to send immediate response", err)
 	}
 
-	go func(signature, timestamp, nonce string, body []byte, KbId string) {
+	go func(signature, timestamp, nonce string, body []byte, kbID string) {
 		ctx := context.Background()
-		err := h.usecase.Wechat(ctx, signature, timestamp, nonce, body, KbId)
+		err := h.usecase.Wechat(ctx, signature, timestamp, nonce, body, kbID)
 		if err != nil {
 			h.logger.Error("wechat async failed")
 		}

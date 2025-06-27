@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"time"
 
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
@@ -11,33 +12,27 @@ import (
 	"github.com/sbzhu/weworkapi_golang/wxbizmsgcrypt"
 )
 
-func (u *AppUsecase) VerifiyUrl(ctx context.Context, signature, timestamp, nonce, echostr, KbId string) ([]byte, error) {
+func (u *AppUsecase) VerifyUrl(ctx context.Context, signature, timestamp, nonce, echostr, kbID string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
 
 	// find wechat-bot
-	appres, err := u.GetAppDetailByKBIDAndAppType(ctx, KbId, domain.AppTypeWechatBot)
+	appres, err := u.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppTypeWechatBot)
 	if err != nil {
-		u.logger.Error("find Appdetail failed")
+		u.logger.Error("find Appdetail failed", log.Error(err))
+		return nil, err
 	}
 
 	u.logger.Debug("wechat app info", log.Any("info", appres))
 
-	wc, err := wechat.NewWechatConfig(
-		ctx,
-		appres.Settings.WeChatAppCorpID,
-		appres.Settings.WeChatAppToken,
-		appres.Settings.WeChatAppEncodingAESKey,
-		KbId,
-		appres.Settings.WeChatAppSecret,
-		appres.Settings.WeChatAppAgentID,
-		u.logger,
-	)
+	wc, err := u.newWechatConfig(ctx, appres, kbID)
 
 	if err != nil {
 		u.logger.Error("failed to create WechatConfig", log.Error(err))
 		return nil, err
 	}
 
-	body, err := wc.VerifiyUrl(signature, timestamp, nonce, echostr)
+	body, err := wc.VerifyUrl(signature, timestamp, nonce, echostr)
 	if err != nil {
 		u.logger.Error("wc verifiyUrl failed", log.Error(err))
 		return nil, err
@@ -45,33 +40,26 @@ func (u *AppUsecase) VerifiyUrl(ctx context.Context, signature, timestamp, nonce
 	return body, nil
 }
 
-func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce string, body []byte, KbId string) error {
+func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce string, body []byte, kbID string) error {
 
 	// find wechat-bot
-	appres, err := u.GetAppDetailByKBIDAndAppType(ctx, KbId, domain.AppTypeWechatBot)
+	appres, err := u.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppTypeWechatBot)
 
 	if err != nil {
 		u.logger.Error("find Appdetail failed")
 	}
-
-	wc, err := wechat.NewWechatConfig(
-		ctx,
-		appres.Settings.WeChatAppCorpID,
-		appres.Settings.WeChatAppToken,
-		appres.Settings.WeChatAppEncodingAESKey,
-		KbId,
-		appres.Settings.WeChatAppSecret,
-		appres.Settings.WeChatAppAgentID,
-		u.logger,
-	)
+	u.logger.Info("wechat bot found: ", appres)
+	wc, err := u.newWechatConfig(ctx, appres, kbID)
 
 	if err != nil {
 		u.logger.Error("failed to create WechatConfig", log.Error(err))
 		return err
 	}
 
+	// u.logger.Info("create wc success", wc)
+
 	// use ai
-	getQA := u.getQAFunc(KbId, appres.Type)
+	getQA := u.getQAFunc(kbID, appres.Type)
 
 	err = wc.Wechat(signature, timestamp, nonce, body, getQA)
 
@@ -83,22 +71,16 @@ func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce str
 }
 
 func (u *AppUsecase) SendImmediateResponse(ctx context.Context, signature, timestamp, nonce string, body []byte, kbID string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+
 	appres, err := u.GetAppDetailByKBIDAndAppType(ctx, kbID, domain.AppTypeWechatBot)
 
 	if err != nil {
 		return nil, err
 	}
 
-	wc, err := wechat.NewWechatConfig(
-		ctx,
-		appres.Settings.WeChatAppCorpID,
-		appres.Settings.WeChatAppToken,
-		appres.Settings.WeChatAppEncodingAESKey,
-		kbID,
-		appres.Settings.WeChatAppSecret,
-		appres.Settings.WeChatAppAgentID,
-		u.logger,
-	)
+	wc, err := u.newWechatConfig(ctx, appres, kbID)
 
 	u.logger.Debug("wechat app info", log.Any("app", appres))
 
@@ -120,4 +102,17 @@ func (u *AppUsecase) SendImmediateResponse(ctx context.Context, signature, times
 
 	// send response "正在思考"
 	return wc.SendResponse(msg, "正在思考您的问题，请稍候...")
+}
+
+func (u *AppUsecase) newWechatConfig(ctx context.Context, appres *domain.AppDetailResp, kbID string) (*wechat.WechatConfig, error) {
+	return wechat.NewWechatConfig(
+		ctx,
+		appres.Settings.WeChatAppCorpID,
+		appres.Settings.WeChatAppToken,
+		appres.Settings.WeChatAppEncodingAESKey,
+		kbID,
+		appres.Settings.WeChatAppSecret,
+		appres.Settings.WeChatAppAgentID,
+		u.logger,
+	)
 }
