@@ -8,10 +8,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
+	"sync"
 	"time"
 
+	"github.com/chaitin/panda-wiki/log"
 	"github.com/sbzhu/weworkapi_golang/wxbizmsgcrypt"
 )
 
@@ -22,10 +23,17 @@ type WechatConfig struct {
 	EncodingAESKey string
 	kbID           string
 	Secret         string
-	AccessToken    string
-	TokenExpire    time.Time
 	AgentID        string
+	logger         *log.Logger
 }
+
+type TokenCahe struct {
+	AccessToken string
+	TokenExpire time.Time
+	Mutex       sync.Mutex
+}
+
+var TokenCache *TokenCahe = &TokenCahe{}
 
 type ReceivedMessage struct {
 	ToUserName   string `xml:"ToUserName"`
@@ -62,7 +70,7 @@ type BackendResponse struct {
 	} `json:"data"`
 }
 
-func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, kbid string, secret string, againtid string) (*WechatConfig, error) {
+func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, kbid string, secret string, againtid string, logger *log.Logger) (*WechatConfig, error) {
 	return &WechatConfig{
 		Ctx:            ctx,
 		CorpID:         CorpID,
@@ -71,6 +79,7 @@ func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, 
 		kbID:           kbid,
 		Secret:         secret,
 		AgentID:        againtid,
+		logger:         logger,
 	}, nil
 }
 
@@ -115,7 +124,7 @@ func (cfg *WechatConfig) Wechat(signature, timestamp, nonce string, body []byte,
 
 	err = cfg.Processmessage(msg, getQA, token)
 	if err != nil {
-		log.Printf("send to ai failed! : %v", err)
+		cfg.logger.Error("send to ai failed!")
 		return err
 	}
 
@@ -190,7 +199,7 @@ func (cfg *WechatConfig) SendResponse(msg ReceivedMessage, content string) ([]by
 	// XML
 	responseXML, err := xml.Marshal(responseMsg)
 	if err != nil {
-		log.Printf("xml Marshal failed: %v", err)
+		cfg.logger.Error("xml Marshal failed")
 		return nil, err
 	}
 
@@ -208,8 +217,12 @@ func (cfg *WechatConfig) SendResponse(msg ReceivedMessage, content string) ([]by
 
 func (cfg *WechatConfig) GetAccessToken() (string, error) {
 
-	if cfg.AccessToken != "" && time.Now().Before(cfg.TokenExpire) {
-		return cfg.AccessToken, nil
+	TokenCache.Mutex.Lock()
+	defer TokenCache.Mutex.Unlock()
+
+	if TokenCache.AccessToken != "" && time.Now().Before(TokenCache.TokenExpire) {
+		cfg.logger.Info("access token has existed and valid")
+		return TokenCache.AccessToken, nil
 	}
 
 	if cfg.Secret == "" {
@@ -241,8 +254,8 @@ func (cfg *WechatConfig) GetAccessToken() (string, error) {
 
 	// succcess
 
-	cfg.AccessToken = tokenResp.AccessToken
-	cfg.TokenExpire = time.Now().Add(time.Duration(tokenResp.ExpiresIn-300) * time.Second)
+	TokenCache.AccessToken = tokenResp.AccessToken
+	TokenCache.TokenExpire = time.Now().Add(time.Duration(tokenResp.ExpiresIn-300) * time.Second)
 
-	return cfg.AccessToken, nil
+	return TokenCache.AccessToken, nil
 }

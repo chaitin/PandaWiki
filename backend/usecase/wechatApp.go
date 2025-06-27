@@ -29,6 +29,7 @@ func (u *AppUsecase) VerifiyUrl(ctx context.Context, signature, timestamp, nonce
 		KbId,
 		appres.Settings.WeChatAppSecret,
 		appres.Settings.WeChatAppAgentID,
+		u.logger,
 	)
 
 	if err != nil {
@@ -61,6 +62,7 @@ func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce str
 		KbId,
 		appres.Settings.WeChatAppSecret,
 		appres.Settings.WeChatAppAgentID,
+		u.logger,
 	)
 
 	if err != nil {
@@ -95,6 +97,7 @@ func (u *AppUsecase) SendImmediateResponse(ctx context.Context, signature, times
 		kbID,
 		appres.Settings.WeChatAppSecret,
 		appres.Settings.WeChatAppAgentID,
+		u.logger,
 	)
 
 	u.logger.Debug("wechat app info", log.Any("app", appres))
