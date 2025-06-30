@@ -12,7 +12,8 @@ import (
 	"github.com/sbzhu/weworkapi_golang/wxbizmsgcrypt"
 )
 
-func (u *AppUsecase) VerifyUrl(ctx context.Context, signature, timestamp, nonce, echostr, kbID string) ([]byte, error) {
+func (u *AppUsecase) VerifyUrl_APP(ctx context.Context, signature, timestamp, nonce, echostr, kbID string) ([]byte, error) {
+	// 只有5秒的校验时间（符合企业微信）
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
@@ -25,16 +26,16 @@ func (u *AppUsecase) VerifyUrl(ctx context.Context, signature, timestamp, nonce,
 
 	u.logger.Debug("wechat app info", log.Any("info", appres))
 
-	wc, err := u.newWechatConfig(ctx, appres, kbID)
+	WechatConf, err := u.newWechatConfig(ctx, appres, kbID)
 
 	if err != nil {
 		u.logger.Error("failed to create WechatConfig", log.Error(err))
 		return nil, err
 	}
 
-	body, err := wc.VerifyUrl(signature, timestamp, nonce, echostr)
+	body, err := WechatConf.VerifyUrl(signature, timestamp, nonce, echostr)
 	if err != nil {
-		u.logger.Error("wc verifiyUrl failed", log.Error(err))
+		u.logger.Error("WechatConf verifiyUrl failed", log.Error(err))
 		return nil, err
 	}
 	return body, nil
@@ -48,8 +49,8 @@ func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce str
 	if err != nil {
 		u.logger.Error("find Appdetail failed")
 	}
-	u.logger.Info("wechat bot found: ", appres)
-	wc, err := u.newWechatConfig(ctx, appres, kbID)
+	u.logger.Info("wechatapp bot found: ", log.Any("info", appres))
+	WechatConf, err := u.newWechatConfig(ctx, appres, kbID)
 
 	if err != nil {
 		u.logger.Error("failed to create WechatConfig", log.Error(err))
@@ -61,10 +62,10 @@ func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce str
 	// use ai
 	getQA := u.getQAFunc(kbID, appres.Type)
 
-	err = wc.Wechat(signature, timestamp, nonce, body, getQA)
+	err = WechatConf.Wechat(signature, timestamp, nonce, body, getQA)
 
 	if err != nil {
-		u.logger.Error("wc wechat failed", log.Error(err))
+		u.logger.Error("WechatConf wechat failed", log.Error(err))
 		return err
 	}
 	return nil
@@ -80,15 +81,15 @@ func (u *AppUsecase) SendImmediateResponse(ctx context.Context, signature, times
 		return nil, err
 	}
 
-	wc, err := u.newWechatConfig(ctx, appres, kbID)
+	WechatConf, err := u.newWechatConfig(ctx, appres, kbID)
 
 	u.logger.Debug("wechat app info", log.Any("app", appres))
 
 	if err != nil {
 		return nil, err
 	}
-
-	wxcpt := wxbizmsgcrypt.NewWXBizMsgCrypt(wc.Token, wc.EncodingAESKey, wc.CorpID, wxbizmsgcrypt.XmlType)
+	// 解密消息
+	wxcpt := wxbizmsgcrypt.NewWXBizMsgCrypt(WechatConf.Token, WechatConf.EncodingAESKey, WechatConf.CorpID, wxbizmsgcrypt.XmlType)
 	decryptMsg, errCode := wxcpt.DecryptMsg(signature, timestamp, nonce, body)
 
 	if errCode != nil {
@@ -101,7 +102,7 @@ func (u *AppUsecase) SendImmediateResponse(ctx context.Context, signature, times
 	}
 
 	// send response "正在思考"
-	return wc.SendResponse(msg, "正在思考您的问题，请稍候...")
+	return WechatConf.SendResponse(msg, "正在思考您的问题，请稍候...")
 }
 
 func (u *AppUsecase) newWechatConfig(ctx context.Context, appres *domain.AppDetailResp, kbID string) (*wechat.WechatConfig, error) {

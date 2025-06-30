@@ -163,7 +163,7 @@ func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx cont
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 
 	if err != nil {
-		return fmt.Errorf("post to we failed: %w", err)
+		return fmt.Errorf("post to wechatAPP failed: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -225,8 +225,8 @@ func (cfg *WechatConfig) GetAccessToken() (string, error) {
 		return TokenCache.AccessToken, nil
 	}
 
-	if cfg.Secret == "" {
-		return "", errors.New("secret is not right")
+	if cfg.Secret == "" || cfg.CorpID == "" {
+		return "", errors.New("secret or corpid is not right")
 	}
 
 	// get AccessToken
@@ -253,6 +253,7 @@ func (cfg *WechatConfig) GetAccessToken() (string, error) {
 	}
 
 	// succcess
+	cfg.logger.Info("wechatapp get accesstoken success", log.Any("info", tokenResp.AccessToken))
 
 	TokenCache.AccessToken = tokenResp.AccessToken
 	TokenCache.TokenExpire = time.Now().Add(time.Duration(tokenResp.ExpiresIn-300) * time.Second)

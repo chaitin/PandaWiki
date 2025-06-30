@@ -44,8 +44,8 @@ func NewShareAppHandler(
 		})
 	share.GET("/web/info", h.GetWebAppInfo)
 
-	share.GET("/wechat/app", h.VerifyUrl)
-	share.POST("/wechat/app", h.WechatHandler)
+	share.GET("/wechat/app", h.VerifyUrl_APP)
+	share.POST("/wechat/app", h.WechatHandler_APP)
 
 	return h
 }
@@ -72,7 +72,7 @@ func (h *ShareAppHandler) GetWebAppInfo(c echo.Context) error {
 	return h.NewResponseWithData(c, appInfo)
 }
 
-func (h *ShareAppHandler) VerifyUrl(c echo.Context) error {
+func (h *ShareAppHandler) VerifyUrl_APP(c echo.Context) error {
 	signature := c.QueryParam("msg_signature")
 	timestamp := c.QueryParam("timestamp")
 	nonce := c.QueryParam("nonce")
@@ -86,22 +86,22 @@ func (h *ShareAppHandler) VerifyUrl(c echo.Context) error {
 
 	if signature == "" || timestamp == "" || nonce == "" || echostr == "" {
 		return h.NewResponseWithError(
-			c, "Verifiy Wechat failed", nil,
+			c, "Verifiy Wechat_APP failed", nil,
 		)
 	}
 
 	ctx := c.Request().Context()
 
-	req, err := h.usecase.VerifyUrl(ctx, signature, timestamp, nonce, echostr, kbID)
+	req, err := h.usecase.VerifyUrl_APP(ctx, signature, timestamp, nonce, echostr, kbID)
 	if err != nil {
-		return h.NewResponseWithError(c, "VerifyURL failed", err)
+		return h.NewResponseWithError(c, "VerifyURL_APP failed", err)
 	}
 
 	// success
 	return c.String(http.StatusOK, string(req))
 }
 
-func (h *ShareAppHandler) WechatHandler(c echo.Context) error {
+func (h *ShareAppHandler) WechatHandler_APP(c echo.Context) error {
 
 	signature := c.QueryParam("msg_signature")
 	timestamp := c.QueryParam("timestamp")
