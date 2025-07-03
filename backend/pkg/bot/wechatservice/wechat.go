@@ -14,9 +14,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sbzhu/weworkapi_golang/wxbizmsgcrypt"
+
+	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/pkg/bot"
-	"github.com/sbzhu/weworkapi_golang/wxbizmsgcrypt"
 )
 
 type WechatServiceConfig struct {
@@ -213,7 +215,7 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 	// }
 
 	// 获取问题答案
-	wccontent, err := GetQA(cfg.Ctx, content, "")
+	wccontent, err := GetQA(cfg.Ctx, content, domain.ConversationInfo{}, "")
 	if err != nil {
 		return err
 	}

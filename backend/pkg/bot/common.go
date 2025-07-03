@@ -1,5 +1,9 @@
 package bot
 
-import "context"
+import (
+	"context"
 
-type GetQAFun func(ctx context.Context, msg string, ConversatonID string) (chan string, error)
+	"github.com/chaitin/panda-wiki/domain"
+)
+
+type GetQAFun func(ctx context.Context, msg string, info domain.ConversationInfo, ConversatonID string) (chan string, error)

@@ -2299,6 +2299,10 @@ const docTemplate = `{
                 "dingtalk_bot_template_id": {
                     "type": "string"
                 },
+                "discord_bot_token": {
+                    "description": "DisCordBot",
+                    "type": "string"
+                },
                 "feishu_bot_app_id": {
                     "description": "FeishuBot",
                     "type": "string"

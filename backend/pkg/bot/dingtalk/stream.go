@@ -15,6 +15,7 @@ import (
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/chatbot"
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/client"
 
+	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/pkg/bot"
 )
@@ -202,7 +203,7 @@ func (c *DingTalkClient) OnChatBotMessageReceived(ctx context.Context, data *cha
 		c.UpdateAIStreamCard(trackID, "出错了，请稍后再试", true)
 	}
 
-	contentCh, err := c.getQA(ctx, question, "")
+	contentCh, err := c.getQA(ctx, question, domain.ConversationInfo{}, "")
 	if err != nil {
 		c.logger.Error("dingtalk client failed to get answer", log.Error(err))
 		c.UpdateAIStreamCard(trackID, "出错了，请稍后再试", true)

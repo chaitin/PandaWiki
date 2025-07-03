@@ -90,13 +90,14 @@ func (u *AppUsecase) UpdateApp(ctx context.Context, id string, appRequest *domai
 }
 
 func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.GetQAFun {
-	return func(ctx context.Context, msg string, ConversationID string) (chan string, error) {
+	return func(ctx context.Context, msg string, info domain.ConversationInfo, ConversationID string) (chan string, error) {
 		eventCh, err := u.chatUsecase.Chat(ctx, &domain.ChatRequest{
 			Message:        msg,
 			KBID:           kbID,
 			AppType:        appType,
 			RemoteIP:       "",
 			ConversationID: ConversationID,
+			Info:           info,
 		})
 		if err != nil {
 			return nil, err
@@ -233,10 +234,10 @@ func (u *AppUsecase) updateDisCordBot(app *domain.App) {
 	u.discordMutex.Lock()
 	defer u.discordMutex.Unlock()
 
-	if bot, exists := u.dingTalkBots[app.ID]; exists {
+	if bot, exists := u.discordBots[app.ID]; exists {
 		if bot != nil {
 			bot.Stop()
-			delete(u.dingTalkBots, app.ID)
+			delete(u.discordBots, app.ID)
 		}
 	}
 	token := app.Settings.DisCordBotToken
@@ -253,11 +254,13 @@ func (u *AppUsecase) updateDisCordBot(app *domain.App) {
 		u.logger.Error("failed to create discord client", log.Error(err))
 		return
 	}
-	go func() {
-		u.logger.Info("discord bot is starting", log.String("token", token))
-		discordBots.Start()
-	}()
 
+	if err := discordBots.Start(); err != nil {
+		u.logger.Error("failed to start discord bot", log.Error(err))
+		return
+	}
+
+	u.logger.Info("discord bot is starting", log.String("token", token))
 	u.discordBots[app.ID] = discordBots
 }
 
@@ -310,6 +313,7 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		WeChatServiceCorpID:         app.Settings.WeChatServiceCorpID,
 		WeChatServiceSecret:         app.Settings.WeChatServiceSecret,
 
+		DisCordBotToken: app.Settings.DisCordBotToken,
 		// theme
 		ThemeMode:     app.Settings.ThemeMode,
 		ThemeAndStyle: app.Settings.ThemeAndStyle,

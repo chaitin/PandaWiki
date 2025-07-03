@@ -75,6 +75,7 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 				KBID:      req.KBID,
 				Subject:   req.Message,
 				RemoteIP:  req.RemoteIP,
+				Info:      req.Info,
 				CreatedAt: time.Now(),
 			})
 			if err != nil {
