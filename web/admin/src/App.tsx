@@ -45,12 +45,14 @@ function App() {
         components: componentStyleOverrides,
       }}
     >
-      {hideLayout ? <Box>
+      {hideLayout ? <Box sx={{
+        minWidth: '900px',
+      }}>
         {routerView}
       </Box> : <>
         <Box sx={{
           position: 'relative',
-          minWidth: '1440px',
+          minWidth: '900px',
           minHeight: '100vh',
           fontSize: '16px',
           bgcolor: 'background.paper0',

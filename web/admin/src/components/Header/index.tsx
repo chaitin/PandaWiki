@@ -38,6 +38,7 @@ const Header = () => {
     alignItems={'center'}
     justifyContent={'space-between'}
     sx={{
+      minWidth: '900px',
       position: 'fixed',
       pl: '170px',
       py: 2,

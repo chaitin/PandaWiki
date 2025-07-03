@@ -67,7 +67,7 @@ const EditorHeader = ({ edited, editorRef, detail, updateAt, onSave, refresh }: 
 
   return <>
     <Stack direction={'row'} alignItems={'center'} gap={3} justifyContent={'space-between'} sx={{
-      width: 800,
+      width: 876,
       margin: 'auto',
     }}>
       <Stack direction={'row'} alignItems={'center'} gap={1} flex={1}>

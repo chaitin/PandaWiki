@@ -1,6 +1,6 @@
 import { getKnowledgeBaseDetail, KnowledgeBaseListItem } from "@/api"
 import { useAppSelector } from "@/store"
-import { Stack } from "@mui/material"
+import { Stack, useMediaQuery } from "@mui/material"
 import { useEffect, useState } from "react"
 import CardAI from "./component/CardAI"
 import CardKB from "./component/CardKB"
@@ -10,6 +10,7 @@ import CardWeb from "./component/CardWeb"
 const Setting = () => {
   const { kb_id } = useAppSelector(state => state.config)
   const [kb, setKb] = useState<KnowledgeBaseListItem | null>(null)
+  const isWideScreen = useMediaQuery('(min-width:1400px)')
   const [url, setUrl] = useState<string>('')
 
   const getKb = () => {
@@ -44,13 +45,20 @@ const Setting = () => {
 
   if (!kb) return <></>
 
-  return <Stack direction={'row'} gap={2} sx={{ pb: 2 }}>
-    <Stack gap={2} sx={{ width: 'calc((100% - 16px) / 2)' }}>
+  return <Stack
+    direction={isWideScreen ? 'row' : 'column-reverse'}
+    gap={2}
+    sx={{
+      pb: 2,
+      width: '100%',
+    }}
+  >
+    <Stack gap={2} sx={{ width: isWideScreen ? 'calc((100% - 16px) / 2)' : '100%' }}>
       <CardKB kb={kb} />
       <CardAI kb={kb} />
       <CardRebot kb={kb} url={url} />
     </Stack>
-    <Stack gap={2} sx={{ width: 'calc((100% - 16px) / 2)' }}>
+    <Stack gap={2} sx={{ width: isWideScreen ? 'calc((100% - 16px) / 2)' : '100%' }}>
       <CardWeb kb={kb} refresh={getKb} />
     </Stack>
   </Stack>
