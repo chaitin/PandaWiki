@@ -31,69 +31,90 @@ func NewFeishuUseCase(logger *log.Logger, minio *s3.MinioClient) *FeishuUseCase 
 
 func (f *FeishuUseCase) GetSpacelist(ctx context.Context, req *domain.GetSpaceListReq) ([]*domain.GetSpaceListResp, error) {
 	client := lark.NewClient(req.AppID, req.AppSecret)
-	// 创建请求对象
-	r := larkwiki2.NewListSpaceReqBuilder().
-		PageSize(50).
-		Lang(`zh`).
-		Build()
+	var (
+		respData  []*domain.GetSpaceListResp
+		pageToken string
+	)
+	for {
+		// 创建请求对象
+		r := larkwiki2.NewListSpaceReqBuilder().
+			PageSize(20).
+			PageToken(pageToken).
+			Lang(`zh`).
+			Build()
 
-	f.logger.Debug("token", log.String("token", req.UserAccessToken))
-	// 发起请求
-	resp, err := client.Wiki.V2.Space.List(
-		ctx,
-		r,
-		larkcore.WithUserAccessToken(req.UserAccessToken))
-	if err != nil {
-		f.logger.Error("list space failed", log.Error(err))
-		return nil, fmt.Errorf("list space failed: %v", err)
-	}
-	var respData []*domain.GetSpaceListResp
-	if resp.Msg != "success" {
-		return nil, fmt.Errorf("list space failed: %s", resp.Msg)
-	}
-	f.logger.Debug("resp", log.Any("resp", resp))
-	for _, v := range resp.Data.Items {
-		respData = append(respData, &domain.GetSpaceListResp{
-			Name:    *v.Name,
-			SpaceId: *v.SpaceId,
-		})
+		f.logger.Debug("token", log.String("token", req.UserAccessToken))
+		// 发起请求
+		resp, err := client.Wiki.V2.Space.List(
+			ctx,
+			r,
+			larkcore.WithUserAccessToken(req.UserAccessToken))
+		if err != nil {
+			f.logger.Error("list space failed", log.Error(err))
+			return nil, fmt.Errorf("list space failed: %v", err)
+		}
+
+		if resp.Msg != "success" {
+			return nil, fmt.Errorf("list space failed: %s", resp.Msg)
+		}
+		f.logger.Debug("resp", log.Any("resp", resp))
+		for _, v := range resp.Data.Items {
+			respData = append(respData, &domain.GetSpaceListResp{
+				Name:    *v.Name,
+				SpaceId: *v.SpaceId,
+			})
+		}
+		if !*resp.Data.HasMore {
+			break
+		}
+		pageToken = *resp.Data.PageToken
 	}
 	return respData, nil
 }
 
 func (f *FeishuUseCase) SearchWiki(ctx context.Context, req *domain.SearchWikiReq) ([]*domain.SearchWikiResp, error) {
 	client := lark.NewClient(req.AppID, req.AppSecret)
-	// 创建请求对象
-	r := larkwiki1.NewSearchNodeReqBuilder().
-		PageSize(50).
-		Body(larkwiki1.NewSearchNodeReqBodyBuilder().
-			Query(req.Query).
-			SpaceId(req.SpaceId).
-			Build()).
-		Build()
+	var (
+		pageToken string
+		respData  []*domain.SearchWikiResp
+	)
+	for {
+		// 创建请求对象
+		r := larkwiki1.NewSearchNodeReqBuilder().
+			PageSize(20).
+			PageToken(pageToken).
+			Body(larkwiki1.NewSearchNodeReqBodyBuilder().
+				Query(req.Query).
+				SpaceId(req.SpaceId).
+				Build()).
+			Build()
 
-	f.logger.Debug("token", log.String("token", req.UserAccessToken))
-	// 发起请求
-	resp, err := client.Wiki.V1.Node.Search(ctx, r, larkcore.WithUserAccessToken(req.UserAccessToken))
-	if err != nil {
-		f.logger.Error("search Wiki failed", log.Error(err))
-		return nil, fmt.Errorf("search Wiki failed: %v", err)
-	}
-	var respData []*domain.SearchWikiResp
-
-	if resp.Msg != "success" {
-		return nil, fmt.Errorf("search Wiki failed: %s", resp.Msg)
-	}
-	f.logger.Debug("resp", log.Any("resp", resp))
-	for _, v := range resp.Data.Items {
-		if *v.ObjType == 9 {
-			continue
+		f.logger.Debug("token", log.String("token", req.UserAccessToken))
+		// 发起请求
+		resp, err := client.Wiki.V1.Node.Search(ctx, r, larkcore.WithUserAccessToken(req.UserAccessToken))
+		if err != nil {
+			f.logger.Error("search Wiki failed", log.Error(err))
+			return nil, fmt.Errorf("search Wiki failed: %v", err)
 		}
-		respData = append(respData, &domain.SearchWikiResp{
-			Title:   *v.Title,
-			Url:     *v.Url,
-			SpaceId: *v.SpaceId,
-		})
+
+		if resp.Msg != "success" {
+			return nil, fmt.Errorf("search Wiki failed: %s", resp.Msg)
+		}
+		f.logger.Debug("resp", log.Any("resp", resp))
+		for _, v := range resp.Data.Items {
+			if *v.ObjType == 9 {
+				continue
+			}
+			respData = append(respData, &domain.SearchWikiResp{
+				Title:   *v.Title,
+				Url:     *v.Url,
+				SpaceId: *v.SpaceId,
+			})
+		}
+		if !*resp.Data.HasMore {
+			break
+		}
+		pageToken = *resp.Data.PageToken
 	}
 	return respData, nil
 }
