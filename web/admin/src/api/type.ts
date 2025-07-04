@@ -257,6 +257,10 @@ export type FeishuBotSetting = {
   feishu_bot_welcome_str: string
 }
 
+export type DiscordBotSetting = {
+  discord_bot_token: string
+}
+
 export type HeaderSetting = {
   title: string,
   icon: string,
@@ -319,6 +323,7 @@ export type AppSetting = HeaderSetting &
   WecomBotSetting &
   WecomBotServiceSetting &
   FeishuBotSetting &
+  DiscordBotSetting &
   ThemeMode & {
     theme_and_style: ThemeAndStyleSetting
   } & {

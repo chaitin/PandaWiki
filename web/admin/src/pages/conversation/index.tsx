@@ -42,10 +42,10 @@ const Conversation = () => {
       title: '来源用户',
       width: 160,
       render: (text: number, record: ConversationListItem) => {
-        const typeName = ['', 'Wiki 网站', '网页挂件', '钉钉机器人', '飞书机器人', '企业微信机器人', '企业微信客服', 'API 调用']
+        const typeName = ['', 'Wiki 网站', '网页挂件', '钉钉机器人', '飞书机器人', '企业微信机器人', '企业微信客服', 'Discord 机器人']
         return <>
           <Box>匿名用户</Box>
-          <Box sx={{ color: 'text.auxiliary', fontSize: 12 }}>{typeName[text]}</Box>
+          <Box sx={{ color: 'text.auxiliary', fontSize: 12 }}>{typeName[text] || ''}</Box>
         </>
       }
     },

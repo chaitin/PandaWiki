@@ -8,6 +8,7 @@ import CardRebotDing from './CardRebotDing'
 import CardRebotFeishu from './CardRebotFeishu'
 import CardRebotWecom from './CardRebotWecom'
 import CardRebotWecomService from './CardRebotWecomService'
+import CardRebotDiscord from './CardRebotDiscord'
 
 const CardRebot = ({ kb, url }: { kb: KnowledgeBaseListItem, url: string }) => {
   const AppList = {
@@ -28,6 +29,8 @@ const CardRebot = ({ kb, url }: { kb: KnowledgeBaseListItem, url: string }) => {
     <CardRebotWecom kb={kb} url={url} />
     <Divider sx={{ my: 2 }} />
     <CardRebotWecomService kb={kb} url={url} />
+    <Divider sx={{ my: 2 }} />
+    <CardRebotDiscord kb={kb} />
     <Divider sx={{ my: 2 }} />
     {Object.values(AppList).map((value, index) => <Box key={index}>
       <Stack direction='row' alignItems={'center'} justifyContent={'space-between'} sx={{ m: 2 }}>
