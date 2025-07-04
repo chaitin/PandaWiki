@@ -7,7 +7,9 @@ import (
 	"github.com/chaitin/panda-wiki/config"
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
+	"github.com/chaitin/panda-wiki/pkg/bot"
 	"github.com/chaitin/panda-wiki/pkg/bot/dingtalk"
+	"github.com/chaitin/panda-wiki/pkg/bot/discord"
 	"github.com/chaitin/panda-wiki/pkg/bot/feishu"
 	"github.com/chaitin/panda-wiki/repo/pg"
 )
@@ -22,6 +24,8 @@ type AppUsecase struct {
 	dingTalkMutex sync.RWMutex
 	feishuBots    map[string]*feishu.FeishuClient
 	feishuMutex   sync.RWMutex
+	discordBots   map[string]*discord.DiscordClient
+	discordMutex  sync.RWMutex
 }
 
 func NewAppUsecase(
@@ -39,10 +43,11 @@ func NewAppUsecase(
 		config:       config,
 		dingTalkBots: make(map[string]*dingtalk.DingTalkClient),
 		feishuBots:   make(map[string]*feishu.FeishuClient),
+		discordBots:  make(map[string]*discord.DiscordClient),
 	}
 
 	// Initialize all valid DingTalkBot and FeishuBot instances
-	apps, err := u.repo.GetAppsByTypes(context.Background(), []domain.AppType{domain.AppTypeDingTalkBot, domain.AppTypeFeishuBot})
+	apps, err := u.repo.GetAppsByTypes(context.Background(), []domain.AppType{domain.AppTypeDingTalkBot, domain.AppTypeFeishuBot, domain.AppTypeDisCordBot})
 	if err != nil {
 		u.logger.Error("failed to get dingtalk bot apps", log.Error(err))
 		return u
@@ -54,6 +59,8 @@ func NewAppUsecase(
 			u.updateDingTalkBot(app)
 		case domain.AppTypeFeishuBot:
 			u.updateFeishuBot(app)
+		case domain.AppTypeDisCordBot:
+			u.updateDisCordBot(app)
 		}
 	}
 
@@ -65,7 +72,6 @@ func (u *AppUsecase) UpdateApp(ctx context.Context, id string, appRequest *domai
 		return err
 	}
 
-	// If this is a DingTalkBot app, check if we need to update the bot instance
 	if appRequest.Settings != nil {
 		app, err := u.repo.GetAppDetail(ctx, id)
 		if err != nil {
@@ -76,18 +82,22 @@ func (u *AppUsecase) UpdateApp(ctx context.Context, id string, appRequest *domai
 			u.updateDingTalkBot(app)
 		case domain.AppTypeFeishuBot:
 			u.updateFeishuBot(app)
+		case domain.AppTypeDisCordBot:
+			u.updateDisCordBot(app)
 		}
 	}
 	return nil
 }
 
-func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) func(ctx context.Context, msg string) (chan string, error) {
-	return func(ctx context.Context, msg string) (chan string, error) {
+func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.GetQAFun {
+	return func(ctx context.Context, msg string, info domain.ConversationInfo, ConversationID string) (chan string, error) {
 		eventCh, err := u.chatUsecase.Chat(ctx, &domain.ChatRequest{
-			Message:  msg,
-			KBID:     kbID,
-			AppType:  appType,
-			RemoteIP: "",
+			Message:        msg,
+			KBID:           kbID,
+			AppType:        appType,
+			RemoteIP:       "",
+			ConversationID: ConversationID,
+			Info:           info,
 		})
 		if err != nil {
 			return nil, err
@@ -220,6 +230,40 @@ func (u *AppUsecase) updateDingTalkBot(app *domain.App) {
 	u.dingTalkBots[app.ID] = dingTalkClient
 }
 
+func (u *AppUsecase) updateDisCordBot(app *domain.App) {
+	u.discordMutex.Lock()
+	defer u.discordMutex.Unlock()
+
+	if bot, exists := u.discordBots[app.ID]; exists {
+		if bot != nil {
+			bot.Stop()
+			delete(u.discordBots, app.ID)
+		}
+	}
+	token := app.Settings.DisCordBotToken
+	if token == "" {
+		return
+	}
+
+	getQA := u.getQAFunc(app.KBID, app.Type)
+
+	discordBots, err := discord.NewDiscordClient(
+		u.logger, token, getQA,
+	)
+	if err != nil {
+		u.logger.Error("failed to create discord client", log.Error(err))
+		return
+	}
+
+	if err := discordBots.Start(); err != nil {
+		u.logger.Error("failed to start discord bot", log.Error(err))
+		return
+	}
+
+	u.logger.Info("discord bot is starting", log.String("token", token))
+	u.discordBots[app.ID] = discordBots
+}
+
 func (u *AppUsecase) DeleteApp(ctx context.Context, id string) error {
 	return u.repo.DeleteApp(ctx, id)
 }
@@ -269,6 +313,7 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		WeChatServiceCorpID:         app.Settings.WeChatServiceCorpID,
 		WeChatServiceSecret:         app.Settings.WeChatServiceSecret,
 
+		DisCordBotToken: app.Settings.DisCordBotToken,
 		// theme
 		ThemeMode:     app.Settings.ThemeMode,
 		ThemeAndStyle: app.Settings.ThemeAndStyle,

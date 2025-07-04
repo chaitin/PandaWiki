@@ -10,6 +10,7 @@ require (
 	github.com/alibabacloud-go/dingtalk v1.6.73
 	github.com/alibabacloud-go/tea v1.3.9
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
+	github.com/bwmarrin/discordgo v0.29.0
 	github.com/chaitin/pandawiki/sdk/rag v0.0.0-20250603120336-22cceff60479
 	github.com/cloudwego/eino v0.3.37
 	github.com/cloudwego/eino-ext/components/model/deepseek v0.0.0-20250522060253-ddb617598b09

@@ -2174,6 +2174,10 @@ const docTemplate = `{
                 "dingtalk_bot_template_id": {
                     "type": "string"
                 },
+                "discord_bot_token": {
+                    "description": "DisCordBot",
+                    "type": "string"
+                },
                 "feishu_bot_app_id": {
                     "description": "FeishuBot",
                     "type": "string"
@@ -2295,6 +2299,10 @@ const docTemplate = `{
                 "dingtalk_bot_template_id": {
                     "type": "string"
                 },
+                "discord_bot_token": {
+                    "description": "DisCordBot",
+                    "type": "string"
+                },
                 "feishu_bot_app_id": {
                     "description": "FeishuBot",
                     "type": "string"
@@ -2389,7 +2397,8 @@ const docTemplate = `{
                 3,
                 4,
                 5,
-                6
+                6,
+                7
             ],
             "x-enum-varnames": [
                 "AppTypeWeb",
@@ -2397,7 +2406,8 @@ const docTemplate = `{
                 "AppTypeDingTalkBot",
                 "AppTypeFeishuBot",
                 "AppTypeWechatBot",
-                "AppTypeWechatServiceBot"
+                "AppTypeWechatServiceBot",
+                "AppTypeDisCordBot"
             ]
         },
         "domain.BrandGroup": {

@@ -15,7 +15,9 @@ import (
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/chatbot"
 	"github.com/open-dingtalk/dingtalk-stream-sdk-go/client"
 
+	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
+	"github.com/chaitin/panda-wiki/pkg/bot"
 )
 
 type DingTalkClient struct {
@@ -26,7 +28,7 @@ type DingTalkClient struct {
 	templateID   string // 4d18414c-aabc-4ec8-9e67-4ceefeada72a.schema
 	oauthClient  *dingtalkoauth2_1_0.Client
 	cardClient   *dingtalkcard_1_0.Client
-	getQA        func(ctx context.Context, msg string) (chan string, error)
+	getQA        bot.GetQAFun
 	logger       *log.Logger
 	tokenCache   struct {
 		accessToken string
@@ -35,7 +37,7 @@ type DingTalkClient struct {
 	tokenMutex sync.RWMutex
 }
 
-func NewDingTalkClient(ctx context.Context, cancel context.CancelFunc, clientId, clientSecret, templateID string, logger *log.Logger, getQA func(ctx context.Context, msg string) (chan string, error)) (*DingTalkClient, error) {
+func NewDingTalkClient(ctx context.Context, cancel context.CancelFunc, clientId, clientSecret, templateID string, logger *log.Logger, getQA bot.GetQAFun) (*DingTalkClient, error) {
 	config := &openapi.Config{}
 	config.Protocol = tea.String("https")
 	config.RegionId = tea.String("central")
@@ -201,7 +203,7 @@ func (c *DingTalkClient) OnChatBotMessageReceived(ctx context.Context, data *cha
 		c.UpdateAIStreamCard(trackID, "出错了，请稍后再试", true)
 	}
 
-	contentCh, err := c.getQA(ctx, question)
+	contentCh, err := c.getQA(ctx, question, domain.ConversationInfo{}, "")
 	if err != nil {
 		c.logger.Error("dingtalk client failed to get answer", log.Error(err))
 		c.UpdateAIStreamCard(trackID, "出错了，请稍后再试", true)

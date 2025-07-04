@@ -15,9 +15,9 @@ type Conversation struct {
 
 	Subject string `json:"subject"` // subject for conversation, now is first question
 
-	RemoteIP string `json:"remote_ip"`
-
-	CreatedAt time.Time `json:"created_at"`
+	RemoteIP  string           `json:"remote_ip"`
+	Info      ConversationInfo `json:"info" gorm:"type:jsonb"`
+	CreatedAt time.Time        `json:"created_at"`
 }
 
 type ConversationMessage struct {
@@ -36,8 +36,7 @@ type ConversationMessage struct {
 	TotalTokens      int           `json:"total_tokens" gorm:"default:0"`
 
 	// stats
-	RemoteIP string `json:"remote_ip"`
-
+	RemoteIP  string    `json:"remote_ip"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

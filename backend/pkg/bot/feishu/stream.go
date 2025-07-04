@@ -14,7 +14,9 @@ import (
 	larkim "github.com/larksuite/oapi-sdk-go/v3/service/im/v1"
 	larkws "github.com/larksuite/oapi-sdk-go/v3/ws"
 
+	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
+	"github.com/chaitin/panda-wiki/pkg/bot"
 )
 
 type FeishuBotLogger struct {
@@ -45,10 +47,10 @@ type FeishuClient struct {
 	logger       *log.Logger
 	client       *lark.Client
 	msgMap       sync.Map
-	getQA        func(ctx context.Context, msg string) (chan string, error)
+	getQA        bot.GetQAFun
 }
 
-func NewFeishuClient(ctx context.Context, cancel context.CancelFunc, clientID, clientSecret string, logger *log.Logger, getQA func(ctx context.Context, msg string) (chan string, error)) *FeishuClient {
+func NewFeishuClient(ctx context.Context, cancel context.CancelFunc, clientID, clientSecret string, logger *log.Logger, getQA bot.GetQAFun) *FeishuClient {
 	client := lark.NewClient(clientID, clientSecret, lark.WithLogger(&FeishuBotLogger{logger: logger}))
 
 	c := &FeishuClient{
@@ -129,7 +131,7 @@ func (c *FeishuClient) sendQACard(ctx context.Context, receiveIdType string, rec
 		return
 	}
 
-	answerCh, err := c.getQA(ctx, question)
+	answerCh, err := c.getQA(ctx, question, domain.ConversationInfo{}, "")
 	if err != nil {
 		c.logger.Error("feishu client failed to get answer", log.Error(err))
 		return

@@ -14,8 +14,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/chaitin/panda-wiki/log"
 	"github.com/sbzhu/weworkapi_golang/wxbizmsgcrypt"
+
+	"github.com/chaitin/panda-wiki/domain"
+	"github.com/chaitin/panda-wiki/log"
+	"github.com/chaitin/panda-wiki/pkg/bot"
 )
 
 type WechatServiceConfig struct {
@@ -142,7 +145,7 @@ func (cfg *WechatServiceConfig) VerifyUrlWechatService(signature, timestamp, non
 	return decryptEchoStr, nil
 }
 
-func (cfg *WechatServiceConfig) Wechat(msg *WeixinUserAskMsg, getQA func(ctx context.Context, msg string) (chan string, error)) error {
+func (cfg *WechatServiceConfig) Wechat(msg *WeixinUserAskMsg, getQA bot.GetQAFun) error {
 	// 获取accesstoken 方便给用户发送消息
 	token, err := cfg.GetAccessToken()
 	if err != nil {
@@ -168,7 +171,7 @@ func (cfg *WechatServiceConfig) Wechat(msg *WeixinUserAskMsg, getQA func(ctx con
 }
 
 // forwardToBackend
-func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUserAskMsg, GetQA func(ctx context.Context, msg string) (chan string, error)) error {
+func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUserAskMsg, GetQA bot.GetQAFun) error {
 	// // 将用户的消息转发到ai获得解答
 	// cfg.logger.Info("get uerinfo", log.Any("msgRet", msgRet))
 
@@ -212,7 +215,7 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 	// }
 
 	// 获取问题答案
-	wccontent, err := GetQA(cfg.Ctx, content)
+	wccontent, err := GetQA(cfg.Ctx, content, domain.ConversationInfo{}, "")
 	if err != nil {
 		return err
 	}
@@ -239,7 +242,6 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 	// 发送消息给客服
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/send_msg?access_token=%s", token)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
-
 	if err != nil {
 		return fmt.Errorf("post to wechatservice failed: %w", err)
 	}
@@ -273,7 +275,6 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 }
 
 func (cfg *WechatServiceConfig) GetAccessToken() (string, error) {
-
 	TokenCache.Mutex.Lock()
 	defer TokenCache.Mutex.Unlock()
 
@@ -323,7 +324,6 @@ func (cfg *WechatServiceConfig) UnmarshalMsg(decryptMsg []byte) (*WeixinUserAskM
 
 // 主动拉取用户的消息
 func getMsgs(accessToken string, msg *WeixinUserAskMsg) (*MsgRet, error) {
-
 	var msgRet MsgRet
 	// 拉取消息的路由
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/sync_msg?access_token=%s", accessToken)
@@ -339,7 +339,7 @@ func getMsgs(accessToken string, msg *WeixinUserAskMsg) (*MsgRet, error) {
 
 	jsonBody, _ := json.Marshal(msgBody)
 
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody)) //得到对应的回复
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonBody)) // 得到对应的回复
 	if err != nil {
 		return nil, err
 	}
@@ -362,7 +362,6 @@ type Status struct {
 }
 
 func CheckSessionState(token, extrenaluserid, kfId string) (int, error) {
-
 	var statusrequest struct {
 		OpenKfId       string `json:"open_kfid"`
 		ExternalUserid string `json:"external_userid"`
@@ -389,7 +388,7 @@ func CheckSessionState(token, extrenaluserid, kfId string) (int, error) {
 	if err := json.Unmarshal(body, &response); err != nil {
 		return 0, fmt.Errorf("解析响应失败: %v", err)
 	}
-	//得到用户的状态
+	// 得到用户的状态
 	if response.ErrCode != 0 {
 		return 0, fmt.Errorf("获取会话状态失败: %s", response.ErrMsg)
 	}
@@ -430,7 +429,7 @@ func ChangeState(token, extrenaluserid, kfId string) error {
 	if err := json.Unmarshal(body, &response); err != nil {
 		return fmt.Errorf("解析响应失败: %v", err)
 	}
-	//得到用户的状态
+	// 得到用户的状态
 	if response.ErrCode != 0 {
 		return fmt.Errorf("改变用户状态失败: %s", response.ErrMsg)
 	}
