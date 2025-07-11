@@ -3,6 +3,8 @@ package pg
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -14,6 +16,11 @@ import (
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/store/pg"
+)
+
+const (
+	// 位置值最小间隔，防止精度损失
+	MinPositionGap = 1000.0
 )
 
 type NodeRepository struct {
@@ -60,7 +67,11 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq) 
 		}
 
 		newPos := maxPos + (domain.MaxPosition-maxPos)/2.0
-
+		if newPos-maxPos < MinPositionGap {
+			if err := r.reorderPositionsByKBID(tx, req.KBID); err != nil {
+				return err
+			}
+		}
 		now := time.Now()
 
 		visibility := domain.NodeVisibilityPublic
@@ -430,11 +441,22 @@ func (r *NodeRepository) MoveNodeBetween(ctx context.Context, id string, parentI
 			maxPos = nextNode.Position
 		}
 
+		var node domain.Node
+		if err := tx.Model(&domain.Node{}).
+			Where("id = ?", id).
+			Select("kb_id").
+			First(&node).Error; err != nil {
+			return err
+		}
 		newPos := prevPos + (maxPos-prevPos)/2.0
+		if newPos-prevPos < MinPositionGap {
+			if err := r.reorderPositionsByKBID(tx, node.KBID); err != nil {
+				return err
+			}
+		}
 
 		return tx.Model(&domain.Node{}).
 			Where("id = ?", id).
-			Update("position", newPos).
 			Update("parent_id", parentID).
 			Update("status", domain.NodeStatusDraft).
 			Error
@@ -592,6 +614,99 @@ func (r *NodeRepository) BatchMove(ctx context.Context, req *domain.BatchMoveReq
 			Error; err != nil {
 			return err
 		}
+		return nil
+	})
+}
+
+// reorderPositionsByKBID 重新分配所有节点的位置值
+func (r *NodeRepository) reorderPositionsByKBID(tx *gorm.DB, kbID string) error {
+	var nodes []*domain.Node
+	if err := tx.Model(&domain.Node{}).
+		Where("kb_id = ?", kbID).
+		Order("position").
+		Find(&nodes).Error; err != nil {
+		return err
+	}
+	return r.reorderPositions(tx, nodes)
+}
+
+// reorderPositions 重新分配位置值
+func (r *NodeRepository) reorderPositions(tx *gorm.DB, nodes []*domain.Node) error {
+	if len(nodes) == 0 {
+		return nil
+	}
+
+	// 计算新的位置值，使用较大的间隔
+	basePosition := float64(10000) // 起始位置
+	interval := float64(10000)     // 间隔
+
+	// 使用批量更新提高性能
+	updates := make([]map[string]interface{}, len(nodes))
+	for i, node := range nodes {
+		newPosition := basePosition + float64(i)*interval
+		updates[i] = map[string]interface{}{
+			"id":       node.ID,
+			"position": newPosition,
+		}
+	}
+
+	// 批量更新位置值（每 300 条一批，使用 CASE WHEN）
+	batchSize := 300
+	for i := 0; i < len(updates); i += batchSize {
+		end := i + batchSize
+		if end > len(updates) {
+			end = len(updates)
+		}
+		batch := updates[i:end]
+
+		// 拼接 SQL
+		sql := "UPDATE nodes SET position = CASE id"
+		ids := make([]string, 0, len(batch))
+		for _, update := range batch {
+			id := update["id"]
+			pos := update["position"]
+			sql += fmt.Sprintf(" WHEN '%v' THEN %v", id, pos)
+			ids = append(ids, fmt.Sprintf("'%v'", id))
+		}
+		sql += " END WHERE id IN (" + strings.Join(ids, ",") + ")"
+
+		if err := tx.Exec(sql).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ReorderAllPositions 手动重新分配所有节点的位置值
+func (r *NodeRepository) ReorderAllPositions(ctx context.Context, kbID string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 获取所有节点并按位置排序
+		var nodes []*domain.Node
+		if err := tx.Model(&domain.Node{}).
+			Where("kb_id = ?", kbID).
+			Order("position").
+			Find(&nodes).Error; err != nil {
+			return err
+		}
+
+		// 按父节点分组重新分配
+		parentGroups := make(map[string][]*domain.Node)
+		for _, node := range nodes {
+			parentKey := node.ParentID
+			if parentKey == "" {
+				parentKey = "root"
+			}
+			parentGroups[parentKey] = append(parentGroups[parentKey], node)
+		}
+
+		// 为每个父节点组重新分配位置
+		for _, groupNodes := range parentGroups {
+			if err := r.reorderPositions(tx, groupNodes); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 }

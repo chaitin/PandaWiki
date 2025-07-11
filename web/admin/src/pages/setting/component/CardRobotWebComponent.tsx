@@ -1,7 +1,7 @@
 import { AppDetail, getAppDetail, KnowledgeBaseListItem, updateAppDetail, WebComponentSetting } from "@/api";
 import ShowText from "@/components/ShowText";
 import UploadFile from "@/components/UploadFile";
-import { Box, Button, FormControlLabel, Radio, RadioGroup, Stack, TextField } from "@mui/material";
+import { Box, Button, FormControlLabel, Link, Radio, RadioGroup, Stack, TextField } from "@mui/material";
 import { Message } from "ct-mui";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -12,6 +12,7 @@ interface CardRobotWebComponentProps {
 
 const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
   const [isEdit, setIsEdit] = useState(false)
+  const [isEnabled, setIsEnabled] = useState(false);
   const [detail, setDetail] = useState<AppDetail | null>(null)
   const { control, handleSubmit, setValue, reset, formState: { errors } } = useForm<WebComponentSetting>({
     defaultValues: {
@@ -46,6 +47,7 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
         btn_text: res.settings?.widget_bot_settings?.btn_text || '在线客服',
         btn_logo: res.settings?.widget_bot_settings?.btn_logo,
       })
+      setIsEnabled(res.settings?.widget_bot_settings?.is_open ? true : false)
     })
   }
 
@@ -89,90 +91,106 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
           mr: 1,
         },
       }}>网页挂件机器人</Box>
+      <Box sx={{ flexGrow: 1, ml: 1 }}>
+        <Link
+          component='a' 
+          href='https://pandawiki.docs.baizhi.cloud/node/0197f335-a1a8-786c-95df-0848f61fb98a'
+          target="_blank"
+          sx={{
+            fontSize: 14,
+            textDecoration: 'none',
+            fontWeight: 'normal',
+            '&:hover': {
+              fontWeight: 'bold',
+            }
+          }}>使用方法</Link>
+      </Box>
       {isEdit && <Button variant="contained" size="small" onClick={handleSubmit(onSubmit)}>保存</Button>}
     </Stack>
     <Stack gap={2} sx={{ mx: 2 }}>
       <Stack direction={'row'} alignItems={'center'} gap={2}>
-        <Box sx={{ width: 156, fontSize: 14, lineHeight: '32px' }}>网页挂件</Box>
+        <Box sx={{ width: 156, fontSize: 14, lineHeight: '32px' }}>网页挂件机器人</Box>
         <Controller
           control={control}
           name="is_open"
           render={({ field }) => <RadioGroup row {...field} onChange={(e) => {
             field.onChange(+e.target.value as 1 | 0)
+            setIsEnabled((+e.target.value as 1 | 0) === 1)
             setIsEdit(true)
           }}>
-            <FormControlLabel value={1} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>开启</Box>} />
-            <FormControlLabel value={0} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>关闭</Box>} />
+            <FormControlLabel value={1} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>启用</Box>} />
+            <FormControlLabel value={0} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>禁用</Box>} />
           </RadioGroup>}
         />
       </Stack>
-      <Stack direction={'row'} alignItems={'center'} gap={2}>
-        <Box sx={{ width: 156, fontSize: 14, lineHeight: '32px' }}>配色方案</Box>
-        <Controller
-          control={control}
-          name="theme_mode"
-          render={({ field }) => <RadioGroup row {...field} onChange={(e) => {
-            field.onChange(e.target.value)
-            setIsEdit(true)
-          }}>
-            <FormControlLabel value={'light'} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>浅色模式</Box>} />
-            <FormControlLabel value={'dark'} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>深色模式</Box>} />
-          </RadioGroup>}
-        />
-      </Stack>
-      <Stack direction={'row'} alignItems={'center'} gap={2}>
-        <Box sx={{ width: 156, fontSize: 14, lineHeight: '32px', flexShrink: 0 }}>侧边按钮文字</Box>
-        <Controller
-          control={control}
-          name="btn_text"
-          render={({ field }) => <TextField
-            fullWidth
-            {...field}
-            placeholder="输入侧边按钮文字"
-            error={!!errors.btn_text}
-            helperText={errors.btn_text?.message}
-            onChange={(event) => {
+      {isEnabled && <>
+        <Stack direction={'row'} alignItems={'center'} gap={2}>
+          <Box sx={{ width: 156, fontSize: 14, lineHeight: '32px' }}>配色方案</Box>
+          <Controller
+            control={control}
+            name="theme_mode"
+            render={({ field }) => <RadioGroup row {...field} onChange={(e) => {
+              field.onChange(e.target.value)
               setIsEdit(true)
-              field.onChange(event)
-            }}
-          />}
-        />
-      </Stack>
-      <Stack direction={'row'} gap={2}>
-        <Box sx={{ width: 156, fontSize: 14, lineHeight: '52px', flexShrink: 0 }}>
-          侧边按钮 Logo
-        </Box>
-        <Controller
-          control={control}
-          name="btn_logo"
-          render={({ field }) => <UploadFile
-            {...field}
-            id="btn_logo"
-            type="url"
-            accept="image/*"
-            width={80}
-            onChange={(url) => {
-              field.onChange(url)
-              setIsEdit(true)
-            }}
-          />}
-        />
-      </Stack>
-      <Stack>
-        <Stack direction='row' alignItems={'center'} justifyContent={'space-between'} sx={{ my: 1, fontSize: 14, lineHeight: '32px' }}>
-          <Box>嵌入代码</Box>
-          <Button size="small" component='a' href='https://pandawiki.docs.baizhi.cloud/node/0197f335-a1a8-786c-95df-0848f61fb98a' target="_blank">使用方法</Button>
+            }}>
+              <FormControlLabel value={'light'} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>浅色模式</Box>} />
+              <FormControlLabel value={'dark'} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>深色模式</Box>} />
+            </RadioGroup>}
+          />
         </Stack>
-        <Stack gap={1}>
-          <ShowText text={[
-            `<!--// Head 标签引入样式 -->`,
-            `<link rel="stylesheet" href="${url}/widget-bot.css">`,
-            '',
-            `<!--// Body 标签引入挂件 -->`,
-            `<script src="${url}/widget-bot.js"></script>`,
-          ]} />
+        <Stack direction={'row'} alignItems={'center'} gap={2}>
+          <Box sx={{ width: 156, fontSize: 14, lineHeight: '32px', flexShrink: 0 }}>侧边按钮文字</Box>
+          <Controller
+            control={control}
+            name="btn_text"
+            render={({ field }) => <TextField
+              fullWidth
+              {...field}
+              placeholder="输入侧边按钮文字"
+              error={!!errors.btn_text}
+              helperText={errors.btn_text?.message}
+              onChange={(event) => {
+                setIsEdit(true)
+                field.onChange(event)
+              }}
+            />}
+          />
         </Stack>
-      </Stack>
+          <Stack direction='row' gap={2} alignItems={'center'}>
+          <Box sx={{ width: 156, fontSize: 14, lineHeight: '52px', flexShrink: 0 }}>
+            侧边按钮 Logo
+          </Box>
+          <Controller
+            control={control}
+            name="btn_logo"
+            render={({ field }) => <UploadFile
+              {...field}
+              id="btn_logo"
+              type="url"
+              accept="image/*"
+              width={80}
+              onChange={(url) => {
+                field.onChange(url)
+                setIsEdit(true)
+              }}
+            />}
+          />
+        </Stack>
+        <Stack>
+          <Stack direction='row' gap={2} alignItems={'center'}>
+            <Box sx={{ width: 156, fontSize: 14, lineHeight: '52px', flexShrink: 0 }}>
+              嵌入代码
+            </Box>
+            <ShowText text={[
+              `<!--// Head 标签引入样式 -->`,
+              `<link rel="stylesheet" href="${url}/widget-bot.css">`,
+              '',
+              `<!--// Body 标签引入挂件 -->`,
+              `<script src="${url}/widget-bot.js"></script>`,
+            ]} />
+          </Stack>   
+        </Stack>
+      </>}
     </Stack>
   </>
 };
