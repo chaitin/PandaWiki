@@ -120,7 +120,6 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data []byte) (
 			result.WriteString("\n\n")
 		}
 	}
-	// 写目录
 	result.WriteString("# 目录\n\n")
 	for _, v := range toc {
 		fmt.Fprintf(result, "- [%s](#%s)\n", v["title"], v["playOrder"])

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"mime"
 	"mime/multipart"
 	"path/filepath"
@@ -97,6 +98,36 @@ func (u *FileUsecase) UploadFileFromBytes(ctx context.Context, kbID string, file
 		domain.Bucket,
 		s3Filename,
 		reader,
+		size,
+		minio.PutObjectOptions{
+			ContentType: contentType,
+			UserMetadata: map[string]string{
+				"originalname": filename,
+			},
+		},
+	)
+	if err != nil {
+		return "", fmt.Errorf("upload failed: %w", err)
+	}
+
+	return resp.Key, nil
+}
+
+func (u *FileUsecase) UploadFileFromReader(ctx context.Context, kbID string, filename string, size int64, file io.Reader) (string, error) {
+	ext := strings.ToLower(filepath.Ext(filename))
+	filename = fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), ext)
+
+	maxSize := u.config.S3.MaxFileSize
+	if size > int64(maxSize) { // 100MB
+		return "", fmt.Errorf("file size too large")
+	}
+	contentType := mime.TypeByExtension(ext)
+
+	resp, err := u.s3Client.PutObject(
+		ctx,
+		domain.Bucket,
+		filename,
+		file,
 		size,
 		minio.PutObjectOptions{
 			ContentType: contentType,

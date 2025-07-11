@@ -2,12 +2,12 @@ package usecase
 
 import (
 	"archive/zip"
-	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -35,8 +35,13 @@ func NewWikiJSUsecase(logger *log.Logger, minioClient *s3.MinioClient) *WikiJSUs
 	}
 }
 
-func (u *WikiJSUsecase) AnalysisExportFile(ctx context.Context, data []byte, kbID string) (*[]domain.WikiJSResp, error) {
-	zipReader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+func (u *WikiJSUsecase) AnalysisExportFile(ctx context.Context, f *multipart.FileHeader, kbID string) (*[]domain.WikiJSResp, error) {
+	file, err := f.Open()
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	zipReader, err := zip.NewReader(file, f.Size)
 	if err != nil {
 		return nil, err
 	}
@@ -82,12 +87,7 @@ func (u *WikiJSUsecase) AnalysisExportFile(ctx context.Context, data []byte, kbI
 				return
 			}
 			defer file.Close()
-			filedata, err := io.ReadAll(file)
-			if err != nil {
-				errCh <- fmt.Errorf("read file failed: %v", err)
-				return
-			}
-			if len(filedata) == 0 {
+			if f.UncompressedSize64 == 0 {
 				return
 			}
 
@@ -95,8 +95,8 @@ func (u *WikiJSUsecase) AnalysisExportFile(ctx context.Context, data []byte, kbI
 				ctx,
 				domain.Bucket,
 				imgName,
-				bytes.NewReader(filedata),
-				int64(len(filedata)),
+				file,
+				int64(f.UncompressedSize64),
 				minio.PutObjectOptions{
 					UserMetadata: map[string]string{
 						"originalname": name,

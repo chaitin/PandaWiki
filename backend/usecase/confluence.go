@@ -67,13 +67,7 @@ func (c *ConfluenceUsecase) Analysis(ctx context.Context, data []byte, kbid stri
 		}
 		defer filereader.Close()
 
-		fileData, err := io.ReadAll(filereader)
-		if err != nil {
-			c.logger.Error("failed to read file: ", log.Error(err))
-			return nil
-		}
-
-		key, err := c.file.UploadFileFromBytes(ctx, kbid, zipfile.Name, fileData)
+		key, err := c.file.UploadFileFromReader(ctx, kbid, zipfile.Name, int64(zipfile.UncompressedSize64), filereader)
 		if err != nil {
 			c.logger.Error("failed to upload file to oss: ", log.Error(err))
 			return nil
@@ -149,9 +143,9 @@ func (c *ConfluenceUsecase) Analysis(ctx context.Context, data []byte, kbid stri
 			// 去掉url后面的参数
 			url = strings.SplitN(url, "?", 2)[0]
 			if pm[url] != "" {
-				return fmt.Sprintf(`![%s](%s)`, title, pm[url])
+				return fmt.Sprintf(`[%s](%s)`, title, pm[url])
 			}
-			return fmt.Sprintf(`![%s](%s)`, title, url)
+			return fmt.Sprintf(`[%s](%s)`, title, url)
 		})
 		return &domain.AnalysisConfluenceResp{
 			ID:      uuid.NewString(),
