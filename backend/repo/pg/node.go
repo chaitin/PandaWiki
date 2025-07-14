@@ -16,6 +16,11 @@ import (
 	"github.com/chaitin/panda-wiki/store/pg"
 )
 
+const (
+	// 位置值最小间隔，防止精度损失
+	MinPositionGap = 1000.0
+)
+
 type NodeRepository struct {
 	db     *pg.DB
 	logger *log.Logger
@@ -56,6 +61,11 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq) 
 		if err := query.
 			Select("COALESCE(MAX(position::float), 0)").
 			Scan(&maxPos).Error; err != nil {
+			return err
+		}
+
+		// 检查是否需要重新分配位置值
+		if err := r.checkAndReorderPositions(tx, req.KBID, req.ParentID); err != nil {
 			return err
 		}
 
@@ -430,6 +440,19 @@ func (r *NodeRepository) MoveNodeBetween(ctx context.Context, id string, parentI
 			maxPos = nextNode.Position
 		}
 
+		// 检查是否需要重新分配位置值
+		// 需要先获取节点的kbID
+		var node domain.Node
+		if err := tx.Model(&domain.Node{}).
+			Where("id = ?", id).
+			Select("kb_id").
+			First(&node).Error; err != nil {
+			return err
+		}
+		if err := r.checkAndReorderPositions(tx, node.KBID, parentID); err != nil {
+			return err
+		}
+
 		newPos := prevPos + (maxPos-prevPos)/2.0
 
 		return tx.Model(&domain.Node{}).
@@ -592,6 +615,112 @@ func (r *NodeRepository) BatchMove(ctx context.Context, req *domain.BatchMoveReq
 			Error; err != nil {
 			return err
 		}
+		return nil
+	})
+}
+
+// checkAndReorderPositions 检查并重新分配位置值
+func (r *NodeRepository) checkAndReorderPositions(tx *gorm.DB, kbID, parentID string) error {
+	// 构建查询条件
+	query := tx.Model(&domain.Node{})
+	if kbID != "" {
+		query = query.Where("kb_id = ?", kbID)
+	}
+	if parentID == "" {
+		query = query.Where("parent_id IS NULL OR parent_id = ''")
+	} else {
+		query = query.Where("parent_id = ?", parentID)
+	}
+
+	// 获取所有节点并按位置排序
+	var nodes []*domain.Node
+	if err := query.Order("position").Find(&nodes).Error; err != nil {
+		return err
+	}
+
+	// 如果节点数量少于2个，不需要重新分配
+	if len(nodes) < 2 {
+		return nil
+	}
+
+	// 检查相邻节点位置值是否过于接近
+	needReorder := false
+	for i := 0; i < len(nodes)-1; i++ {
+		if nodes[i+1].Position-nodes[i].Position < MinPositionGap {
+			needReorder = true
+			break
+		}
+	}
+
+	// 如果需要重新分配，执行重新分配
+	if needReorder {
+		return r.reorderPositions(tx, nodes)
+	}
+
+	return nil
+}
+
+// reorderPositions 重新分配位置值
+func (r *NodeRepository) reorderPositions(tx *gorm.DB, nodes []*domain.Node) error {
+	if len(nodes) == 0 {
+		return nil
+	}
+
+	// 计算新的位置值，使用较大的间隔
+	basePosition := float64(10000) // 起始位置
+	interval := float64(10000)     // 间隔
+
+	// 使用批量更新提高性能
+	updates := make([]map[string]interface{}, len(nodes))
+	for i, node := range nodes {
+		newPosition := basePosition + float64(i)*interval
+		updates[i] = map[string]interface{}{
+			"id":       node.ID,
+			"position": newPosition,
+		}
+	}
+
+	// 批量更新位置值
+	for _, update := range updates {
+		if err := tx.Model(&domain.Node{}).
+			Where("id = ?", update["id"]).
+			Update("position", update["position"]).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ReorderAllPositions 手动重新分配所有节点的位置值
+func (r *NodeRepository) ReorderAllPositions(ctx context.Context, kbID string) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// 获取所有节点并按位置排序
+		var nodes []*domain.Node
+		if err := tx.Model(&domain.Node{}).
+			Where("kb_id = ?", kbID).
+			Order("position").
+			Find(&nodes).Error; err != nil {
+			return err
+		}
+
+		// 按父节点分组重新分配
+		parentGroups := make(map[string][]*domain.Node)
+		for _, node := range nodes {
+			parentKey := node.ParentID
+			if parentKey == "" {
+				parentKey = "root"
+			}
+			parentGroups[parentKey] = append(parentGroups[parentKey], node)
+		}
+
+		// 为每个父节点组重新分配位置
+		for _, groupNodes := range parentGroups {
+			if err := r.reorderPositions(tx, groupNodes); err != nil {
+				return err
+			}
+		}
+
 		return nil
 	})
 }
