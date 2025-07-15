@@ -1386,7 +1386,8 @@
                             "BaiZhiCloud",
                             "Hunyuan",
                             "BaiLian",
-                            "Volcengine"
+                            "Volcengine",
+                            "Gemini"
                         ],
                         "type": "string",
                         "name": "provider",
@@ -3163,7 +3164,8 @@
                         "BaiZhiCloud",
                         "Hunyuan",
                         "BaiLian",
-                        "Volcengine"
+                        "Volcengine",
+                        "Gemini"
                     ],
                     "allOf": [
                         {
@@ -3454,7 +3456,8 @@
                         "BaiZhiCloud",
                         "Hunyuan",
                         "BaiLian",
-                        "Volcengine"
+                        "Volcengine",
+                        "Gemini"
                     ],
                     "allOf": [
                         {
@@ -3991,6 +3994,7 @@
                 "Hunyuan",
                 "BaiLian",
                 "Volcengine",
+                "Gemini",
                 "Other"
             ],
             "x-enum-varnames": [
@@ -4004,6 +4008,7 @@
                 "ModelProviderBrandHunyuan",
                 "ModelProviderBrandBaiLian",
                 "ModelProviderBrandVolcengine",
+                "ModelProviderBrandGemini",
                 "ModelProviderBrandOther"
             ]
         },
@@ -4652,7 +4657,8 @@
                         "BaiZhiCloud",
                         "Hunyuan",
                         "BaiLian",
-                        "Volcengine"
+                        "Volcengine",
+                        "Gemini"
                     ],
                     "allOf": [
                         {

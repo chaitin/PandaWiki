@@ -55,7 +55,7 @@ type FeishuClient struct {
 }
 
 func NewFeishuClient(ctx context.Context, cancel context.CancelFunc, clientID, clientSecret string, logger *log.Logger,
-	getQA bot.GetQAFun, kbRepo *pg.KnowledgeBaseRepository, KbId string) *FeishuClient {
+	getQA bot.GetQAFun, kbRepo *pg.KnowledgeBaseRepository, kbId string) *FeishuClient {
 	client := lark.NewClient(clientID, clientSecret, lark.WithLogger(&FeishuBotLogger{logger: logger}))
 
 	c := &FeishuClient{
@@ -67,7 +67,7 @@ func NewFeishuClient(ctx context.Context, cancel context.CancelFunc, clientID, c
 		logger:       logger,
 		getQA:        getQA,
 		kbRepo:       kbRepo,
-		KbId:         KbId,
+		KbId:         kbId,
 	}
 	go func() {
 		ticker := time.NewTicker(1 * time.Minute)

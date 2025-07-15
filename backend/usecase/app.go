@@ -57,7 +57,7 @@ func NewAppUsecase(
 	for _, app := range apps {
 		switch app.Type {
 		case domain.AppTypeDingTalkBot:
-			u.updateDingTalkBot(app)
+			u.updateDingTalkBot(app, u.chatUsecase.llmUsecase.kbRepo)
 		case domain.AppTypeFeishuBot:
 			u.updateFeishuBot(app, u.chatUsecase.modelUsecase.kbRepo)
 		case domain.AppTypeDisCordBot:
@@ -82,7 +82,7 @@ func (u *AppUsecase) UpdateApp(ctx context.Context, id string, appRequest *domai
 		}
 		switch app.Type {
 		case domain.AppTypeDingTalkBot:
-			u.updateDingTalkBot(app)
+			u.updateDingTalkBot(app, kbRepo)
 		case domain.AppTypeFeishuBot:
 			u.updateFeishuBot(app, kbRepo)
 		case domain.AppTypeDisCordBot:
@@ -207,7 +207,7 @@ func (u *AppUsecase) updateFeishuBot(app *domain.App, kbRepo *pg.KnowledgeBaseRe
 	u.feishuBots[app.ID] = feishuClient
 }
 
-func (u *AppUsecase) updateDingTalkBot(app *domain.App) {
+func (u *AppUsecase) updateDingTalkBot(app *domain.App, kbRepo *pg.KnowledgeBaseRepository) {
 	u.dingTalkMutex.Lock()
 	defer u.dingTalkMutex.Unlock()
 
@@ -233,6 +233,8 @@ func (u *AppUsecase) updateDingTalkBot(app *domain.App) {
 		app.Settings.DingTalkBotTemplateID,
 		u.logger,
 		getQA,
+		kbRepo,
+		app.KBID,
 	)
 	if err != nil {
 		u.logger.Error("failed to create dingtalk client", log.Error(err))

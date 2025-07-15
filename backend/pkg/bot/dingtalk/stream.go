@@ -23,6 +23,7 @@ import (
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/pkg/bot"
+	"github.com/chaitin/panda-wiki/repo/pg"
 )
 
 type DingTalkClient struct {
@@ -40,11 +41,16 @@ type DingTalkClient struct {
 		expireAt    time.Time
 	}
 	tokenMutex sync.RWMutex
+	KbRepo     *pg.KnowledgeBaseRepository
+	KbId       string
 }
 
 var feedback = "\n\n---  \n\n此回答结果对您有帮助吗?  \n[👍 满意](%s) | [👎 不满意](%s)"
+var likeUrl = "%s/feedback?score=1&message_id=%s"
+var dislikeUrl = "%s/feedback?score=-1&message_id=%s"
 
-func NewDingTalkClient(ctx context.Context, cancel context.CancelFunc, clientId, clientSecret, templateID string, logger *log.Logger, getQA bot.GetQAFun) (*DingTalkClient, error) {
+func NewDingTalkClient(ctx context.Context, cancel context.CancelFunc, clientId, clientSecret,
+	templateID string, logger *log.Logger, getQA bot.GetQAFun, kbRepo *pg.KnowledgeBaseRepository, kbId string) (*DingTalkClient, error) {
 	config := &openapi.Config{}
 	config.Protocol = tea.String("https")
 	config.RegionId = tea.String("central")
@@ -66,6 +72,8 @@ func NewDingTalkClient(ctx context.Context, cancel context.CancelFunc, clientId,
 		cardClient:   cardClient,
 		getQA:        getQA,
 		logger:       logger,
+		KbRepo:       kbRepo,
+		KbId:         kbId,
 	}, nil
 }
 
@@ -234,7 +242,7 @@ func (c *DingTalkClient) OnChatBotMessageReceived(ctx context.Context, data *cha
 		convInfo.UserInfo.From = domain.MessageFromPrivate
 	}
 
-	contentCh, _, err := c.getQA(ctx, question, *convInfo, "")
+	contentCh, messageId, err := c.getQA(ctx, question, *convInfo, "")
 	if err != nil {
 		c.logger.Error("dingtalk client failed to get answer", log.Error(err))
 		if err := c.UpdateAIStreamCard(trackID, "出错了，请稍后再试", true); err != nil {
@@ -258,8 +266,20 @@ func (c *DingTalkClient) OnChatBotMessageReceived(ctx context.Context, data *cha
 						c.logger.Error("UpdateInteractiveCard in contentCh failed", log.Error(err))
 					}
 				}
+
+				// 查询数据库
+				kb, err := c.KbRepo.GetKnowledgeBaseByID(ctx, c.KbId)
+				if err != nil {
+					c.logger.Error("feishu GetKnowledgeBaseByID failed", log.Error(err))
+				}
+				// contact
+				like := fmt.Sprintf(likeUrl, kb.AccessSettings.BaseURL, *messageId)
+				dislike := fmt.Sprintf(dislikeUrl, kb.AccessSettings.BaseURL, *messageId)
+				feedback_data := fmt.Sprintf(feedback, like, dislike)
+				c.logger.Info("feedback_data", log.String("feedback_data", feedback_data))
+
 				// 正常结束-->需要加上用户反馈
-				fullContent += feedback
+				fullContent += feedback_data
 				if err := c.UpdateAIStreamCard(trackID, fullContent, true); err != nil {
 					c.logger.Error("UpdateInteractiveCard in contentCh", log.Error(err))
 					if err := c.UpdateAIStreamCard(trackID, "出错了，请稍后再试", true); err != nil {

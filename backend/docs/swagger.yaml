@@ -347,6 +347,7 @@ definitions:
         - Hunyuan
         - BaiLian
         - Volcengine
+        - Gemini
       type:
         allOf:
         - $ref: '#/definitions/domain.ModelType'
@@ -536,6 +537,7 @@ definitions:
         - Hunyuan
         - BaiLian
         - Volcengine
+        - Gemini
       type:
         allOf:
         - $ref: '#/definitions/domain.ModelType'
@@ -889,6 +891,7 @@ definitions:
     - Hunyuan
     - BaiLian
     - Volcengine
+    - Gemini
     - Other
     type: string
     x-enum-varnames:
@@ -902,6 +905,7 @@ definitions:
     - ModelProviderBrandHunyuan
     - ModelProviderBrandBaiLian
     - ModelProviderBrandVolcengine
+    - ModelProviderBrandGemini
     - ModelProviderBrandOther
   domain.ModelType:
     enum:
@@ -1334,6 +1338,7 @@ definitions:
         - Hunyuan
         - BaiLian
         - Volcengine
+        - Gemini
       type:
         allOf:
         - $ref: '#/definitions/domain.ModelType'
@@ -2292,6 +2297,7 @@ paths:
         - Hunyuan
         - BaiLian
         - Volcengine
+        - Gemini
         in: query
         name: provider
         required: true

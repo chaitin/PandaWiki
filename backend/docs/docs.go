@@ -1397,7 +1397,8 @@ const docTemplate = `{
                             "BaiZhiCloud",
                             "Hunyuan",
                             "BaiLian",
-                            "Volcengine"
+                            "Volcengine",
+                            "Gemini"
                         ],
                         "type": "string",
                         "name": "provider",
@@ -3174,7 +3175,8 @@ const docTemplate = `{
                         "BaiZhiCloud",
                         "Hunyuan",
                         "BaiLian",
-                        "Volcengine"
+                        "Volcengine",
+                        "Gemini"
                     ],
                     "allOf": [
                         {
@@ -3465,7 +3467,8 @@ const docTemplate = `{
                         "BaiZhiCloud",
                         "Hunyuan",
                         "BaiLian",
-                        "Volcengine"
+                        "Volcengine",
+                        "Gemini"
                     ],
                     "allOf": [
                         {
@@ -4002,6 +4005,7 @@ const docTemplate = `{
                 "Hunyuan",
                 "BaiLian",
                 "Volcengine",
+                "Gemini",
                 "Other"
             ],
             "x-enum-varnames": [
@@ -4015,6 +4019,7 @@ const docTemplate = `{
                 "ModelProviderBrandHunyuan",
                 "ModelProviderBrandBaiLian",
                 "ModelProviderBrandVolcengine",
+                "ModelProviderBrandGemini",
                 "ModelProviderBrandOther"
             ]
         },
@@ -4663,7 +4668,8 @@ const docTemplate = `{
                         "BaiZhiCloud",
                         "Hunyuan",
                         "BaiLian",
-                        "Volcengine"
+                        "Volcengine",
+                        "Gemini"
                     ],
                     "allOf": [
                         {
