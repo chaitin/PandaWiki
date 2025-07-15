@@ -139,11 +139,10 @@ func (r *ConversationRepository) GetConversationCount(ctx context.Context, kbID 
 	return count, nil
 }
 
-func (r *ConversationRepository) GetConversationMessagesDetailByID(ctx context.Context, conversationId string, messageId string) (*domain.ConversationMessage, error) {
+func (r *ConversationRepository) GetConversationMessagesDetailByID(ctx context.Context, messageId string) (*domain.ConversationMessage, error) {
 	message := &domain.ConversationMessage{}
 	if err := r.db.WithContext(ctx).
 		Model(&domain.ConversationMessage{}).
-		Where("conversation_id = ?", conversationId).
 		Where("id = ?", messageId).
 		First(&message).Error; err != nil {
 		return nil, err
@@ -163,7 +162,6 @@ func (r *ConversationRepository) UpdateMessageFeedback(ctx context.Context, feed
 	// 更新消息的反馈信息
 	if err := r.db.WithContext(ctx).Model(&domain.ConversationMessage{}).
 		Where("id = ?", feedback.MessageId).
-		Where("conversation_id = ?", feedback.ConversationId).
 		Update("info", feedbackInfo).Error; err != nil {
 		return err
 	}

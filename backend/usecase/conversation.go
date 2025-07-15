@@ -167,7 +167,7 @@ func (u *ConversationUsecase) CreateConversation(ctx context.Context, conversati
 
 func (u *ConversationUsecase) FeedBack(ctx context.Context, feedback *domain.FeedbackRequest) error {
 	// 先查询数据库，看看目前message的信息
-	messages, err := u.repo.GetConversationMessagesDetailByID(ctx, feedback.ConversationId, feedback.MessageId)
+	messages, err := u.repo.GetConversationMessagesDetailByID(ctx, feedback.MessageId)
 	if err != nil {
 		return err
 	}

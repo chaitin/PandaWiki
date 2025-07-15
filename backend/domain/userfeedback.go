@@ -2,7 +2,7 @@ package domain
 
 // 用户反馈请求
 type FeedbackRequest struct {
-	ConversationId  string       `json:"conversation_id" validate:"required"`
+	ConversationId  string       `json:"conversation_id"`
 	MessageId       string       `json:"message_id" validate:"required"`
 	Score           ScoreType    `json:"score"`                               // -1 踩 ,0 1 赞成
 	Type            FeedbackType `json:"type"`                                // 1 内容不准确，2 没有帮助，3 其他

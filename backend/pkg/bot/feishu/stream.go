@@ -84,9 +84,11 @@ func NewFeishuClient(ctx context.Context, cancel context.CancelFunc, clientID, c
 	return c
 }
 
+var feedback = "\n\n---  \n\n此回答结果对您有帮助吗?  \n[👍 满意](%s) | [👎 不满意](%s)"
+
 var cardDataTemplate = `{"schema":"2.0","header":{"title":{"content":"%s","tag":"plain_text"}},"config":{"streaming_mode":true,"summary":{"content":""}},"body":{"elements":[{"tag":"markdown","content":"%s","element_id":"markdown_1"}]}}`
 
-func (c *FeishuClient) sendQACard(ctx context.Context, receiveIdType string, receiveId string, question string, additionalInfo string) {
+func (c *FeishuClient) sendQACard(ctx context.Context, receiveIdType string, receiveId string, question string, additionalInfo string, messageId string) {
 	// create card
 	cardData := fmt.Sprintf(cardDataTemplate, question, "稍等，让我想一想...")
 	req := larkcardkit.NewCreateCardReqBuilder().
@@ -209,7 +211,34 @@ func (c *FeishuClient) sendQACard(ctx context.Context, receiveIdType string, rec
 			return
 		}
 	}
-	c.logger.Info("start processing QA", log.String("message_id", *res.Data.MessageId))
+	// 点赞和点踩，分配对应的url
+	messageID := messageId
+	likeUrl := "" + messageID
+	dislikeUrl := "" + messageID
+	feedback_data := fmt.Sprintf(feedback, likeUrl, dislikeUrl)
+
+	seq += 1
+	answer += feedback_data
+	// 最后在回复的最后加上用户反馈的链接，就是投票结果
+	updateReq := larkcardkit.NewContentCardElementReqBuilder().
+		CardId(*resp.Data.CardId).
+		ElementId(`markdown_1`).
+		Body(larkcardkit.NewContentCardElementReqBodyBuilder().
+			Uuid(uuid.New().String()).
+			Content(answer).
+			Sequence(seq).
+			Build()).
+		Build()
+	updateResp, err := c.client.Cardkit.V1.CardElement.Content(ctx, updateReq)
+	if err != nil {
+		c.logger.Error("failed to update card feedbackinfo", log.Error(err))
+		return
+	}
+	if !updateResp.Success() {
+		c.logger.Error("failed to update card", log.String("request_id", updateResp.RequestId()), log.Any("code_error", updateResp.CodeError))
+		return
+	}
+	c.logger.Info("start processing QA feedbackinfo", log.String("message_id", *res.Data.MessageId))
 }
 
 type Message struct {

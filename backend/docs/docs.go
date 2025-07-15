@@ -3581,7 +3581,6 @@ const docTemplate = `{
         "domain.FeedbackRequest": {
             "type": "object",
             "required": [
-                "conversation_id",
                 "message_id"
             ],
             "properties": {

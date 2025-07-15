@@ -35,6 +35,7 @@ func (u *AppUsecase) VerifyUrlWechatAPP(ctx context.Context, signature, timestam
 		appInfo.Settings.WeChatAppSecret,
 		appInfo.Settings.WeChatAppAgentID,
 		u.logger,
+		"",
 	)
 
 	if err != nil {
@@ -60,6 +61,11 @@ func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce str
 		return errors.New("wechat app bot is not enabled")
 
 	}
+	// 查询数据库，拿到kb
+	kb, err := u.chatUsecase.llmUsecase.kbRepo.GetKnowledgeBaseByID(ctx, KbId)
+	if err != nil {
+		u.logger.Error("wechat GetKnowledgeBaseByID failed", log.Error(err))
+	}
 
 	wc, err := wechat.NewWechatConfig(
 		ctx,
@@ -70,6 +76,7 @@ func (u *AppUsecase) Wechat(ctx context.Context, signature, timestamp, nonce str
 		appInfo.Settings.WeChatAppSecret,
 		appInfo.Settings.WeChatAppAgentID,
 		u.logger,
+		kb.AccessSettings.BaseURL,
 	)
 
 	if err != nil {
@@ -133,6 +140,7 @@ func (u *AppUsecase) SendImmediateResponse(ctx context.Context, signature, times
 		appInfo.Settings.WeChatAppSecret,
 		appInfo.Settings.WeChatAppAgentID,
 		u.logger,
+		"",
 	)
 
 	u.logger.Debug("wechat app info", log.Any("app", appInfo))

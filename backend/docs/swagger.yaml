@@ -627,7 +627,6 @@ definitions:
         - $ref: '#/definitions/domain.FeedbackType'
         description: 1 内容不准确，2 没有帮助，3 其他
     required:
-    - conversation_id
     - message_id
     type: object
   domain.FeedbackType:

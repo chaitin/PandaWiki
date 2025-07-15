@@ -119,8 +119,8 @@ func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.GetQAFun
 	}
 }
 
-func (u *AppUsecase) wechatQAFunc(kbID string, appType domain.AppType, remoteip string, userinfo *wechat.UserInfo) func(ctx context.Context, msg string) (chan string, error) {
-	return func(ctx context.Context, msg string) (chan string, error) {
+func (u *AppUsecase) wechatQAFunc(kbID string, appType domain.AppType, remoteip string, userinfo *wechat.UserInfo) func(ctx context.Context, msg string) (chan string, *string, error) {
+	return func(ctx context.Context, msg string) (chan string, *string, error) {
 		eventCh, err := u.chatUsecase.Chat(ctx, &domain.ChatRequest{
 			Message:  msg,
 			KBID:     kbID,
@@ -135,9 +135,11 @@ func (u *AppUsecase) wechatQAFunc(kbID string, appType domain.AppType, remoteip 
 			},
 		})
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		contentCh := make(chan string, 10)
+		var messageId string
+
 		go func() {
 			defer close(contentCh)
 			for event := range eventCh { // get content from eventch
@@ -147,9 +149,12 @@ func (u *AppUsecase) wechatQAFunc(kbID string, appType domain.AppType, remoteip 
 				if event.Type == "data" {
 					contentCh <- event.Content
 				}
+				if event.Type == "message_id" {
+					messageId = event.Content
+				}
 			}
 		}()
-		return contentCh, nil
+		return contentCh, &messageId, nil
 	}
 }
 

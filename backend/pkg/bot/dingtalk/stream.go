@@ -42,6 +42,8 @@ type DingTalkClient struct {
 	tokenMutex sync.RWMutex
 }
 
+var feedback = "\n\n---  \n\n此回答结果对您有帮助吗?  \n[👍 满意](%s) | [👎 不满意](%s)"
+
 func NewDingTalkClient(ctx context.Context, cancel context.CancelFunc, clientId, clientSecret, templateID string, logger *log.Logger, getQA bot.GetQAFun) (*DingTalkClient, error) {
 	config := &openapi.Config{}
 	config.Protocol = tea.String("https")
@@ -250,6 +252,14 @@ func (c *DingTalkClient) OnChatBotMessageReceived(ctx context.Context, data *cha
 		select {
 		case content, ok := <-contentCh:
 			if !ok {
+				if err := c.UpdateAIStreamCard(trackID, fullContent, true); err != nil {
+					c.logger.Error("UpdateInteractiveCard in contentCh", log.Error(err))
+					if err := c.UpdateAIStreamCard(trackID, "出错了，请稍后再试", true); err != nil {
+						c.logger.Error("UpdateInteractiveCard in contentCh failed", log.Error(err))
+					}
+				}
+				// 正常结束-->需要加上用户反馈
+				fullContent += feedback
 				if err := c.UpdateAIStreamCard(trackID, fullContent, true); err != nil {
 					c.logger.Error("UpdateInteractiveCard in contentCh", log.Error(err))
 					if err := c.UpdateAIStreamCard(trackID, "出错了，请稍后再试", true); err != nil {

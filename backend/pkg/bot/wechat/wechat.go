@@ -28,6 +28,7 @@ type WechatConfig struct {
 	TokenExpire    time.Time
 	AgentID        string
 	logger         *log.Logger
+	BaseUrl        string
 }
 
 type ReceivedMessage struct {
@@ -93,7 +94,11 @@ type TokenCahe struct {
 
 var TokenCache *TokenCahe = &TokenCahe{}
 
-func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, kbid string, secret string, againtid string, logger *log.Logger) (*WechatConfig, error) {
+var feedback = "\n\n---  \n\n此回答结果对您有帮助吗?  \n[👍 满意](%s) | [👎 不满意](%s)"
+var likeUrl = "%s/feedback?score=1&message_id=%s"
+var dislikeUrl = "%s/feedback?score=-1&message_id=%s"
+
+func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, kbid string, secret string, againtid string, logger *log.Logger, baseurl string) (*WechatConfig, error) {
 	return &WechatConfig{
 		Ctx:            ctx,
 		CorpID:         CorpID,
@@ -103,6 +108,7 @@ func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, 
 		Secret:         secret,
 		AgentID:        againtid,
 		logger:         logger,
+		BaseUrl:        baseurl,
 	}, nil
 }
 
@@ -123,7 +129,7 @@ func (cfg *WechatConfig) VerifyUrlWechatAPP(signature, timestamp, nonce, echostr
 	return decryptEchoStr, nil
 }
 
-func (cfg *WechatConfig) Wechat(msg ReceivedMessage, getQA func(ctx context.Context, msg string) (chan string, error)) error {
+func (cfg *WechatConfig) Wechat(msg ReceivedMessage, getQA func(ctx context.Context, msg string) (chan string, *string, error)) error {
 
 	token, err := cfg.GetAccessToken()
 	if err != nil {
@@ -140,9 +146,11 @@ func (cfg *WechatConfig) Wechat(msg ReceivedMessage, getQA func(ctx context.Cont
 }
 
 // forwardToBackend
-func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx context.Context, msg string) (chan string, error), token string) error {
+func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx context.Context, msg string) (chan string, *string, error), token string) error {
 
-	wccontent, err := GetQA(cfg.Ctx, msg.Content)
+	wccontent, message_id, err := GetQA(cfg.Ctx, msg.Content)
+	// 拿地址
+	cfg.logger.Info("message_id ", log.Any(" ", message_id))
 
 	if err != nil {
 		return err
@@ -152,6 +160,13 @@ func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx cont
 	for v := range wccontent {
 		response += v
 	}
+	// contact
+	like := fmt.Sprintf(likeUrl, cfg.BaseUrl, *message_id)
+	dislike := fmt.Sprintf(dislikeUrl, cfg.BaseUrl, *message_id)
+	feedback_data := fmt.Sprintf(feedback, like, dislike)
+
+	cfg.logger.Info("feedback data", log.String(" ", feedback_data))
+	response += feedback_data
 
 	msgData := map[string]interface{}{
 		"touser":  msg.FromUserName,
@@ -187,7 +202,7 @@ func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx cont
 	}
 
 	if result.Errcode != 0 {
-		return fmt.Errorf("wechat Api fialed! : %s (code: %d)", result.Errmsg, result.Errcode)
+		return fmt.Errorf("wechat Api failed! : %s (code: %d)", result.Errmsg, result.Errcode)
 	}
 
 	return nil
