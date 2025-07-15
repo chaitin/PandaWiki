@@ -95,6 +95,9 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 				return
 			}
 		}
+		messageId := uuid.New().String()
+		eventCh <- domain.SSEEvent{Type: "message_id", Content: messageId}
+
 		// save user question to conversation message
 		if err := u.conversationUsecase.CreateChatConversationMessage(ctx, req.KBID, &domain.ConversationMessage{
 			ID:             uuid.New().String(),
@@ -138,8 +141,6 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 			return nil
 		})
 		// save assistant answer to conversation message
-		messageId := uuid.New().String()
-		eventCh <- domain.SSEEvent{Type: "message_id", Content: messageId}
 
 		if err := u.conversationUsecase.CreateChatConversationMessage(ctx, req.KBID, &domain.ConversationMessage{
 			ID:               messageId,

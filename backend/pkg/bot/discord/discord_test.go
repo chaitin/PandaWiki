@@ -13,13 +13,13 @@ func TestDiscord(t *testing.T) {
 	cfg, _ := config.NewConfig()
 	log := log.NewLogger(cfg)
 	token := "token"
-	getQA := func(ctx context.Context, msg string, info domain.ConversationInfo, ConversatonID string) (chan string, error) {
+	getQA := func(ctx context.Context, msg string, info domain.ConversationInfo, ConversatonID string) (chan string, *string, error) {
 		contentCh := make(chan string, 10)
 		go func() {
 			defer close(contentCh)
 			contentCh <- "hello " + msg
 		}()
-		return contentCh, nil
+		return contentCh, nil, nil
 	}
 	c, _ := NewDiscordClient(log, token, getQA)
 	if err := c.Start(); err != nil {

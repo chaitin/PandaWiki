@@ -234,7 +234,7 @@ func (c *DingTalkClient) OnChatBotMessageReceived(ctx context.Context, data *cha
 		convInfo.UserInfo.From = domain.MessageFromPrivate
 	}
 
-	contentCh, err := c.getQA(ctx, question, *convInfo, "")
+	contentCh, _, err := c.getQA(ctx, question, *convInfo, "")
 	if err != nil {
 		c.logger.Error("dingtalk client failed to get answer", log.Error(err))
 		if err := c.UpdateAIStreamCard(trackID, "出错了，请稍后再试", true); err != nil {

@@ -74,7 +74,7 @@ func (d *DiscordClient) handerMessage(s *discordgo.Session, m *discordgo.Message
 
 	d.logger.Debug("消息来自", log.String("用户名", m.Author.Username), log.String("ID", m.Author.ID), log.String("内容", content))
 	d.logger.Debug("消息来自频道", log.String("名称", m.ChannelID))
-	qaChan, err := d.getQA(context.Background(), content, info, "")
+	qaChan, _, err := d.getQA(context.Background(), content, info, "")
 	if err != nil {
 		d.logger.Error("failed to get QA", log.String("error", err.Error()))
 		return

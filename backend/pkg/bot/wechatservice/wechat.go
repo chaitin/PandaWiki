@@ -243,7 +243,7 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 	cfg.logger.Info("customer info", log.Any("customer", customer))
 
 	// 获取问题答案
-	wccontent, err := GetQA(cfg.Ctx, content, domain.ConversationInfo{UserInfo: domain.UserInfo{
+	wccontent, _, err := GetQA(cfg.Ctx, content, domain.ConversationInfo{UserInfo: domain.UserInfo{
 		UserID:   customer.ExternalUserID, // 用户对话的id
 		NickName: customer.Nickname,       //用户微信的昵称
 		Avatar:   customer.Avatar,         // 用户微信的头像

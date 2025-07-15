@@ -18,6 +18,7 @@ import (
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/pkg/bot"
+	"github.com/chaitin/panda-wiki/repo/pg"
 )
 
 type FeishuBotLogger struct {
@@ -49,9 +50,12 @@ type FeishuClient struct {
 	client       *lark.Client
 	msgMap       sync.Map
 	getQA        bot.GetQAFun
+	kbRepo       *pg.KnowledgeBaseRepository
+	KbId         string
 }
 
-func NewFeishuClient(ctx context.Context, cancel context.CancelFunc, clientID, clientSecret string, logger *log.Logger, getQA bot.GetQAFun) *FeishuClient {
+func NewFeishuClient(ctx context.Context, cancel context.CancelFunc, clientID, clientSecret string, logger *log.Logger,
+	getQA bot.GetQAFun, kbRepo *pg.KnowledgeBaseRepository, KbId string) *FeishuClient {
 	client := lark.NewClient(clientID, clientSecret, lark.WithLogger(&FeishuBotLogger{logger: logger}))
 
 	c := &FeishuClient{
@@ -62,6 +66,8 @@ func NewFeishuClient(ctx context.Context, cancel context.CancelFunc, clientID, c
 		client:       client,
 		logger:       logger,
 		getQA:        getQA,
+		kbRepo:       kbRepo,
+		KbId:         KbId,
 	}
 	go func() {
 		ticker := time.NewTicker(1 * time.Minute)
@@ -85,10 +91,12 @@ func NewFeishuClient(ctx context.Context, cancel context.CancelFunc, clientID, c
 }
 
 var feedback = "\n\n---  \n\n此回答结果对您有帮助吗?  \n[👍 满意](%s) | [👎 不满意](%s)"
+var likeUrl = "%s/feedback?score=1&message_id=%s"
+var dislikeUrl = "%s/feedback?score=-1&message_id=%s"
 
 var cardDataTemplate = `{"schema":"2.0","header":{"title":{"content":"%s","tag":"plain_text"}},"config":{"streaming_mode":true,"summary":{"content":""}},"body":{"elements":[{"tag":"markdown","content":"%s","element_id":"markdown_1"}]}}`
 
-func (c *FeishuClient) sendQACard(ctx context.Context, receiveIdType string, receiveId string, question string, additionalInfo string, messageId string) {
+func (c *FeishuClient) sendQACard(ctx context.Context, receiveIdType string, receiveId string, question string, additionalInfo string) {
 	// create card
 	cardData := fmt.Sprintf(cardDataTemplate, question, "稍等，让我想一想...")
 	req := larkcardkit.NewCreateCardReqBuilder().
@@ -180,7 +188,8 @@ func (c *FeishuClient) sendQACard(ctx context.Context, receiveIdType string, rec
 		convInfo.UserInfo.From = domain.MessageFromGroup // 群聊
 	}
 
-	answerCh, err := c.getQA(ctx, question, convInfo, "")
+	answerCh, messageId, err := c.getQA(ctx, question, convInfo, "")
+
 	if err != nil {
 		c.logger.Error("get QA failed", log.Error(err))
 		return
@@ -211,11 +220,16 @@ func (c *FeishuClient) sendQACard(ctx context.Context, receiveIdType string, rec
 			return
 		}
 	}
-	// 点赞和点踩，分配对应的url
-	messageID := messageId
-	likeUrl := "" + messageID
-	dislikeUrl := "" + messageID
-	feedback_data := fmt.Sprintf(feedback, likeUrl, dislikeUrl)
+	// 查询数据库
+	kb, err := c.kbRepo.GetKnowledgeBaseByID(ctx, c.KbId)
+	if err != nil {
+		c.logger.Error("feishu GetKnowledgeBaseByID failed", log.Error(err))
+	}
+	// contact
+	like := fmt.Sprintf(likeUrl, kb.AccessSettings.BaseURL, *messageId)
+	dislike := fmt.Sprintf(dislikeUrl, kb.AccessSettings.BaseURL, *messageId)
+	feedback_data := fmt.Sprintf(feedback, like, dislike)
+	c.logger.Info("feedback_data", log.String("feedback_data", feedback_data))
 
 	seq += 1
 	answer += feedback_data

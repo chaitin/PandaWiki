@@ -59,7 +59,7 @@ func NewAppUsecase(
 		case domain.AppTypeDingTalkBot:
 			u.updateDingTalkBot(app)
 		case domain.AppTypeFeishuBot:
-			u.updateFeishuBot(app)
+			u.updateFeishuBot(app, u.chatUsecase.modelUsecase.kbRepo)
 		case domain.AppTypeDisCordBot:
 			u.updateDisCordBot(app)
 		}
@@ -72,6 +72,8 @@ func (u *AppUsecase) UpdateApp(ctx context.Context, id string, appRequest *domai
 	if err := u.repo.UpdateApp(ctx, id, appRequest); err != nil {
 		return err
 	}
+	// 拿到数据库
+	kbRepo := u.chatUsecase.llmUsecase.kbRepo
 
 	if appRequest.Settings != nil {
 		app, err := u.repo.GetAppDetail(ctx, id)
@@ -82,7 +84,7 @@ func (u *AppUsecase) UpdateApp(ctx context.Context, id string, appRequest *domai
 		case domain.AppTypeDingTalkBot:
 			u.updateDingTalkBot(app)
 		case domain.AppTypeFeishuBot:
-			u.updateFeishuBot(app)
+			u.updateFeishuBot(app, kbRepo)
 		case domain.AppTypeDisCordBot:
 			u.updateDisCordBot(app)
 		}
@@ -91,7 +93,7 @@ func (u *AppUsecase) UpdateApp(ctx context.Context, id string, appRequest *domai
 }
 
 func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.GetQAFun {
-	return func(ctx context.Context, msg string, info domain.ConversationInfo, ConversationID string) (chan string, error) {
+	return func(ctx context.Context, msg string, info domain.ConversationInfo, ConversationID string) (chan string, *string, error) {
 		eventCh, err := u.chatUsecase.Chat(ctx, &domain.ChatRequest{
 			Message:        msg,
 			KBID:           kbID,
@@ -101,9 +103,11 @@ func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.GetQAFun
 			Info:           info,
 		})
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		contentCh := make(chan string, 10)
+		var messageId string
+
 		go func() {
 			defer close(contentCh)
 			for event := range eventCh {
@@ -113,9 +117,12 @@ func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.GetQAFun
 				if event.Type == "data" {
 					contentCh <- event.Content
 				}
+				if event.Type == "message_id" {
+					messageId = event.Content
+				}
 			}
 		}()
-		return contentCh, nil
+		return contentCh, &messageId, nil
 	}
 }
 
@@ -158,7 +165,7 @@ func (u *AppUsecase) wechatQAFunc(kbID string, appType domain.AppType, remoteip 
 	}
 }
 
-func (u *AppUsecase) updateFeishuBot(app *domain.App) {
+func (u *AppUsecase) updateFeishuBot(app *domain.App, kbRepo *pg.KnowledgeBaseRepository) {
 	u.feishuMutex.Lock()
 	defer u.feishuMutex.Unlock()
 
@@ -183,6 +190,8 @@ func (u *AppUsecase) updateFeishuBot(app *domain.App) {
 		app.Settings.FeishuBotAppSecret,
 		u.logger,
 		getQA,
+		kbRepo,
+		app.KBID,
 	)
 
 	go func() {
