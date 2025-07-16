@@ -27,6 +27,7 @@ const DocContent = ({
 }) => {
   const { mobile = false, kbDetail, catalogShow } = useStore();
   const [commentList, setCommentList] = useState<any[]>([]);
+  const [appDetail, setAppDetail] = useState<any>(null);
   const {
     control,
     handleSubmit,
@@ -47,11 +48,30 @@ const DocContent = ({
     }
   };
 
+  const getAppDetail = async () => {
+    const res = await apiClient.serverGetKBInfo(info?.kb_id ?? '');
+    if (res.success) {
+      setAppDetail(res.data?.settings);
+    } else {
+      message.error(res.message || '获取应用详情失败');
+    }
+  };
+
   useEffect(() => {
-    if (docId && info?.kb_id) {
+    if (info?.kb_id) {
+      getAppDetail();
+    }
+  }, [info]);
+
+  useEffect(() => {
+    if (
+      docId &&
+      info?.kb_id &&
+      appDetail?.web_app_comment_settings?.is_enable
+    ) {
       getComment();
     }
-  }, [docId, info]);
+  }, [docId, info, appDetail]);
 
   const onSubmit = handleSubmit(
     async (data: { content: string; name: string }) => {
@@ -166,107 +186,111 @@ const DocContent = ({
         <TiptapReader editorRef={editorRef} />
       </Box>
 
-      <Divider sx={{ my: 4 }} />
-      <Box sx={{ fontWeight: 700, fontSize: 18, mb: 3 }}>评论</Box>
-      <Box
-        sx={{
-          p: 2,
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 2,
-        }}
-      >
-        <Controller
-          name='content'
-          control={control}
-          rules={{
-            required: '请输入评论',
-          }}
-          render={({ field }) => (
-            <TextField
-              {...field}
-              placeholder='请输入评论'
-              fullWidth
-              multiline
-              minRows={4}
-              sx={{
-                '.MuiOutlinedInput-notchedOutline': {
-                  border: 'none',
-                  padding: 0,
-                },
-
-                '.MuiInputBase-root': {
-                  padding: 0,
-                },
-              }}
-              error={!!errors.content}
-              helperText={errors.content?.message}
-            />
-          )}
-        />
-
-        <Divider sx={{ my: 2 }} />
-        <Stack
-          direction='row'
-          justifyContent='space-between'
-          alignItems='center'
-          sx={{ fontSize: 14, color: 'text.secondary' }}
-        >
-          <Controller
-            rules={{
-              required: '请输入你的昵称',
+      {appDetail?.web_app_comment_settings?.is_enable && (
+        <>
+          {' '}
+          <Divider sx={{ my: 4 }} />
+          <Box sx={{ fontWeight: 700, fontSize: 18, mb: 3 }}>评论</Box>
+          <Box
+            sx={{
+              p: 2,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: 2,
             }}
-            name='name'
-            control={control}
-            render={({ field }) => (
-              <TextField
-                {...field}
-                placeholder='你的昵称'
-                size='small'
-                sx={{
-                  '.MuiOutlinedInput-notchedOutline': {
-                    border: '1px solid',
-                    borderColor: 'var(--mui-palette-divider) !important',
-                  },
-                }}
-                error={!!errors.name}
-                helperText={errors.name?.message}
-              />
-            )}
-          />
-          <Button variant='contained' onClick={onSubmit}>
-            发送
-          </Button>
-        </Stack>
-      </Box>
+          >
+            <Controller
+              name='content'
+              control={control}
+              rules={{
+                required: '请输入评论',
+              }}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  placeholder='请输入评论'
+                  fullWidth
+                  multiline
+                  minRows={4}
+                  sx={{
+                    '.MuiOutlinedInput-notchedOutline': {
+                      border: 'none',
+                      padding: 0,
+                    },
 
-      <Stack gap={1} sx={{ mt: 4 }}>
-        {commentList.map((item, index) => (
-          <React.Fragment key={item.id}>
-            <Stack gap={1}>
-              <Box sx={{ fontSize: 14, fontWeight: 700 }}>
-                {item.info.user_name}
-              </Box>
-              <Box sx={{ fontSize: 14 }}>{item.content}</Box>
-              <Stack
-                direction='row'
-                justifyContent='flex-end'
-                alignItems='center'
-                gap={2}
-                sx={{
-                  color: 'text.tertiary',
-                  fontSize: 12,
+                    '.MuiInputBase-root': {
+                      padding: 0,
+                    },
+                  }}
+                  error={!!errors.content}
+                  helperText={errors.content?.message}
+                />
+              )}
+            />
+
+            <Divider sx={{ my: 2 }} />
+            <Stack
+              direction='row'
+              justifyContent='space-between'
+              alignItems='center'
+              sx={{ fontSize: 14, color: 'text.secondary' }}
+            >
+              <Controller
+                rules={{
+                  required: '请输入你的昵称',
                 }}
-              >
-                <Box>{dayjs(item.created_at).fromNow()}</Box>
-              </Stack>
+                name='name'
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    placeholder='你的昵称'
+                    size='small'
+                    sx={{
+                      '.MuiOutlinedInput-notchedOutline': {
+                        border: '1px solid',
+                        borderColor: 'var(--mui-palette-divider) !important',
+                      },
+                    }}
+                    error={!!errors.name}
+                    helperText={errors.name?.message}
+                  />
+                )}
+              />
+              <Button variant='contained' onClick={onSubmit}>
+                发送
+              </Button>
             </Stack>
-            <Divider sx={{ my: 3, color: 'text.tertiary', fontSize: 14 }}>
-              {index !== commentList.length - 1 ? '' : '没有更多了'}
-            </Divider>
-          </React.Fragment>
-        ))}
-      </Stack>
+          </Box>
+          <Stack gap={1} sx={{ mt: 4 }}>
+            {commentList.map((item, index) => (
+              <React.Fragment key={item.id}>
+                <Stack gap={1}>
+                  <Box sx={{ fontSize: 14, fontWeight: 700 }}>
+                    {item.info.user_name}
+                  </Box>
+                  <Box sx={{ fontSize: 14 }}>{item.content}</Box>
+                  <Stack
+                    direction='row'
+                    justifyContent='flex-end'
+                    alignItems='center'
+                    gap={2}
+                    sx={{
+                      color: 'text.tertiary',
+                      fontSize: 12,
+                    }}
+                  >
+                    <Box>{dayjs(item.created_at).fromNow()}</Box>
+                  </Stack>
+                </Stack>
+                <Divider sx={{ my: 3, color: 'text.tertiary', fontSize: 14 }}>
+                  {index !== commentList.length - 1 ? '' : '没有更多了'}
+                </Divider>
+              </React.Fragment>
+            ))}
+          </Stack>
+        </>
+      )}
     </Box>
   );
 };
