@@ -1,10 +1,10 @@
 package usecase
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -436,44 +436,19 @@ func (f *FeishuUseCase) downloadFile(ctx context.Context, appID, secret, fileTok
 	}
 
 	// 业务处理
-	var contentType string
 	ext := strings.ToLower(filepath.Ext(resp.FileName))
-
-	switch ext {
-	case ".png":
-		contentType = "image/png"
-	case ".jpg", ".jpeg":
-		contentType = "image/jpeg"
-	case ".gif":
-		contentType = "image/gif"
-	case ".webp":
-		contentType = "image/webp"
-	case ".pdf":
-		contentType = "application/pdf"
-	case ".doc", ".docx":
-		contentType = "application/msword"
-	case ".xls", ".xlsx":
-		contentType = "application/vnd.ms-excel"
-	case ".ppt", ".pptx":
-		contentType = "application/vnd.ms-powerpoint"
-	case ".txt":
-		contentType = "text/plain"
-	case ".html", ".htm":
-		contentType = "text/html"
-	default:
-		contentType = "application/octet-stream" // 未知类型
+	contentType := mime.TypeByExtension(ext)
+	if contentType == "" { // 如果没有找到合适的MIME类型，使用默认的二进制流
+		contentType = "application/octet-stream"
 	}
-
 	imgName := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), ext)
-
-	buf, _ := io.ReadAll(resp.File)
 
 	_, err = f.minioClient.PutObject(
 		ctx,
 		domain.Bucket,
 		imgName,
-		bytes.NewReader(buf),
-		int64(len(buf)),
+		resp.File,
+		-1,
 		minio.PutObjectOptions{
 			ContentType: contentType,
 			UserMetadata: map[string]string{
@@ -585,14 +560,13 @@ func (f *FeishuUseCase) downloadSheet(ctx context.Context, appID, secret, sheetT
 			return nil
 		}
 
-		imgName := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), filepath.Ext(fileName))
-		buf, _ := io.ReadAll(file)
+		imgName := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), strings.ToLower(filepath.Ext(fileName)))
 		_, err = f.minioClient.PutObject(
 			ctx,
 			domain.Bucket,
 			imgName,
-			bytes.NewBuffer(buf),
-			int64(len(buf)),
+			file,
+			-1,
 			minio.PutObjectOptions{
 				ContentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 				UserMetadata: map[string]string{

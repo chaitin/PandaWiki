@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -187,20 +188,11 @@ func UploadImage(ctx context.Context, minioClient *s3.MinioClient, imageURL stri
 	}
 
 	ext := strings.ToLower(filepath.Ext(decodedName))
+	if ext == "" {
+		contentType = mime.TypeByExtension(ext)
+	}
 	if contentType == "" {
-		// 如果未提供 Content-Type，尝试从文件名推断
-		switch ext {
-		case ".png":
-			contentType = "image/png"
-		case ".jpg", ".jpeg":
-			contentType = "image/jpeg"
-		case ".gif":
-			contentType = "image/gif"
-		case ".webp":
-			contentType = "image/webp"
-		default:
-			contentType = "application/octet-stream" // 未知类型
-		}
+		contentType = "application/octet-stream"
 	}
 	imgName := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), ext)
 
@@ -220,4 +212,13 @@ func UploadImage(ctx context.Context, minioClient *s3.MinioClient, imageURL stri
 		return "", fmt.Errorf("failed to upload image to MinIO: %v", err)
 	}
 	return fmt.Sprintf("/%s/%s", domain.Bucket, imgName), nil
+}
+
+func GetTitleFromMarkdown(markdown string) string {
+	title := strings.TrimSpace(markdown)
+	runes := []rune(title)
+	if len(runes) > 60 {
+		return string(runes[:60])
+	}
+	return title
 }

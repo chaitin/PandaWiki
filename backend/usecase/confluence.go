@@ -10,6 +10,9 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"github.com/samber/lo/parallel"
@@ -60,14 +63,14 @@ func (c *ConfluenceUsecase) Analysis(ctx context.Context, data []byte, kbid stri
 	}
 	// Concurrently process resource files
 	pathMap := parallel.Map(resourceFiles, func(zipfile *zip.File, _ int) *Mapping {
-		filereader, err := zipfile.Open()
+		fileReader, err := zipfile.Open()
 		if err != nil {
 			c.logger.Error("failed to open zip file: ", log.Error(err))
 			return nil
 		}
-		defer filereader.Close()
+		defer fileReader.Close()
 
-		key, err := c.file.UploadFileFromReader(ctx, kbid, zipfile.Name, int64(zipfile.UncompressedSize64), filereader)
+		key, err := c.file.UploadFileFromReader(ctx, kbid, zipfile.Name, fileReader, int64(zipfile.UncompressedSize64))
 		if err != nil {
 			c.logger.Error("failed to upload file to oss: ", log.Error(err))
 			return nil
@@ -108,48 +111,45 @@ func (c *ConfluenceUsecase) Analysis(ctx context.Context, data []byte, kbid stri
 	}
 	// Concurrently process HTML files
 	results := parallel.Map(htmlFiles, func(zipfile *zip.File, _ int) *domain.AnalysisConfluenceResp {
-		filereader, err := zipfile.Open()
+		fileReader, err := zipfile.Open()
 		if err != nil {
 			c.logger.Error("failed to open zip file:", log.Error(err))
 			return nil
 		}
-		defer filereader.Close()
+		defer fileReader.Close()
 
-		fileData, err := io.ReadAll(filereader)
+		fileData, err := io.ReadAll(fileReader)
 		if err != nil {
 			c.logger.Error("failed to read file: ", log.Error(err))
 			return nil
 		}
 
-		key, err := c.file.UploadFileFromBytes(ctx, kbid, zipfile.Name, fileData)
-		if err != nil {
-			c.logger.Error("failed to upload file to oss:", log.Error(err))
-			return nil
-		}
-
-		res, err := c.crawler.ScrapeURL(ctx, fmt.Sprintf("/%s/%s", domain.Bucket, key), kbid)
-		if err != nil {
-			c.logger.Error("failed to scrape url:", log.Error(err))
-			return nil
-		}
-		prefix := fmt.Sprintf("https://panda-wiki-nginx:8080/%s/%s/", domain.Bucket, kbid)
-		re := regexp.MustCompile(`\[(.*?)\]\((.*?)\)`)
+		conv := converter.NewConverter(
+			converter.WithPlugins(
+				base.NewBasePlugin(),
+				commonmark.NewCommonmarkPlugin(
+					commonmark.WithStrongDelimiter("__"),
+				),
+			),
+		)
+		conv.Register.TagType("a", converter.TagTypeRemove, converter.PriorityStandard)
+		mdStr, _ := conv.ConvertString(string(fileData))
+		re := regexp.MustCompile(`!\[\s*(.*?)\s*]\s*\(\s*(.*?)\s*\)`)
 		// 替换匹配到的内容，保留捕获的 URL
-		newContent := re.ReplaceAllStringFunc(res.Content, func(match string) string {
+		newContent := re.ReplaceAllStringFunc(mdStr, func(match string) string {
 			// 提取捕获的 URL
 			title := re.ReplaceAllString(match, `$1`)
 			url := re.ReplaceAllString(match, `$2`)
-			url = strings.TrimPrefix(url, prefix)
 			// 去掉url后面的参数
 			url = strings.SplitN(url, "?", 2)[0]
-			if pm[url] != "" {
-				return fmt.Sprintf(`[%s](%s)`, title, pm[url])
+			if _, ok := pm[url]; ok {
+				return fmt.Sprintf(`![%s](%s)`, title, pm[url])
 			}
 			return fmt.Sprintf(`[%s](%s)`, title, url)
 		})
 		return &domain.AnalysisConfluenceResp{
 			ID:      uuid.NewString(),
-			Title:   res.Title,
+			Title:   utils.GetTitleFromMarkdown(newContent),
 			Content: newContent,
 		}
 	})

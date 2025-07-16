@@ -110,7 +110,7 @@ func createApp() (*App, error) {
 	}
 	notionUseCase := usecase.NewNotionUsecase(logger, minioClient)
 	epubUsecase := usecase.NewEpubUsecase(logger, minioClient)
-	wikiJSUsecase := usecase.NewWikiJSUsecase(logger, minioClient)
+	wikiJSUsecase := usecase.NewWikiJSUsecase(logger, fileUsecase)
 	feishuUseCase := usecase.NewFeishuUseCase(logger, minioClient, crawlerUsecase)
 	confluenceUsecase := usecase.NewConfluenceUsecase(logger, minioClient, crawlerUsecase, fileUsecase)
 	crawlerHandler := v1.NewCrawlerHandler(echo, baseHandler, authMiddleware, logger, configConfig, crawlerUsecase, notionUseCase, epubUsecase, wikiJSUsecase, feishuUseCase, confluenceUsecase)

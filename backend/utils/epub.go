@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -46,8 +47,13 @@ func NewEpubConverter(logger *log.Logger, minio *s3.MinioClient) *EpubConverter 
 	}
 }
 
-func (e *EpubConverter) Convert(ctx context.Context, kbID string, data []byte) (string, []byte, error) {
-	zipReader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+func (e *EpubConverter) Convert(ctx context.Context, kbID string, data *multipart.FileHeader) (string, []byte, error) {
+	reader, err := data.Open()
+	if err != nil {
+		return "", nil, err
+	}
+	defer reader.Close()
+	zipReader, err := zip.NewReader(reader, data.Size)
 	if err != nil {
 		return "", nil, err
 	}

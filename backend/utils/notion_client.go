@@ -1,11 +1,10 @@
 package utils
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -55,6 +54,7 @@ type NotionClient struct {
 func (c *NotionClient) GetTreeRes() ([]byte, error) {
 	return c.root.GetResult()
 }
+
 func NewNotionClient(token string, logger *log.Logger, kbID string, minioClient *s3.MinioClient) *NotionClient {
 	return &NotionClient{
 		kbID:        kbID,
@@ -86,7 +86,6 @@ func (c *NotionClient) GetList(ctx context.Context, titleContain string) ([]doma
 			page := page.(*notionapi.Page)
 			id = page.ID.String()
 			if titleProp, ok := page.Properties["title"].(*notionapi.TitleProperty); ok {
-
 				if len(titleProp.Title) > 0 {
 					title = titleProp.Title[0].PlainText
 				}
@@ -130,7 +129,6 @@ func (c *NotionClient) GetPageContent(ctx context.Context, Page domain.PageInfo)
 }
 
 func (c *NotionClient) getBlock(ctx context.Context, id string, prefix string, node *Node) error {
-
 	b, err := c.client.Block.Get(ctx, notionapi.BlockID(id))
 	if err != nil {
 		c.logger.Error("get block error", log.String("block_id", id), log.Error(err))
@@ -142,7 +140,7 @@ func (c *NotionClient) getBlock(ctx context.Context, id string, prefix string, n
 	}
 	res := c.BlockToMarkdown(ctx, b)
 	err = c.root.Add(node, []byte(prefix+res))
-	//if type is table, return
+	// if type is table, return
 	if b.GetType() == notionapi.BlockType(notionapi.BlockTypeTableBlock) {
 		return nil
 	}
@@ -275,6 +273,7 @@ func (c *NotionClient) BlockToMarkdown(ctx context.Context, block notionapi.Bloc
 		return ""
 	}
 }
+
 func (c *NotionClient) getImageURL(ctx context.Context, block notionapi.Block) (string, error) {
 	url := "https://api.notion.com/v1/blocks/" + block.GetID().String()
 	req, err := http.NewRequest("GET", url, nil)
@@ -320,7 +319,6 @@ func (c *NotionClient) getNumberedListNumber(ctx context.Context, block notionap
 }
 
 func (c *NotionClient) UploadImage(ctx context.Context, imageURL string, kbID string) (string, error) {
-
 	resp, err := http.Get(imageURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch image: %v", err)
@@ -330,12 +328,6 @@ func (c *NotionClient) UploadImage(ctx context.Context, imageURL string, kbID st
 	// 检查状态码
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("HTTP request failed with status: %s", resp.Status)
-	}
-
-	// 读取图片数据
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read image data: %v", err)
 	}
 
 	// 获取图片名称（从 URL 路径中提取）
@@ -356,17 +348,9 @@ func (c *NotionClient) UploadImage(ctx context.Context, imageURL string, kbID st
 	ext := strings.ToLower(filepath.Ext(decodedName))
 	if contentType == "" {
 		// 如果未提供 Content-Type，尝试从文件名推断
-		switch ext {
-		case ".png":
-			contentType = "image/png"
-		case ".jpg", ".jpeg":
-			contentType = "image/jpeg"
-		case ".gif":
-			contentType = "image/gif"
-		case ".webp":
-			contentType = "image/webp"
-		default:
-			contentType = "application/octet-stream" // 未知类型
+		contentType = mime.TypeByExtension(ext)
+		if contentType == "" {
+			contentType = "application/octet-stream"
 		}
 	}
 	if kbID == "" {
@@ -378,8 +362,8 @@ func (c *NotionClient) UploadImage(ctx context.Context, imageURL string, kbID st
 		ctx,
 		domain.Bucket,
 		imgName,
-		bytes.NewReader(data),
-		int64(len(data)),
+		resp.Body,
+		resp.ContentLength,
 		minio.PutObjectOptions{
 			ContentType: contentType,
 			UserMetadata: map[string]string{

@@ -258,16 +258,7 @@ func (h *CrawlerHandler) QpubConvert(c echo.Context) error {
 	if err != nil {
 		return h.NewResponseWithError(c, "get file failed", err)
 	}
-	file, err := f.Open()
-	if err != nil {
-		return h.NewResponseWithError(c, "open file failed", err)
-	}
-	defer file.Close()
-	data, err := io.ReadAll(file)
-	if err != nil {
-		return h.NewResponseWithError(c, "read file failed", err)
-	}
-	resq, err := h.epubUsecase.Convert(c.Request().Context(), req.KbID, data)
+	resq, err := h.epubUsecase.Convert(c.Request().Context(), req.KbID, f)
 	if err != nil {
 		return h.NewResponseWithError(c, "convert failed", err)
 	}
