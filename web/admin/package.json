@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build:dev": "vite build --m development",
-    "build": "vite build"
+    "build": "vite build",
+    "icon": "node ./scripts/downLoadIcon.cjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -90,5 +91,6 @@
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.15.0",
     "vite": "^6.0.1"
-  }
+  },
+  "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac"
 }

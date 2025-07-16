@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import LinearProgress from '@mui/material/LinearProgress'
 import { styled } from '@mui/material/styles'
-import { LazyExoticComponent, Suspense, createElement, forwardRef, lazy } from "react"
+import {
+  LazyExoticComponent,
+  Suspense,
+  createElement,
+  forwardRef,
+  lazy,
+} from 'react'
 import { JSX } from 'react/jsx-runtime'
 
 const LoaderWrapper = styled('div')({
@@ -18,7 +24,9 @@ const Loader = () => (
   </LoaderWrapper>
 )
 
-const LazyLoadable = (Component: LazyExoticComponent<() => JSX.Element>): React.ForwardRefExoticComponent<any> =>
+const LazyLoadable = (
+  Component: LazyExoticComponent<() => JSX.Element>
+): React.ForwardRefExoticComponent<any> =>
   forwardRef((props: any, ref: React.Ref<any>) => (
     <Suspense fallback={<Loader />}>
       <Component {...props} ref={ref} />
@@ -28,11 +36,15 @@ const LazyLoadable = (Component: LazyExoticComponent<() => JSX.Element>): React.
 const router = [
   {
     path: '/',
-    element: createElement(LazyLoadable(lazy(() => import('./pages/document')))),
+    element: createElement(
+      LazyLoadable(lazy(() => import('./pages/document')))
+    ),
   },
   {
     path: '/doc/editor/:id',
-    element: createElement(LazyLoadable(lazy(() => import('./pages/document/editor')))),
+    element: createElement(
+      LazyLoadable(lazy(() => import('./pages/document/editor')))
+    ),
   },
   {
     path: '/login',
@@ -52,7 +64,15 @@ const router = [
   },
   {
     path: '/conversation',
-    element: createElement(LazyLoadable(lazy(() => import('./pages/conversation')))),
+    element: createElement(
+      LazyLoadable(lazy(() => import('./pages/conversation')))
+    ),
+  },
+  {
+    path: '/feedback',
+    element: createElement(
+      LazyLoadable(lazy(() => import('./pages/feedback')))
+    ),
   },
 ]
 
