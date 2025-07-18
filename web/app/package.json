@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack -p 3010",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "api": "cx-swagger-api"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -45,11 +46,13 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
+    "@c-x/cx-swagger-api": "^1.0.1",
     "@eslint/eslintrc": "^3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "dotenv": "^17.2.1",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
     "typescript": "^5"

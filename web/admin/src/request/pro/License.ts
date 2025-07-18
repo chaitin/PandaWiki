@@ -12,61 +12,63 @@
 
 import request, { ContentType, RequestParams } from "./httpClient";
 import {
-  DeleteApiV1CommentListParams,
+  DomainLicenseResp,
   DomainResponse,
-  GetApiV1CommentParams,
-  V1CommentLists,
+  PostApiV1LicensePayload,
 } from "./types";
 
 /**
- * @description GetCommentModeratedList
+ * @description Get license
  *
- * @tags comment
- * @name GetApiV1Comment
- * @summary GetCommentModeratedList
- * @request GET:/api/v1/comment
+ * @tags license
+ * @name GetApiV1License
+ * @summary Get license
+ * @request GET:/api/v1/license
  * @response `200` `(DomainResponse & {
-    data?: V1CommentLists,
+    data?: DomainLicenseResp,
 
-})` conversationList
+})` OK
  */
 
-export const getApiV1Comment = (
-  query: GetApiV1CommentParams,
-  params: RequestParams = {},
-) =>
+export const getApiV1License = (params: RequestParams = {}) =>
   request<
     DomainResponse & {
-      data?: V1CommentLists;
+      data?: DomainLicenseResp;
     }
   >({
-    path: `/api/v1/comment`,
+    path: `/api/v1/license`,
     method: "GET",
-    query: query,
     type: ContentType.Json,
     format: "json",
     ...params,
   });
 
 /**
- * @description DeleteCommentList
+ * @description Upload license
  *
- * @tags comment
- * @name DeleteApiV1CommentList
- * @summary DeleteCommentList
- * @request DELETE:/api/v1/comment/list
- * @response `200` `DomainResponse` total
+ * @tags license
+ * @name PostApiV1License
+ * @summary Upload license
+ * @request POST:/api/v1/license
+ * @response `200` `(DomainResponse & {
+    data?: DomainLicenseResp,
+
+})` OK
  */
 
-export const deleteApiV1CommentList = (
-  query: DeleteApiV1CommentListParams,
+export const postApiV1License = (
+  data: PostApiV1LicensePayload,
   params: RequestParams = {},
 ) =>
-  request<DomainResponse>({
-    path: `/api/v1/comment/list`,
-    method: "DELETE",
-    query: query,
-    type: ContentType.Json,
+  request<
+    DomainResponse & {
+      data?: DomainLicenseResp;
+    }
+  >({
+    path: `/api/v1/license`,
+    method: "POST",
+    body: data,
+    type: ContentType.FormData,
     format: "json",
     ...params,
   });

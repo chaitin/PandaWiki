@@ -12,35 +12,35 @@
 
 import request, { ContentType, RequestParams } from "./httpClient";
 import {
-  DeleteApiV1CommentListParams,
   DomainResponse,
-  GetApiV1CommentParams,
-  V1CommentLists,
+  GetApiProV1AuthGetParams,
+  GithubComChaitinPandaWikiProApiAuthV1GetAuthResp,
+  GithubComChaitinPandaWikiProApiAuthV1SetAuthReq,
 } from "./types";
 
 /**
- * @description GetCommentModeratedList
+ * @description 获取授权信息
  *
- * @tags comment
- * @name GetApiV1Comment
- * @summary GetCommentModeratedList
- * @request GET:/api/v1/comment
+ * @tags Auth
+ * @name GetApiProV1AuthGet
+ * @summary 获取授权信息
+ * @request GET:/api/pro/v1/auth/get
  * @response `200` `(DomainResponse & {
-    data?: V1CommentLists,
+    data?: GithubComChaitinPandaWikiProApiAuthV1GetAuthResp,
 
-})` conversationList
+})` OK
  */
 
-export const getApiV1Comment = (
-  query: GetApiV1CommentParams,
+export const getApiProV1AuthGet = (
+  query: GetApiProV1AuthGetParams,
   params: RequestParams = {},
 ) =>
   request<
     DomainResponse & {
-      data?: V1CommentLists;
+      data?: GithubComChaitinPandaWikiProApiAuthV1GetAuthResp;
     }
   >({
-    path: `/api/v1/comment`,
+    path: `/api/pro/v1/auth/get`,
     method: "GET",
     query: query,
     type: ContentType.Json,
@@ -49,23 +49,23 @@ export const getApiV1Comment = (
   });
 
 /**
- * @description DeleteCommentList
+ * @description 设置授权信息
  *
- * @tags comment
- * @name DeleteApiV1CommentList
- * @summary DeleteCommentList
- * @request DELETE:/api/v1/comment/list
- * @response `200` `DomainResponse` total
+ * @tags Auth
+ * @name PostApiProV1AuthSet
+ * @summary 设置授权信息
+ * @request POST:/api/pro/v1/auth/set
+ * @response `200` `DomainResponse` OK
  */
 
-export const deleteApiV1CommentList = (
-  query: DeleteApiV1CommentListParams,
+export const postApiProV1AuthSet = (
+  param: GithubComChaitinPandaWikiProApiAuthV1SetAuthReq,
   params: RequestParams = {},
 ) =>
   request<DomainResponse>({
-    path: `/api/v1/comment/list`,
-    method: "DELETE",
-    query: query,
+    path: `/api/pro/v1/auth/set`,
+    method: "POST",
+    body: param,
     type: ContentType.Json,
     format: "json",
     ...params,

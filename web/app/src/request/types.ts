@@ -87,11 +87,8 @@ export enum DomainCommentStatus {
 }
 
 export enum DomainAuthType {
-  /** 无认证 */
   AuthTypeNull = "",
-  /** 简单口令 */
   AuthTypeSimple = "simple",
-  /** 企业认证 */
   AuthTypeEnterprise = "enterprise",
 }
 

@@ -2,14 +2,16 @@ import {
   getApiV1KnowledgeBaseDetail,
   getApiV1Comment,
   deleteApiV1CommentList,
-  postApiV1CommentModerate,
   getApiV1AppDetail,
 } from '@/request';
 import {
   DomainCommentListItem,
-  GithubComChaitinPandaWikiProDomainCommentStatus,
   DomainWebAppCommentSettings,
 } from '@/request/types';
+import {
+  GithubComChaitinPandaWikiProDomainCommentStatus,
+  postApiV1CommentModerate,
+} from '@/request/other';
 import NoData from '@/assets/images/nodata.png';
 import { tableSx } from '@/constant/styles';
 import { useAppSelector } from '@/store';

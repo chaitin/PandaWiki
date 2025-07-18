@@ -205,8 +205,8 @@ importers:
         version: 0.8.10(@tiptap/core@2.12.0(@tiptap/pm@2.12.0))
     devDependencies:
       '@c-x/cx-swagger-api':
-        specifier: ^1.0.0
-        version: 1.0.0(@types/node@22.15.17)(typescript@5.6.3)
+        specifier: ^1.0.1
+        version: 1.0.1(@types/node@22.15.17)(typescript@5.6.3)
       '@eslint/js':
         specifier: ^9.15.0
         version: 9.26.0
@@ -360,8 +360,8 @@ packages:
   '@biomejs/wasm-nodejs@2.0.5':
     resolution: {integrity: sha512-pihpBMylewgDdGFZHRkgmc3OajuGIJPXhvfYuKCNK/CWyJMrYEFmPKs8Iq1kY0sYMmGlTbD4K2udV03KYa+r0Q==}
 
-  '@c-x/cx-swagger-api@1.0.0':
-    resolution: {integrity: sha512-1+uLM8FAEon9f/mU9QmveTO5tVkEiqQlHl/2zH5TVaBMStZTvlPOYUqt5r+kVRSPi8z7GzokTntrE8FPvFR+iw==}
+  '@c-x/cx-swagger-api@1.0.1':
+    resolution: {integrity: sha512-Yas86S5SmXTYzXOaSehxJ/S8t3OggXPucd0FsAjNY/WFz/wsRphlCfxlZoCVuxfmaCafwnfpiP3vSKvVsRWWzQ==}
     hasBin: true
 
   '@dnd-kit/accessibility@3.1.1':
@@ -3639,7 +3639,7 @@ snapshots:
 
   '@biomejs/wasm-nodejs@2.0.5': {}
 
-  '@c-x/cx-swagger-api@1.0.0(@types/node@22.15.17)(typescript@5.6.3)':
+  '@c-x/cx-swagger-api@1.0.1(@types/node@22.15.17)(typescript@5.6.3)':
     dependencies:
       cosmiconfig: 8.3.6(typescript@5.6.3)
       cosmiconfig-typescript-loader: 5.1.0(@types/node@22.15.17)(cosmiconfig@8.3.6(typescript@5.6.3))(typescript@5.6.3)

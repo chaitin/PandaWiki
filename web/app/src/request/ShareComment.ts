@@ -12,59 +12,66 @@
 
 import request, { ContentType, RequestParams } from "./httpClient";
 import {
-  DeleteApiV1CommentListParams,
+  DomainCommentReq,
   DomainResponse,
-  GetApiV1CommentParams,
-  V1CommentLists,
+  GetShareV1CommentListParams,
+  ShareShareCommentLists,
 } from "./types";
 
 /**
- * @description GetCommentModeratedList
+ * @description CreateComment
  *
- * @tags comment
- * @name GetApiV1Comment
- * @summary GetCommentModeratedList
- * @request GET:/api/v1/comment
+ * @tags share_comment
+ * @name PostShareV1Comment
+ * @summary CreateComment
+ * @request POST:/share/v1/comment
  * @response `200` `(DomainResponse & {
-    data?: V1CommentLists,
+    data?: string,
 
-})` conversationList
+})` CommentID
  */
 
-export const getApiV1Comment = (
-  query: GetApiV1CommentParams,
+export const postShareV1Comment = (
+  comment: DomainCommentReq,
   params: RequestParams = {},
 ) =>
   request<
     DomainResponse & {
-      data?: V1CommentLists;
+      data?: string;
     }
   >({
-    path: `/api/v1/comment`,
-    method: "GET",
-    query: query,
+    path: `/share/v1/comment`,
+    method: "POST",
+    body: comment,
     type: ContentType.Json,
     format: "json",
     ...params,
   });
 
 /**
- * @description DeleteCommentList
+ * @description GetCommentList
  *
- * @tags comment
- * @name DeleteApiV1CommentList
- * @summary DeleteCommentList
- * @request DELETE:/api/v1/comment/list
- * @response `200` `DomainResponse` total
+ * @tags share_comment
+ * @name GetShareV1CommentList
+ * @summary GetCommentList
+ * @request GET:/share/v1/comment/list
+ * @response `200` `(DomainResponse & {
+    data?: ShareShareCommentLists,
+
+})` CommentList
  */
 
-export const deleteApiV1CommentList = (
-  query: DeleteApiV1CommentListParams,
+export const getShareV1CommentList = (
+  query: GetShareV1CommentListParams,
   params: RequestParams = {},
 ) =>
-  request<DomainResponse>({
-    path: `/api/v1/comment/list`,
-    method: "DELETE",
+  request<
+    DomainResponse & {
+      data?: ShareShareCommentLists;
+    }
+  >({
+    path: `/share/v1/comment/list`,
+    method: "GET",
     query: query,
     type: ContentType.Json,
     format: "json",

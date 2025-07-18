@@ -6,6 +6,7 @@ import {
 } from '@/api';
 import { useAppSelector } from '@/store';
 import InfoIcon from '@mui/icons-material/Info';
+import { DomainKnowledgeBaseDetail } from '@/request/types';
 import Card from '@/components/Card';
 import {
   Box,
@@ -27,7 +28,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import { Message } from 'ct-mui';
 
 interface CardCommentProps {
-  kb: KnowledgeBaseListItem;
+  kb: DomainKnowledgeBaseDetail;
 }
 
 // 样式封装

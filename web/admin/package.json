@@ -78,7 +78,7 @@
     "tiptap-markdown": "^0.8.10"
   },
   "devDependencies": {
-    "@c-x/cx-swagger-api": "^1.0.0",
+    "@c-x/cx-swagger-api": "^1.0.1",
     "@eslint/js": "^9.15.0",
     "@types/lodash": "^4.17.13",
     "@types/node": "^22.10.2",

@@ -10,5 +10,6 @@ export * from './Model'
 export * from './Node'
 export * from './Stat'
 export * from './User'
+export * from './other'
 export * from './types'
 
