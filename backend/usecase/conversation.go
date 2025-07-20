@@ -38,6 +38,10 @@ func NewConversationUsecase(
 	}
 }
 
+func (u *ConversationUsecase) Test(ctx context.Context, conversationMessageID string) (*domain.ConversationMessage, error) {
+	return u.repo.GetUserMessageByAssistant(ctx, conversationMessageID)
+}
+
 func (u *ConversationUsecase) CreateChatConversationMessage(ctx context.Context, kbID string, conversation *domain.ConversationMessage) error {
 	references := extractReferencesBlock(conversation.ID, conversation.AppID, conversation.Content)
 	return u.repo.CreateConversationMessage(ctx, conversation, references)

@@ -189,3 +189,21 @@ func (r *ConversationRepository) GetConversationFeedBackInfoByIDs(ctx context.Co
 	}
 	return result, nil
 }
+
+func (r *ConversationRepository) GetUserMessageByAssistant(ctx context.Context, conversationMessageID string) (*domain.ConversationMessage, error) {
+	// 获取AI消息
+	m, err := r.GetConversationMessagesDetailByID(ctx, conversationMessageID)
+	if err != nil {
+		return nil, err
+	}
+	message := &domain.ConversationMessage{}
+	if err := r.db.WithContext(ctx).
+		Model(&domain.ConversationMessage{}).
+		Where("conversation_id = ?", m.ConversationID).
+		Where("created_at < ?", m.CreatedAt).
+		Order("created_at DESC").Limit(1).
+		Find(&message).Error; err != nil {
+		return nil, err
+	}
+	return message, nil
+}

@@ -9,7 +9,6 @@ import (
 	"io"
 	"mime"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
@@ -136,26 +135,38 @@ func (c *ConfluenceUsecase) Analysis(ctx context.Context, data []byte, kbid stri
 		)
 		conv.Register.TagType("a", converter.TagTypeRemove, converter.PriorityStandard)
 		mdStr, _ := conv.ConvertString(string(fileData))
-		re := regexp.MustCompile(`!\[\s*(.*?)\s*]\s*\(\s*(.*?)\s*\)`)
-		// 替换匹配到的内容，保留捕获的 URL
-		newContent := re.ReplaceAllStringFunc(mdStr, func(match string) string {
-			// 提取捕获的 URL
-			title := re.ReplaceAllString(match, `$1`)
-			url := re.ReplaceAllString(match, `$2`)
-			if isBase64Url(&url) {
-				url, err = c.transferBase64Url(ctx, title, kbid, &url)
-				if err != nil {
-					c.logger.Error("failed to transfer base64 url: ", log.Error(err))
-					return ""
-				}
+
+		newContent, err := utils.ExchangeMarkDownImageUrl(ctx, []byte(mdStr), func(ctx context.Context, originUrl *string) (string, error) {
+			if originUrl == nil {
+				return "", fmt.Errorf("originUrl is nil")
 			}
-			// 去掉url后面的参数
-			url = strings.SplitN(url, "?", 2)[0]
-			if _, ok := pm[url]; ok {
-				return fmt.Sprintf(`![%s](%s)`, title, pm[url])
+
+			// 处理 base64 图片
+			if strings.HasPrefix(*originUrl, "data:image/") {
+				return c.transferBase64Url(ctx, "", kbid, originUrl)
 			}
-			return fmt.Sprintf(`![%s](%s)`, title, url)
+
+			// 处理普通图片
+			cleanUrl, err := utils.RemoveURLParams(*originUrl)
+			if err != nil {
+				c.logger.Error("remove URL params failed",
+					log.String("url", *originUrl),
+					log.String("error", err.Error()))
+				return "", err
+			}
+
+			// 使用相对路径作为 key
+			key := utils.RemoveFirstDir(cleanUrl)
+			if newUrl, ok := pm[key]; ok {
+				return newUrl, nil
+			}
+
+			return cleanUrl, nil
 		})
+		if err != nil {
+			c.logger.Error("failed to exchange image URL: ", log.Error(err))
+			return nil
+		}
 		return &domain.AnalysisConfluenceResp{
 			ID:      uuid.NewString(),
 			Title:   utils.GetTitleFromMarkdown(newContent),
@@ -182,36 +193,71 @@ func (c *ConfluenceUsecase) Analysis(ctx context.Context, data []byte, kbid stri
 	return finalResults, nil
 }
 
-var base64Regex = regexp.MustCompile(`data:(image/[^;]+);base64,([^)\s]+)`)
-
-func isBase64Url(url *string) bool {
-	return base64Regex.MatchString(*url)
-}
-
 func (c *ConfluenceUsecase) transferBase64Url(ctx context.Context, fileName, kbID string, url *string) (string, error) {
-	// 使用base64Regex捕获URL中的图片数据
-	matches := base64Regex.FindStringSubmatch(*url)
-	if len(matches) != 3 {
-		return "", fmt.Errorf("invalid base64 URL format")
+	// 检查空指针
+	if url == nil {
+		return "", fmt.Errorf("url is nil")
 	}
-	imageType := matches[1]
-	imageData := matches[2]
-	// 将base64编码的数据转换为字节切片
-	decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(imageData))
-	decodedLen := (len(imageData) * 3) / 4
-	if imageData[len(imageData)-2] == '=' {
-		decodedLen -= 2
-	} else if imageData[len(imageData)-1] == '=' {
-		decodedLen -= 1
+	rawUrl := *url
+
+	// 1. 验证基本格式
+	if !strings.HasPrefix(rawUrl, "data:image/") {
+		return "", fmt.Errorf("invalid base64 URL: must start with 'data:image/'")
 	}
-	exts, err := mime.ExtensionsByType(imageType)
-	if err != nil {
-		return "", fmt.Errorf("failed to get MIME extensions: %w", err)
+
+	// 2. 查找分号和逗号位置
+	semicolonPos := strings.Index(rawUrl, ";")
+	commaPos := strings.Index(rawUrl, ",")
+
+	// 验证位置有效性
+	if semicolonPos == -1 || commaPos == -1 || semicolonPos >= commaPos {
+		return "", fmt.Errorf("invalid base64 URL format: missing semicolon or comma")
 	}
-	fileName = fmt.Sprintf("%s-%s.%s", uuid.NewString(), fileName, exts[0]) // 使用UUID作为文件名
+
+	// 3. 提取 MIME 类型和 base64 数据
+	mimeType := rawUrl[5:semicolonPos] // "data:" 是5个字符
+	base64Data := rawUrl[commaPos+1:]
+
+	// 4. 验证编码格式
+	encodingPart := rawUrl[semicolonPos+1 : commaPos]
+	if encodingPart != "base64" {
+		return "", fmt.Errorf("unsupported encoding: only base64 is supported")
+	}
+
+	// 5. 确定文件扩展名
+	var fileExt string
+	if exts, _ := mime.ExtensionsByType(mimeType); len(exts) > 0 {
+		fileExt = exts[0] // 取第一个扩展名
+	} else {
+		// 默认使用 .png 如果无法确定
+		fileExt = ".png"
+	}
+
+	// 6. 生成文件名
+	if fileName == "" {
+		fileName = "image"
+	}
+	fileName = fmt.Sprintf("%s-%s%s", uuid.NewString(), fileName, fileExt)
+
+	// 7. 创建 base64 解码器
+	decoder := base64.NewDecoder(base64.StdEncoding, strings.NewReader(base64Data))
+
+	// 8. 计算解码后数据长度
+	decodedLen := (len(base64Data) * 3) / 4
+	if len(base64Data) > 0 {
+		if base64Data[len(base64Data)-1] == '=' {
+			decodedLen--
+		}
+		if len(base64Data) > 1 && base64Data[len(base64Data)-2] == '=' {
+			decodedLen--
+		}
+	}
+
+	// 9. 上传文件
 	key, err := c.file.UploadFileFromReader(ctx, kbID, fileName, decoder, int64(decodedLen))
 	if err != nil {
 		return "", fmt.Errorf("failed to upload image to S3: %w", err)
 	}
+
 	return fmt.Sprintf("/%s/%s", domain.Bucket, key), nil
 }

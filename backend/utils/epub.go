@@ -10,7 +10,6 @@ import (
 	"io"
 	"mime/multipart"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -147,7 +146,7 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data *multipar
 			result.WriteString("\n\n")
 		}
 	}
-	str, err := e.exchangeUrl(result.String())
+	str, err := e.exchangeUrl(ctx, result.String())
 	return p.Metadata.Title, str, err
 }
 
@@ -205,7 +204,6 @@ func (e *EpubConverter) processFile(ctx context.Context, f *zip.File, kbID strin
 	e.mu.Lock()
 	e.resources[f.Name] = fmt.Sprintf("/%s/%s", domain.Bucket, ossPath)
 	e.mu.Unlock()
-
 	_, err = e.minioClient.PutObject(
 		ctx,
 		domain.Bucket,
@@ -225,19 +223,36 @@ func isSkippableFile(name string) bool {
 	return name == "META-INF/container.xml" || name == "mimetype" || skipExts[filepath.Ext(name)]
 }
 
-func (e *EpubConverter) exchangeUrl(content string) ([]byte, error) {
-	re := regexp.MustCompile(`!\[(.*?)\]\((.*?)\)`)
-	// 替换匹配到的内容，保留捕获的 URL
-	newContent := re.ReplaceAllStringFunc(content, func(match string) string {
-		// 提取捕获的 URL
-		title := re.ReplaceAllString(match, `$1`)
-		url := re.ReplaceAllString(match, `$2`)
-		if e.resources[url] != "" {
-			return fmt.Sprintf(`![%s](%s)`, title, e.resources[url])
+func (e *EpubConverter) exchangeUrl(ctx context.Context, content string) ([]byte, error) {
+	// 将字符串转换为字节切片
+	mdContent := []byte(content)
+
+	// 定义 getUrl 函数，使用资源映射表替换 URL
+	getUrl := func(ctx context.Context, originUrl *string) (string, error) {
+		if originUrl == nil {
+			return "", fmt.Errorf("originUrl is nil")
 		}
-		return fmt.Sprintf(`![%s](%s)`, title, url)
-	})
-	return []byte(newContent), nil
+
+		// 查找资源映射
+		if newUrl, exists := e.resources[*originUrl]; exists {
+			return newUrl, nil
+		}
+
+		// 未找到映射，返回原始 URL
+		return *originUrl, nil
+	}
+
+	// 使用 ExchangeMarkDownImageUrl 处理 Markdown
+	processedContent, err := ExchangeMarkDownImageUrl(
+		ctx,
+		mdContent,
+		getUrl,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to exchange URLs: %w", err)
+	}
+
+	return []byte(processedContent), nil
 }
 
 // 获取 <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>

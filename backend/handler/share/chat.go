@@ -76,6 +76,7 @@ func (h *ShareChatHandler) ChatMessage(c echo.Context) error {
 		return h.sendErrMsg(c, "parse request failed")
 	}
 	req.KBID = c.Request().Header.Get("X-KB-ID") // get from caddy header
+	h.logger.Info("receive chat message request:", log.String("KBID", req.KBID))
 	if err := c.Validate(&req); err != nil {
 		h.logger.Error("validate request failed", log.Error(err))
 		return h.sendErrMsg(c, "validate request failed")

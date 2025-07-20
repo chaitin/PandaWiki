@@ -28,6 +28,7 @@ func NewConversationHandler(echo *echo.Echo, baseHandler *handler.BaseHandler, l
 	group.GET("", handler.GetConversationList)
 	group.GET("/detail", handler.GetConversationDetail)
 
+	group.GET("/test", handler.Test)
 	return handler
 }
 
@@ -82,4 +83,10 @@ func (h *ConversationHandler) GetConversationDetail(c echo.Context) error {
 	}
 
 	return h.NewResponseWithData(c, conversation)
+}
+
+func (h *ConversationHandler) Test(c echo.Context) error {
+	id := c.QueryParam("id")
+	m, _ := h.usecase.Test(c.Request().Context(), id)
+	return h.NewResponseWithData(c, m)
 }

@@ -13,10 +13,18 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/renderer/html"
+	"github.com/yuin/goldmark/text"
 
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/store/s3"
@@ -147,6 +155,21 @@ func RemoveFirstDir(path string) string {
 	return path
 }
 
+// RemoveURLParams 去除 URL 中的查询参数
+func RemoveURLParams(rawURL string) (string, error) {
+	// 解析 URL
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return "", err
+	}
+
+	// 清空查询字符串部分
+	parsedURL.RawQuery = ""
+
+	// 返回处理后的 URL
+	return parsedURL.String(), nil
+}
+
 func UploadImage(ctx context.Context, minioClient *s3.MinioClient, imageURL string, kbID string) (string, error) {
 	if minioClient == nil {
 		return "", fmt.Errorf("minio client is nil")
@@ -228,4 +251,92 @@ func GetTitleFromMarkdown(markdown string) string {
 		return string(runes[:60])
 	}
 	return title
+}
+
+func ExchangeMarkDownImageUrl(
+	ctx context.Context,
+	mdContent []byte,
+	getUrl func(ctx context.Context, originUrl *string) (string, error),
+) (string, error) {
+	md := goldmark.New(
+		goldmark.WithRendererOptions(
+			html.WithHardWraps(),
+		),
+	)
+	reader := text.NewReader(mdContent)
+	doc := md.Parser().Parse(reader)
+
+	// 1. 收集图片节点和原始URL
+	type imgTask struct {
+		node   *ast.Image
+		rawUrl string
+	}
+	var tasks []imgTask
+
+	if err := ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		if img, ok := n.(*ast.Image); ok {
+			rawUrl := string(img.Destination)
+			tasks = append(tasks, imgTask{img, rawUrl})
+		}
+		return ast.WalkContinue, nil
+	}); err != nil {
+		return "", err
+	}
+
+	// 2. 并发获取新URL
+	type result struct {
+		idx    int
+		newUrl string
+		err    error
+	}
+
+	results := make(chan result, len(tasks))
+	var wg sync.WaitGroup
+
+	for i, t := range tasks {
+		wg.Add(1)
+		go func(idx int, rawUrl string) {
+			defer wg.Done()
+			newUrl, err := getUrl(ctx, &rawUrl)
+			results <- result{idx, newUrl, err}
+		}(i, t.rawUrl)
+	}
+
+	// 关闭结果通道当所有goroutine完成时
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// 3. 处理结果
+	for res := range results {
+		if res.err != nil {
+			return "", res.err
+		}
+		tasks[res.idx].node.Destination = []byte(res.newUrl)
+	}
+
+	// 4. 渲染Markdown
+	var buf bytes.Buffer
+	if err := md.Renderer().Render(&buf, mdContent, doc); err != nil {
+		return "", err
+	}
+
+	// 5. 转换并返回字符串
+	conv := converter.NewConverter(
+		converter.WithPlugins(
+			base.NewBasePlugin(),
+			commonmark.NewCommonmarkPlugin(
+				commonmark.WithStrongDelimiter("__"),
+			),
+		),
+	)
+	converted, err := conv.ConvertReader(&buf)
+	if err != nil {
+		return "", err
+	}
+	return string(converted), nil
 }
