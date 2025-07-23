@@ -19,7 +19,7 @@
     "ahooks": "^3.9.0",
     "axios": "^1.9.0",
     "ct-mui": "2.0.0",
-    "ct-tiptap-editor": "0.7.15",
+    "ct-tiptap-editor": "0.7.18",
     "dayjs": "^1.11.13",
     "html-react-parser": "^5.2.5",
     "katex": "^0.16.22",
