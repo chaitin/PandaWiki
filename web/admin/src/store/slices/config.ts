@@ -1,9 +1,10 @@
-import { KnowledgeBaseListItem, UserInfo } from '@/api';
+import { KnowledgeBaseListItem, LicenseInfo, UserInfo } from '@/api';
 import { createSlice } from '@reduxjs/toolkit';
 
 export interface config {
   user: UserInfo
   kb_id: string
+  license: LicenseInfo
   kbList: KnowledgeBaseListItem[]
   kb_c: boolean
   modelStatus: boolean
@@ -13,6 +14,11 @@ const initialState: config = {
     id: '',
     account: '',
     created_at: '',
+  },
+  license: {
+    edition: 0,
+    expired_at: 0,
+    started_at: 0,
   },
   kb_id: '',
   kbList: [],
@@ -39,9 +45,12 @@ const configSlice = createSlice({
     },
     setModelStatus(state, { payload }) {
       state.modelStatus = payload
-    }
+    },
+    setLicense(state, { payload }) {
+      state.license = payload
+    },
   },
 })
 
-export const { setUser, setKbId, setKbList, setKbC, setModelStatus } = configSlice.actions;
+export const { setUser, setKbId, setKbList, setKbC, setModelStatus, setLicense } = configSlice.actions;
 export default configSlice.reducer

@@ -9,7 +9,7 @@ import KBDelete from "./KBDelete"
 
 const KBSelect = () => {
   const dispatch = useAppDispatch()
-  const { kb_id, kbList } = useAppSelector(state => state.config)
+  const { kb_id, kbList, license } = useAppSelector(state => state.config)
 
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [opraData, setOpraData] = useState<KnowledgeBaseListItem | null>(null)
@@ -89,11 +89,11 @@ const KBSelect = () => {
         '&:hover': {
           bgcolor: custom.selectedMenuItemBgColor,
         }
-      }} fullWidth disabled={kbList.length > 0} onClick={(event) => {
+      }} fullWidth disabled={(license.edition === 0 && kbList.length >= 1) || (license.edition === 1 && kbList.length >= 3)} onClick={(event) => {
         event.stopPropagation()
         dispatch(setKbC(true))
       }}
-      >创建新知识库（暂不支持）</Button>
+      >创建新知识库</Button>
       {kbList.map(item => <MenuItem key={item.id} value={item.id} sx={{
         '&:hover .hover-del-space-icon': { display: 'block' }
       }}>

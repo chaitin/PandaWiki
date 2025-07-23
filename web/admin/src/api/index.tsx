@@ -15,6 +15,7 @@ import {
   HotDocsItem,
   ImportDocByFeishuFormData,
   KnowledgeBaseListItem,
+  LicenseInfo,
   ModelListItem,
   NodeDetail,
   NodeListFilterData,
@@ -256,11 +257,11 @@ export const uploadFile = (
     data,
     onUploadProgress: config?.onUploadProgress
       ? (progressEvent) => {
-          const progress = Math.round(
-            (progressEvent.loaded * 100) / (progressEvent.total || 1)
-          );
-          config.onUploadProgress?.({ progress });
-        }
+        const progress = Math.round(
+          (progressEvent.loaded * 100) / (progressEvent.total || 1)
+        );
+        config.onUploadProgress?.({ progress });
+      }
       : undefined,
     signal: config?.abortSignal,
     headers: { 'Content-Type': 'multipart/form-data' },
@@ -386,3 +387,10 @@ export const statConversationDistribution = (params: {
     method: 'get',
     params,
   });
+
+// =============================================》release
+export const getLicenseInfo = (): Promise<LicenseInfo> =>
+  request({ url: 'api/v1/license', method: 'get' });
+
+export const activeLicense = (data: FormData): Promise<void> =>
+  request({ url: 'api/v1/license', method: 'post', data })

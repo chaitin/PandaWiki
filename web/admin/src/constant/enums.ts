@@ -233,3 +233,18 @@ export const FeedbackType = {
   2: '没有帮助',
   3: '其他',
 }
+
+export const Free = 0
+export const Contributor = 1
+export const Enterprise = 2
+export const EditionType = {
+  [Free]: {
+    text: '开源版'
+  },
+  [Contributor]: {
+    text: '联创版'
+  },
+  [Enterprise]: {
+    text: '企业版'
+  }
+}

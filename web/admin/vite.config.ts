@@ -7,15 +7,15 @@ export default defineConfig({
     hmr: true,
     proxy: {
       '/api': {
-        target: 'http://10.10.7.43:8000',
-        // target: 'https://10.10.18.71:2443',
+        // target: 'http://10.10.7.43:8000',
+        target: 'https://10.10.18.71:2443',
         // target: "http://localhost:8000",
         secure: false,
         changeOrigin: true,
       },
       '/share': {
-        target: 'http://10.10.7.43:8000',
-        // target: 'https://10.10.18.71:2443',
+        // target: 'http://10.10.7.43:8000',
+        target: 'https://10.10.18.71:2443',
         // target: "http://localhost:8000",
         secure: false,
         changeOrigin: true,
