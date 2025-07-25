@@ -9,7 +9,8 @@ import (
 )
 
 const (
-	MaxPosition float64 = 1e38
+	MaxPosition    float64 = 1e38
+	MinPositionGap float64 = 1e-5
 )
 
 type NodeType uint16

@@ -3,6 +3,8 @@ package pg
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -60,7 +62,11 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq) 
 		}
 
 		newPos := maxPos + (domain.MaxPosition-maxPos)/2.0
-
+		if newPos-maxPos < domain.MinPositionGap {
+			if err := r.reorderPositionsByParentID(tx, req.KBID, req.ParentID); err != nil {
+				return err
+			}
+		}
 		now := time.Now()
 
 		visibility := domain.NodeVisibilityPublic
@@ -430,12 +436,24 @@ func (r *NodeRepository) MoveNodeBetween(ctx context.Context, id string, parentI
 			maxPos = nextNode.Position
 		}
 
+		var node domain.Node
+		if err := tx.Model(&domain.Node{}).
+			Where("id = ?", id).
+			Select("kb_id").
+			First(&node).Error; err != nil {
+			return err
+		}
 		newPos := prevPos + (maxPos-prevPos)/2.0
+		if newPos-prevPos < domain.MinPositionGap {
+			if err := r.reorderPositionsByParentID(tx, node.KBID, parentID); err != nil {
+				return err
+			}
+		}
 
 		return tx.Model(&domain.Node{}).
 			Where("id = ?", id).
-			Update("position", newPos).
 			Update("parent_id", parentID).
+			Update("position", newPos).
 			Update("status", domain.NodeStatusDraft).
 			Error
 	})
@@ -596,6 +614,73 @@ func (r *NodeRepository) BatchMove(ctx context.Context, req *domain.BatchMoveReq
 	})
 }
 
+
+// reorderPositions 重排所给节点
+func (r *NodeRepository) reorderPositions(tx *gorm.DB, nodes []*domain.Node) error {
+	if len(nodes) == 0 {
+		return nil
+	}
+
+	basePosition := int64(1000) // 起始位置
+	interval := int64(1000)     // 间隔
+
+	updates := make([]map[string]interface{}, len(nodes))
+	for i, node := range nodes {
+		newPosition := float64(basePosition + int64(i)*interval)
+		updates[i] = map[string]interface{}{
+			"id":       node.ID,
+			"position": newPosition,
+		}
+	}
+
+	batchSize := 300
+	for i := 0; i < len(updates); i += batchSize {
+		end := i + batchSize
+		if end > len(updates) {
+			end = len(updates)
+		}
+		batch := updates[i:end]
+
+		sql := "UPDATE nodes SET position = CASE id"
+		ids := make([]string, 0, len(batch))
+		for _, update := range batch {
+			id := update["id"]
+			pos := update["position"]
+			sql += fmt.Sprintf(" WHEN '%v' THEN %v", id, pos)
+			ids = append(ids, fmt.Sprintf("'%v'", id))
+		}
+		sql += " END WHERE id IN (" + strings.Join(ids, ",") + ")"
+
+		if err := tx.Exec(sql).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// reorderPositionsByParentID 重排所给父节点下的所有子节点
+func (r *NodeRepository) reorderPositionsByParentID(tx *gorm.DB, kbID, parentID string) error {
+	var nodes []*domain.Node
+	if parentID == "" {
+		if err := tx.Model(&domain.Node{}).
+			Where("kb_id = ?", kbID).
+			Where("parent_id IS NULL OR parent_id = ''").
+			Order("position").
+			Find(&nodes).Error; err != nil {
+			return err
+		}
+	} else {
+		if err := tx.Model(&domain.Node{}).
+			Where("kb_id = ?", kbID).
+			Where("parent_id = ?", parentID).
+			Order("position").
+			Find(&nodes).Error; err != nil {
+			return err
+		}
+	}
+	return r.reorderPositions(tx, nodes)
+
 func (r *NodeRepository) GetNodeReleaseListByKBIDNodeID(ctx context.Context, kbID, nodeID string) ([]*domain.NodeReleaseListItem, error) {
 	subQuery := r.db.
 		Model(&domain.KBReleaseNodeRelease{}).
@@ -627,4 +712,5 @@ func (r *NodeRepository) GetNodeReleaseDetailByID(ctx context.Context, id string
 		return nil, err
 	}
 	return &nodeRelease, nil
+
 }
