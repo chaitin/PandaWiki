@@ -1,16 +1,29 @@
-import { useCommitPendingInput } from '@/hooks';
-import { Autocomplete, AutocompleteProps, Box, Chip, TextField, TextFieldProps } from '@mui/material';
-import { ReactNode } from 'react';
+import { useCommitPendingInput } from '@/hooks'
+import {
+  Autocomplete,
+  AutocompleteProps,
+  Box,
+  Chip,
+  TextField,
+  TextFieldProps,
+} from '@mui/material'
+import { ReactNode } from 'react'
 
 export type FreeSoloAutocompleteProps<T> = {
   width?: number
-  placeholder?: string;
-  inputProps?: TextFieldProps;
+  placeholder?: string
+  inputProps?: TextFieldProps
+  options?: T[]
 } & ReturnType<typeof useCommitPendingInput<T>> &
   Omit<
     AutocompleteProps<T, true, false, true>,
-    'renderInput' | 'value' | 'onChange' | 'inputValue' | 'onInputChange' | 'options'
-  >;
+    | 'renderInput'
+    | 'value'
+    | 'onChange'
+    | 'inputValue'
+    | 'onInputChange'
+    | 'options'
+  >
 
 export function FreeSoloAutocomplete<T>({
   width,
@@ -21,6 +34,7 @@ export function FreeSoloAutocomplete<T>({
   setInputValue,
   commit,
   inputProps = {},
+  options = [],
   ...autocompleteProps
 }: FreeSoloAutocompleteProps<T>) {
   return (
@@ -28,26 +42,28 @@ export function FreeSoloAutocomplete<T>({
       multiple
       fullWidth
       freeSolo
-      options={[]}
+      options={options}
       sx={width ? { width } : {}}
       slotProps={{
         listbox: {
           sx: {
             bgcolor: 'background.paper2',
-          }
-        }
+          },
+        },
       }}
       value={value}
       onChange={(_, newValue) => setValue(newValue as T[])}
       inputValue={inputValue}
       onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
       onBlur={commit}
-      renderInput={(params) => <TextField
-        {...params}
-        {...inputProps}
-        variant='outlined'
-        placeholder={placeholder}
-      />}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          {...inputProps}
+          variant='outlined'
+          placeholder={placeholder}
+        />
+      )}
       renderTags={(value, getTagProps) => {
         return value.map((option, index: number) => {
           return (
@@ -64,5 +80,5 @@ export function FreeSoloAutocomplete<T>({
       blurOnSelect={false}
       {...autocompleteProps}
     />
-  );
+  )
 }

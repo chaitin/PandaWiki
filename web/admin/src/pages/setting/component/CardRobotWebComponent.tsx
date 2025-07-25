@@ -2,7 +2,7 @@ import { AppDetail, getAppDetail, KnowledgeBaseListItem, updateAppDetail, WebCom
 import ShowText from "@/components/ShowText";
 import UploadFile from "@/components/UploadFile";
 import { Box, Button, FormControlLabel, Link, Radio, RadioGroup, Stack, TextField } from "@mui/material";
-import { Message } from "ct-mui";
+import { Icon, Message } from "ct-mui";
 import { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 
@@ -14,7 +14,7 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
   const [isEdit, setIsEdit] = useState(false)
   const [isEnabled, setIsEnabled] = useState(false);
   const [detail, setDetail] = useState<AppDetail | null>(null)
-  const { control, handleSubmit, setValue, reset, formState: { errors } } = useForm<WebComponentSetting>({
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<WebComponentSetting>({
     defaultValues: {
       is_open: 0,
       theme_mode: 'light',
@@ -26,7 +26,12 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
   const [url, setUrl] = useState<string>('')
 
   useEffect(() => {
-    const host = kb.access_settings?.hosts?.[0]
+    if (kb.access_settings.base_url) {
+      setUrl(kb.access_settings.base_url)
+      return
+    }
+    const host = kb.access_settings?.hosts?.[0] || ''
+    if (host === '') return
     const { ssl_ports = [], ports = [] } = kb.access_settings || {}
 
     if (ssl_ports) {
@@ -93,7 +98,7 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
       }}>网页挂件机器人</Box>
       <Box sx={{ flexGrow: 1, ml: 1 }}>
         <Link
-          component='a' 
+          component='a'
           href='https://pandawiki.docs.baizhi.cloud/node/0197f335-a1a8-786c-95df-0848f61fb98a'
           target="_blank"
           sx={{
@@ -156,7 +161,7 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
             />}
           />
         </Stack>
-          <Stack direction='row' gap={2} alignItems={'center'}>
+        <Stack direction='row' gap={2} alignItems={'center'}>
           <Box sx={{ width: 156, fontSize: 14, lineHeight: '52px', flexShrink: 0 }}>
             侧边按钮 Logo
           </Box>
@@ -177,18 +182,21 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
           />
         </Stack>
         <Stack>
-          <Stack direction='row' gap={2} alignItems={'center'}>
+          <Stack direction='row' gap={2} alignItems={url ? 'flex-start' : 'center'}>
             <Box sx={{ width: 156, fontSize: 14, lineHeight: '52px', flexShrink: 0 }}>
               嵌入代码
             </Box>
-            <ShowText text={[
+            {url ? <ShowText noEllipsis text={[
               `<!--// Head 标签引入样式 -->`,
               `<link rel="stylesheet" href="${url}/widget-bot.css">`,
               '',
               `<!--// Body 标签引入挂件 -->`,
               `<script src="${url}/widget-bot.js"></script>`,
-            ]} />
-          </Stack>   
+            ]} /> : <Stack direction='row' alignItems={'center'} gap={0.5} sx={{ color: 'warning.main', fontSize: 14 }}>
+              <Icon type='icon-jinggao' />
+              未配置域名，可在右侧<Box component={'span'} sx={{ fontWeight: 500 }}>服务监听方式</Box> 中配置
+            </Stack>}
+          </Stack>
         </Stack>
       </>}
     </Stack>

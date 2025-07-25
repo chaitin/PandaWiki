@@ -1,12 +1,12 @@
 import { getKnowledgeBaseDetail } from '@/api';
 import { useAppSelector } from '@/store';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { Button, IconButton, Stack, Tooltip } from '@mui/material';
-import { Icon, Message,Modal } from 'ct-mui';
+import { Icon, Message, Modal } from 'ct-mui';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import System from '../System';
 import Bread from './Bread';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 
 const Header = () => {
   const navigate = useNavigate()
@@ -56,7 +56,7 @@ const Header = () => {
         if (wikiUrl) {
           window.open(wikiUrl, '_blank')
         }
-      }}>访问 Wiki 站点</Button>
+      }}>访问 Wiki 网站</Button>
       <System />
       <Tooltip arrow title='退出登录'>
         <IconButton size='small' sx={{
@@ -73,7 +73,7 @@ const Header = () => {
         </IconButton>
       </Tooltip>
     </Stack>
-     <Modal
+    <Modal
       open={logoutConfirmOpen}
       onCancel={() => setLogoutConfirmOpen(false)}
       onOk={() => {
@@ -104,7 +104,7 @@ const Header = () => {
       }
       transitionDuration={300}
     />
-   </Stack>
+  </Stack>
 }
 
 export default Header

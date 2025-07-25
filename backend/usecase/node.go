@@ -235,3 +235,29 @@ func (u *NodeUsecase) GetRecommendNodeList(ctx context.Context, req *domain.GetR
 func (u *NodeUsecase) BatchMoveNode(ctx context.Context, req *domain.BatchMoveReq) error {
 	return u.nodeRepo.BatchMove(ctx, req)
 }
+
+func (u *NodeUsecase) GetNodeReleaseListByKBIDNodeID(ctx context.Context, kbID, nodeID string) ([]*domain.NodeReleaseListItem, error) {
+	nodeRelease, err := u.nodeRepo.GetNodeReleaseListByKBIDNodeID(ctx, kbID, nodeID)
+	if err != nil {
+		return nil, err
+	}
+	releaseIDs := lo.Map(nodeRelease, func(item *domain.NodeReleaseListItem, _ int) string {
+		return item.ReleaseID
+	})
+	releaseIDMap, err := u.kbRepo.GetKBReleaseListByIDs(ctx, kbID, releaseIDs)
+	if err != nil {
+		return nil, err
+	}
+	nodeRelease = lo.Map(nodeRelease, func(item *domain.NodeReleaseListItem, _ int) *domain.NodeReleaseListItem {
+		if release, ok := releaseIDMap[item.ReleaseID]; ok {
+			item.ReleaseMessage = release.Message
+			item.ReleaseTag = release.Tag
+		}
+		return item
+	})
+	return nodeRelease, nil
+}
+
+func (u *NodeUsecase) GetNodeReleaseDetailByID(ctx context.Context, id string) (*domain.GetNodeReleaseDetailResp, error) {
+	return u.nodeRepo.GetNodeReleaseDetailByID(ctx, id)
+}

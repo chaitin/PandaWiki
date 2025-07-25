@@ -166,7 +166,7 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 							{
 								"match": []map[string]any{
 									{
-										"path": []string{"/share/v1/node/detail", "/share/v1/app/wechat/app", "/share/v1/app/wechat/service", "/sitemap.xml"},
+										"path": []string{"/share/v1/app/wechat/app", "/share/v1/app/wechat/service", "/sitemap.xml", "/share/v1/app/wechat/official_account"},
 									},
 								},
 								"handle": []map[string]any{
@@ -292,7 +292,7 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 	return nil
 }
 
-func (r *KnowledgeBaseRepository) CreateKnowledgeBase(ctx context.Context, kb *domain.KnowledgeBase) error {
+func (r *KnowledgeBaseRepository) CreateKnowledgeBase(ctx context.Context, maxKB int, kb *domain.KnowledgeBase) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(kb).Error; err != nil {
 			return err
@@ -304,7 +304,7 @@ func (r *KnowledgeBaseRepository) CreateKnowledgeBase(ctx context.Context, kb *d
 			Find(&kbs).Error; err != nil {
 			return err
 		}
-		if len(kbs) > 1 {
+		if len(kbs) > maxKB {
 			return errors.New("kb is too many")
 		}
 
@@ -536,4 +536,19 @@ func (r *KnowledgeBaseRepository) GetLatestRelease(ctx context.Context, kbID str
 		return nil, err
 	}
 	return &release, nil
+}
+
+func (r *KnowledgeBaseRepository) GetKBReleaseListByIDs(ctx context.Context, kbID string, ids []string) (map[string]*domain.KBRelease, error) {
+	var kbReleases []*domain.KBRelease
+	if err := r.db.Model(&domain.KBRelease{}).
+		Where("kb_id = ? AND id IN ?", kbID, ids).
+		Find(&kbReleases).Error; err != nil {
+		return nil, err
+	}
+
+	releaseIDMap := make(map[string]*domain.KBRelease)
+	for _, release := range kbReleases {
+		releaseIDMap[release.ID] = release
+	}
+	return releaseIDMap, nil
 }

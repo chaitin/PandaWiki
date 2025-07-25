@@ -2,11 +2,11 @@ import { ConversationListItem, getConversationList } from "@/api"
 import Logo from "@/assets/images/logo.png"
 import NoData from '@/assets/images/nodata.png'
 import Card from "@/components/Card"
-import { AppType } from "@/constant/enums"
+import { AppType, FeedbackType } from "@/constant/enums"
 import { tableSx } from "@/constant/styles"
 import { useURLSearchParams } from "@/hooks"
 import { useAppSelector } from "@/store"
-import { Box, Stack } from "@mui/material"
+import { Box, Stack, Tooltip } from "@mui/material"
 import { Ellipsis, Icon, Table } from "ct-mui"
 import dayjs from "dayjs"
 import { useEffect, useState } from "react"
@@ -15,18 +15,16 @@ import Search from "./Search"
 
 const Conversation = () => {
   const { kb_id = '' } = useAppSelector(state => state.config)
-  const [searchParams] = useURLSearchParams()
+  const [searchParams, setSearchParams] = useURLSearchParams()
+  const conversion_id = searchParams.get('conversion_id') || ''
+  const page = Number(searchParams.get('page') || '1')
+  const pageSize = Number(searchParams.get('page_size') || '20')
   const subject = searchParams.get('subject') || ''
   const remoteIp = searchParams.get('remote_ip') || ''
   const [data, setData] = useState<ConversationListItem[]>([])
   const [loading, setLoading] = useState(false)
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(20)
   const [total, setTotal] = useState(0)
   const [open, setOpen] = useState(false)
-  const [id, setId] = useState('')
-
-  const appTypes = Object.values(AppType).map(it => it.label)
 
   const columns = [
     {
@@ -34,24 +32,36 @@ const Conversation = () => {
       title: '问题',
       render: (text: string, record: ConversationListItem) => {
         const isGroupChat = record.info?.user_info?.from === 1
-        return <Stack direction={'row'} alignItems={'center'} gap={0.5}>
-          <Icon type={isGroupChat ? 'icon-qunliao' : 'icon-danliao'} />
-          <Ellipsis className="primary-color" sx={{ cursor: 'pointer', flex: 1, width: 0 }} onClick={() => {
-            setId(record.id)
-            setOpen(true)
-          }}>
-            {text}
-          </Ellipsis>
-        </Stack>
+        return <>
+          <Stack direction={'row'} alignItems={'center'} gap={1}>
+            <Icon sx={{ fontSize: 12 }} type={AppType[record.app_type as keyof typeof AppType]?.icon || ''} />
+            <Ellipsis className="primary-color" sx={{ cursor: 'pointer', flex: 1, width: 0 }} onClick={() => {
+              // setId(record.id)
+              setSearchParams({ conversion_id: record.id })
+              setOpen(true)
+            }}>
+              {text}
+            </Ellipsis>
+          </Stack>
+          <Box sx={{ color: 'text.auxiliary', fontSize: 12 }}>{AppType[record.app_type as keyof typeof AppType]?.label || '-'}</Box>
+        </>
       },
     },
     {
-      dataIndex: 'app_type',
-      title: '来源渠道',
+      dataIndex: 'feedback_info',
+      title: '用户反馈',
       width: 160,
-      render: (text: number) => {
-        const typeName = ['', ...appTypes]
-        return typeName[text] || '-'
+      render: (value: ConversationListItem['feedback_info']) => {
+        return <Tooltip title={(value?.feedback_content || value?.feedback_type > 0) && <Box>
+          {value?.feedback_type > 0 && <Box>{FeedbackType[value?.feedback_type as keyof typeof FeedbackType]}</Box>}
+          {value?.feedback_content && <Box>{value?.feedback_content}</Box>}
+        </Box>}>
+          <Stack direction={'row'} alignItems={'center'} gap={0.5} sx={{ cursor: 'pointer', fontSize: 14 }}>
+            {value?.score === 1 ? <Icon type='icon-dianzan-xuanzhong1' sx={{ cursor: 'pointer', color: 'success.main' }} />
+              : value?.score === -1 ? <Icon type='icon-a-diancai-weixuanzhong2' sx={{ cursor: 'pointer', color: 'error.main' }} />
+                : <Icon type='icon-dianzan-weixuanzhong' sx={{ color: 'text.disabled' }} />}
+          </Stack>
+        </Tooltip>
       }
     },
     {
@@ -84,9 +94,12 @@ const Conversation = () => {
     {
       dataIndex: 'created_at',
       title: '问答时间',
-      width: 170,
+      width: 160,
       render: (text: string) => {
-        return dayjs(text).fromNow()
+        return <Stack>
+          <Box>{dayjs(text).fromNow()}</Box>
+          <Box sx={{ fontSize: 12, color: 'text.auxiliary' }}>{dayjs(text).format('YYYY-MM-DD HH:mm:ss')}</Box>
+        </Stack>
       }
     },
   ]
@@ -102,8 +115,8 @@ const Conversation = () => {
   }
 
   useEffect(() => {
-    setPage(1)
-  }, [subject, remoteIp, kb_id])
+    if (conversion_id) setOpen(true)
+  }, [conversion_id])
 
   useEffect(() => {
     if (kb_id) getData()
@@ -132,8 +145,7 @@ const Conversation = () => {
         page,
         pageSize,
         onChange: (page, pageSize) => {
-          setPage(page)
-          setPageSize(pageSize)
+          setSearchParams({ page: String(page), pageSize: String(pageSize) })
         },
       }}
       PaginationProps={{
@@ -151,8 +163,9 @@ const Conversation = () => {
         <Box>暂无数据</Box>
       </Stack>}
     />
-    <Detail id={id} open={open} onClose={() => {
+    <Detail id={conversion_id} open={open} onClose={() => {
       setOpen(false)
+      setSearchParams({ conversion_id: '' })
     }} />
   </Card>
 }

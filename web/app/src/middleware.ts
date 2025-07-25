@@ -12,8 +12,10 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/widget')) {
     const kb_id = request.headers.get('x-kb-id') || process.env.DEV_KB_ID || '';
     const widgetInfo = await apiClient.serverGetWidgetInfo(kb_id);
-    if (!widgetInfo?.data?.settings?.widget_bot_settings?.is_open) {
-      return NextResponse.redirect(new URL('/not-fount', request.url))
+    if (widgetInfo.success) {
+      if (!widgetInfo?.data?.settings?.widget_bot_settings?.is_open) {
+        return NextResponse.redirect(new URL('/not-fount', request.url))
+      }
     }
     return
   }

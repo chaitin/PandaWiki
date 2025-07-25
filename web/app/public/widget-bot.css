@@ -150,13 +150,14 @@
   align-items: center;
   justify-content: center;
   font-size: 18px;
+  opacity: 0.5;
   z-index: 10001;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.1s ease-in-out;
   font-family: var(--font-gilory, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
 }
 
 .widget-bot-close-btn:hover {
-  transform: scale(1.05);
+  opacity: 1;
 }
 
 .widget-bot-close-btn:active {

@@ -1,11 +1,12 @@
 'use client'
 
-import { ChunkResultItem } from '@/assets/type';
+import { ChunkResultItem, ConversationItem } from '@/assets/type';
 import { IconFile, IconFolder, IconLogo } from "@/components/icons";
 import { useStore } from "@/provider";
 import SSEClient from '@/utils/fetch';
 import { Box, Stack, useMediaQuery } from "@mui/material";
 import { Ellipsis, message } from "ct-mui";
+import dayjs from 'dayjs';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnswerStatus } from '../chat/constant';
@@ -23,7 +24,8 @@ const Widget = () => {
     chunk_result: ChunkResultItem[];
   }> | null>(null);
 
-  const [conversation, setConversation] = useState<{ q: string, a: string }[]>([]);
+  const messageIdRef = useRef<string>('')
+  const [conversation, setConversation] = useState<ConversationItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [thinking, setThinking] = useState<keyof typeof AnswerStatus>(4);
   const [nonce, setNonce] = useState('');
@@ -51,6 +53,8 @@ const Widget = () => {
         ({ type, content }) => {
           if (type === 'conversation_id') {
             setConversationId((prev) => prev + content);
+          } else if (type === 'message_id') {
+            messageIdRef.current += content;
           } else if (type === 'nonce') {
             setNonce((prev) => prev + content);
           } else if (type === 'error') {
@@ -64,6 +68,16 @@ const Widget = () => {
             });
             if (content) message.error(content);
           } else if (type === 'done') {
+            setAnswer((prevAnswer) => {
+              setConversation((prev) => {
+                const newConversation = [...prev];
+                newConversation[newConversation.length - 1].a = prevAnswer;
+                newConversation[newConversation.length - 1].update_time = dayjs().format('YYYY-MM-DD HH:mm:ss');
+                newConversation[newConversation.length - 1].message_id = messageIdRef.current;
+                return newConversation;
+              });
+              return '';
+            })
             setLoading(false);
             setThinking(4);
           } else if (type === 'data') {
@@ -88,11 +102,9 @@ const Widget = () => {
 
   const onSearch = (q: string, reset: boolean = false) => {
     if (loading || !q.trim()) return;
-    const newConversation = reset ? [] : [...conversation.slice(0, -1)];
-    if (answer) {
-      newConversation.push({ q: conversation[conversation.length - 1].q, a: answer });
-    }
-    newConversation.push({ q, a: '' });
+    const newConversation = reset ? [] : [...conversation];
+    newConversation.push({ q, a: '', score: 0, update_time: '', message_id: '' });
+    messageIdRef.current = '';
     setConversation(newConversation);
     setAnswer('');
     setTimeout(() => {
@@ -101,7 +113,9 @@ const Widget = () => {
   };
 
   const handleSearchAbort = () => {
-    sseClientRef.current?.unsubscribe();
+    if (loading) {
+      sseClientRef.current?.unsubscribe();
+    }
     setLoading(false);
     setThinking(4);
   };
@@ -136,6 +150,26 @@ const Widget = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        onCancel: () => {
+          setLoading(false);
+          setThinking(4);
+          setAnswer((prev) => {
+            let value = ''
+            if (prev) {
+              value = prev + '\n\n<error>Request canceled</error>';
+            }
+            setConversation((prev) => {
+              const newConversation = [...prev];
+              if (newConversation.length > 0) {
+                newConversation[newConversation.length - 1].a = value;
+                newConversation[newConversation.length - 1].update_time = dayjs().format('YYYY-MM-DD HH:mm:ss');
+                newConversation[newConversation.length - 1].message_id = messageIdRef.current;
+              }
+              return newConversation;
+            });
+            return '';
+          });
+        }
       });
     }
   }, []);
@@ -157,15 +191,18 @@ const Widget = () => {
           direction={'row'}
           alignItems={'center'}
           gap={1}
-          sx={{ lineHeight: '28px', fontSize: 20, cursor: 'pointer' }}
-          onClick={() => {
-            handleSearchAbort()
-            setConversation([])
-          }}
+          sx={{ lineHeight: '28px', fontSize: 20 }}
         >
           {widget?.settings?.widget_bot_settings?.btn_logo || widget?.settings?.icon ? <img src={widget?.settings?.widget_bot_settings?.btn_logo || widget?.settings?.icon} height={24} style={{ flexShrink: 0 }} />
             : <IconLogo sx={{ fontSize: 24 }} />}
-          <Ellipsis >{widget?.settings?.title || '在线客服'}</Ellipsis>
+          <Ellipsis sx={{ pr: 2 }}>
+            <Box component={'span'} sx={{ cursor: 'pointer' }} onClick={() => {
+              handleSearchAbort()
+              setConversation([])
+            }}>
+              {widget?.settings?.title || '在线客服'}
+            </Box>
+          </Ellipsis>
         </Stack>
         <Ellipsis sx={{ fontSize: 14, opacity: 0.7, mt: 0.5 }}>{widget?.settings?.welcome_str || '在线客服'}</Ellipsis>
       </Box>
@@ -241,7 +278,9 @@ const Widget = () => {
           </Stack>
         </Box>}
       </> : <ChatWindow
+        conversation_id={conversationId}
         conversation={conversation}
+        setConversation={setConversation}
         answer={answer}
         loading={loading}
         thinking={thinking}

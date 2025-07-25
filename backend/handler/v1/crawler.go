@@ -247,7 +247,7 @@ func (h *CrawlerHandler) Scrape(c echo.Context) error {
 //	@Success		200		{object}	domain.Response{data=domain.EpubResp}
 //	@Router			/api/v1/crawler/epub/convert [post]
 func (h *CrawlerHandler) QpubConvert(c echo.Context) error {
-	// uplad a file
+	// upload a file
 	var req domain.EpubReq
 	req.KbID = c.FormValue("kb_id")
 	if err := c.Validate(req); err != nil {
@@ -258,16 +258,7 @@ func (h *CrawlerHandler) QpubConvert(c echo.Context) error {
 	if err != nil {
 		return h.NewResponseWithError(c, "get file failed", err)
 	}
-	file, err := f.Open()
-	if err != nil {
-		return h.NewResponseWithError(c, "open file failed", err)
-	}
-	defer file.Close()
-	data, err := io.ReadAll(file)
-	if err != nil {
-		return h.NewResponseWithError(c, "read file failed", err)
-	}
-	resq, err := h.epubUsecase.Convert(c.Request().Context(), req.KbID, data)
+	resq, err := h.epubUsecase.Convert(c.Request().Context(), req.KbID, f)
 	if err != nil {
 		return h.NewResponseWithError(c, "convert failed", err)
 	}
@@ -295,16 +286,7 @@ func (h *CrawlerHandler) AnalysisWikijsExportFile(c echo.Context) error {
 	if err := c.Validate(req); err != nil {
 		return h.NewResponseWithError(c, "validate failed", err)
 	}
-	file, err := f.Open()
-	if err != nil {
-		return h.NewResponseWithError(c, "open file failed", err)
-	}
-	defer file.Close()
-	data, err := io.ReadAll(file)
-	if err != nil {
-		return h.NewResponseWithError(c, "read file failed", err)
-	}
-	res, err := h.wikijsUsecase.AnalysisExportFile(c.Request().Context(), data, req.KBID)
+	res, err := h.wikijsUsecase.AnalysisExportFile(c.Request().Context(), f, req.KBID)
 	if err != nil {
 		return h.NewResponseWithError(c, "analysis export file failed", err)
 	}

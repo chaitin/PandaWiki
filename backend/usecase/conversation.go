@@ -48,6 +48,19 @@ func (u *ConversationUsecase) GetConversationList(ctx context.Context, request *
 	if err != nil {
 		return nil, err
 	}
+	// get feedbackinfo
+	conversationIDs := make([]string, 0, len(conversations))
+
+	for _, c := range conversations {
+		conversationIDs = append(conversationIDs, c.ID)
+	}
+
+	// 遍历拿到的c，去数据库里面搜索最新的用户回复
+	feedbackMap, err := u.repo.GetConversationFeedBackInfoByIDs(ctx, conversationIDs)
+	if err != nil {
+		u.logger.Error("get latest feedback by conversation id failed", log.Error(err))
+	}
+
 	// get ip address
 	ipAddressMap := make(map[string]*domain.IPAddress)
 	lo.Map(conversations, func(conversation *domain.ConversationListItem, _ int) *domain.ConversationListItem {
@@ -61,6 +74,9 @@ func (u *ConversationUsecase) GetConversationList(ctx context.Context, request *
 			conversation.IPAddress = ipAddress
 		} else {
 			conversation.IPAddress = ipAddressMap[conversation.RemoteIP]
+		}
+		if _, ok := feedbackMap[conversation.ID]; ok {
+			conversation.FeedBackInfo = feedbackMap[conversation.ID]
 		}
 		return conversation
 	})
@@ -147,4 +163,57 @@ func (u *ConversationUsecase) CreateConversation(ctx context.Context, conversati
 		}
 	}
 	return nil
+}
+
+func (u *ConversationUsecase) FeedBack(ctx context.Context, feedback *domain.FeedbackRequest) error {
+	// 先查询数据库，看看目前message的信息
+	messages, err := u.repo.GetConversationMessagesDetailByID(ctx, feedback.MessageId)
+	if err != nil {
+		return err
+	}
+	u.logger.Debug("feedback info", log.Any("feedback_info", messages.Info))
+
+	// 后端校验一下，只是允许用户进行一次投票
+	if messages.Info.Score == 0 {
+		// 用户可以提供建议
+		if err := u.repo.UpdateMessageFeedback(ctx, feedback); err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("already voted for this message, please do not vote again")
+	}
+	return nil
+}
+
+func (u *ConversationUsecase) GetMessageList(ctx context.Context, req *domain.MessageListReq) (*domain.PaginatedResult[[]*domain.ConversationMessageListItem], error) {
+	total, messageList, err := u.repo.GetMessageFeedBackList(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	// get ip address
+	ipAddressMap := make(map[string]*domain.IPAddress)
+	lo.Map(messageList, func(message *domain.ConversationMessageListItem, _ int) *domain.ConversationMessageListItem {
+		if _, ok := ipAddressMap[message.RemoteIP]; !ok {
+			ipAddress, err := u.ipRepo.GetIPAddress(ctx, message.RemoteIP)
+			if err != nil {
+				u.logger.Error("get ip address failed", log.Error(err), log.String("ip", message.RemoteIP))
+				return message
+			}
+			ipAddressMap[message.RemoteIP] = ipAddress
+			message.IPAddress = ipAddress
+		} else {
+			message.IPAddress = ipAddressMap[message.RemoteIP]
+		}
+		return message
+	})
+
+	return domain.NewPaginatedResult(messageList, uint64(total)), nil
+}
+
+func (u *ConversationUsecase) GetMessageDetail(ctx context.Context, messageId string) (*domain.ConversationMessage, error) {
+	message, err := u.repo.GetConversationMessagesDetailByID(ctx, messageId)
+	if err != nil {
+		return nil, err
+	}
+	return message, nil
 }

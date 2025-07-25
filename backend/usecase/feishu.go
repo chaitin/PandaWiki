@@ -1,10 +1,10 @@
 package usecase
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
+	"mime"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,9 +17,9 @@ import (
 	"github.com/google/uuid"
 	lark "github.com/larksuite/oapi-sdk-go/v3"
 	larkcore "github.com/larksuite/oapi-sdk-go/v3/core"
+	larkbitable "github.com/larksuite/oapi-sdk-go/v3/service/bitable/v1"
 	larkdrive1 "github.com/larksuite/oapi-sdk-go/v3/service/drive/v1"
 	larksheets "github.com/larksuite/oapi-sdk-go/v3/service/sheets/v3"
-	larkwiki1 "github.com/larksuite/oapi-sdk-go/v3/service/wiki/v1"
 	larkwiki2 "github.com/larksuite/oapi-sdk-go/v3/service/wiki/v2"
 	"github.com/minio/minio-go/v7"
 	"github.com/samber/lo"
@@ -61,7 +61,7 @@ func (f *FeishuUseCase) GetSpacelist(ctx context.Context, req *domain.GetSpaceLi
 
 		f.logger.Debug("token", log.String("token", req.UserAccessToken))
 		// 发起请求
-		resp, err := client.Wiki.V2.Space.List(
+		resp, err := client.Wiki.Space.List(
 			ctx,
 			r,
 			larkcore.WithUserAccessToken(req.UserAccessToken))
@@ -88,54 +88,117 @@ func (f *FeishuUseCase) GetSpacelist(ctx context.Context, req *domain.GetSpaceLi
 	return respData, nil
 }
 
+func (f *FeishuUseCase) dfs(ctx context.Context, c *lark.Client, parentToken, spaceId, userAccessToken string, resultChan chan<- *domain.SearchWikiTemp) error {
+	result, err := f.searchWiki(ctx, c, spaceId, parentToken, userAccessToken)
+	if err != nil {
+		return err
+	}
+	wg := sync.WaitGroup{}
+	// 启动一个协程来处理每个文档
+	for _, doc := range result {
+		wg.Add(1)
+		go func(d *domain.SearchWikiTemp) {
+			defer wg.Done() // 确保协程结束时计数减一
+			if d.HasChild {
+				// 递归调用 dfs
+				if err := f.dfs(ctx, c, d.NodeToken, spaceId, userAccessToken, resultChan); err != nil {
+					f.logger.Error("dfs failed", log.Error(err))
+				}
+			}
+			// 将结果发送到通道
+			resultChan <- d
+		}(doc)
+	}
+	wg.Wait()
+
+	return nil
+}
+
 func (f *FeishuUseCase) SearchWiki(ctx context.Context, req *domain.SearchWikiReq) ([]*domain.SearchWikiResp, error) {
 	client := lark.NewClient(req.AppID, req.AppSecret)
+	results := make([]*domain.SearchWikiResp, 0) // 初始化结果数组
+
+	// 创建一个通道来收集结果
+	resultChan := make(chan *domain.SearchWikiTemp)
+
+	// 启动一个协程来处理根节点
+	go func() {
+		if err := f.dfs(ctx, client, "", req.SpaceId, req.UserAccessToken, resultChan); err != nil {
+			f.logger.Error("dfs failed", log.Error(err))
+		}
+		close(resultChan) // 关闭通道
+	}()
+
+	// 从通道中收集结果
+	for doc := range resultChan {
+		results = append(results, &domain.SearchWikiResp{
+			Title:    doc.Title,
+			SpaceId:  doc.SpaceId,
+			ObjToken: doc.ObjToken,
+			ObjType:  doc.ObjType,
+			Url:      doc.Url,
+		})
+	}
+	return results, nil
+}
+
+func (f *FeishuUseCase) searchWiki(ctx context.Context, client *lark.Client, spaceId, parentToken, userAccessToken string) ([]*domain.SearchWikiTemp, error) {
 	var (
 		pageToken string
-		respData  []*domain.SearchWikiResp
+		respData  []*domain.SearchWikiTemp
 	)
 	for {
 		// 创建请求对象
-		r := larkwiki1.NewSearchNodeReqBuilder().
-			PageSize(20).
-			PageToken(pageToken).
-			Body(larkwiki1.NewSearchNodeReqBodyBuilder().
-				Query(req.Query).
-				SpaceId(req.SpaceId).
-				Build()).
-			Build()
 
-		f.logger.Debug("token", log.String("token", req.UserAccessToken))
-		// 发起请求
-		resp, err := client.Wiki.V1.Node.Search(ctx, r, larkcore.WithUserAccessToken(req.UserAccessToken))
-		if err != nil {
-			f.logger.Error("search Wiki failed", log.Error(err))
+		r := larkwiki2.NewListSpaceNodeReqBuilder().
+			SpaceId(spaceId).
+			ParentNodeToken(parentToken).
+			PageToken(pageToken).
+			Build()
+		if parentToken == "" {
+			r = larkwiki2.NewListSpaceNodeReqBuilder().
+				SpaceId(spaceId).
+				PageToken(pageToken).
+				Build()
+		}
+		resp, err := client.Wiki.SpaceNode.List(ctx, r, larkcore.WithUserAccessToken(userAccessToken))
+		if err != nil || resp.Msg != "success" {
 			return nil, fmt.Errorf("search Wiki failed: %v", err)
 		}
-
-		if resp.Msg != "success" {
-			return nil, fmt.Errorf("search Wiki failed: %s", resp.Msg)
-		}
 		for _, v := range resp.Data.Items {
-			if *v.ObjType == 9 {
+			var objType int
+			switch *v.ObjType {
+			case "docx":
+				objType = 8
+			case "file":
+				objType = 5
+			case "sheet":
+				objType = 2
+			case "bitable":
+				objType = 3
+			case "folder":
+				objType = 9
+			default:
+				objType = 0
+			}
+			if objType == 9 {
 				continue
 			}
-			respData = append(respData, &domain.SearchWikiResp{
-				Title:    *v.Title,
-				Url:      *v.Url,
-				SpaceId:  *v.SpaceId,
-				ObjToken: *v.ObjToken,
-				ObjType:  *v.ObjType,
+			respData = append(respData, &domain.SearchWikiTemp{
+				Title:     *v.Title,
+				SpaceId:   *v.SpaceId,
+				ObjToken:  *v.ObjToken,
+				NodeToken: *v.NodeToken,
+				ObjType:   objType,
+				Url:       *v.OriginNodeToken,
+				HasChild:  *v.HasChild,
 			})
-			if v.Title == nil || *v.Title == "" {
-				f.logger.Info("title is empty", log.Int("obj_type", *v.ObjType))
-			}
-			f.logger.Info("found wiki", log.String("title", *v.Title), log.Int("obj_type", *v.ObjType))
 		}
+
+		pageToken = *resp.Data.PageToken
 		if !*resp.Data.HasMore {
 			break
 		}
-		pageToken = *resp.Data.PageToken
 	}
 	return respData, nil
 }
@@ -157,15 +220,17 @@ func (f *FeishuUseCase) GetDoc(ctx context.Context, req *domain.GetDocxReq) ([]*
 			}
 		case 5: // file
 			f.logger.Info("download [type 5]file ", log.String("url", source.Url), log.String("token", source.ObjToken))
-			title, content, err = f.downloadFile(ctx, req.AppID, req.AppSecret, source.ObjToken, req.KBID)
+			title, content, err = f.downloadFile(ctx, req.AppID, req.AppSecret, source.ObjToken, req.KBID, req.UserAccessToken)
 			if err != nil {
 				f.logger.Error("download [type 5]file failed", log.Error(err))
+				return nil // 返回 nil 表示失败
 			}
-		case 2: // sheet
+		case 2, 3: // sheet
 			f.logger.Info("download [type 2] sheet", log.String("url", source.Url), log.String("token", source.ObjToken))
-			title, content, err = f.downloadSheet(ctx, req.AppID, req.AppSecret, source.ObjToken, req.UserAccessToken, req.KBID)
+			title, content, err = f.downloadSheet(ctx, source.ObjType, req.AppID, req.AppSecret, source.ObjToken, req.UserAccessToken, req.KBID)
 			if err != nil {
 				f.logger.Error("download [type 2] sheet failed", log.Error(err))
+				return nil // 返回 nil 表示失败
 			}
 		default: // 其他类型
 			f.logger.Error("unsupported obj type", log.Int("type", source.ObjType))
@@ -248,7 +313,7 @@ func searchDocx(ctx context.Context, client *lark.Client, accessToken, folderTok
 	}
 
 	// 发送请求
-	resp, err := client.Drive.V1.File.List(
+	resp, err := client.Drive.File.List(
 		ctx, // 使用传入的context
 		builder.Build(),
 		larkcore.WithUserAccessToken(accessToken),
@@ -260,7 +325,6 @@ func searchDocx(ctx context.Context, client *lark.Client, accessToken, folderTok
 		}
 	}
 	if err != nil {
-
 		select {
 		case errChan <- fmt.Errorf("search doc failed: %w", err):
 		case <-ctx.Done():
@@ -288,8 +352,12 @@ func searchDocx(ctx context.Context, client *lark.Client, accessToken, folderTok
 					temp = 8
 				case "sheet":
 					temp = 2
+				case "bitable":
+					temp = 3
 				case "file":
 					temp = 5
+				case "folder":
+					temp = 9
 				default:
 					temp = 0
 				}
@@ -313,6 +381,9 @@ func (f *FeishuUseCase) downloadDocument(ctx context.Context, appID, secret, url
 	client := core.NewClient(
 		appID, secret,
 	)
+	if !strings.HasPrefix(url, "http") {
+		url = "https://.feishu.cn/wiki/" + url
+	}
 	// Validate the url to download
 	var dlConfig core.Config
 	dlConfig.Output = core.OutputConfig{
@@ -323,7 +394,9 @@ func (f *FeishuUseCase) downloadDocument(ctx context.Context, appID, secret, url
 	}
 	// 清理图像临时存储目录
 	defer func() {
-		os.RemoveAll(dlConfig.Output.ImageDir)
+		if err := os.RemoveAll(dlConfig.Output.ImageDir); err != nil {
+			f.logger.Error("清理图像临时存储目录失败", log.Error(err))
+		}
 	}()
 	docType, docToken, err := fershu2mdUtil.ValidateDocumentURL(url)
 	if err != nil {
@@ -411,7 +484,7 @@ func (f *FeishuUseCase) downloadDocument(ctx context.Context, appID, secret, url
 	return title, result, nil
 }
 
-func (f *FeishuUseCase) downloadFile(ctx context.Context, appID, secret, fileToken, kbID string) (string, string, error) {
+func (f *FeishuUseCase) downloadFile(ctx context.Context, appID, secret, fileToken, kbID, userAccessToken string) (string, string, error) {
 	client := lark.NewClient(
 		appID, secret,
 	)
@@ -421,58 +494,31 @@ func (f *FeishuUseCase) downloadFile(ctx context.Context, appID, secret, fileTok
 		Build()
 
 	// 发起请求
-	resp, err := client.Drive.V1.File.Download(ctx, req)
+	resp, err := client.Drive.File.Download(ctx, req, larkcore.WithUserAccessToken(userAccessToken))
 	// 处理错误
 	if err != nil {
-		fmt.Println(err)
 		return "", "", err
 	}
 
 	// 服务端错误处理
 	if !resp.Success() {
-		fmt.Printf("logId: %s, error response: \n%s", resp.RequestId(), larkcore.Prettify(resp.CodeError))
-		return "", "", fmt.Errorf("下载文件失败: %s", resp.CodeError.Msg)
+		return "", "", fmt.Errorf("下载文件失败: %s", resp.Msg)
 	}
 
 	// 业务处理
-	var contentType string
 	ext := strings.ToLower(filepath.Ext(resp.FileName))
-
-	switch ext {
-	case ".png":
-		contentType = "image/png"
-	case ".jpg", ".jpeg":
-		contentType = "image/jpeg"
-	case ".gif":
-		contentType = "image/gif"
-	case ".webp":
-		contentType = "image/webp"
-	case ".pdf":
-		contentType = "application/pdf"
-	case ".doc", ".docx":
-		contentType = "application/msword"
-	case ".xls", ".xlsx":
-		contentType = "application/vnd.ms-excel"
-	case ".ppt", ".pptx":
-		contentType = "application/vnd.ms-powerpoint"
-	case ".txt":
-		contentType = "text/plain"
-	case ".html", ".htm":
-		contentType = "text/html"
-	default:
-		contentType = "application/octet-stream" // 未知类型
+	contentType := mime.TypeByExtension(ext)
+	if contentType == "" { // 如果没有找到合适的MIME类型，使用默认的二进制流
+		contentType = "application/octet-stream"
 	}
-
 	imgName := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), ext)
-
-	buf, _ := io.ReadAll(resp.File)
 
 	_, err = f.minioClient.PutObject(
 		ctx,
 		domain.Bucket,
 		imgName,
-		bytes.NewReader(buf),
-		int64(len(buf)),
+		resp.File,
+		-1,
 		minio.PutObjectOptions{
 			ContentType: contentType,
 			UserMetadata: map[string]string{
@@ -498,7 +544,7 @@ func (f *FeishuUseCase) downloadFile(ctx context.Context, appID, secret, fileTok
 	return name, res.Content, nil
 }
 
-func getSheetInfo(ctx context.Context, appID, secret, sheetToken, usserAccessToken string) (*larksheets.GetSpreadsheet, error) {
+func getSheetTitle(ctx context.Context, appID, secret, sheetToken, usserAccessToken string) (string, error) {
 	client := lark.NewClient(appID, secret)
 	// 创建请求对象
 	req := larksheets.NewGetSpreadsheetReqBuilder().
@@ -506,28 +552,75 @@ func getSheetInfo(ctx context.Context, appID, secret, sheetToken, usserAccessTok
 		Build()
 
 	// 发起请求
-	resp, err := client.Sheets.V3.Spreadsheet.Get(ctx, req, larkcore.WithUserAccessToken(usserAccessToken))
+	resp, err := client.Sheets.Spreadsheet.Get(ctx, req, larkcore.WithUserAccessToken(usserAccessToken))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	return resp.Data.Spreadsheet, nil
+	return *resp.Data.Spreadsheet.Title, nil
 }
 
-func (f *FeishuUseCase) downloadSheet(ctx context.Context, appID, secret, sheetToken, usserAccessToken, kbID string) (string, string, error) {
-	sheets, err := f.getSheets(ctx, appID, secret, sheetToken, usserAccessToken)
+func getAppTitle(ctx context.Context, appID, secret, appToken, usserAccessToken string) (string, error) {
+	client := lark.NewClient(appID, secret)
+	// 创建请求对象
+	req := larkbitable.NewGetAppReqBuilder().
+		AppToken(appToken).
+		Build()
+
+	// 发起请求
+	resp, err := client.Bitable.App.Get(context.Background(), req, larkcore.WithUserAccessToken(usserAccessToken))
 	if err != nil {
-		f.logger.Error("get sheets failed", log.Error(err))
-		return "", "", err
+		return "", err
 	}
-	for i, sheet := range sheets {
-		f.logger.Debug("Sheet details",
-			log.Int("index", i),
-			log.String("sheetId", *sheet.SheetId),
-			log.String("title", *sheet.Title),
-			log.Int("index", *sheet.Index)) // 如果有这个字段
+	return *resp.Data.App.Name, nil
+}
+
+func (f *FeishuUseCase) getAppTables(ctx context.Context, appID, secret, appTableToken, usserAccessToken string) ([]*larkbitable.AppTable, error) {
+	client := lark.NewClient(appID, secret)
+	var results []*larkbitable.AppTable
+	var pageToken string
+	for {
+		req := larkbitable.NewListAppTableReqBuilder().
+			AppToken(appTableToken).
+			PageSize(20).
+			PageToken(pageToken).
+			Build()
+
+		// 发起请求
+		resp, err := client.Bitable.AppTable.List(context.Background(), req, larkcore.WithUserAccessToken(usserAccessToken))
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, resp.Data.Items...)
+		if !*resp.Data.HasMore {
+			break
+		}
+		pageToken = *resp.Data.PageToken
 	}
-	subIDs := []string{*sheets[0].SheetId}
-	tickits, err := f.creatExportTask(ctx, appID, secret, sheetToken, usserAccessToken, subIDs)
+	return results, nil
+}
+
+func (f *FeishuUseCase) downloadSheet(ctx context.Context, objType int, appID, secret, sheetToken, usserAccessToken, kbID string) (string, string, error) {
+	var subIDs []string
+	switch objType {
+	case 2:
+		sheets, err := f.getSheets(ctx, appID, secret, sheetToken, usserAccessToken)
+		if err != nil {
+			f.logger.Error("get sheets failed", log.Error(err))
+			return "", "", err
+		}
+		subIDs = []string{*sheets[0].SheetId}
+	case 3:
+		tables, err := f.getAppTables(ctx, appID, secret, sheetToken, usserAccessToken)
+		if err != nil {
+			f.logger.Error("get app tables failed", log.Error(err))
+			return "", "", err
+		}
+		subIDs = []string{*tables[0].TableId}
+	default:
+		return "", "", fmt.Errorf("unsupported obj type: %d", objType)
+	}
+
+	tickits, err := f.creatExportTask(ctx, objType, appID, secret, sheetToken, usserAccessToken, subIDs)
 	if err != nil {
 		f.logger.Error("export task failed", log.Error(err))
 		return "", "", err
@@ -584,14 +677,13 @@ func (f *FeishuUseCase) downloadSheet(ctx context.Context, appID, secret, sheetT
 			return nil
 		}
 
-		imgName := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), filepath.Ext(fileName))
-		buf, _ := io.ReadAll(file)
+		imgName := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), strings.ToLower(filepath.Ext(fileName)))
 		_, err = f.minioClient.PutObject(
 			ctx,
 			domain.Bucket,
 			imgName,
-			bytes.NewBuffer(buf),
-			int64(len(buf)),
+			file,
+			-1,
 			minio.PutObjectOptions{
 				ContentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 				UserMetadata: map[string]string{
@@ -624,28 +716,29 @@ func (f *FeishuUseCase) downloadSheet(ctx context.Context, appID, secret, sheetT
 	if len(successResults2) < len(res) {
 		return "", "", fmt.Errorf("some downloadExportTask failed (%d/%d succeeded)", len(successResults2), len(res))
 	}
-	info, err := getSheetInfo(ctx, appID, secret, sheetToken, usserAccessToken)
-	if err != nil {
-		f.logger.Error("get sheet info failed", log.Error(err))
-		return "", "", err
-	}
 	// 在最后部分
 	var (
 		title   string
 		content strings.Builder
 	)
-
-	// 添加调试信息
-	f.logger.Debug("Processing results",
-		log.Int("sheets_count", len(sheets)),
-		log.Int("success_results_count", len(successResults2)))
-
-	title = *info.Title
+	switch objType {
+	case 2:
+		title, err = getSheetTitle(ctx, appID, secret, sheetToken, usserAccessToken)
+		if err != nil {
+			f.logger.Error("get sheet title failed", log.Error(err))
+			return "", "", err
+		}
+	case 3:
+		title, err = getAppTitle(ctx, appID, secret, sheetToken, usserAccessToken)
+		if err != nil {
+			f.logger.Error("get app title failed", log.Error(err))
+			return "", "", err
+		}
+	}
 	if title == "" {
 		title = "未命名表格"
 	}
 	content.WriteString(fmt.Sprintf("# %s\n\n", title))
-	// content.WriteString(successResults2[0].Content)
 	for _, successResult2 := range successResults2 {
 		content.WriteString(successResult2.Content)
 	}
@@ -665,12 +758,12 @@ func (f *FeishuUseCase) getExportTask(ctx context.Context, appID, secret, ticket
 		Build()
 
 	// 发起请求
-	resp, err := client.Drive.V1.ExportTask.Get(ctx, req, larkcore.WithUserAccessToken(userAccessToken))
+	resp, err := client.Drive.ExportTask.Get(ctx, req, larkcore.WithUserAccessToken(userAccessToken))
 	if err != nil {
 		return nil, fmt.Errorf("get export task failed: %v", err)
 	}
 	if !resp.Success() {
-		return nil, fmt.Errorf("get export task failed: %s", resp.CodeError.Msg)
+		return nil, fmt.Errorf("get export task failed: %s", resp.Msg)
 	}
 
 	return &getExportTaskResp{
@@ -687,27 +780,31 @@ func (f *FeishuUseCase) downloadExportTask(ctx context.Context, appID, secret, f
 		Build()
 
 	// 发起请求
-	resp, err := client.Drive.V1.ExportTask.Download(ctx, req, larkcore.WithUserAccessToken(userAccessToken))
+	resp, err := client.Drive.ExportTask.Download(ctx, req, larkcore.WithUserAccessToken(userAccessToken))
 	// 处理错误
 	if err != nil {
-		return "", nil, fmt.Errorf("下载文件失败: %v", err)
+		return "", nil, fmt.Errorf("download export task failed: %v", err)
 	}
 	return resp.FileName, resp.File, nil
 }
 
-func (f *FeishuUseCase) creatExportTask(ctx context.Context, appID, secret, token, userAccessToken string, subIDs []string) ([]string, error) {
+func (f *FeishuUseCase) creatExportTask(ctx context.Context, objType int, appID, secret, token, userAccessToken string, subIDs []string) ([]string, error) {
+	SheetType := "sheet"
+	if objType == 3 {
+		SheetType = "bitable"
+	}
 	client := lark.NewClient(appID, secret)
 	res := parallel.Map(subIDs, func(subID string, _ int) string {
 		req := larkdrive1.NewCreateExportTaskReqBuilder().
 			ExportTask(larkdrive1.NewExportTaskBuilder().
 				FileExtension(`xlsx`).
 				Token(token).
-				Type(`sheet`).
+				Type(SheetType).
 				SubId(subID).
 				Build()).
 			Build()
 
-		resp, err := client.Drive.V1.ExportTask.Create(ctx, req, larkcore.WithUserAccessToken(userAccessToken))
+		resp, err := client.Drive.ExportTask.Create(ctx, req, larkcore.WithUserAccessToken(userAccessToken))
 		if err != nil {
 			return ""
 		}
@@ -733,17 +830,16 @@ func (f *FeishuUseCase) getSheets(ctx context.Context, appID, secret, sheetToken
 		Build()
 
 	// 发起请求
-	resp, err := client.Sheets.V3.SpreadsheetSheet.Query(ctx, req, larkcore.WithUserAccessToken(userAccessToken))
+	resp, err := client.Sheets.SpreadsheetSheet.Query(ctx, req, larkcore.WithUserAccessToken(userAccessToken))
 	// 处理错误
 	if err != nil {
 		f.logger.Error("get sheets failed", log.Error(err))
 		return nil, fmt.Errorf("get sheets failed: %v", err)
 	}
-
 	// 服务端错误处理
 	if !resp.Success() {
 		f.logger.Error("get sheets failed", log.String("logId", resp.RequestId()), log.String("error", larkcore.Prettify(resp.CodeError)))
-		return nil, fmt.Errorf("get sheets failed: %s", resp.CodeError.Msg)
+		return nil, fmt.Errorf("get sheets failed: %s", resp.Msg)
 	}
 	return resp.Data.Sheets, nil
 }

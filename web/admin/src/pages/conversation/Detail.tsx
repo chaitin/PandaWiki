@@ -2,10 +2,10 @@ import { ChatConversationPair, ConversationDetail, getConversationDetail } from 
 import Avatar from "@/components/Avatar"
 import Card from "@/components/Card"
 import MarkDown from "@/components/MarkDown"
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import { Accordion, AccordionDetails, AccordionSummary, Box, Stack, useTheme } from "@mui/material"
 import { Ellipsis, Icon, Modal } from "ct-mui"
 import { useEffect, useState } from "react"
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 
 
@@ -19,15 +19,40 @@ const Detail = ({ id, open, onClose }: { id: string, open: boolean, onClose: () 
       setDetail(res)
       const pairs: ChatConversationPair[] = [];
       let currentPair: Partial<ChatConversationPair> = {};
+
       res.messages.forEach((message) => {
         if (message.role === 'user') {
-          currentPair.user = message.content;
+          if (currentPair.user) {
+            pairs.push({
+              user: currentPair.user,
+              assistant: '',
+              created_at: '',
+              info: { score: 0 }
+            } as ChatConversationPair);
+          }
+          currentPair = {
+            user: message.content,
+          };
         } else if (message.role === 'assistant') {
-          currentPair.assistant = message.content;
-          pairs.push(currentPair as ChatConversationPair);
-          currentPair = {};
+          if (currentPair.user) {
+            currentPair.assistant = message.content;
+            currentPair.created_at = message.created_at;
+            currentPair.info = message.info;
+            pairs.push(currentPair as ChatConversationPair);
+            currentPair = {};
+          }
         }
       });
+
+      if (currentPair.user) {
+        pairs.push({
+          user: currentPair.user,
+          assistant: '',
+          created_at: '',
+          info: { score: 0 }
+        } as ChatConversationPair);
+      }
+
       setConversations(pairs)
     })
   }
@@ -78,23 +103,25 @@ const Detail = ({ id, open, onClose }: { id: string, open: boolean, onClose: () 
           ))}
         </Card>
       </>}
-        <Stack gap={2}>
-          {conversations && conversations.map((item, index) => (
-            <Accordion key={index} defaultExpanded={true}>
+      <Stack gap={2}>
+        {conversations && conversations.map((item, index) => (
+          <Box key={index}>
+            <Accordion defaultExpanded={true}>
               <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ fontSize: 24 }} />} sx={{
                 userSelect: 'text',
                 backgroundColor: 'background.paper2',
                 fontSize: '18px',
                 fontWeight: 'bold',
               }}>
-                  {item.user}
+                {item.user}
               </AccordionSummary>
               <AccordionDetails>
-                <MarkDown content={item.assistant} />
+                <MarkDown content={item.assistant || '未查询到回答内容'} />
               </AccordionDetails>
             </Accordion>
-          ))}
-        </Stack>
+          </Box>
+        ))}
+      </Stack>
     </Box> : <Box></Box>}
   </Modal>
 }

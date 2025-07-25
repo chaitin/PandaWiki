@@ -27,6 +27,8 @@ func NewConversationHandler(echo *echo.Echo, baseHandler *handler.BaseHandler, l
 	group := echo.Group("/api/v1/conversation", handler.auth.Authorize)
 	group.GET("", handler.GetConversationList)
 	group.GET("/detail", handler.GetConversationDetail)
+	group.GET("/message/list", handler.GetMessageFeedBackList)
+	group.GET("/message/detail", handler.GetMessageDetail)
 
 	return handler
 }
@@ -82,4 +84,49 @@ func (h *ConversationHandler) GetConversationDetail(c echo.Context) error {
 	}
 
 	return h.NewResponseWithData(c, conversation)
+}
+
+// GetMessageFeedBackList GetMessageFeedBackList
+//
+//	@Summary		GetMessageFeedBackList
+//	@Description	GetMessageFeedBackList
+//	@Tags			Message
+//	@Accept			json
+//	@Produce		json
+//	@Param			req	query		domain.MessageListReq																true	"message list request"
+//
+//	@Success		200	{object}	domain.Response{data=domain.PaginatedResult[[]domain.ConversationMessageListItem]}	"MessageList"
+//	@Router			/api/v1/conversation/message/list [get]
+func (h *ConversationHandler) GetMessageFeedBackList(c echo.Context) error {
+	var request domain.MessageListReq
+	if err := c.Bind(&request); err != nil {
+		return h.NewResponseWithError(c, "invalid request", err)
+	}
+	h.logger.Info("GetMessageFeedBackList request", log.Any("request", request))
+	ctx := c.Request().Context()
+	messages, err := h.usecase.GetMessageList(ctx, &request)
+	if err != nil {
+		return h.NewResponseWithError(c, "failed to get message list", err)
+	}
+	return h.NewResponseWithData(c, messages)
+}
+
+// GetMessageDetail get message detail
+//
+//	@Summary		Get message detail
+//	@Description	Get message detail
+//	@Tags			Message
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	query		string	true	"message id"
+//	@Success		200	{object}	domain.Response{data=domain.ConversationMessage}
+//	@Router			/api/v1/conversation/message/detail [get]
+func (h *ConversationHandler) GetMessageDetail(c echo.Context) error {
+	messageID := c.QueryParam("id")
+	message, err := h.usecase.GetMessageDetail(c.Request().Context(), messageID)
+	if err != nil {
+		return h.NewResponseWithError(c, "failed to get message detail", err)
+	}
+
+	return h.NewResponseWithData(c, message)
 }

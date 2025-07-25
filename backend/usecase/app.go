@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/chaitin/panda-wiki/config"
@@ -103,7 +104,15 @@ func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.GetQAFun
 		if err != nil {
 			return nil, err
 		}
+		kb, err := u.chatUsecase.llmUsecase.kbRepo.GetKnowledgeBaseByID(ctx, kbID)
+		if err != nil {
+			u.logger.Error("wechat GetKnowledgeBaseByID failed", log.Error(err))
+		}
 		contentCh := make(chan string, 10)
+		var feedback = "\n\n---  \n\n本答案由 PandaWiki 生成  \n[👍 满意](%s) | [👎 不满意](%s)"
+		var likeUrl = "%s/feedback?score=1&message_id=%s"
+		var dislikeUrl = "%s/feedback?score=-1&message_id=%s"
+		var messageId string
 		go func() {
 			defer close(contentCh)
 			for event := range eventCh {
@@ -113,7 +122,16 @@ func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.GetQAFun
 				if event.Type == "data" {
 					contentCh <- event.Content
 				}
+				if event.Type == "message_id" {
+					messageId = event.Content
+				}
 			}
+
+			// contact
+			like := fmt.Sprintf(likeUrl, kb.AccessSettings.BaseURL, messageId)
+			dislike := fmt.Sprintf(dislikeUrl, kb.AccessSettings.BaseURL, messageId)
+			feedback_data := fmt.Sprintf(feedback, like, dislike)
+			contentCh <- feedback_data
 		}()
 		return contentCh, nil
 	}
@@ -137,7 +155,15 @@ func (u *AppUsecase) wechatQAFunc(kbID string, appType domain.AppType, remoteip 
 		if err != nil {
 			return nil, err
 		}
+		kb, err := u.chatUsecase.llmUsecase.kbRepo.GetKnowledgeBaseByID(ctx, kbID)
+		if err != nil {
+			u.logger.Error("wechat GetKnowledgeBaseByID failed", log.Error(err))
+		}
 		contentCh := make(chan string, 10)
+		var feedback = "\n\n---  \n\n此回答结果对您有帮助吗?  \n[👍 满意](%s) | [👎 不满意](%s)"
+		var likeUrl = "%s/feedback?score=1&message_id=%s"
+		var dislikeUrl = "%s/feedback?score=-1&message_id=%s"
+		var messageId string
 		go func() {
 			defer close(contentCh)
 			for event := range eventCh { // get content from eventch
@@ -147,7 +173,16 @@ func (u *AppUsecase) wechatQAFunc(kbID string, appType domain.AppType, remoteip 
 				if event.Type == "data" {
 					contentCh <- event.Content
 				}
+				if event.Type == "message_id" {
+					messageId = event.Content
+				}
 			}
+
+			// contact
+			like := fmt.Sprintf(likeUrl, kb.AccessSettings.BaseURL, messageId)
+			dislike := fmt.Sprintf(dislikeUrl, kb.AccessSettings.BaseURL, messageId)
+			feedback_data := fmt.Sprintf(feedback, like, dislike)
+			contentCh <- feedback_data
 		}()
 		return contentCh, nil
 	}
@@ -164,7 +199,7 @@ func (u *AppUsecase) updateFeishuBot(app *domain.App) {
 		}
 	}
 
-	if app.Settings.FeishuBotAppID == "" || app.Settings.FeishuBotAppSecret == "" {
+	if (app.Settings.FeishuBotIsEnabled != nil && !*app.Settings.FeishuBotIsEnabled) || app.Settings.FeishuBotAppID == "" || app.Settings.FeishuBotAppSecret == "" {
 		return
 	}
 
@@ -204,7 +239,7 @@ func (u *AppUsecase) updateDingTalkBot(app *domain.App) {
 		}
 	}
 
-	if app.Settings.DingTalkBotClientID == "" || app.Settings.DingTalkBotClientSecret == "" {
+	if (app.Settings.DingTalkBotIsEnabled != nil && !*app.Settings.DingTalkBotIsEnabled) || app.Settings.DingTalkBotClientID == "" || app.Settings.DingTalkBotClientSecret == "" {
 		return
 	}
 
@@ -244,12 +279,14 @@ func (u *AppUsecase) updateDisCordBot(app *domain.App) {
 
 	if bot, exists := u.discordBots[app.ID]; exists {
 		if bot != nil {
-			bot.Stop()
+			if err := bot.Stop(); err != nil {
+				u.logger.Error("failed to stop discord bot", log.Error(err))
+			}
 			delete(u.discordBots, app.ID)
 		}
 	}
-	token := app.Settings.DisCordBotToken
-	if token == "" {
+	token := app.Settings.DiscordBotToken
+	if (app.Settings.DiscordBotIsEnabled != nil && !*app.Settings.DiscordBotIsEnabled) || token == "" {
 		return
 	}
 
@@ -301,27 +338,36 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		HeadCode:           app.Settings.HeadCode,
 		BodyCode:           app.Settings.BodyCode,
 		// DingTalkBot
+		DingTalkBotIsEnabled:    app.Settings.DingTalkBotIsEnabled,
 		DingTalkBotClientID:     app.Settings.DingTalkBotClientID,
 		DingTalkBotClientSecret: app.Settings.DingTalkBotClientSecret,
 		DingTalkBotTemplateID:   app.Settings.DingTalkBotTemplateID,
 		// FeishuBot
+		FeishuBotIsEnabled: app.Settings.FeishuBotIsEnabled,
 		FeishuBotAppID:     app.Settings.FeishuBotAppID,
 		FeishuBotAppSecret: app.Settings.FeishuBotAppSecret,
-
 		// WechatBot
+		WeChatAppIsEnabled:      app.Settings.WeChatAppIsEnabled,
 		WeChatAppToken:          app.Settings.WeChatAppToken,
 		WeChatAppCorpID:         app.Settings.WeChatAppCorpID,
 		WeChatAppEncodingAESKey: app.Settings.WeChatAppEncodingAESKey,
 		WeChatAppSecret:         app.Settings.WeChatAppSecret,
 		WeChatAppAgentID:        app.Settings.WeChatAppAgentID,
-
 		// WechatServiceBot
+		WeChatServiceIsEnabled:      app.Settings.WeChatServiceIsEnabled,
 		WeChatServiceToken:          app.Settings.WeChatServiceToken,
 		WeChatServiceEncodingAESKey: app.Settings.WeChatServiceEncodingAESKey,
 		WeChatServiceCorpID:         app.Settings.WeChatServiceCorpID,
 		WeChatServiceSecret:         app.Settings.WeChatServiceSecret,
-
-		DisCordBotToken: app.Settings.DisCordBotToken,
+		// Discord
+		DiscordBotIsEnabled: app.Settings.DiscordBotIsEnabled,
+		DiscordBotToken:     app.Settings.DiscordBotToken,
+		// WechatOfficialAccount
+		WechatOfficialAccountIsEnabled:      app.Settings.WechatOfficialAccountIsEnabled,
+		WechatOfficialAccountAppID:          app.Settings.WechatOfficialAccountAppID,
+		WechatOfficialAccountAppSecret:      app.Settings.WechatOfficialAccountAppSecret,
+		WechatOfficialAccountToken:          app.Settings.WechatOfficialAccountToken,
+		WechatOfficialAccountEncodingAESKey: app.Settings.WechatOfficialAccountEncodingAESKey,
 		// theme
 		ThemeMode:     app.Settings.ThemeMode,
 		ThemeAndStyle: app.Settings.ThemeAndStyle,
@@ -331,6 +377,8 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		FooterSettings: app.Settings.FooterSettings,
 		// widget bot settings
 		WidgetBotSettings: app.Settings.WidgetBotSettings,
+		// webapp comment settings
+		WebAppCommentSettings: app.Settings.WebAppCommentSettings,
 	}
 	if len(app.Settings.RecommendNodeIDs) > 0 {
 		nodes, err := u.nodeUsecase.GetRecommendNodeList(ctx, &domain.GetRecommendNodeListReq{
@@ -372,6 +420,8 @@ func (u *AppUsecase) GetWebAppInfo(ctx context.Context, kbID string) (*domain.Ap
 			CatalogSettings: app.Settings.CatalogSettings,
 			// footer settings
 			FooterSettings: app.Settings.FooterSettings,
+			// widget bot settings
+			WebAppCommentSettings: app.Settings.WebAppCommentSettings,
 		},
 	}
 	if len(app.Settings.RecommendNodeIDs) > 0 {

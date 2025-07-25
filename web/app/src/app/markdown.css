@@ -49,7 +49,7 @@
   --color-primary-main: #6E73FE;
 
   /* 代码块颜色 */
-  --code-bg: #fffff;
+  --code-bg: #ffffff;
   --code-color: #21222D;
   --inline-code-bg: #fff5f5;
   --inline-code-color: #ff502c;
@@ -106,7 +106,7 @@
   --color-primary-main: #6E73FE;
 
   /* 代码块颜色 - 暗色主题 */
-  --code-bg: #202531;
+  --code-bg: #141923;
   --code-color: #FFFFFF;
   --inline-code-bg: rgba(255, 255, 255, 0.1);
   --inline-code-color: #ff7b72;

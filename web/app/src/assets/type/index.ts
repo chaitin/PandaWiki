@@ -151,3 +151,11 @@ export interface ITreeItem {
   status?: 1 | 2
   visibility?: 1 | 2
 }
+
+export interface ConversationItem {
+  q: string
+  a: string
+  score: number
+  update_time: string
+  message_id: string
+}

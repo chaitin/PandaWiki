@@ -45,7 +45,7 @@ func createApp() (*App, error) {
 		return nil, err
 	}
 	knowledgeBaseRepository := pg2.NewKnowledgeBaseRepository(db, configConfig, logger, ragService)
-	conversationRepository := pg2.NewConversationRepository(db)
+	conversationRepository := pg2.NewConversationRepository(db, logger)
 	modelRepository := pg2.NewModelRepository(db, logger)
 	llmUsecase := usecase.NewLLMUsecase(configConfig, ragService, conversationRepository, knowledgeBaseRepository, nodeRepository, modelRepository, logger)
 	minioClient, err := s3.NewMinioClient(configConfig)

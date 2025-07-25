@@ -48,7 +48,7 @@ type AccessToken struct {
 	ExpiresIn   int    `json:"expires_in"`
 }
 
-type Msgrequest struct {
+type MsgRequest struct {
 	Cursor      string `json:"cursor"`
 	Token       string `json:"token"`
 	Limit       int    `json:"limit"`
@@ -93,13 +93,13 @@ type ReplyMsg struct {
 	} `json:"text,omitempty"`
 }
 
-type TokenCahe struct {
+type TokenCache struct {
 	AccessToken string
 	TokenExpire time.Time
 	Mutex       sync.Mutex
 }
 
-var TokenCache *TokenCahe = &TokenCahe{}
+var tokenCache *TokenCache = &TokenCache{}
 
 // 获取用户消息应该得到的响应
 type WechatCustomerResponse struct {
@@ -215,25 +215,40 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 	// 重新获取token，之后发送消息给用户
 	token, _ := cfg.GetAccessToken()
 
-	// // 会话状态改变
-	// //1. 检查会话的状态
-	// cfg.logger.Info("openkf_id, external_userid", log.Any("open_kfid", openkfId), log.Any("external_userid", extrenaluserid))
+	state, err := CheckSessionState(token, userId, openkfId)
+	if err != nil {
+		cfg.logger.Error("check session state failed", log.Error(err))
+		return err
+	}
+	if state == 3 { // 人工状态 ---已经是人工，那么就不要需要发消息给用户
+		cfg.logger.Info("the customer has already in human service")
+		return nil
+	}
 
-	// state, err := CheckSessionState(token, extrenaluserid, openkfId)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// cfg.logger.Info("目前的会话的状态为:", log.Any("state", state))
-
-	// if state != 1 {
-	// 	// 将状态修改为智能助手，1，之后再把消息发给用户
-	// 	err := ChangeState(token, extrenaluserid, openkfId)
-	// 	if err != nil {
-	// 		cfg.logger.Info("change state to 机器人 failed")
-	// 		return err
-	// 	}
-	// }
+	if content == "转人工" || content == "人工客服" {
+		// 改变状态为人工接待
+		// 非人工 ->转人工
+		humanList, err := cfg.GetKfHumanList(token, openkfId)
+		if err != nil {
+			cfg.logger.Error("get human list failed", log.Error(err))
+			return err
+		}
+		// 遍历找到可以接待的员工
+		for _, servicer := range humanList.ServicerList {
+			if servicer.Status == 0 { // 可以接待
+				err := ChangeState(token, userId, openkfId, 3, servicer.UserID)
+				if err != nil {
+					cfg.logger.Error("change state to human failed", log.Error(err))
+					return err
+				}
+				cfg.logger.Info("change state to human successful") // 转人工成功
+				return nil
+			}
+		}
+		// 失败
+		cfg.logger.Info("no human available")
+		return cfg.SendResponseToKf(userId, openkfId, "当前没有可用的人工客服", token)
+	}
 
 	// 获取用户的详细信息
 	customer, err := GetUserInfo(userId, token)
@@ -258,8 +273,11 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 	for v := range wccontent {
 		response += v
 	}
+	response = MarkdowntoText(response)
+	return cfg.SendResponseToKf(userId, openkfId, response, token)
+}
 
-	response = MardowntoText(response)
+func (cfg *WechatServiceConfig) SendResponseToKf(userId string, openkfId string, response string, token string) error {
 	// 将问题答案发给用户
 	reply := ReplyMsg{
 		Touser:   userId,
@@ -311,12 +329,12 @@ func (cfg *WechatServiceConfig) Processmessage(msgRet *MsgRet, Kfmsg *WeixinUser
 }
 
 func (cfg *WechatServiceConfig) GetAccessToken() (string, error) {
-	TokenCache.Mutex.Lock()
-	defer TokenCache.Mutex.Unlock()
+	tokenCache.Mutex.Lock()
+	defer tokenCache.Mutex.Unlock()
 
-	if TokenCache.AccessToken != "" && time.Now().Before(TokenCache.TokenExpire) {
+	if tokenCache.AccessToken != "" && time.Now().Before(tokenCache.TokenExpire) {
 		cfg.logger.Info("access token has existed and is valid")
-		return TokenCache.AccessToken, nil
+		return tokenCache.AccessToken, nil
 	}
 
 	if cfg.Secret == "" || cfg.CorpID == "" {
@@ -342,13 +360,13 @@ func (cfg *WechatServiceConfig) GetAccessToken() (string, error) {
 		return "", errors.New("get wechat access token failed")
 	}
 
-	// succcess
+	// success
 	cfg.logger.Info("wechatservice get accesstoken success", log.Any("info", tokenResp.AccessToken))
 
-	TokenCache.AccessToken = tokenResp.AccessToken
-	TokenCache.TokenExpire = time.Now().Add(time.Duration(tokenResp.ExpiresIn-300) * time.Second)
+	tokenCache.AccessToken = tokenResp.AccessToken
+	tokenCache.TokenExpire = time.Now().Add(time.Duration(tokenResp.ExpiresIn-300) * time.Second)
 
-	return TokenCache.AccessToken, nil
+	return tokenCache.AccessToken, nil
 }
 
 // 解析微信客服消息
@@ -365,7 +383,7 @@ func getMsgs(accessToken string, msg *WeixinUserAskMsg) (*MsgRet, error) {
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/sync_msg?access_token=%s", accessToken)
 	cursor := getCursor(msg.OpenKfId)
 
-	var msgBody Msgrequest = Msgrequest{
+	msgBody := MsgRequest{
 		OpenKfid:    msg.OpenKfId,
 		Token:       msg.Token,
 		Limit:       1000,
@@ -386,7 +404,9 @@ func getMsgs(accessToken string, msg *WeixinUserAskMsg) (*MsgRet, error) {
 		return nil, err
 	}
 	// 反序列化之后
-	json.Unmarshal([]byte(string(body)), &msgRet)
+	if err := json.Unmarshal([]byte(string(body)), &msgRet); err != nil {
+		return nil, err
+	}
 	return &msgRet, nil
 }
 
@@ -410,7 +430,7 @@ func CheckSessionState(token, extrenaluserid, kfId string) (int, error) {
 		return 0, err
 	}
 	// 获取状态信息
-	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/service_state/get?access_token=%s&debug=1", token)
+	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/service_state/get?access_token=%s", token)
 	resp, _ := http.Post(url, "application/json", bytes.NewBuffer(jsonBody))
 
 	// 读取响应体
@@ -431,17 +451,17 @@ func CheckSessionState(token, extrenaluserid, kfId string) (int, error) {
 	return response.ServiceState, nil
 }
 
-func ChangeState(token, extrenaluserid, kfId string) error {
+func ChangeState(token, extrenaluserId, kfId string, state int, serviceId string) error {
 	var changestate struct {
 		OpenKfId       string `json:"open_kfid"`
 		ExternalUserid string `json:"external_userid"`
 		ServiceState   int    `json:"service_state"`
-		ServiceUserId  string `json:"service_userid"`
+		ServicerUserId string `json:"servicer_userid"`
 	}
 	changestate.OpenKfId = kfId
-	changestate.ExternalUserid = extrenaluserid
-	changestate.ServiceState = 1
-
+	changestate.ExternalUserid = extrenaluserId
+	changestate.ServiceState = state
+	changestate.ServicerUserId = serviceId
 	jsonBody, err := json.Marshal(changestate)
 	if err != nil {
 		return err
@@ -473,14 +493,14 @@ func ChangeState(token, extrenaluserid, kfId string) error {
 }
 
 func GetUserInfo(userid string, accessToken string) (*Customer, error) {
-	var uerinforequest UerInfoRequest = UerInfoRequest{
+	userInfoRequest := UerInfoRequest{
 		UserID:         []string{userid},
 		SessionContext: 0,
 	}
 	// 请求获取用户信息的url
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/customer/batchget?access_token=%s", accessToken)
 
-	jsonBody, err := json.Marshal(uerinforequest)
+	jsonBody, err := json.Marshal(userInfoRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -510,7 +530,7 @@ func GetUserInfo(userid string, accessToken string) (*Customer, error) {
 }
 
 // markdowntotext
-func MardowntoText(md string) string {
+func MarkdowntoText(md string) string {
 	md = regexp.MustCompile(`(?m)^#+\s*(.*)$`).ReplaceAllString(md, "$1")
 	md = regexp.MustCompile(`\*\*([^*]+)\*\*`).ReplaceAllString(md, "$1")
 	md = regexp.MustCompile(`(?m)^>\s*(.*)$`).ReplaceAllString(md, "【引用】$1")
@@ -520,4 +540,37 @@ func MardowntoText(md string) string {
 	md = regexp.MustCompile(`\[(\d+)\]\.\s*\[([^\]]+)\]\([^)]+\)`).ReplaceAllString(md, "[$1]. $2")
 	md = regexp.MustCompile(`(?m)^【引用】\[(\d+)\].\s*([^\n(]+)\s*\([^)]+\)`).ReplaceAllString(md, "【引用】[$1]. $2")
 	return strings.TrimSpace(md)
+}
+
+type HumanList struct {
+	ErrCode      int            `json:"errcode"`
+	ErrMsg       string         `json:"errmsg"`
+	ServicerList []ServicerList `json:"servicer_list"`
+}
+
+type ServicerList struct {
+	UserID string `json:"userid"`
+	Status int    `json:"status"`
+}
+
+func (cfg *WechatServiceConfig) GetKfHumanList(token string, KfId string) (*HumanList, error) {
+	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/kf/servicer/list?access_token=%s&open_kfid=%s", token, KfId)
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var servicerResp HumanList
+	if err := json.Unmarshal(body, &servicerResp); err != nil {
+		return nil, err
+	}
+	if servicerResp.ErrCode != 0 {
+		return nil, fmt.Errorf("获取客服列表失败: %d, %s", servicerResp.ErrCode, servicerResp.ErrMsg)
+	}
+
+	return &servicerResp, nil
 }

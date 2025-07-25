@@ -1,15 +1,21 @@
 import { KnowledgeBaseListItem } from "@/api"
+import { useURLSearchParams } from "@/hooks"
 import { useAppDispatch, useAppSelector } from "@/store"
 import { setKbC, setKbId } from "@/store/slices/config"
 import custom from '@/themes/custom'
 import { Box, Button, IconButton, MenuItem, Select, Stack } from "@mui/material"
 import { Ellipsis, Icon, Message } from "ct-mui"
 import { useState } from "react"
+import { useLocation } from "react-router-dom"
 import KBDelete from "./KBDelete"
 
 const KBSelect = () => {
+  const location = useLocation()
+  const resetPagination = location.pathname.includes('/conversation')
+
   const dispatch = useAppDispatch()
-  const { kb_id, kbList } = useAppSelector(state => state.config)
+  const [_, setSearchParams] = useURLSearchParams()
+  const { kb_id, kbList, license } = useAppSelector(state => state.config)
 
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [opraData, setOpraData] = useState<KnowledgeBaseListItem | null>(null)
@@ -43,6 +49,7 @@ const KBSelect = () => {
       onChange={(e) => {
         if (e.target.value === kb_id || !e.target.value) return
         dispatch(setKbId(e.target.value as string))
+        if (resetPagination) setSearchParams({ page: '1', pageSize: '20' })
         Message.success('切换成功')
       }}
       IconComponent={({ className, ...rest }) => {
@@ -89,11 +96,11 @@ const KBSelect = () => {
         '&:hover': {
           bgcolor: custom.selectedMenuItemBgColor,
         }
-      }} fullWidth disabled={kbList.length > 0} onClick={(event) => {
+      }} fullWidth disabled={(license.edition === 0 && kbList.length >= 1) || (license.edition === 1 && kbList.length >= 3)} onClick={(event) => {
         event.stopPropagation()
         dispatch(setKbC(true))
       }}
-      >创建新知识库（暂不支持）</Button>
+      >创建新知识库</Button>
       {kbList.map(item => <MenuItem key={item.id} value={item.id} sx={{
         '&:hover .hover-del-space-icon': { display: 'block' }
       }}>

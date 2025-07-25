@@ -21,14 +21,16 @@ type BaseHandler struct {
 	baseLogger          *log.Logger
 	config              *config.Config
 	ShareAuthMiddleware *middleware.ShareAuthMiddleware
+	V1Auth              middleware.AuthMiddleware
 }
 
-func NewBaseHandler(echo *echo.Echo, logger *log.Logger, config *config.Config, shareAuthMiddleware *middleware.ShareAuthMiddleware) *BaseHandler {
+func NewBaseHandler(echo *echo.Echo, logger *log.Logger, config *config.Config, v1Auth middleware.AuthMiddleware, shareAuthMiddleware *middleware.ShareAuthMiddleware) *BaseHandler {
 	return &BaseHandler{
 		Router:              echo,
 		baseLogger:          logger.WithModule("http_base_handler"),
 		config:              config,
 		ShareAuthMiddleware: shareAuthMiddleware,
+		V1Auth:              v1Auth,
 	}
 }
 

@@ -127,6 +127,97 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/comment": {
+            "get": {
+                "description": "GetCommentList",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comment"
+                ],
+                "summary": "GetCommentList",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "kb_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "name": "per_page",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "conversationList",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.CommentLists"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/comment/list": {
+            "delete": {
+                "description": "DeleteCommentList",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "comment"
+                ],
+                "summary": "DeleteCommentList",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "name": "ids",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "total",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/conversation": {
             "get": {
                 "description": "get conversation list",
@@ -189,7 +280,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/handler_v1.ConversationListItems"
+                                            "$ref": "#/definitions/v1.ConversationListItems"
                                         }
                                     }
                                 }
@@ -241,6 +332,107 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/domain.ConversationDetailResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/conversation/message/detail": {
+            "get": {
+                "description": "Get message detail",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Message"
+                ],
+                "summary": "Get message detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "message id",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.ConversationMessage"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/conversation/message/list": {
+            "get": {
+                "description": "GetMessageFeedBackList",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Message"
+                ],
+                "summary": "GetMessageFeedBackList",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "kb_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "name": "page",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "minimum": 1,
+                        "type": "integer",
+                        "name": "per_page",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "MessageList",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.PaginatedResult-array_domain_ConversationMessageListItem"
                                         }
                                     }
                                 }
@@ -1397,7 +1589,8 @@ const docTemplate = `{
                             "BaiZhiCloud",
                             "Hunyuan",
                             "BaiLian",
-                            "Volcengine"
+                            "Volcengine",
+                            "Gemini"
                         ],
                         "type": "string",
                         "name": "provider",
@@ -1782,6 +1975,101 @@ const docTemplate = `{
                                             "type": "array",
                                             "items": {
                                                 "$ref": "#/definitions/domain.RecommendNodeListResp"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/node/release/detail": {
+            "get": {
+                "description": "Get Node Release Detail",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "node"
+                ],
+                "summary": "Get Node Release Detail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.GetNodeReleaseDetailResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/node/release/list": {
+            "get": {
+                "description": "Get Node Release List",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "node"
+                ],
+                "summary": "Get Node Release List",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "kb_id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "node_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/domain.NodeReleaseListItem"
                                             }
                                         }
                                     }
@@ -2340,6 +2628,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/share/v1/chat/feedback": {
+            "post": {
+                "description": "Process user feedback for chat conversations",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "share_chat"
+                ],
+                "summary": "Handle chat feedback",
+                "parameters": [
+                    {
+                        "description": "feedback request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.FeedbackRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/share/v1/chat/message": {
             "post": {
                 "description": "ChatMessage",
@@ -2417,6 +2739,96 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/domain.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/share/v1/comment": {
+            "post": {
+                "description": "CreateComment",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "share_comment"
+                ],
+                "summary": "CreateComment",
+                "parameters": [
+                    {
+                        "description": "Comment",
+                        "name": "comment",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.CommentReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CommentID",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/share/v1/comment/list": {
+            "get": {
+                "description": "GetCommentList",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "share_comment"
+                ],
+                "summary": "GetCommentList",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "nodeID",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "CommentList",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/share.ShareCommentLists"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -2636,25 +3048,34 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "dingtalk_bot_client_id": {
-                    "description": "DingTalkBot",
                     "type": "string"
                 },
                 "dingtalk_bot_client_secret": {
                     "type": "string"
                 },
+                "dingtalk_bot_is_enabled": {
+                    "description": "DingTalkBot",
+                    "type": "boolean"
+                },
                 "dingtalk_bot_template_id": {
                     "type": "string"
                 },
-                "discord_bot_token": {
+                "discord_bot_is_enabled": {
                     "description": "DisCordBot",
+                    "type": "boolean"
+                },
+                "discord_bot_token": {
                     "type": "string"
                 },
                 "feishu_bot_app_id": {
-                    "description": "FeishuBot",
                     "type": "string"
                 },
                 "feishu_bot_app_secret": {
                     "type": "string"
+                },
+                "feishu_bot_is_enabled": {
+                    "description": "FeishuBot",
+                    "type": "boolean"
                 },
                 "footer_settings": {
                     "description": "footer settings",
@@ -2700,6 +3121,14 @@ const docTemplate = `{
                     "description": "nav",
                     "type": "string"
                 },
+                "web_app_comment_settings": {
+                    "description": "webapp comment settings",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.WebAppCommentSettings"
+                        }
+                    ]
+                },
                 "wechat_app_agent_id": {
                     "type": "string"
                 },
@@ -2709,11 +3138,30 @@ const docTemplate = `{
                 "wechat_app_encodingaeskey": {
                     "type": "string"
                 },
+                "wechat_app_is_enabled": {
+                    "description": "WechatAppBot",
+                    "type": "boolean"
+                },
                 "wechat_app_secret": {
                     "type": "string"
                 },
                 "wechat_app_token": {
-                    "description": "WechatAppBot",
+                    "type": "string"
+                },
+                "wechat_official_account_app_id": {
+                    "type": "string"
+                },
+                "wechat_official_account_app_secret": {
+                    "type": "string"
+                },
+                "wechat_official_account_encodingaeskey": {
+                    "type": "string"
+                },
+                "wechat_official_account_is_enabled": {
+                    "description": "WechatOfficialAccount",
+                    "type": "boolean"
+                },
+                "wechat_official_account_token": {
                     "type": "string"
                 },
                 "wechat_service_corpid": {
@@ -2722,11 +3170,14 @@ const docTemplate = `{
                 "wechat_service_encodingaeskey": {
                     "type": "string"
                 },
+                "wechat_service_is_enabled": {
+                    "description": "WechatServiceBot",
+                    "type": "boolean"
+                },
                 "wechat_service_secret": {
                     "type": "string"
                 },
                 "wechat_service_token": {
-                    "description": "WechatServiceBot",
                     "type": "string"
                 },
                 "welcome_str": {
@@ -2769,25 +3220,34 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "dingtalk_bot_client_id": {
-                    "description": "DingTalkBot",
                     "type": "string"
                 },
                 "dingtalk_bot_client_secret": {
                     "type": "string"
                 },
+                "dingtalk_bot_is_enabled": {
+                    "description": "DingTalkBot",
+                    "type": "boolean"
+                },
                 "dingtalk_bot_template_id": {
                     "type": "string"
                 },
-                "discord_bot_token": {
+                "discord_bot_is_enabled": {
                     "description": "DisCordBot",
+                    "type": "boolean"
+                },
+                "discord_bot_token": {
                     "type": "string"
                 },
                 "feishu_bot_app_id": {
-                    "description": "FeishuBot",
                     "type": "string"
                 },
                 "feishu_bot_app_secret": {
                     "type": "string"
+                },
+                "feishu_bot_is_enabled": {
+                    "description": "FeishuBot",
+                    "type": "boolean"
                 },
                 "footer_settings": {
                     "description": "footer settings",
@@ -2833,6 +3293,14 @@ const docTemplate = `{
                     "description": "nav",
                     "type": "string"
                 },
+                "web_app_comment_settings": {
+                    "description": "webapp comment settings",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.WebAppCommentSettings"
+                        }
+                    ]
+                },
                 "wechat_app_agent_id": {
                     "type": "string"
                 },
@@ -2842,11 +3310,30 @@ const docTemplate = `{
                 "wechat_app_encodingaeskey": {
                     "type": "string"
                 },
+                "wechat_app_is_enabled": {
+                    "description": "WechatAppBot",
+                    "type": "boolean"
+                },
                 "wechat_app_secret": {
                     "type": "string"
                 },
                 "wechat_app_token": {
-                    "description": "WechatAppBot",
+                    "type": "string"
+                },
+                "wechat_official_account_app_id": {
+                    "type": "string"
+                },
+                "wechat_official_account_app_secret": {
+                    "type": "string"
+                },
+                "wechat_official_account_encodingaeskey": {
+                    "type": "string"
+                },
+                "wechat_official_account_is_enabled": {
+                    "description": "WechatOfficialAccount",
+                    "type": "boolean"
+                },
+                "wechat_official_account_token": {
                     "type": "string"
                 },
                 "wechat_service_corpid": {
@@ -2855,11 +3342,14 @@ const docTemplate = `{
                 "wechat_service_encodingaeskey": {
                     "type": "string"
                 },
+                "wechat_service_is_enabled": {
+                    "description": "WechatServiceBot",
+                    "type": "boolean"
+                },
                 "wechat_service_secret": {
                     "type": "string"
                 },
                 "wechat_service_token": {
-                    "description": "WechatServiceBot",
                     "type": "string"
                 },
                 "welcome_str": {
@@ -2885,7 +3375,8 @@ const docTemplate = `{
                 4,
                 5,
                 6,
-                7
+                7,
+                8
             ],
             "x-enum-varnames": [
                 "AppTypeWeb",
@@ -2894,7 +3385,8 @@ const docTemplate = `{
                 "AppTypeFeishuBot",
                 "AppTypeWechatBot",
                 "AppTypeWechatServiceBot",
-                "AppTypeDisCordBot"
+                "AppTypeDisCordBot",
+                "AppTypeWechatOfficialAccount"
             ]
         },
         "domain.BatchMoveReq": {
@@ -3015,7 +3507,8 @@ const docTemplate = `{
                         "BaiZhiCloud",
                         "Hunyuan",
                         "BaiLian",
-                        "Volcengine"
+                        "Volcengine",
+                        "Gemini"
                     ],
                     "allOf": [
                         {
@@ -3044,6 +3537,79 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.CommentInfo": {
+            "type": "object",
+            "properties": {
+                "remote_ip": {
+                    "type": "string"
+                },
+                "user_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.CommentListItem": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "info": {
+                    "$ref": "#/definitions/domain.CommentInfo"
+                },
+                "ip_address": {
+                    "description": "ip地址",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.IPAddress"
+                        }
+                    ]
+                },
+                "node_id": {
+                    "type": "string"
+                },
+                "node_name": {
+                    "description": "文档标题",
+                    "type": "string"
+                },
+                "node_type": {
+                    "type": "integer"
+                },
+                "root_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.CommentReq": {
+            "type": "object",
+            "required": [
+                "content",
+                "node_id"
+            ],
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "node_id": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "root_id": {
+                    "type": "string"
+                },
+                "user_name": {
                     "type": "string"
                 }
             }
@@ -3103,6 +3669,14 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "feedback_info": {
+                    "description": "用户反馈信息",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.FeedBackInfo"
+                        }
+                    ]
+                },
                 "id": {
                     "type": "string"
                 },
@@ -3146,7 +3720,22 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "info": {
+                    "description": "feedbackinfo",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.FeedBackInfo"
+                        }
+                    ]
+                },
+                "kb_id": {
+                    "type": "string"
+                },
                 "model": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "description": "parent_id",
                     "type": "string"
                 },
                 "prompt_tokens": {
@@ -3169,6 +3758,52 @@ const docTemplate = `{
                 },
                 "total_tokens": {
                     "type": "integer"
+                }
+            }
+        },
+        "domain.ConversationMessageListItem": {
+            "type": "object",
+            "properties": {
+                "app_id": {
+                    "type": "string"
+                },
+                "app_type": {
+                    "$ref": "#/definitions/domain.AppType"
+                },
+                "conversation_id": {
+                    "type": "string"
+                },
+                "conversation_info": {
+                    "description": "userInfo",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.ConversationInfo"
+                        }
+                    ]
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "info": {
+                    "description": "feedbackInfo",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.FeedBackInfo"
+                        }
+                    ]
+                },
+                "ip_address": {
+                    "$ref": "#/definitions/domain.IPAddress"
+                },
+                "question": {
+                    "type": "string"
+                },
+                "remote_ip": {
+                    "description": "stats",
+                    "type": "string"
                 }
             }
         },
@@ -3290,7 +3925,8 @@ const docTemplate = `{
                         "BaiZhiCloud",
                         "Hunyuan",
                         "BaiLian",
-                        "Volcengine"
+                        "Volcengine",
+                        "Gemini"
                     ],
                     "allOf": [
                         {
@@ -3388,6 +4024,68 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "domain.FeedBackInfo": {
+            "type": "object",
+            "properties": {
+                "feedback_content": {
+                    "type": "string"
+                },
+                "feedback_type": {
+                    "$ref": "#/definitions/domain.FeedbackType"
+                },
+                "score": {
+                    "$ref": "#/definitions/domain.ScoreType"
+                }
+            }
+        },
+        "domain.FeedbackRequest": {
+            "type": "object",
+            "required": [
+                "message_id"
+            ],
+            "properties": {
+                "conversation_id": {
+                    "type": "string"
+                },
+                "feedback_content": {
+                    "description": "限制内容长度",
+                    "type": "string",
+                    "maxLength": 200
+                },
+                "message_id": {
+                    "type": "string"
+                },
+                "score": {
+                    "description": "-1 踩 ,0 1 赞成",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.ScoreType"
+                        }
+                    ]
+                },
+                "type": {
+                    "description": "1 内容不准确，2 没有帮助，3 其他",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.FeedbackType"
+                        }
+                    ]
+                }
+            }
+        },
+        "domain.FeedbackType": {
+            "type": "integer",
+            "enum": [
+                1,
+                2,
+                3
+            ],
+            "x-enum-varnames": [
+                "ContentErr",
+                "NoHelp",
+                "Other"
+            ]
         },
         "domain.FooterSettings": {
             "type": "object",
@@ -3487,6 +4185,20 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "domain.GetNodeReleaseDetailResp": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "meta": {
+                    "$ref": "#/definitions/domain.NodeMeta"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },
@@ -3751,6 +4463,7 @@ const docTemplate = `{
                 "Hunyuan",
                 "BaiLian",
                 "Volcengine",
+                "Gemini",
                 "Other"
             ],
             "x-enum-varnames": [
@@ -3764,6 +4477,7 @@ const docTemplate = `{
                 "ModelProviderBrandHunyuan",
                 "ModelProviderBrandBaiLian",
                 "ModelProviderBrandVolcengine",
+                "ModelProviderBrandGemini",
                 "ModelProviderBrandOther"
             ]
         },
@@ -3914,6 +4628,36 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.NodeReleaseListItem": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "meta": {
+                    "$ref": "#/definitions/domain.NodeMeta"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "node_id": {
+                    "type": "string"
+                },
+                "release_id": {
+                    "description": "release",
+                    "type": "string"
+                },
+                "release_message": {
+                    "type": "string"
+                },
+                "release_name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.NodeStatus": {
             "type": "integer",
             "enum": [
@@ -4009,6 +4753,20 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
+                }
+            }
+        },
+        "domain.PaginatedResult-array_domain_ConversationMessageListItem": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ConversationMessageListItem"
+                    }
+                },
+                "total": {
+                    "type": "integer"
                 }
             }
         },
@@ -4119,6 +4877,17 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.ScoreType": {
+            "type": "integer",
+            "enum": [
+                1,
+                -1
+            ],
+            "x-enum-varnames": [
+                "Like",
+                "DisLike"
+            ]
+        },
         "domain.ScrapeReq": {
             "type": "object",
             "required": [
@@ -4211,6 +4980,43 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ShareCommentListItem": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "info": {
+                    "$ref": "#/definitions/domain.CommentInfo"
+                },
+                "ip_address": {
+                    "description": "ip地址",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.IPAddress"
+                        }
+                    ]
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "node_id": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "root_id": {
                     "type": "string"
                 }
             }
@@ -4371,7 +5177,8 @@ const docTemplate = `{
                         "BaiZhiCloud",
                         "Hunyuan",
                         "BaiLian",
-                        "Volcengine"
+                        "Volcengine",
+                        "Gemini"
                     ],
                     "allOf": [
                         {
@@ -4478,6 +5285,17 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.WebAppCommentSettings": {
+            "type": "object",
+            "properties": {
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "moderation_enable": {
+                    "type": "boolean"
+                }
+            }
+        },
         "domain.WidgetBotSettings": {
             "type": "object",
             "properties": {
@@ -4509,20 +5327,6 @@ const docTemplate = `{
                 }
             }
         },
-        "handler_v1.ConversationListItems": {
-            "type": "object",
-            "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/domain.ConversationListItem"
-                    }
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
         "schema.RoleType": {
             "type": "string",
             "enum": [
@@ -4537,6 +5341,48 @@ const docTemplate = `{
                 "System",
                 "Tool"
             ]
+        },
+        "share.ShareCommentLists": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ShareCommentListItem"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "v1.CommentLists": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.CommentListItem"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "v1.ConversationListItems": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ConversationListItem"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
         }
     }
 }`

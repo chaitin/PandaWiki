@@ -8,10 +8,9 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"slices"
+	"strings"
 	"time"
-
-	"github.com/cloudwego/eino/schema"
-	"github.com/google/uuid"
 
 	"github.com/chaitin/panda-wiki/config"
 	"github.com/chaitin/panda-wiki/domain"
@@ -20,6 +19,10 @@ import (
 	"github.com/chaitin/panda-wiki/repo/pg"
 	"github.com/chaitin/panda-wiki/store/rag"
 	"github.com/chaitin/panda-wiki/utils"
+	"github.com/cloudwego/eino/schema"
+	"github.com/google/generative-ai-go/genai"
+	"github.com/google/uuid"
+	"google.golang.org/api/option"
 )
 
 type ModelUsecase struct {
@@ -212,6 +215,43 @@ func (u *ModelUsecase) GetUserModelList(ctx context.Context, req *domain.GetProv
 		return &domain.GetProviderModelListResp{
 			Models: domain.ModelProviderBrandModelsList[domain.ModelProvider(req.Provider)],
 		}, nil
+	case domain.ModelProviderBrandGemini:
+		client, err := genai.NewClient(ctx, option.WithAPIKey(req.APIKey))
+		if err != nil {
+			return nil, err
+		}
+		defer client.Close()
+
+		modelsList := make([]domain.ProviderModelListItem, 0)
+		modelsIter := client.ListModels(ctx)
+		for {
+			model, err := modelsIter.Next()
+			if err != nil {
+				break
+			}
+
+			if !slices.Contains(model.SupportedGenerationMethods, "generateContent") {
+				continue
+			}
+
+			if !strings.Contains(model.Name, "gemini") {
+				continue
+			}
+
+			name, _ := strings.CutPrefix(model.Name, "models/")
+			modelsList = append(modelsList, domain.ProviderModelListItem{
+				Model: name,
+			})
+		}
+
+		if len(modelsList) == 0 {
+			return nil, fmt.Errorf("failed to get gemini models")
+		}
+
+		return &domain.GetProviderModelListResp{
+			Models: modelsList,
+		}, nil
+
 	case domain.ModelProviderBrandOpenAI, domain.ModelProviderBrandHunyuan, domain.ModelProviderBrandBaiLian:
 		u, err := url.Parse(req.BaseURL)
 		if err != nil {

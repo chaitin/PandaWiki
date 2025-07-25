@@ -36,7 +36,7 @@ type Client struct {
 }
 
 // NewClient creates a new telemetry client
-func NewClient(logger *log.Logger, repo *pg.KnowledgeBaseRepository) *Client {
+func NewClient(logger *log.Logger, repo *pg.KnowledgeBaseRepository) (*Client, error) {
 	baseURL := "https://baizhi.cloud/api/public/data/report"
 	client := &Client{
 		baseURL: baseURL,
@@ -50,7 +50,12 @@ func NewClient(logger *log.Logger, repo *pg.KnowledgeBaseRepository) *Client {
 	}
 
 	// get or create machine ID
-	client.machineID = client.getOrCreateMachineID()
+	machineID, err := client.getOrCreateMachineID()
+	if err != nil {
+		logger.Error("failed to get or create machine ID", log.Error(err))
+		return nil, fmt.Errorf("failed to get or create machine ID: %w", err)
+	}
+	client.machineID = machineID
 
 	// report immediately on startup
 	if err := client.reportInstallation(); err != nil {
@@ -60,32 +65,79 @@ func NewClient(logger *log.Logger, repo *pg.KnowledgeBaseRepository) *Client {
 	// start periodic report
 	go client.startPeriodicReport()
 
-	return client
+	return client, nil
 }
 
-// getOrCreateMachineID 获取或创建机器ID
-func (c *Client) getOrCreateMachineID() string {
-	// try to read from file
+func (c *Client) GetMachineID() string {
+	return c.machineID
+}
+
+func (c *Client) getOrCreateMachineID() (string, error) {
+	// get machine id from file
 	if id, err := os.ReadFile(machineIDFile); err == nil {
 		c.firstReport = false
-		return strings.TrimSpace(string(id))
+		return strings.TrimSpace(string(id)), nil
+	} else if !os.IsNotExist(err) {
+		return "", fmt.Errorf("failed to read machine ID file: %w", err)
 	}
 
-	// try to get hardware ID
+	// ensure dir is exists
+	dir := filepath.Dir(machineIDFile)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", fmt.Errorf("failed to create machine ID directory: %w", err)
+	}
+
+	// create lock file to prevent concurrent access
+	lockFile := machineIDFile + ".lock"
+	lock, err := os.OpenFile(lockFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+	if err != nil {
+		if os.IsExist(err) {
+			// if lock file already exists, wait and try again
+			c.logger.Info("lock file already exists, waiting and trying again")
+			time.Sleep(100 * time.Millisecond)
+			return c.getOrCreateMachineID()
+		}
+		return "", fmt.Errorf("failed to create lock file: %w", err)
+	}
+	defer func() {
+		if err := lock.Close(); err != nil {
+			c.logger.Error("failed to close lock file", log.Error(err))
+		}
+		if err := os.Remove(lockFile); err != nil {
+			c.logger.Error("failed to remove lock file", log.Error(err))
+		}
+	}()
+
+	if id, err := os.ReadFile(machineIDFile); err == nil {
+		c.firstReport = false
+		return strings.TrimSpace(string(id)), nil
+	}
+
+	// generate unique ID based on hardware information
 	id := c.getHardwareID()
 	if id == "" {
-		// if get hardware ID failed, generate random ID
+		// if no hardware information available, use UUID as fallback
 		id = uuid.New().String()
 	}
 
-	// ensure directory exists
-	dir := filepath.Dir(machineIDFile)
-	if err := os.MkdirAll(dir, 0o755); err == nil {
-		// write to file
-		os.WriteFile(machineIDFile, []byte(id), 0o644)
+	// write machine ID to file and ensure data is written to disk
+	if err := os.WriteFile(machineIDFile, []byte(id), 0o644); err != nil {
+		return "", fmt.Errorf("failed to write machine ID file: %w", err)
 	}
 
-	return id
+	// sync file to ensure data is written to disk
+	if file, err := os.OpenFile(machineIDFile, os.O_RDWR, 0o644); err == nil {
+		if err := file.Sync(); err != nil {
+			if err := file.Close(); err != nil {
+				c.logger.Error("failed to close machine ID file after write", log.Error(err))
+			}
+			return "", fmt.Errorf("failed to sync machine ID file: %w", err)
+		}
+		if err := file.Close(); err != nil {
+			c.logger.Error("failed to close machine ID file after sync", log.Error(err))
+		}
+	}
+	return id, nil
 }
 
 // getHardwareID generates a unique ID based on hardware information
@@ -95,8 +147,7 @@ func (c *Client) getHardwareID() string {
 	// get CPU information
 	if cpuInfo, err := os.ReadFile("/proc/cpuinfo"); err == nil {
 		// extract CPU model
-		lines := strings.Split(string(cpuInfo), "\n")
-		for _, line := range lines {
+		for line := range strings.SplitSeq(string(cpuInfo), "\n") {
 			if strings.HasPrefix(line, "model name") {
 				parts := strings.Split(line, ":")
 				if len(parts) > 1 {

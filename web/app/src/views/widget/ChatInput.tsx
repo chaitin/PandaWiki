@@ -57,6 +57,9 @@ const ChatInput = ({
           height: '52px !important',
           borderRadius: 0,
           transition: 'all 0.5s ease-in-out',
+          '&::placeholder': {
+            fontSize: 14,
+          },
           '&::-webkit-scrollbar': {
             display: 'none'
           },

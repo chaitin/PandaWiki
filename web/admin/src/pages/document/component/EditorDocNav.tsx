@@ -14,7 +14,7 @@ const HeadingSx = [
   { fontSize: 14, fontWeight: 400, color: 'text.disabled' },
 ]
 
-const EditorDocNav = ({ title, headers }: EditorDocNavProps) => {
+const EditorDocNav = ({ headers }: EditorDocNavProps) => {
   const levels = Array.from(new Set(headers.map(it => it.heading).sort((a, b) => a - b))).slice(0, 3)
   const [activeId, setActiveId] = useState<string>('')
 

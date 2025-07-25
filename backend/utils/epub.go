@@ -8,8 +8,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 
@@ -33,7 +33,7 @@ type EpubConverter struct {
 	// id -> relative path
 	resourcesIdMap map[string]Item
 	// relative path -> id
-	relavitePath map[string]string
+	relativePath map[string]string
 }
 
 func NewEpubConverter(logger *log.Logger, minio *s3.MinioClient) *EpubConverter {
@@ -42,12 +42,17 @@ func NewEpubConverter(logger *log.Logger, minio *s3.MinioClient) *EpubConverter 
 		minioClient:    minio,
 		resources:      make(map[string]string),
 		resourcesIdMap: make(map[string]Item),
-		relavitePath:   make(map[string]string),
+		relativePath:   make(map[string]string),
 	}
 }
 
-func (e *EpubConverter) Convert(ctx context.Context, kbID string, data []byte) (string, []byte, error) {
-	zipReader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+func (e *EpubConverter) Convert(ctx context.Context, kbID string, data *multipart.FileHeader) (string, []byte, error) {
+	reader, err := data.Open()
+	if err != nil {
+		return "", nil, err
+	}
+	defer reader.Close()
+	zipReader, err := zip.NewReader(reader, data.Size)
 	if err != nil {
 		return "", nil, err
 	}
@@ -63,10 +68,10 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data []byte) (
 
 	for _, item := range p.Manifest.Items {
 		e.resourcesIdMap[item.ID] = item
-		e.relavitePath[item.Href] = item.ID
+		e.relativePath[item.Href] = item.ID
 	}
 
-	// reslove resource file
+	// resolve resource file
 	if err := e.uploadFile(ctx, kbID, zipReader); err != nil {
 		return "", nil, err
 	}
@@ -116,11 +121,12 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data []byte) (
 	result := bytes.NewBuffer(nil)
 	for _, href := range p.Guide.References {
 		if r, ok := res[clearFileName(href.Href)]; ok {
-			io.Copy(result, r)
+			if _, err := io.Copy(result, r); err != nil {
+				return "", nil, err
+			}
 			result.WriteString("\n\n")
 		}
 	}
-	// 写目录
 	result.WriteString("# 目录\n\n")
 	for _, v := range toc {
 		fmt.Fprintf(result, "- [%s](#%s)\n", v["title"], v["playOrder"])
@@ -134,11 +140,13 @@ func (e *EpubConverter) Convert(ctx context.Context, kbID string, data []byte) (
 		e.logger.Debug("add File", "file name", clearFileName(e.resourcesIdMap[itemRef.IDRef].Href))
 		if r, ok := res[clearFileName(e.resourcesIdMap[itemRef.IDRef].Href)]; ok {
 			result.WriteString("<span id=" + title + "></span>\n\n")
-			io.Copy(result, r)
+			if _, err := io.Copy(result, r); err != nil {
+				return "", nil, err
+			}
 			result.WriteString("\n\n")
 		}
 	}
-	str, err := e.exchangeUrl(result.String())
+	str, err := e.exchangeUrl(ctx, result.String())
 	return p.Metadata.Title, str, err
 }
 
@@ -196,7 +204,6 @@ func (e *EpubConverter) processFile(ctx context.Context, f *zip.File, kbID strin
 	e.mu.Lock()
 	e.resources[f.Name] = fmt.Sprintf("/%s/%s", domain.Bucket, ossPath)
 	e.mu.Unlock()
-
 	_, err = e.minioClient.PutObject(
 		ctx,
 		domain.Bucket,
@@ -204,7 +211,7 @@ func (e *EpubConverter) processFile(ctx context.Context, f *zip.File, kbID strin
 		file,
 		f.FileInfo().Size(),
 		minio.PutObjectOptions{
-			ContentType:  e.resourcesIdMap[e.relavitePath[f.Name]].MediaType,
+			ContentType:  e.resourcesIdMap[e.relativePath[f.Name]].MediaType,
 			UserMetadata: map[string]string{"originalname": filepath.Base(f.Name)},
 		},
 	)
@@ -216,19 +223,36 @@ func isSkippableFile(name string) bool {
 	return name == "META-INF/container.xml" || name == "mimetype" || skipExts[filepath.Ext(name)]
 }
 
-func (e *EpubConverter) exchangeUrl(content string) ([]byte, error) {
-	re := regexp.MustCompile(`!\[(.*?)\]\((.*?)\)`)
-	// 替换匹配到的内容，保留捕获的 URL
-	newContent := re.ReplaceAllStringFunc(content, func(match string) string {
-		// 提取捕获的 URL
-		title := re.ReplaceAllString(match, `$1`)
-		url := re.ReplaceAllString(match, `$2`)
-		if e.resources[url] != "" {
-			return fmt.Sprintf(`![%s](%s)`, title, e.resources[url])
+func (e *EpubConverter) exchangeUrl(ctx context.Context, content string) ([]byte, error) {
+	// 将字符串转换为字节切片
+	mdContent := []byte(content)
+
+	// 定义 getUrl 函数，使用资源映射表替换 URL
+	getUrl := func(ctx context.Context, originUrl *string) (string, error) {
+		if originUrl == nil {
+			return "", fmt.Errorf("originUrl is nil")
 		}
-		return fmt.Sprintf(`![%s](%s)`, title, url)
-	})
-	return []byte(newContent), nil
+
+		// 查找资源映射
+		if newUrl, exists := e.resources[*originUrl]; exists {
+			return newUrl, nil
+		}
+
+		// 未找到映射，返回原始 URL
+		return *originUrl, nil
+	}
+
+	// 使用 ExchangeMarkDownImageUrl 处理 Markdown
+	processedContent, err := ExchangeMarkDownImageUrl(
+		ctx,
+		mdContent,
+		getUrl,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to exchange URLs: %w", err)
+	}
+
+	return []byte(processedContent), nil
 }
 
 // 获取 <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
@@ -259,7 +283,9 @@ func getFullPath(zipReader *zip.Reader) (string, error) {
 			defer r.Close()
 			de := xml.NewDecoder(r)
 			var c Container
-			de.Decode(&c)
+			if err := de.Decode(&c); err != nil {
+				return "", fmt.Errorf("failed to decode container.xml: %w", err)
+			}
 			if c.Rootfiles.Rootfile[0].FullPath == "" {
 				return "", errors.New("full-path not found in container.xml")
 			}
@@ -278,7 +304,9 @@ func valid(zipReader *zip.Reader) error {
 			}
 			defer r.Close()
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			if _, err := buf.ReadFrom(r); err != nil {
+				return fmt.Errorf("failed to read mimetype: %w", err)
+			}
 			if buf.String() != "application/epub+zip" {
 				return errors.New("invalid mimetype")
 			}
@@ -346,7 +374,9 @@ func getOpf(zipReader *zip.Reader) (*Package, error) {
 			defer r.Close()
 			var p Package
 			de := xml.NewDecoder(r)
-			de.Decode(&p)
+			if err := de.Decode(&p); err != nil {
+				return nil, fmt.Errorf("解码OPF文件失败: %v", err)
+			}
 			return &p, nil
 		}
 	}

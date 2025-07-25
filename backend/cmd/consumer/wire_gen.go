@@ -39,7 +39,7 @@ func createApp() (*App, error) {
 	}
 	nodeRepository := pg2.NewNodeRepository(db, logger)
 	knowledgeBaseRepository := pg2.NewKnowledgeBaseRepository(db, configConfig, logger, ragService)
-	conversationRepository := pg2.NewConversationRepository(db)
+	conversationRepository := pg2.NewConversationRepository(db, logger)
 	modelRepository := pg2.NewModelRepository(db, logger)
 	llmUsecase := usecase.NewLLMUsecase(configConfig, ragService, conversationRepository, knowledgeBaseRepository, nodeRepository, modelRepository, logger)
 	ragmqHandler, err := mq2.NewRAGMQHandler(mqConsumer, logger, ragService, nodeRepository, knowledgeBaseRepository, llmUsecase, modelRepository)

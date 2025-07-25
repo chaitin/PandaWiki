@@ -2,7 +2,7 @@
 
 import { NodeListItem } from "@/assets/type"
 import { IconArrowDown, IconNav } from "@/components/icons"
-import { convertToTree } from '@/utils/drag'
+import { convertToTree, filterEmptyFolders } from '@/utils/drag'
 import { Box, Stack } from "@mui/material"
 import { useEffect, useState } from "react"
 import CatalogFolder from './CatalogFolder'
@@ -13,7 +13,7 @@ const CatalogH5 = ({
   nodes: NodeListItem[]
 }) => {
   const [open, setOpen] = useState(false)
-  const tree = convertToTree(nodes)
+  const tree = filterEmptyFolders(convertToTree(nodes))
 
   useEffect(() => {
     if (open) {

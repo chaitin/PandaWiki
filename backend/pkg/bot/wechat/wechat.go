@@ -85,13 +85,13 @@ type AccessToken struct {
 	ExpiresIn   int    `json:"expires_in"`
 }
 
-type TokenCahe struct {
+type TokenCache struct {
 	AccessToken string
 	TokenExpire time.Time
 	Mutex       sync.Mutex
 }
 
-var TokenCache *TokenCahe = &TokenCahe{}
+var tokenCache *TokenCache = &TokenCache{}
 
 func NewWechatConfig(ctx context.Context, CorpID, Token, EncodingAESKey string, kbid string, secret string, againtid string, logger *log.Logger) (*WechatConfig, error) {
 	return &WechatConfig{
@@ -129,13 +129,11 @@ func (cfg *WechatConfig) Wechat(msg ReceivedMessage, getQA func(ctx context.Cont
 	if err != nil {
 		return err
 	}
-
 	err = cfg.Processmessage(msg, getQA, token)
 	if err != nil {
 		cfg.logger.Error("send to ai failed!", log.Error(err))
 		return err
 	}
-
 	return nil
 }
 
@@ -152,9 +150,21 @@ func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx cont
 	for v := range wccontent {
 		response += v
 	}
+	Errcode, Errmsg, err := cfg.SendResponseToUser(response, msg.FromUserName, token)
+	if err != nil {
+		return err
+	}
+	if Errcode != 0 {
+		return fmt.Errorf("wechat Api failed : %s (code: %d)", Errmsg, Errcode)
+	}
+	return nil
+}
+
+// SendResponseToUser
+func (cfg *WechatConfig) SendResponseToUser(response string, touser string, token string) (int, string, error) {
 
 	msgData := map[string]interface{}{
-		"touser":  msg.FromUserName,
+		"touser":  touser,
 		"msgtype": "markdown",
 		"agentid": cfg.AgentID,
 		"markdown": map[string]string{
@@ -164,14 +174,14 @@ func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx cont
 
 	jsonData, err := json.Marshal(msgData)
 	if err != nil {
-		return fmt.Errorf("json Marshal failed: %w", err)
+		return 0, "", err
 	}
 
 	url := fmt.Sprintf("https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=%s", token)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 
 	if err != nil {
-		return fmt.Errorf("post to we failed: %w", err)
+		return 0, "", err
 	}
 	defer resp.Body.Close()
 
@@ -181,16 +191,10 @@ func (cfg *WechatConfig) Processmessage(msg ReceivedMessage, GetQA func(ctx cont
 		Errcode int    `json:"errcode"`
 		Errmsg  string `json:"errmsg"`
 	}
-
 	if err := json.Unmarshal(body, &result); err != nil {
-		return fmt.Errorf("json Unmarshal failed: %w", err)
+		return 0, "", err
 	}
-
-	if result.Errcode != 0 {
-		return fmt.Errorf("wechat Api fialed! : %s (code: %d)", result.Errmsg, result.Errcode)
-	}
-
-	return nil
+	return result.Errcode, result.Errmsg, nil
 }
 
 // SendResponse
@@ -213,7 +217,7 @@ func (cfg *WechatConfig) SendResponse(msg ReceivedMessage, content string) ([]by
 
 	wxcpt := wxbizmsgcrypt.NewWXBizMsgCrypt(cfg.Token, cfg.EncodingAESKey, cfg.CorpID, wxbizmsgcrypt.XmlType)
 
-	// responese
+	// response
 	var encryptMsg []byte
 	encryptMsg, errCode := wxcpt.EncryptMsg(string(responseXML), "", "")
 	if errCode != nil {
@@ -224,12 +228,12 @@ func (cfg *WechatConfig) SendResponse(msg ReceivedMessage, content string) ([]by
 }
 
 func (cfg *WechatConfig) GetAccessToken() (string, error) {
-	TokenCache.Mutex.Lock()
-	defer TokenCache.Mutex.Unlock()
+	tokenCache.Mutex.Lock()
+	defer tokenCache.Mutex.Unlock()
 
-	if TokenCache.AccessToken != "" && time.Now().Before(TokenCache.TokenExpire) {
+	if tokenCache.AccessToken != "" && time.Now().Before(tokenCache.TokenExpire) {
 		cfg.logger.Info("access token has existed and is valid")
-		return TokenCache.AccessToken, nil
+		return tokenCache.AccessToken, nil
 	}
 
 	if cfg.Secret == "" || cfg.CorpID == "" {
@@ -255,13 +259,13 @@ func (cfg *WechatConfig) GetAccessToken() (string, error) {
 		return "", errors.New("get wechat access token failed")
 	}
 
-	// succcess
+	// success
 	cfg.logger.Info("wechatapp get accesstoken success", log.Any("info", tokenResp.AccessToken))
 
-	TokenCache.AccessToken = tokenResp.AccessToken
-	TokenCache.TokenExpire = time.Now().Add(time.Duration(tokenResp.ExpiresIn-300) * time.Second)
+	tokenCache.AccessToken = tokenResp.AccessToken
+	tokenCache.TokenExpire = time.Now().Add(time.Duration(tokenResp.ExpiresIn-300) * time.Second)
 
-	return TokenCache.AccessToken, nil
+	return tokenCache.AccessToken, nil
 }
 
 func (cfg *WechatConfig) GetUserInfo(username string) (*UserInfo, error) {
@@ -296,4 +300,10 @@ func (cfg *WechatConfig) GetUserInfo(username string) (*UserInfo, error) {
 	}
 
 	return &userInfo, nil
+}
+
+func (cfg *WechatConfig) UnmarshalMsg(decryptMsg []byte) (*ReceivedMessage, error) {
+	var msg ReceivedMessage
+	err := xml.Unmarshal([]byte(decryptMsg), &msg)
+	return &msg, err
 }

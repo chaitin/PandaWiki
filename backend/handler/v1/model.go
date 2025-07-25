@@ -100,6 +100,13 @@ func (h *ModelHandler) CreateModel(c echo.Context) error {
 	if err := c.Validate(&req); err != nil {
 		return h.NewResponseWithError(c, "invalid request", err)
 	}
+	edition := 0
+	if editionVal := c.Get("edition"); editionVal != nil {
+		edition = editionVal.(int)
+	}
+	if edition == 1 && req.Provider != domain.ModelProviderBrandBaiZhiCloud {
+		return h.NewResponseWithError(c, "联创版只能使用百智云模型哦~", nil)
+	}
 	ctx := c.Request().Context()
 	model := &domain.Model{
 		ID:         uuid.New().String(),
@@ -133,6 +140,13 @@ func (h *ModelHandler) UpdateModel(c echo.Context) error {
 	}
 	if err := c.Validate(&req); err != nil {
 		return h.NewResponseWithError(c, "invalid request", err)
+	}
+	edition := 0
+	if editionVal := c.Get("edition"); editionVal != nil {
+		edition = editionVal.(int)
+	}
+	if edition == 1 && req.Provider != domain.ModelProviderBrandBaiZhiCloud {
+		return h.NewResponseWithError(c, "联创版只能使用百智云模型哦~", nil)
 	}
 	ctx := c.Request().Context()
 	if err := h.usecase.Update(ctx, &req); err != nil {

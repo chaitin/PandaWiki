@@ -1,7 +1,5 @@
 import { KnowledgeBaseListItem } from "@/api"
-import ShowText from "@/components/ShowText"
-import { Box, Button, FormControl, FormControlLabel, Radio, RadioGroup, Stack, TextField } from "@mui/material"
-import { set } from "lodash"
+import { Box, Button, FormControl, FormControlLabel, Link, Radio, RadioGroup, Stack, TextField } from "@mui/material"
 import { useEffect, useState } from "react"
 
 const CardRobotApi = ({ kb }: { kb: KnowledgeBaseListItem }) => {
@@ -28,6 +26,20 @@ const CardRobotApi = ({ kb }: { kb: KnowledgeBaseListItem }) => {
           mr: 1,
         },
       }}>问答机器人 API（敬请期待） </Box>
+      <Box sx={{ flexGrow: 1, ml: 1 }}>
+        <Link
+          component='a' 
+          href='https://pandawiki.docs.baizhi.cloud/node/01971b60-100e-7b23-9385-e36763df5c0a' 
+          target="_blank"
+          sx={{
+            fontSize: 14,
+            textDecoration: 'none',
+            fontWeight: 'normal',
+            '&:hover': {
+              fontWeight: 'bold',
+            }
+          }}>使用方法</Link>
+      </Box>
       {isEdit && <Button variant="contained" size="small" disabled={true}>保存</Button>}
     </Stack>
     <Stack gap={2} sx={{ mx: 2}}>
@@ -44,8 +56,8 @@ const CardRobotApi = ({ kb }: { kb: KnowledgeBaseListItem }) => {
             }}
           >
             <Stack direction={'row'}>
-              <FormControlLabel value={true} control={<Radio size='small' />} label="启用" />
-              <FormControlLabel value={false} control={<Radio size='small' />} label="禁用" />
+              <FormControlLabel value={true} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>启用</Box>} />
+              <FormControlLabel value={false} control={<Radio size='small' />} label={<Box sx={{ width: 100 }}>禁用</Box>} />
             </Stack>
           </RadioGroup>
         </FormControl>
