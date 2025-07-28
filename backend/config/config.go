@@ -172,6 +172,26 @@ func overrideWithEnv(c *Config) {
 	if env := os.Getenv("SUBNET_PREFIX"); env != "" {
 		c.SubnetPrefix = env
 	}
+	// pg
+	if env := os.Getenv("PG_DSN"); env != "" {
+		c.PG.DSN = env
+	}
+	// nats
+	if env := os.Getenv("MQ_NATS_SERVER"); env != "" {
+		c.MQ.NATS.Server = env
+	}
+	// rag
+	if env := os.Getenv("RAG_CT_RAG_BASE_URL"); env != "" {
+		c.RAG.CTRAG.BaseURL = env
+	}
+	// redis
+	if env := os.Getenv("REDIS_ADDR"); env != "" {
+		c.Redis.Addr = env
+	}
+	// s3
+	if env := os.Getenv("S3_ENDPOINT"); env != "" {
+		c.S3.Endpoint = env
+	}
 }
 
 func (*Config) GetString(key string) string {

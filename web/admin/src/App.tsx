@@ -8,9 +8,9 @@ import { Box } from "@mui/material";
 import { ThemeProvider } from "ct-mui";
 import { useEffect } from "react";
 import { useLocation, useRoutes } from "react-router-dom";
-import { getUser } from "./api";
+import { getLicenseInfo, getUser } from "./api";
 import KBCreate from "./components/KB/KBCreate";
-import { setUser } from "./store/slices/config";
+import { setLicense, setUser } from "./store/slices/config";
 
 function App() {
   const location = useLocation()
@@ -31,6 +31,14 @@ function App() {
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname])
+
+  useEffect(() => {
+    if (token) {
+      getLicenseInfo().then(res => {
+        dispatch(setLicense(res))
+      })
+    }
+  }, [token])
 
   if (!token && !onlyAllowShareApi) {
     window.location.href = '/login'

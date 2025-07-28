@@ -37,7 +37,7 @@ func (d *DiscordClient) Start() error {
 	if err != nil {
 		return fmt.Errorf("failed to open Discord connection: %v", err)
 	}
-	d.dg.AddHandler(d.handerMessage)
+	d.dg.AddHandler(d.handleMessage)
 	return nil
 }
 
@@ -45,13 +45,13 @@ func (d *DiscordClient) Stop() error {
 	return d.dg.Close()
 }
 
-func (d *DiscordClient) handerMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
+func (d *DiscordClient) handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
 	// 判断群聊单聊
 	d.logger.Debug("接收到消息", log.String("消息内容", m.Content))
-	d.logger.Debug("接收到消息", log.String("ChnnelID", m.ChannelID))
+	d.logger.Debug("接收到消息", log.String("ChannelID", m.ChannelID))
 	d.logger.Debug("接收到消息", log.String("GuildID", m.GuildID))
 	// 只接收@ bot 的消息
 	preFix := fmt.Sprintf("<@%s>", s.State.User.ID)

@@ -2,41 +2,44 @@ package usecase
 
 import (
 	"archive/zip"
-	"bytes"
 	"compress/gzip"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/minio/minio-go/v7"
 	"golang.org/x/sync/semaphore"
 
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
-	"github.com/chaitin/panda-wiki/store/s3"
 	"github.com/chaitin/panda-wiki/utils"
 )
 
 type WikiJSUsecase struct {
 	logger      *log.Logger
-	minioClient *s3.MinioClient
+	fileusecase *FileUsecase
 }
 
-func NewWikiJSUsecase(logger *log.Logger, minioClient *s3.MinioClient) *WikiJSUsecase {
+func NewWikiJSUsecase(logger *log.Logger, fileusecase *FileUsecase) *WikiJSUsecase {
 	return &WikiJSUsecase{
 		logger:      logger.WithModule("usecase.wikiJSUsecase"),
-		minioClient: minioClient,
+		fileusecase: fileusecase,
 	}
 }
 
-func (u *WikiJSUsecase) AnalysisExportFile(ctx context.Context, data []byte, kbID string) (*[]domain.WikiJSResp, error) {
-	zipReader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+func (u *WikiJSUsecase) AnalysisExportFile(ctx context.Context, fileHeader *multipart.FileHeader, kbID string) (*[]domain.WikiJSResp, error) {
+	reader, err := fileHeader.Open()
+	if err != nil {
+		return nil, fmt.Errorf("open file failed: %v", err)
+	}
+	defer reader.Close()
+	zipReader, err := zip.NewReader(reader, fileHeader.Size)
 	if err != nil {
 		return nil, err
 	}
@@ -82,27 +85,7 @@ func (u *WikiJSUsecase) AnalysisExportFile(ctx context.Context, data []byte, kbI
 				return
 			}
 			defer file.Close()
-			filedata, err := io.ReadAll(file)
-			if err != nil {
-				errCh <- fmt.Errorf("read file failed: %v", err)
-				return
-			}
-			if len(filedata) == 0 {
-				return
-			}
-
-			_, err = u.minioClient.PutObject(
-				ctx,
-				domain.Bucket,
-				imgName,
-				bytes.NewReader(filedata),
-				int64(len(filedata)),
-				minio.PutObjectOptions{
-					UserMetadata: map[string]string{
-						"originalname": name,
-					},
-				},
-			)
+			_, err = u.fileusecase.UploadFileFromReader(ctx, kbID, imgName, file, int64(f.UncompressedSize64))
 			if err != nil {
 				errCh <- fmt.Errorf("upload file failed: %v", err)
 				return

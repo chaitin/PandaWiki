@@ -164,7 +164,7 @@
 
   function handleTouchMove(e) {
     if (!isDragging) return;
-    e.preventDefault();
+    e.preventDefault()
     const touch = e.touches[0];
     drag({ clientX: touch.clientX, clientY: touch.clientY });
   }
@@ -282,7 +282,10 @@
 
   // 开始拖拽
   function startDrag(e) {
-    e.preventDefault();
+    if (e.preventDefault) {
+      e.preventDefault()
+    };
+
     isDragging = true;
 
     const rect = widgetButton.getBoundingClientRect();
@@ -308,7 +311,9 @@
   function drag(e) {
     if (!isDragging) return;
 
-    e.preventDefault();
+    if (e.preventDefault) {
+      e.preventDefault()
+    };
 
     const clientY = e.clientY || (e.touches && e.touches[0].clientY);
     const newTop = clientY - dragOffset.y;

@@ -7,6 +7,7 @@ interface SSEClientOptions {
   headers?: Record<string, string>;
   onOpen?: SSECompleteCallback;
   onError?: SSEErrorCallback;
+  onCancel?: SSEErrorCallback;
   onComplete?: SSECompleteCallback;
 }
 
@@ -117,7 +118,7 @@ class SSEClient<T> {
     if (this.reader) {
       this.reader.cancel();
     }
-    this.options.onComplete?.();
+    this.options.onCancel?.(new Error('Request canceled'));
   }
 }
 

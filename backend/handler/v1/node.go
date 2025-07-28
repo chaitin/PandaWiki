@@ -44,6 +44,10 @@ func NewNodeHandler(
 
 	group.GET("/recommend_nodes", h.RecommendNodes)
 
+	// node release
+	group.GET("/release/list", h.GetNodeReleaseList)
+	group.GET("/release/detail", h.GetNodeReleaseDetail)
+
 	return h
 }
 
@@ -64,6 +68,10 @@ func (h *NodeHandler) CreateNode(c echo.Context) error {
 	}
 	if err := c.Validate(req); err != nil {
 		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+	req.MaxNode = 300
+	if maxNode := c.Get("max_node"); maxNode != nil {
+		req.MaxNode = maxNode.(int)
 	}
 	id, err := h.usecase.Create(c.Request().Context(), req)
 	if err != nil {
@@ -280,4 +288,56 @@ func (h *NodeHandler) BatchMoveNode(c echo.Context) error {
 		return h.NewResponseWithError(c, "batch move node failed", err)
 	}
 	return h.NewResponseWithData(c, nil)
+}
+
+// GetNodeReleaseList
+//
+//	@Summary		Get Node Release List
+//	@Description	Get Node Release List
+//	@Tags			node
+//	@Accept			json
+//	@Produce		json
+//	@Param			query	query		domain.GetNodeReleaseListReq	true	"Get Node Release List"
+//	@Success		200		{object}	domain.Response{data=[]domain.NodeReleaseListItem}
+//	@Router			/api/v1/node/release/list [get]
+func (h *NodeHandler) GetNodeReleaseList(c echo.Context) error {
+	var req domain.GetNodeReleaseListReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "request params is invalid", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+	ctx := c.Request().Context()
+	releases, err := h.usecase.GetNodeReleaseListByKBIDNodeID(ctx, req.KBID, req.NodeID)
+	if err != nil {
+		return h.NewResponseWithError(c, "get node release list failed", err)
+	}
+	return h.NewResponseWithData(c, releases)
+}
+
+// GetNodeReleaseDetail
+//
+//	@Summary		Get Node Release Detail
+//	@Description	Get Node Release Detail
+//	@Tags			node
+//	@Accept			json
+//	@Produce		json
+//	@Param			query	query		domain.GetNodeReleaseDetailReq	true	"Get Node Release Detail"
+//	@Success		200		{object}	domain.Response{data=domain.GetNodeReleaseDetailResp}
+//	@Router			/api/v1/node/release/detail [get]
+func (h *NodeHandler) GetNodeReleaseDetail(c echo.Context) error {
+	var req domain.GetNodeReleaseDetailReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "request params is invalid", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+	ctx := c.Request().Context()
+	release, err := h.usecase.GetNodeReleaseDetailByID(ctx, req.ID)
+	if err != nil {
+		return h.NewResponseWithError(c, "get node release detail failed", err)
+	}
+	return h.NewResponseWithData(c, release)
 }

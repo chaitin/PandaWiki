@@ -1,0 +1,102 @@
+name: Backend Pull Request Check
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+permissions:
+  contents: read
+
+jobs:
+  golangci-lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: 'backend/go.sum'
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: v2.1
+          working-directory: backend
+          args: --timeout 5m
+
+  go-mod-check:
+    name: go mod check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: 'backend/go.sum'
+
+      - name: Check go.mod formatting
+        working-directory: backend
+        run: |
+          rm -rf cmd/api_pro
+          if ! go mod tidy --diff ; then
+            echo "::error::go.mod or go.sum is not properly formatted. Please run 'go mod tidy' locally and commit the changes."
+            exit 1
+          fi
+          if ! go mod verify ; then
+            echo "::error::go.mod or go.sum has unverified dependencies. Please run 'go mod verify' locally and commit the changes."
+            exit 1
+          fi
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [api, consumer]
+    timeout-minutes: 30
+
+    outputs:
+      version: ${{ steps.get_version.outputs.VERSION }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            if [[ $GITHUB_REF == refs/tags/backend-* ]]; then
+              echo "VERSION=${GITHUB_REF#refs/tags/backend-}" >> $GITHUB_OUTPUT
+            else
+              echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "VERSION=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: 'arm64,amd64'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile.${{ matrix.service }}
+          push: false
+          platforms: linux/amd64, linux/arm64
+          tags: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-${{ matrix.service }}:${{ steps.get_version.outputs.VERSION }}
+          build-args: |
+            VERSION=${{ steps.get_version.outputs.VERSION }}
+          cache-from: |
+            type=gha,scope=${{ matrix.service }}
+          cache-to: |
+            type=gha,scope=${{ matrix.service }},mode=max

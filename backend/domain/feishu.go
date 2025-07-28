@@ -19,6 +19,15 @@ type SearchWikiReq struct {
 	Query   string `json:"query"`
 }
 
+type SearchWikiTemp struct {
+	Title     string `json:"title"`
+	Url       string `json:"url"`
+	SpaceId   string `json:"space_id"`
+	ObjToken  string `json:"obj_token"`
+	ObjType   int    `json:"obj_type"`
+	NodeToken string `json:"node_token"`
+	HasChild  bool   `json:"has_child"`
+}
 type SearchWikiResp struct {
 	Title    string `json:"title"`
 	Url      string `json:"url"`

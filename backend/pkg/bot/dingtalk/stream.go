@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -165,20 +166,21 @@ func (c *DingTalkClient) CreateAndDeliverCard(ctx context.Context, trackID strin
 		},
 		UserIdType: tea.Int32(1),
 	}
-	if data.ConversationType == "2" { // 群聊
+	switch data.ConversationType {
+	case "2": // 群聊
 		openSpaceId := fmt.Sprintf("dtv1.card//%s.%s", "IM_GROUP", data.ConversationId)
 		createAndDeliverRequest.SetOpenSpaceId(openSpaceId)
 		createAndDeliverRequest.SetImGroupOpenDeliverModel(
 			&dingtalkcard_1_0.CreateAndDeliverRequestImGroupOpenDeliverModel{
 				RobotCode: tea.String(c.clientID),
 			})
-	} else if data.ConversationType == "1" { // Im机器人单聊
+	case "1": // Im机器人单聊
 		openSpaceId := fmt.Sprintf("dtv1.card//%s.%s", "IM_ROBOT", data.SenderStaffId)
 		createAndDeliverRequest.SetOpenSpaceId(openSpaceId)
 		createAndDeliverRequest.SetImRobotOpenDeliverModel(&dingtalkcard_1_0.CreateAndDeliverRequestImRobotOpenDeliverModel{
 			SpaceType: tea.String("IM_GROUP"),
 		})
-	} else {
+	default:
 		return fmt.Errorf("invalid conversation type: %s", data.ConversationType)
 	}
 
@@ -191,8 +193,9 @@ func (c *DingTalkClient) CreateAndDeliverCard(ctx context.Context, trackID strin
 
 func (c *DingTalkClient) OnChatBotMessageReceived(ctx context.Context, data *chatbot.BotCallbackDataModel) ([]byte, error) {
 	question := data.Text.Content
+	question = strings.TrimSpace(question)
 	trackID := uuid.New().String()
-	// conversationtype == 1 表示机器人单聊，==2 表示群聊中@机器人
+	// conversation_type == 1 表示机器人单聊，==2 表示群聊中@机器人
 	c.logger.Info("dingtalk client received message", log.String("question", question), log.String("track_id", trackID), log.String("conversation_type", data.ConversationType))
 	// create and deliver card
 	if err := c.CreateAndDeliverCard(ctx, trackID, data); err != nil {
@@ -204,7 +207,7 @@ func (c *DingTalkClient) OnChatBotMessageReceived(ctx context.Context, data *cha
 
 	if err := c.UpdateAIStreamCard(trackID, initialContent, false); err != nil {
 		c.logger.Error("UpdateInteractiveCard", log.Error(err))
-		c.UpdateAIStreamCard(trackID, "出错了，请稍后再试", true)
+		return nil, nil
 	}
 	// 初始化 默认为空
 	convInfo := &domain.ConversationInfo{
@@ -232,8 +235,10 @@ func (c *DingTalkClient) OnChatBotMessageReceived(ctx context.Context, data *cha
 	contentCh, err := c.getQA(ctx, question, *convInfo, "")
 	if err != nil {
 		c.logger.Error("dingtalk client failed to get answer", log.Error(err))
-		c.UpdateAIStreamCard(trackID, "出错了，请稍后再试", true)
-		return nil, err
+		if err := c.UpdateAIStreamCard(trackID, "出错了，请稍后再试", true); err != nil {
+			c.logger.Error("UpdateInteractiveCard in contentCh failed", log.Error(err))
+		}
+		return nil, nil
 	}
 
 	updateTicker := time.NewTicker(1500 * time.Millisecond)

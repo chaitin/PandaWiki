@@ -95,10 +95,15 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 				return
 			}
 		}
+
+		messageId := uuid.New().String()
+		eventCh <- domain.SSEEvent{Type: "message_id", Content: messageId}
+		userMessageId := uuid.New().String()
 		// save user question to conversation message
 		if err := u.conversationUsecase.CreateChatConversationMessage(ctx, req.KBID, &domain.ConversationMessage{
-			ID:             uuid.New().String(),
+			ID:             userMessageId,
 			ConversationID: req.ConversationID,
+			KBID:           req.KBID,
 			AppID:          req.AppID,
 			Role:           schema.User,
 			Content:        req.Message,
@@ -116,7 +121,7 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 			return
 		}
 		for _, node := range rankedNodes {
-			chunkResult := domain.NodeCotentChunkSSE{
+			chunkResult := domain.NodeContentChunkSSE{
 				NodeID:  node.NodeID,
 				Name:    node.NodeName,
 				Summary: node.NodeSummary,
@@ -138,9 +143,11 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 			return nil
 		})
 		// save assistant answer to conversation message
+
 		if err := u.conversationUsecase.CreateChatConversationMessage(ctx, req.KBID, &domain.ConversationMessage{
-			ID:               uuid.New().String(),
+			ID:               messageId,
 			ConversationID:   req.ConversationID,
+			KBID:             req.KBID,
 			AppID:            req.AppID,
 			Role:             schema.Assistant,
 			Content:          answer,
@@ -150,6 +157,7 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 			CompletionTokens: usage.CompletionTokens,
 			TotalTokens:      usage.TotalTokens,
 			RemoteIP:         req.RemoteIP,
+			ParentID:         userMessageId,
 		}); err != nil {
 			u.logger.Error("failed to save assistant answer to conversation message", log.Error(err))
 			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to save assistant answer to conversation message"}

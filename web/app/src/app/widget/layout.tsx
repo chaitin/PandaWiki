@@ -27,7 +27,7 @@ const gilory = localFont({
 
 const getWidgetDetailCached = cache(async (kb_id: string) => {
   const result = await apiClient.serverGetWidgetInfo(kb_id);
-  if (result.error) {
+  if (!result.success) {
     return undefined;
   }
   return result.data;

@@ -245,6 +245,7 @@ const Content = () => {
         overflow: 'hidden',
         overflowY: 'auto',
         px: 2,
+        pb: 2,
       }}>
         <DragTree
           data={data}

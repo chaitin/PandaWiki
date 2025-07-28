@@ -10,8 +10,9 @@ interface EmojiPickerProps {
   readOnly?: boolean
   value?: string;
   collapsed?: boolean;
-  onChange: (emoji: string) => void;
+  onChange?: (emoji: string) => void;
   sx?: SxProps
+  iconSx?: SxProps
 }
 
 const EmojiPicker: React.FC<EmojiPickerProps> = ({
@@ -20,7 +21,8 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
   value,
   onChange,
   collapsed,
-  sx
+  sx,
+  iconSx,
 }) => {
   const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
 
@@ -35,7 +37,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
   };
 
   const handleSelect = useCallback((emoji: any) => {
-    onChange(emoji.native);
+    onChange?.(emoji.native);
     handleClose();
   }, [onChange]);
 
@@ -50,7 +52,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
         color: 'text.primary',
         ...sx
       }}>
-        {value || <Icon type={type === 1 ? collapsed ? 'icon-wenjianjia' : 'icon-wenjianjia-kai' : 'icon-wenjian'} sx={{ fontSize: 16 }} />}
+        {value || <Icon type={type === 1 ? collapsed ? 'icon-wenjianjia' : 'icon-wenjianjia-kai' : 'icon-wenjian'} sx={{ fontSize: 16, ...iconSx }} />}
       </IconButton>
       <Popover
         id={id}

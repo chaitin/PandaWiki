@@ -58,7 +58,7 @@ func (u *KnowledgeBaseUsecase) CreateKnowledgeBase(ctx context.Context, req *dom
 			Hosts:      req.Hosts,
 		},
 	}
-	if err := u.repo.CreateKnowledgeBase(ctx, kb); err != nil {
+	if err := u.repo.CreateKnowledgeBase(ctx, req.MaxKB, kb); err != nil {
 		return "", err
 	}
 	return kbID, nil

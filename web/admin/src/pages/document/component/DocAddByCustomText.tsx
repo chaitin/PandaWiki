@@ -1,4 +1,4 @@
-import { createNode, updateNode } from "@/api"
+import { createNode, NodeDetail, updateNode } from "@/api"
 import Emoji from "@/components/Emoji"
 import { useAppSelector } from "@/store"
 import { Box, TextField } from "@mui/material"
@@ -8,12 +8,13 @@ import { Controller, useForm } from "react-hook-form"
 
 interface DocAddByCustomTextProps {
   open: boolean
-  data?: { id: string, name: string, emoji: string } | null
+  data?: NodeDetail | null
   onClose: () => void
+  setDetail?: (data: NodeDetail) => void
   refresh?: () => void
   type?: 1 | 2
 }
-const DocAddByCustomText = ({ open, data, onClose, refresh, type = 2 }: DocAddByCustomTextProps) => {
+const DocAddByCustomText = ({ open, data, onClose, refresh, setDetail, type = 2 }: DocAddByCustomTextProps) => {
   const { kb_id: id } = useAppSelector(state => state.config)
   const text = type === 1 ? '文件夹' : '文档'
 
@@ -36,6 +37,7 @@ const DocAddByCustomText = ({ open, data, onClose, refresh, type = 2 }: DocAddBy
         reset()
         handleClose()
         refresh?.()
+        setDetail?.({ ...data, name: value.name, meta: { ...data.meta, emoji: value.emoji }, status: 1 })
       })
     } else {
       if (!id) return
@@ -55,7 +57,7 @@ const DocAddByCustomText = ({ open, data, onClose, refresh, type = 2 }: DocAddBy
     if (data) {
       reset({
         name: data.name || '',
-        emoji: data.emoji || '',
+        emoji: data.meta.emoji || '',
       })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

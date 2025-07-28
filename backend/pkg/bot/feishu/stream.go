@@ -233,20 +233,23 @@ func (c *FeishuClient) Start() error {
 			if *event.Event.Message.MessageType != "text" {
 				return nil
 			}
-			if *event.Event.Message.ChatType == "group" {
+			switch *event.Event.Message.ChatType {
+			case "group":
 				var message Message
 				if err := json.Unmarshal([]byte(*event.Event.Message.Content), &message); err != nil {
 					c.logger.Error("failed to unmarshal message", log.Error(err))
 					return nil
 				}
 				c.sendQACard(ctx, "chat_id", *event.Event.Message.ChatId, message.Text, *event.Event.Sender.SenderId.OpenId)
-			} else if *event.Event.Message.ChatType == "p2p" {
+			case "p2p":
 				var message Message
 				if err := json.Unmarshal([]byte(*event.Event.Message.Content), &message); err != nil {
 					c.logger.Error("failed to unmarshal message", log.Error(err))
 					return nil
 				}
 				c.sendQACard(ctx, "open_id", *event.Event.Sender.SenderId.OpenId, message.Text, *event.Event.Message.ChatId)
+			default:
+				c.logger.Warn("unsupported chat type", log.String("chat_type", *event.Event.Message.ChatType))
 			}
 			return nil
 		})
@@ -271,7 +274,7 @@ func (c *FeishuClient) GetUserInfo(UserOpenId string) (*larkcontact.User, error)
 	req := larkcontact.NewGetUserReqBuilder().UserId(UserOpenId).
 		UserIdType(`open_id`).DepartmentIdType(`open_department_id`).Build()
 	// 发起请求，获取用户消息
-	resp, err := c.client.Contact.V3.User.Get(context.Background(), req)
+	resp, err := c.client.Contact.User.Get(context.Background(), req)
 	if err != nil {
 		c.logger.Error("failed to get user info", log.Error(err))
 		return nil, err

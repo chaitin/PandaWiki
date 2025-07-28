@@ -33,7 +33,7 @@ const gilory = localFont({
 
 const getKBDetailCached = cache(async (kb_id: string) => {
   const result = await apiClient.serverGetKBInfo(kb_id);
-  if (result.error) {
+  if (!result.success) {
     return undefined;
   }
   return result.data;
@@ -41,7 +41,7 @@ const getKBDetailCached = cache(async (kb_id: string) => {
 
 const getNodeListCached = cache(async (kb_id: string, authToken: string) => {
   const result = await apiClient.serverGetNodeList(kb_id, authToken);
-  if (result.error) {
+  if (!result.success) {
     return undefined;
   }
   return result.data;
@@ -60,7 +60,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const kbDetail = await getKBDetailCached(kb_id)
 
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_API_URL || ''),
+    metadataBase: new URL(process.env.TARGET || ''),
     title: kbDetail?.settings?.title || 'Panda-Wiki',
     description: kbDetail?.settings?.desc || '',
     icons: {

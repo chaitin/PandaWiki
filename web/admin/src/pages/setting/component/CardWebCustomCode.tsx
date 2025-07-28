@@ -53,7 +53,7 @@ const CardWebCustomCode = ({ id, data, refresh }: CardWebCustomCodeProps) => {
       {isEdit && <Button variant="contained" size="small" onClick={handleSubmit(onSubmit)}>保存</Button>}
     </Stack>
     <Stack gap={2} sx={{ m: 2 }}>
-      <Stack direction='row' gap={2} alignItems={'center'}>
+      <Stack direction='row' gap={2} alignItems={'flex-start'}>
         <Box sx={{ width: 156, fontSize: 14, lineHeight: '32px', flexShrink: 0 }}>注入到 Head 标签</Box>
         <Controller
           control={control}
@@ -74,8 +74,8 @@ const CardWebCustomCode = ({ id, data, refresh }: CardWebCustomCodeProps) => {
           />}
         />
       </Stack>
-      <Stack direction='row' gap={2} alignItems={'center'} sx={{ fontSize: 14, lineHeight: '32px' }}>
-        <Box sx={{ width: 156, fontSize: 14, lineHeight: '32px', flexShrink: 0 }}>注入到 Body 标签</Box>
+      <Stack direction='row' gap={2} alignItems={'flex-start'} sx={{ fontSize: 14, lineHeight: '32px' }}>
+        <Box sx={{ width: 156, fontSize: 14, flexShrink: 0 }}>注入到 Body 标签</Box>
         <Controller
           control={control}
           name="body_code"
@@ -95,7 +95,7 @@ const CardWebCustomCode = ({ id, data, refresh }: CardWebCustomCodeProps) => {
           />}
         />
       </Stack>
-        
+
     </Stack>
   </>
 }

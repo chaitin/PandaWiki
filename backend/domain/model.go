@@ -17,6 +17,7 @@ const (
 	ModelProviderBrandHunyuan     ModelProvider = "Hunyuan"
 	ModelProviderBrandBaiLian     ModelProvider = "BaiLian"
 	ModelProviderBrandVolcengine  ModelProvider = "Volcengine"
+	ModelProviderBrandGemini      ModelProvider = "Gemini"
 	ModelProviderBrandOther       ModelProvider = "Other"
 )
 
@@ -83,7 +84,7 @@ type CheckModelReq struct {
 }
 
 type BaseModelInfo struct {
-	Provider   ModelProvider `json:"provider" validate:"required,oneof=OpenAI Ollama DeepSeek SiliconFlow Moonshot Other AzureOpenAI BaiZhiCloud Hunyuan BaiLian Volcengine"`
+	Provider   ModelProvider `json:"provider" validate:"required,oneof=OpenAI Ollama DeepSeek SiliconFlow Moonshot Other AzureOpenAI BaiZhiCloud Hunyuan BaiLian Volcengine Gemini"`
 	Model      string        `json:"model" validate:"required"`
 	BaseURL    string        `json:"base_url" validate:"required"`
 	APIKey     string        `json:"api_key"`
@@ -132,10 +133,23 @@ var ModelProviderBrandModelsList = map[ModelProvider][]ProviderModelListItem{
 		{Model: "doubao-1.5-thinking-vision-pro-250428"},
 		{Model: "deepseek-r1-250528"},
 	},
+	ModelProviderBrandGemini: {
+		{Model: "gemini-2.5-pro"},
+		{Model: "gemini-2.5-flash"},
+		{Model: "gemini-2.5-flash-lite-preview-06-17"},
+		{Model: "gemini-2.5-flash-preview-tts"},
+		{Model: "gemini-2.5-pro-preview-tts"},
+		{Model: "gemini-2.0-flash"},
+		{Model: "gemini-2.0-flash-lite"},
+		{Model: "gemini-1.5-flash"},
+		{Model: "gemini-1.5-flash-8b"},
+		{Model: "gemini-1.5-pro"},
+		{Model: "gemini-embedding-001"},
+	},
 }
 
 type GetProviderModelListReq struct {
-	Provider  string    `json:"provider" query:"provider" validate:"required,oneof=SiliconFlow OpenAI Ollama DeepSeek Moonshot AzureOpenAI BaiZhiCloud Hunyuan BaiLian Volcengine"`
+	Provider  string    `json:"provider" query:"provider" validate:"required,oneof=SiliconFlow OpenAI Ollama DeepSeek Moonshot AzureOpenAI BaiZhiCloud Hunyuan BaiLian Volcengine Gemini"`
 	BaseURL   string    `json:"base_url" query:"base_url" validate:"required"`
 	APIKey    string    `json:"api_key" query:"api_key"`
 	APIHeader string    `json:"api_header" query:"api_header"`

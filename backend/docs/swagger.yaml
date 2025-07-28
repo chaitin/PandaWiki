@@ -69,20 +69,26 @@ definitions:
         description: seo
         type: string
       dingtalk_bot_client_id:
-        description: DingTalkBot
         type: string
       dingtalk_bot_client_secret:
         type: string
+      dingtalk_bot_is_enabled:
+        description: DingTalkBot
+        type: boolean
       dingtalk_bot_template_id:
         type: string
-      discord_bot_token:
+      discord_bot_is_enabled:
         description: DisCordBot
+        type: boolean
+      discord_bot_token:
         type: string
       feishu_bot_app_id:
-        description: FeishuBot
         type: string
       feishu_bot_app_secret:
         type: string
+      feishu_bot_is_enabled:
+        description: FeishuBot
+        type: boolean
       footer_settings:
         allOf:
         - $ref: '#/definitions/domain.FooterSettings'
@@ -112,25 +118,44 @@ definitions:
       title:
         description: nav
         type: string
+      web_app_comment_settings:
+        allOf:
+        - $ref: '#/definitions/domain.WebAppCommentSettings'
+        description: webapp comment settings
       wechat_app_agent_id:
         type: string
       wechat_app_corpid:
         type: string
       wechat_app_encodingaeskey:
         type: string
+      wechat_app_is_enabled:
+        description: WechatAppBot
+        type: boolean
       wechat_app_secret:
         type: string
       wechat_app_token:
-        description: WechatAppBot
+        type: string
+      wechat_official_account_app_id:
+        type: string
+      wechat_official_account_app_secret:
+        type: string
+      wechat_official_account_encodingaeskey:
+        type: string
+      wechat_official_account_is_enabled:
+        description: WechatOfficialAccount
+        type: boolean
+      wechat_official_account_token:
         type: string
       wechat_service_corpid:
         type: string
       wechat_service_encodingaeskey:
         type: string
+      wechat_service_is_enabled:
+        description: WechatServiceBot
+        type: boolean
       wechat_service_secret:
         type: string
       wechat_service_token:
-        description: WechatServiceBot
         type: string
       welcome_str:
         description: welcome
@@ -157,20 +182,26 @@ definitions:
         description: seo
         type: string
       dingtalk_bot_client_id:
-        description: DingTalkBot
         type: string
       dingtalk_bot_client_secret:
         type: string
+      dingtalk_bot_is_enabled:
+        description: DingTalkBot
+        type: boolean
       dingtalk_bot_template_id:
         type: string
-      discord_bot_token:
+      discord_bot_is_enabled:
         description: DisCordBot
+        type: boolean
+      discord_bot_token:
         type: string
       feishu_bot_app_id:
-        description: FeishuBot
         type: string
       feishu_bot_app_secret:
         type: string
+      feishu_bot_is_enabled:
+        description: FeishuBot
+        type: boolean
       footer_settings:
         allOf:
         - $ref: '#/definitions/domain.FooterSettings'
@@ -200,25 +231,44 @@ definitions:
       title:
         description: nav
         type: string
+      web_app_comment_settings:
+        allOf:
+        - $ref: '#/definitions/domain.WebAppCommentSettings'
+        description: webapp comment settings
       wechat_app_agent_id:
         type: string
       wechat_app_corpid:
         type: string
       wechat_app_encodingaeskey:
         type: string
+      wechat_app_is_enabled:
+        description: WechatAppBot
+        type: boolean
       wechat_app_secret:
         type: string
       wechat_app_token:
-        description: WechatAppBot
+        type: string
+      wechat_official_account_app_id:
+        type: string
+      wechat_official_account_app_secret:
+        type: string
+      wechat_official_account_encodingaeskey:
+        type: string
+      wechat_official_account_is_enabled:
+        description: WechatOfficialAccount
+        type: boolean
+      wechat_official_account_token:
         type: string
       wechat_service_corpid:
         type: string
       wechat_service_encodingaeskey:
         type: string
+      wechat_service_is_enabled:
+        description: WechatServiceBot
+        type: boolean
       wechat_service_secret:
         type: string
       wechat_service_token:
-        description: WechatServiceBot
         type: string
       welcome_str:
         description: welcome
@@ -237,6 +287,7 @@ definitions:
     - 5
     - 6
     - 7
+    - 8
     type: integer
     x-enum-varnames:
     - AppTypeWeb
@@ -246,6 +297,7 @@ definitions:
     - AppTypeWechatBot
     - AppTypeWechatServiceBot
     - AppTypeDisCordBot
+    - AppTypeWechatOfficialAccount
   domain.BatchMoveReq:
     properties:
       ids:
@@ -327,6 +379,7 @@ definitions:
         - Hunyuan
         - BaiLian
         - Volcengine
+        - Gemini
       type:
         allOf:
         - $ref: '#/definitions/domain.ModelType'
@@ -346,6 +399,53 @@ definitions:
         type: string
       error:
         type: string
+    type: object
+  domain.CommentInfo:
+    properties:
+      remote_ip:
+        type: string
+      user_name:
+        type: string
+    type: object
+  domain.CommentListItem:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      info:
+        $ref: '#/definitions/domain.CommentInfo'
+      ip_address:
+        allOf:
+        - $ref: '#/definitions/domain.IPAddress'
+        description: ip地址
+      node_id:
+        type: string
+      node_name:
+        description: 文档标题
+        type: string
+      node_type:
+        type: integer
+      root_id:
+        type: string
+    type: object
+  domain.CommentReq:
+    properties:
+      content:
+        type: string
+      node_id:
+        type: string
+      parent_id:
+        type: string
+      root_id:
+        type: string
+      user_name:
+        type: string
+    required:
+    - content
+    - node_id
     type: object
   domain.ConversationDetailResp:
     properties:
@@ -383,6 +483,10 @@ definitions:
         $ref: '#/definitions/domain.AppType'
       created_at:
         type: string
+      feedback_info:
+        allOf:
+        - $ref: '#/definitions/domain.FeedBackInfo'
+        description: 用户反馈信息
       id:
         type: string
       info:
@@ -410,7 +514,16 @@ definitions:
         type: string
       id:
         type: string
+      info:
+        allOf:
+        - $ref: '#/definitions/domain.FeedBackInfo'
+        description: feedbackinfo
+      kb_id:
+        type: string
       model:
+        type: string
+      parent_id:
+        description: parent_id
         type: string
       prompt_tokens:
         type: integer
@@ -425,6 +538,34 @@ definitions:
         $ref: '#/definitions/schema.RoleType'
       total_tokens:
         type: integer
+    type: object
+  domain.ConversationMessageListItem:
+    properties:
+      app_id:
+        type: string
+      app_type:
+        $ref: '#/definitions/domain.AppType'
+      conversation_id:
+        type: string
+      conversation_info:
+        allOf:
+        - $ref: '#/definitions/domain.ConversationInfo'
+        description: userInfo
+      created_at:
+        type: string
+      id:
+        type: string
+      info:
+        allOf:
+        - $ref: '#/definitions/domain.FeedBackInfo'
+        description: feedbackInfo
+      ip_address:
+        $ref: '#/definitions/domain.IPAddress'
+      question:
+        type: string
+      remote_ip:
+        description: stats
+        type: string
     type: object
   domain.ConversationReference:
     properties:
@@ -508,6 +649,7 @@ definitions:
         - Hunyuan
         - BaiLian
         - Volcengine
+        - Gemini
       type:
         allOf:
         - $ref: '#/definitions/domain.ModelType'
@@ -571,6 +713,46 @@ definitions:
       title:
         type: string
     type: object
+  domain.FeedBackInfo:
+    properties:
+      feedback_content:
+        type: string
+      feedback_type:
+        $ref: '#/definitions/domain.FeedbackType'
+      score:
+        $ref: '#/definitions/domain.ScoreType'
+    type: object
+  domain.FeedbackRequest:
+    properties:
+      conversation_id:
+        type: string
+      feedback_content:
+        description: 限制内容长度
+        maxLength: 200
+        type: string
+      message_id:
+        type: string
+      score:
+        allOf:
+        - $ref: '#/definitions/domain.ScoreType'
+        description: -1 踩 ,0 1 赞成
+      type:
+        allOf:
+        - $ref: '#/definitions/domain.FeedbackType'
+        description: 1 内容不准确，2 没有帮助，3 其他
+    required:
+    - message_id
+    type: object
+  domain.FeedbackType:
+    enum:
+    - 1
+    - 2
+    - 3
+    type: integer
+    x-enum-varnames:
+    - ContentErr
+    - NoHelp
+    - Other
   domain.FooterSettings:
     properties:
       brand_desc:
@@ -636,6 +818,15 @@ definitions:
         type: array
       total:
         type: integer
+    type: object
+  domain.GetNodeReleaseDetailResp:
+    properties:
+      content:
+        type: string
+      meta:
+        $ref: '#/definitions/domain.NodeMeta'
+      name:
+        type: string
     type: object
   domain.GetProviderModelListResp:
     properties:
@@ -812,6 +1003,7 @@ definitions:
     - Hunyuan
     - BaiLian
     - Volcengine
+    - Gemini
     - Other
     type: string
     x-enum-varnames:
@@ -825,6 +1017,7 @@ definitions:
     - ModelProviderBrandHunyuan
     - ModelProviderBrandBaiLian
     - ModelProviderBrandVolcengine
+    - ModelProviderBrandGemini
     - ModelProviderBrandOther
   domain.ModelType:
     enum:
@@ -925,6 +1118,26 @@ definitions:
       summary:
         type: string
     type: object
+  domain.NodeReleaseListItem:
+    properties:
+      id:
+        type: string
+      meta:
+        $ref: '#/definitions/domain.NodeMeta'
+      name:
+        type: string
+      node_id:
+        type: string
+      release_id:
+        description: release
+        type: string
+      release_message:
+        type: string
+      release_name:
+        type: string
+      updated_at:
+        type: string
+    type: object
   domain.NodeStatus:
     enum:
     - 1
@@ -990,6 +1203,15 @@ definitions:
         type: string
       title:
         type: string
+    type: object
+  domain.PaginatedResult-array_domain_ConversationMessageListItem:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/domain.ConversationMessageListItem'
+        type: array
+      total:
+        type: integer
     type: object
   domain.ParseURLItem:
     properties:
@@ -1061,6 +1283,14 @@ definitions:
       success:
         type: boolean
     type: object
+  domain.ScoreType:
+    enum:
+    - 1
+    - -1
+    type: integer
+    x-enum-varnames:
+    - Like
+    - DisLike
   domain.ScrapeReq:
     properties:
       kb_id:
@@ -1121,6 +1351,29 @@ definitions:
       title:
         type: string
       url:
+        type: string
+    type: object
+  domain.ShareCommentListItem:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: string
+      info:
+        $ref: '#/definitions/domain.CommentInfo'
+      ip_address:
+        allOf:
+        - $ref: '#/definitions/domain.IPAddress'
+        description: ip地址
+      kb_id:
+        type: string
+      node_id:
+        type: string
+      parent_id:
+        type: string
+      root_id:
         type: string
     type: object
   domain.SimpleAuth:
@@ -1229,6 +1482,7 @@ definitions:
         - Hunyuan
         - BaiLian
         - Volcengine
+        - Gemini
       type:
         allOf:
         - $ref: '#/definitions/domain.ModelType'
@@ -1299,6 +1553,13 @@ definitions:
       last_access:
         type: string
     type: object
+  domain.WebAppCommentSettings:
+    properties:
+      is_enable:
+        type: boolean
+      moderation_enable:
+        type: boolean
+    type: object
   domain.WidgetBotSettings:
     properties:
       btn_logo:
@@ -1319,15 +1580,6 @@ definitions:
       title:
         type: string
     type: object
-  handler_v1.ConversationListItems:
-    properties:
-      data:
-        items:
-          $ref: '#/definitions/domain.ConversationListItem'
-        type: array
-      total:
-        type: integer
-    type: object
   schema.RoleType:
     enum:
     - assistant
@@ -1340,6 +1592,33 @@ definitions:
     - User
     - System
     - Tool
+  share.ShareCommentLists:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/domain.ShareCommentListItem'
+        type: array
+      total:
+        type: integer
+    type: object
+  v1.CommentLists:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/domain.CommentListItem'
+        type: array
+      total:
+        type: integer
+    type: object
+  v1.ConversationListItems:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/domain.ConversationListItem'
+        type: array
+      total:
+        type: integer
+    type: object
 info:
   contact: {}
 paths:
@@ -1414,6 +1693,63 @@ paths:
       summary: Get app detail
       tags:
       - app
+  /api/v1/comment:
+    get:
+      consumes:
+      - application/json
+      description: GetCommentList
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      - in: query
+        minimum: 1
+        name: page
+        required: true
+        type: integer
+      - in: query
+        minimum: 1
+        name: per_page
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: conversationList
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.CommentLists'
+              type: object
+      summary: GetCommentList
+      tags:
+      - comment
+  /api/v1/comment/list:
+    delete:
+      consumes:
+      - application/json
+      description: DeleteCommentList
+      parameters:
+      - collectionFormat: csv
+        in: query
+        items:
+          type: string
+        name: ids
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: total
+          schema:
+            $ref: '#/definitions/domain.Response'
+      summary: DeleteCommentList
+      tags:
+      - comment
   /api/v1/conversation:
     get:
       consumes:
@@ -1453,7 +1789,7 @@ paths:
             - $ref: '#/definitions/domain.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/handler_v1.ConversationListItems'
+                  $ref: '#/definitions/v1.ConversationListItems'
               type: object
       summary: get conversation list
       tags:
@@ -1489,6 +1825,67 @@ paths:
       summary: get conversation detail
       tags:
       - conversation
+  /api/v1/conversation/message/detail:
+    get:
+      consumes:
+      - application/json
+      description: Get message detail
+      parameters:
+      - description: message id
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.ConversationMessage'
+              type: object
+      summary: Get message detail
+      tags:
+      - Message
+  /api/v1/conversation/message/list:
+    get:
+      consumes:
+      - application/json
+      description: GetMessageFeedBackList
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      - in: query
+        minimum: 1
+        name: page
+        required: true
+        type: integer
+      - in: query
+        minimum: 1
+        name: per_page
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: MessageList
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.PaginatedResult-array_domain_ConversationMessageListItem'
+              type: object
+      summary: GetMessageFeedBackList
+      tags:
+      - Message
   /api/v1/crawler/confluence/analysis_export_file:
     post:
       consumes:
@@ -2187,6 +2584,7 @@ paths:
         - Hunyuan
         - BaiLian
         - Volcengine
+        - Gemini
         in: query
         name: provider
         required: true
@@ -2429,6 +2827,62 @@ paths:
                   type: array
               type: object
       summary: Recommend Nodes
+      tags:
+      - node
+  /api/v1/node/release/detail:
+    get:
+      consumes:
+      - application/json
+      description: Get Node Release Detail
+      parameters:
+      - in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.GetNodeReleaseDetailResp'
+              type: object
+      summary: Get Node Release Detail
+      tags:
+      - node
+  /api/v1/node/release/list:
+    get:
+      consumes:
+      - application/json
+      description: Get Node Release List
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      - in: query
+        name: node_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/domain.NodeReleaseListItem'
+                  type: array
+              type: object
+      summary: Get Node Release List
       tags:
       - node
   /api/v1/node/summary:
@@ -2786,6 +3240,28 @@ paths:
       summary: GetWidgetAppInfo
       tags:
       - share_app
+  /share/v1/chat/feedback:
+    post:
+      consumes:
+      - application/json
+      description: Process user feedback for chat conversations
+      parameters:
+      - description: feedback request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.FeedbackRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+      summary: Handle chat feedback
+      tags:
+      - share_chat
   /share/v1/chat/message:
     post:
       consumes:
@@ -2840,6 +3316,59 @@ paths:
       summary: ChatWidget
       tags:
       - share_chat
+  /share/v1/comment:
+    post:
+      consumes:
+      - application/json
+      description: CreateComment
+      parameters:
+      - description: Comment
+        in: body
+        name: comment
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CommentReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: CommentID
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  type: string
+              type: object
+      summary: CreateComment
+      tags:
+      - share_comment
+  /share/v1/comment/list:
+    get:
+      consumes:
+      - application/json
+      description: GetCommentList
+      parameters:
+      - description: nodeID
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: CommentList
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/share.ShareCommentLists'
+              type: object
+      summary: GetCommentList
+      tags:
+      - share_comment
   /share/v1/node/detail:
     get:
       consumes:

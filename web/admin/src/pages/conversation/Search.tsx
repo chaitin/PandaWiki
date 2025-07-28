@@ -19,10 +19,10 @@ const Search = () => {
       value={subject}
       onKeyUp={(event) => {
         if (event.key === 'Enter') {
-          setSearchParams({ subject: subject || '' })
+          setSearchParams({ subject: subject || '', page: '1' })
         }
       }}
-      onBlur={(event) => setSearchParams({ subject: event.target.value })}
+      onBlur={(event) => setSearchParams({ subject: event.target.value, page: '1' })}
       onChange={(event) => setSubject(event.target.value)}
       InputProps={{
         endAdornment: subject ? (
@@ -30,7 +30,7 @@ const Search = () => {
             <IconButton
               onClick={() => {
                 setSubject('')
-                setSearchParams({ subject: '' })
+                setSearchParams({ subject: '', page: '1' })
               }}
               size="small"
             >
@@ -47,10 +47,10 @@ const Search = () => {
       value={remoteIp}
       onKeyUp={(event) => {
         if (event.key === 'Enter') {
-          setSearchParams({ remote_ip: remoteIp || '' })
+          setSearchParams({ remote_ip: remoteIp || '', page: '1' })
         }
       }}
-      onBlur={(event) => setSearchParams({ remote_ip: event.target.value })}
+      onBlur={(event) => setSearchParams({ remote_ip: event.target.value, page: '1' })}
       onChange={(event) => setRemoteIp(event.target.value)}
       InputProps={{
         endAdornment: remoteIp ? (
@@ -58,7 +58,7 @@ const Search = () => {
             <IconButton
               onClick={() => {
                 setRemoteIp('')
-                setSearchParams({ remote_ip: '' })
+                setSearchParams({ remote_ip: '', page: '1' })
               }}
               size="small"
             >

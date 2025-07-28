@@ -27,7 +27,7 @@ func NewShareNodeHandler(
 	}
 
 	group := echo.Group("share/v1/node",
-		h.BaseHandler.ShareAuthMiddleware.Authorize,
+		h.ShareAuthMiddleware.Authorize,
 	)
 	group.GET("/list", h.GetNodeList)
 	group.GET("/detail", h.GetNodeDetail)

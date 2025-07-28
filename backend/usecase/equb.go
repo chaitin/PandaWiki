@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"mime/multipart"
 
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
@@ -21,7 +22,7 @@ func NewEpubUsecase(logger *log.Logger, minio *s3.MinioClient) *EpubUsecase {
 	}
 }
 
-func (u *EpubUsecase) Convert(ctx context.Context, kbID string, data []byte) (*domain.EpubResp, error) {
+func (u *EpubUsecase) Convert(ctx context.Context, kbID string, data *multipart.FileHeader) (*domain.EpubResp, error) {
 	title, content, err := utils.NewEpubConverter(u.logger, u.minioClient).Convert(ctx, kbID, data)
 	if err != nil {
 		return nil, err

@@ -1,6 +1,6 @@
 {
   "name": "web",
-  "version": "0.9.3",
+  "version": "2.9.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack -p 3010",
@@ -16,16 +16,24 @@
     "@mui/lab": "7.0.0-beta.12",
     "@mui/material": "^7.1.0",
     "@mui/material-nextjs": "^7.1.0",
+    "@types/markdown-it": "13.0.1",
+    "@vscode/markdown-it-katex": "^1.1.2",
+    "ahooks": "^3.9.0",
     "axios": "^1.9.0",
     "ct-mui": "2.0.0",
-    "ct-tiptap-editor": "0.7.4",
+    "ct-tiptap-editor": "0.7.18",
     "dayjs": "^1.11.13",
+    "highlight.js": "^11.11.1",
     "html-react-parser": "^5.2.5",
     "katex": "^0.16.22",
+    "markdown-it": "13.0.1",
+    "markdown-it-highlightjs": "^4.2.0",
+    "mermaid": "^11.9.0",
     "next": "15.3.2",
     "react": "^19.0.0",
     "react-device-detect": "^2.2.3",
     "react-dom": "^19.0.0",
+    "react-hook-form": "^7.60.0",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^15.6.1",
     "rehype-katex": "^7.0.1",
@@ -45,5 +53,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
     "typescript": "^5"
-  }
+  },
+  "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac"
 }

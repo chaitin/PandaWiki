@@ -52,17 +52,24 @@ func (t *ProcessorTree) Add(node *Node, data []byte) error {
 	return nil
 }
 
-func (t *ProcessorTree) GetResult() []byte {
-	t.getRes(t.root)
-	return t.result.Bytes()
+func (t *ProcessorTree) GetResult() ([]byte, error) {
+	if err := t.getRes(t.root); err != nil {
+		return nil, err
+	}
+	return t.result.Bytes(), nil
 }
 
-func (t *ProcessorTree) getRes(node *Node) {
+func (t *ProcessorTree) getRes(node *Node) error {
 	if node == nil {
-		return
+		return nil
 	}
-	io.Copy(t.result, node.buf)
+	if _, err := io.Copy(t.result, node.buf); err != nil {
+		return err
+	}
 	for _, son := range node.son {
-		t.getRes(son)
+		if err := t.getRes(son); err != nil {
+			return err
+		}
 	}
+	return nil
 }

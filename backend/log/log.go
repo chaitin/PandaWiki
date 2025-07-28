@@ -17,7 +17,7 @@ func NewLogger(config *config.Config) *Logger {
 }
 
 func (l *Logger) WithModule(module string) *Logger {
-	return &Logger{l.Logger.With(slog.String("module", module))}
+	return &Logger{l.With(slog.String("module", module))}
 }
 
 func Any(key string, value any) slog.Attr {

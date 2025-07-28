@@ -31,14 +31,15 @@ export default function Login() {
     try {
       await setAuthCookie(kb_id, password, 30);
       const result = await apiClient.clientGetNodeList(kb_id, password);
-      if (result.error) {
-        message.error(result.error);
-        return;
+      if (result.success) {
+        message.success('认证成功')
+        setNodeList?.(result.data ?? []);
+        router.push('/');
+      } else {
+        message.error(result.message);
       }
-      setNodeList?.(result.data ?? []);
-      router.push('/');
     } catch (error) {
-      message.error('登录失败，请重试');
+      message.error('认证失败，请重试');
     } finally {
       setLoading(false);
     }

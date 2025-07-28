@@ -18,6 +18,7 @@ const (
 	AppTypeWechatBot
 	AppTypeWechatServiceBot
 	AppTypeDisCordBot
+	AppTypeWechatOfficialAccount
 )
 
 var AppTypes = []AppType{
@@ -28,6 +29,7 @@ var AppTypes = []AppType{
 	AppTypeWechatBot,
 	AppTypeWechatServiceBot,
 	AppTypeDisCordBot,
+	AppTypeWechatOfficialAccount,
 }
 
 type App struct {
@@ -60,25 +62,37 @@ type AppSettings struct {
 	HeadCode string `json:"head_code,omitempty"`
 	BodyCode string `json:"body_code,omitempty"`
 	// DingTalkBot
+	DingTalkBotIsEnabled    *bool  `json:"dingtalk_bot_is_enabled,omitempty"`
 	DingTalkBotClientID     string `json:"dingtalk_bot_client_id,omitempty"`
 	DingTalkBotClientSecret string `json:"dingtalk_bot_client_secret,omitempty"`
 	DingTalkBotTemplateID   string `json:"dingtalk_bot_template_id,omitempty"`
 	// FeishuBot
+	FeishuBotIsEnabled *bool  `json:"feishu_bot_is_enabled,omitempty"`
 	FeishuBotAppID     string `json:"feishu_bot_app_id,omitempty"`
 	FeishuBotAppSecret string `json:"feishu_bot_app_secret,omitempty"`
 	// WechatAppBot
+	WeChatAppIsEnabled      *bool  `json:"wechat_app_is_enabled,omitempty"`
 	WeChatAppToken          string `json:"wechat_app_token,omitempty"`
 	WeChatAppEncodingAESKey string `json:"wechat_app_encodingaeskey,omitempty"`
 	WeChatAppCorpID         string `json:"wechat_app_corpid,omitempty"`
 	WeChatAppSecret         string `json:"wechat_app_secret,omitempty"`
 	WeChatAppAgentID        string `json:"wechat_app_agent_id,omitempty"`
 	// WechatServiceBot
+	WeChatServiceIsEnabled      *bool  `json:"wechat_service_is_enabled,omitempty"`
 	WeChatServiceToken          string `json:"wechat_service_token,omitempty"`
 	WeChatServiceEncodingAESKey string `json:"wechat_service_encodingaeskey,omitempty"`
 	WeChatServiceCorpID         string `json:"wechat_service_corpid,omitempty"`
 	WeChatServiceSecret         string `json:"wechat_service_secret,omitempty"`
 	// DisCordBot
-	DisCordBotToken string `json:"discord_bot_token,omitempty"`
+	DiscordBotIsEnabled *bool  `json:"discord_bot_is_enabled,omitempty"`
+	DiscordBotToken     string `json:"discord_bot_token,omitempty"`
+	// WechatOfficialAccount
+	WechatOfficialAccountIsEnabled      *bool  `json:"wechat_official_account_is_enabled,omitempty"`
+	WechatOfficialAccountAppID          string `json:"wechat_official_account_app_id,omitempty"`
+	WechatOfficialAccountAppSecret      string `json:"wechat_official_account_app_secret,omitempty"`
+	WechatOfficialAccountToken          string `json:"wechat_official_account_token,omitempty"`
+	WechatOfficialAccountEncodingAESKey string `json:"wechat_official_account_encodingaeskey,omitempty"`
+
 	// theme
 	ThemeMode     string        `json:"theme_mode,omitempty"`
 	ThemeAndStyle ThemeAndStyle `json:"theme_and_style"`
@@ -88,6 +102,13 @@ type AppSettings struct {
 	FooterSettings FooterSettings `json:"footer_settings"`
 	// Widget bot settings
 	WidgetBotSettings WidgetBotSettings `json:"widget_bot_settings"`
+	// webapp comment settings
+	WebAppCommentSettings WebAppCommentSettings `json:"web_app_comment_settings"`
+}
+
+type WebAppCommentSettings struct {
+	IsEnable         bool `json:"is_enable"`
+	ModerationEnable bool `json:"moderation_enable"`
 }
 
 type ThemeAndStyle struct {
@@ -169,25 +190,36 @@ type AppSettingsResp struct {
 	HeadCode string `json:"head_code,omitempty"`
 	BodyCode string `json:"body_code,omitempty"`
 	// DingTalkBot
+	DingTalkBotIsEnabled    *bool  `json:"dingtalk_bot_is_enabled,omitempty"`
 	DingTalkBotClientID     string `json:"dingtalk_bot_client_id,omitempty"`
 	DingTalkBotClientSecret string `json:"dingtalk_bot_client_secret,omitempty"`
 	DingTalkBotTemplateID   string `json:"dingtalk_bot_template_id,omitempty"`
 	// FeishuBot
+	FeishuBotIsEnabled *bool  `json:"feishu_bot_is_enabled,omitempty"`
 	FeishuBotAppID     string `json:"feishu_bot_app_id,omitempty"`
 	FeishuBotAppSecret string `json:"feishu_bot_app_secret,omitempty"`
 	// WechatAppBot
+	WeChatAppIsEnabled      *bool  `json:"wechat_app_is_enabled,omitempty"`
 	WeChatAppToken          string `json:"wechat_app_token,omitempty"`
 	WeChatAppEncodingAESKey string `json:"wechat_app_encodingaeskey,omitempty"`
 	WeChatAppCorpID         string `json:"wechat_app_corpid,omitempty"`
 	WeChatAppSecret         string `json:"wechat_app_secret,omitempty"`
 	WeChatAppAgentID        string `json:"wechat_app_agent_id,omitempty"`
 	// WechatServiceBot
+	WeChatServiceIsEnabled      *bool  `json:"wechat_service_is_enabled,omitempty"`
 	WeChatServiceToken          string `json:"wechat_service_token,omitempty"`
 	WeChatServiceEncodingAESKey string `json:"wechat_service_encodingaeskey,omitempty"`
 	WeChatServiceCorpID         string `json:"wechat_service_corpid,omitempty"`
 	WeChatServiceSecret         string `json:"wechat_service_secret,omitempty"`
 	// DisCordBot
-	DisCordBotToken string `json:"discord_bot_token,omitempty"`
+	DiscordBotIsEnabled *bool  `json:"discord_bot_is_enabled,omitempty"`
+	DiscordBotToken     string `json:"discord_bot_token,omitempty"`
+	// WechatOfficialAccount
+	WechatOfficialAccountIsEnabled      *bool  `json:"wechat_official_account_is_enabled,omitempty"`
+	WechatOfficialAccountAppID          string `json:"wechat_official_account_app_id,omitempty"`
+	WechatOfficialAccountAppSecret      string `json:"wechat_official_account_app_secret,omitempty"`
+	WechatOfficialAccountToken          string `json:"wechat_official_account_token,omitempty"`
+	WechatOfficialAccountEncodingAESKey string `json:"wechat_official_account_encodingaeskey,omitempty"`
 	// theme
 	ThemeMode     string        `json:"theme_mode,omitempty"`
 	ThemeAndStyle ThemeAndStyle `json:"theme_and_style"`
@@ -197,6 +229,8 @@ type AppSettingsResp struct {
 	FooterSettings FooterSettings `json:"footer_settings"`
 	// WidgetBot
 	WidgetBotSettings WidgetBotSettings `json:"widget_bot_settings"`
+	// webapp comment settings
+	WebAppCommentSettings WebAppCommentSettings `json:"web_app_comment_settings"`
 }
 
 func (s *AppSettingsResp) Scan(value any) error {
@@ -218,7 +252,7 @@ type UpdateAppReq struct {
 
 type CreateAppReq struct {
 	Name string  `json:"name"`
-	Type AppType `json:"type" validate:"required,oneof=1 2 3 4 5"`
+	Type AppType `json:"type" validate:"required,oneof=1 2 3 4 5 6 7 8"`
 	Icon string  `json:"icon"`
 	KBID string  `json:"kb_id" validate:"required"`
 }

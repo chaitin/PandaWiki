@@ -1,7 +1,7 @@
 import { KnowledgeBaseListItem, updateKnowledgeBase } from "@/api"
 import { validateUrl } from "@/utils"
-import { Box, Button, Stack, TextField, Tooltip } from "@mui/material"
-import { Icon, Message } from "ct-mui"
+import { Box, Button, Stack, TextField } from "@mui/material"
+import { Message } from "ct-mui"
 import { useEffect, useState } from "react"
 
 const CardBasicInfo = ({ kb, refresh }: { kb: KnowledgeBaseListItem, refresh: () => void }) => {
@@ -12,7 +12,7 @@ const CardBasicInfo = ({ kb, refresh }: { kb: KnowledgeBaseListItem, refresh: ()
 
   const handleSave = () => {
     try {
-      if (!validateUrl(url)) {
+      if (!validateUrl(url) && url.trim() !== '') {
         throw new Error('请输入正确的网址')
       }
 
@@ -69,11 +69,11 @@ const CardBasicInfo = ({ kb, refresh }: { kb: KnowledgeBaseListItem, refresh: ()
       </Box>
       {isEdit && <Button variant="contained" size="small" onClick={handleSave}>保存</Button>}
     </Stack>
-    <Stack direction={'row'} gap={2} alignItems={'center'}  sx={{ fontSize: 14, lineHeight: '32px', my: 1, mx: 2 }}>
-      <Box component={'label'}  sx={{ width: 156, flexShrink: 0, fontSize: 14, lineHeight: '32px' }}>
+    <Stack direction={'row'} gap={2} alignItems={'center'} sx={{ fontSize: 14, lineHeight: '32px', my: 1, mx: 2 }}>
+      <Box component={'label'} sx={{ width: 156, flexShrink: 0, fontSize: 14, lineHeight: '32px' }}>
         网址绝对路径前缀
       </Box>
-      
+
       <TextField
         fullWidth
         label='网址绝对路径前缀'

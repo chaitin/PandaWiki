@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   distDir: 'dist',
@@ -17,9 +17,14 @@ const nextConfig: NextConfig = {
         ...[
           {
             source: '/static-file/:path*',
-            destination: `${process.env.NEXT_PUBLIC_API_URL}/static-file/:path*`,
+            destination: `${process.env.TARGET}/static-file/:path*`,
             basePath: false as const,
-          }
+          },
+          {
+            source: '/share/v1/:path*',
+            destination: `${process.env.TARGET}/share/v1/:path*`,
+            basePath: false as const,
+          },
         ]
       );
     }
