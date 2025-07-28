@@ -4,6 +4,8 @@ import {
   KnowledgeBaseListItem,
   updateAppDetail,
 } from '@/api';
+import { useAppSelector } from '@/store';
+import InfoIcon from '@mui/icons-material/Info';
 import Card from '@/components/Card';
 import {
   Box,
@@ -16,7 +18,9 @@ import {
   TextField,
   Divider,
   styled,
+  Tooltip,
 } from '@mui/material';
+
 import { Controller, useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
@@ -87,17 +91,27 @@ const DocumentComments = ({
   data: AppDetail;
   refresh: () => void;
 }) => {
+  const { license } = useAppSelector((state) => state.config);
   const [isEdit, setIsEdit] = useState(false);
   const { control, handleSubmit, setValue } = useForm({
     defaultValues: {
       is_open: 0,
+      moderation_enable: 0,
     },
   });
 
   useEffect(() => {
     // @ts-expect-error 忽略类型错误
     setValue('is_open', +data?.settings?.web_app_comment_settings?.is_enable);
+
+    setValue(
+      'moderation_enable',
+      // @ts-expect-error 忽略类型错误
+      +data?.settings?.web_app_comment_settings?.moderation_enable
+    );
   }, [data]);
+
+  const isModerationEnable = license.edition === 1 || license.edition === 2;
 
   const onSubmit = handleSubmit((formData) => {
     updateAppDetail(
@@ -110,6 +124,7 @@ const DocumentComments = ({
             // @ts-expect-error 忽略类型错误
             ...data.settings?.web_app_comment_settings,
             is_enable: Boolean(formData.is_open),
+            moderation_enable: Boolean(formData.moderation_enable),
           },
         },
       }
@@ -159,25 +174,39 @@ const DocumentComments = ({
           />
         </StyledRow>
         <StyledRow>
-          <StyledLabel>评论审核（敬请期待）</StyledLabel>
+          <StyledLabel sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            评论审核
+            {!isModerationEnable && (
+              <Tooltip title='联创版和企业版可用' placement='top' arrow>
+                <InfoIcon sx={{ color: 'text.secondary', fontSize: 14 }} />
+              </Tooltip>
+            )}
+          </StyledLabel>
           <Controller
             control={control}
-            name='is_open'
+            name='moderation_enable'
             render={({ field }) => (
               <RadioGroup
                 row
+                {...field}
+                value={isModerationEnable ? field.value : undefined}
                 onChange={(e) => {
+                  setIsEdit(true);
                   field.onChange(+e.target.value as 1 | 0);
                 }}
               >
                 <FormControlLabel
                   value={1}
-                  control={<Radio size='small' disabled />}
+                  control={
+                    <Radio size='small' disabled={!isModerationEnable} />
+                  }
                   label={<StyledRadioLabel>启用</StyledRadioLabel>}
                 />
                 <FormControlLabel
                   value={0}
-                  control={<Radio size='small' disabled />}
+                  control={
+                    <Radio size='small' disabled={!isModerationEnable} />
+                  }
                   label={<StyledRadioLabel>禁用</StyledRadioLabel>}
                 />
               </RadioGroup>

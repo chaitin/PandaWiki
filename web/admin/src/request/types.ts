@@ -17,6 +17,18 @@ export enum SchemaRoleType {
   Tool = "tool",
 }
 
+export enum GithubComChaitinPandaWikiProDomainCommentStatus {
+  CommentStatusReject = -1,
+  CommentStatusPending = 0,
+  CommentStatusAccepted = 1,
+}
+
+export enum GithubComChaitinPandaWikiDomainCommentStatus {
+  CommentStatusReject = -1,
+  CommentStatusPending = 0,
+  CommentStatusAccepted = 1,
+}
+
 export enum DomainStatPageScene {
   StatPageSceneWelcome = 1,
   StatPageSceneNodeDetail = 2,
@@ -84,6 +96,7 @@ export enum DomainAppType {
   AppTypeWechatBot = 5,
   AppTypeWechatServiceBot = 6,
   AppTypeDisCordBot = 7,
+  AppTypeWechatOfficialAccount = 8,
 }
 
 export interface DomainAccessSettings {
@@ -155,6 +168,12 @@ export interface DomainAppSettings {
   wechat_app_is_enabled?: boolean;
   wechat_app_secret?: string;
   wechat_app_token?: string;
+  wechat_official_account_app_id?: string;
+  wechat_official_account_app_secret?: string;
+  wechat_official_account_encodingaeskey?: string;
+  /** WechatOfficialAccount */
+  wechat_official_account_is_enabled?: boolean;
+  wechat_official_account_token?: string;
   wechat_service_corpid?: string;
   wechat_service_encodingaeskey?: string;
   /** WechatServiceBot */
@@ -210,6 +229,12 @@ export interface DomainAppSettingsResp {
   wechat_app_is_enabled?: boolean;
   wechat_app_secret?: string;
   wechat_app_token?: string;
+  wechat_official_account_app_id?: string;
+  wechat_official_account_app_secret?: string;
+  wechat_official_account_encodingaeskey?: string;
+  /** WechatOfficialAccount */
+  wechat_official_account_is_enabled?: boolean;
+  wechat_official_account_token?: string;
   wechat_service_corpid?: string;
   wechat_service_encodingaeskey?: string;
   /** WechatServiceBot */
@@ -294,6 +319,13 @@ export interface DomainCommentListItem {
   node_name?: string;
   node_type?: number;
   root_id?: string;
+  /** status : -1 reject 0 pending 1 accept */
+  status?: GithubComChaitinPandaWikiDomainCommentStatus;
+}
+
+export interface DomainCommentModerateListReq {
+  ids: string[];
+  status: GithubComChaitinPandaWikiProDomainCommentStatus;
 }
 
 export interface DomainCommentReq {
@@ -682,6 +714,11 @@ export interface DomainPageInfo {
   title?: string;
 }
 
+export interface DomainPaginatedResultArrayDomainConversationMessageListItem {
+  data?: DomainConversationMessageListItem[];
+  total?: number;
+}
+
 export interface DomainParseURLItem {
   desc?: string;
   published?: string;
@@ -888,22 +925,17 @@ export interface DomainWikiJSResp {
   title?: string;
 }
 
-export interface GithubComChaitinPandaWikiDomainPaginatedResultArrayDomainConversationMessageListItem {
-  data?: DomainConversationMessageListItem[];
-  total?: number;
-}
-
-export interface HandlerShareShareCommentLists {
+export interface ShareShareCommentLists {
   data?: DomainShareCommentListItem[];
   total?: number;
 }
 
-export interface HandlerV1CommentLists {
+export interface V1CommentLists {
   data?: DomainCommentListItem[];
   total?: number;
 }
 
-export interface HandlerV1ConversationListItems {
+export interface V1ConversationListItems {
   data?: DomainConversationListItem[];
   total?: number;
 }
@@ -926,6 +958,7 @@ export interface GetApiV1CommentParams {
   page: number;
   /** @min 1 */
   per_page: number;
+  status?: -1 | 0 | 1;
 }
 
 export interface DeleteApiV1CommentListParams {

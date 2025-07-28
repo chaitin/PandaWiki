@@ -13,10 +13,10 @@
 import request, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainConversationMessage,
+  DomainPaginatedResultArrayDomainConversationMessageListItem,
   DomainResponse,
   GetApiV1ConversationMessageDetailParams,
   GetApiV1ConversationMessageListParams,
-  GithubComChaitinPandaWikiDomainPaginatedResultArrayDomainConversationMessageListItem,
 } from "./types";
 
 /**
@@ -57,7 +57,7 @@ export const getApiV1ConversationMessageDetail = (
  * @summary GetMessageFeedBackList
  * @request GET:/api/v1/conversation/message/list
  * @response `200` `(DomainResponse & {
-    data?: GithubComChaitinPandaWikiDomainPaginatedResultArrayDomainConversationMessageListItem,
+    data?: DomainPaginatedResultArrayDomainConversationMessageListItem,
 
 })` MessageList
  */
@@ -68,7 +68,7 @@ export const getApiV1ConversationMessageList = (
 ) =>
   request<
     DomainResponse & {
-      data?: GithubComChaitinPandaWikiDomainPaginatedResultArrayDomainConversationMessageListItem;
+      data?: DomainPaginatedResultArrayDomainConversationMessageListItem;
     }
   >({
     path: `/api/v1/conversation/message/list`,

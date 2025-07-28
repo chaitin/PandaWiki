@@ -13,20 +13,21 @@
 import request, { ContentType, RequestParams } from "./httpClient";
 import {
   DeleteApiV1CommentListParams,
+  DomainCommentModerateListReq,
   DomainResponse,
   GetApiV1CommentParams,
-  HandlerV1CommentLists,
+  V1CommentLists,
 } from "./types";
 
 /**
- * @description GetCommentList
+ * @description GetCommentModeratedList
  *
  * @tags comment
  * @name GetApiV1Comment
- * @summary GetCommentList
+ * @summary GetCommentModeratedList
  * @request GET:/api/v1/comment
  * @response `200` `(DomainResponse & {
-    data?: HandlerV1CommentLists,
+    data?: V1CommentLists,
 
 })` conversationList
  */
@@ -37,7 +38,7 @@ export const getApiV1Comment = (
 ) =>
   request<
     DomainResponse & {
-      data?: HandlerV1CommentLists;
+      data?: V1CommentLists;
     }
   >({
     path: `/api/v1/comment`,
@@ -66,6 +67,29 @@ export const deleteApiV1CommentList = (
     path: `/api/v1/comment/list`,
     method: "DELETE",
     query: query,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+/**
+ * @description Moderate comment list
+ *
+ * @tags comment
+ * @name PostApiV1CommentModerate
+ * @summary Moderate comment list
+ * @request POST:/api/v1/comment_moderate
+ * @response `200` `DomainResponse` Success
+ */
+
+export const postApiV1CommentModerate = (
+  req: DomainCommentModerateListReq,
+  params: RequestParams = {},
+) =>
+  request<DomainResponse>({
+    path: `/api/v1/comment_moderate`,
+    method: "POST",
+    body: req,
     type: ContentType.Json,
     format: "json",
     ...params,
