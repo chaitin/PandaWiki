@@ -45,9 +45,9 @@ export interface GithubComChaitinPandaWikiProApiAuthV1AuthItem {
 
 export interface GithubComChaitinPandaWikiProApiAuthV1GetAuthResp {
   auths?: GithubComChaitinPandaWikiProApiAuthV1AuthItem[];
-  clientID?: string;
-  clientSecret?: string;
-  sourceType?: ConstsSourceType;
+  client_id?: string;
+  client_secret?: string;
+  source_type?: ConstsSourceType;
 }
 
 export interface GithubComChaitinPandaWikiProApiAuthV1SetAuthReq {
@@ -58,8 +58,8 @@ export interface GithubComChaitinPandaWikiProApiAuthV1SetAuthReq {
 }
 
 export interface GithubComChaitinPandaWikiProApiShareV1AuthDingTalkReq {
+  kb_id?: string;
   redirect_url?: string;
-  x_kb_id?: string;
 }
 
 export interface GithubComChaitinPandaWikiProApiShareV1AuthDingTalkResp {

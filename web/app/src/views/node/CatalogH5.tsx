@@ -3,13 +3,23 @@
 import { NodeListItem } from '@/assets/type';
 import { IconArrowDown, IconNav } from '@/components/icons';
 import { convertToTree, filterEmptyFolders } from '@/utils/drag';
-import { Box, Stack } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { filterTreeBySearch } from '@/utils';
+import { Box, Stack, TextField } from '@mui/material';
+import SearchIcon from '@mui/icons-material/Search';
+import { useEffect, useState, useMemo } from 'react';
+import { useDebounce } from 'ahooks';
 import CatalogFolder from './CatalogFolder';
 
 const CatalogH5 = ({ nodes }: { nodes: NodeListItem[] }) => {
   const [open, setOpen] = useState(false);
-  const tree = filterEmptyFolders(convertToTree(nodes));
+  const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, { wait: 300 });
+
+  const originalTree = filterEmptyFolders(convertToTree(nodes));
+
+  const tree = useMemo(() => {
+    return filterTreeBySearch(originalTree, debouncedSearchTerm);
+  }, [originalTree, debouncedSearchTerm]);
 
   useEffect(() => {
     if (open) {
@@ -89,9 +99,39 @@ const CatalogH5 = ({ nodes }: { nodes: NodeListItem[] }) => {
           scrollbarWidth: 'none',
         }}
       >
+        <TextField
+          slotProps={{
+            input: {
+              endAdornment: <SearchIcon sx={{ fontSize: 20 }} />,
+            },
+          }}
+          size='small'
+          placeholder='搜索'
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{
+            width: '100%',
+            mt: 2,
+            mb: 1,
+            '& .MuiOutlinedInput-root': {
+              height: 36,
+              fontSize: 14,
+              pr: '18px',
+              '& fieldset': {
+                borderRadius: '10px',
+                borderColor: 'divider',
+                px: 2,
+              },
+            },
+          }}
+        />
         <Box sx={{ py: 3 }}>
           {tree.map((item) => (
-            <CatalogFolder key={item.id} item={item} />
+            <CatalogFolder
+              key={item.id}
+              item={item}
+              searchTerm={debouncedSearchTerm}
+            />
           ))}
         </Box>
       </Box>

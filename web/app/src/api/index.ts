@@ -42,7 +42,6 @@ class ApiClient {
     };
 
     if (session) requestHeaders['x-pw-session-id'] = session;
-    if (authToken) requestHeaders['x-simple-auth-password'] = authToken;
 
     const fullUrl = url.startsWith('http') ? url : `${this.baseURL}${url}`;
     try {

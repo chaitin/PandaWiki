@@ -13,6 +13,7 @@
 import request, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainAuthGetResp,
+  DomainAuthLoginSimpleReq,
   DomainResponse,
   GetShareV1AuthGetParams,
 } from "./types";
@@ -42,6 +43,29 @@ export const getShareV1AuthGet = (
     path: `/share/v1/auth/get`,
     method: "GET",
     query: query,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+/**
+ * @description AuthLoginSimple
+ *
+ * @tags share_auth
+ * @name PostShareV1AuthLoginSimple
+ * @summary AuthLoginSimple
+ * @request POST:/share/v1/auth/login/simple
+ * @response `200` `DomainResponse` OK
+ */
+
+export const postShareV1AuthLoginSimple = (
+  param: DomainAuthLoginSimpleReq,
+  params: RequestParams = {},
+) =>
+  request<DomainResponse>({
+    path: `/share/v1/auth/login/simple`,
+    method: "POST",
+    body: param,
     type: ContentType.Json,
     format: "json",
     ...params,

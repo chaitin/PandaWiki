@@ -184,7 +184,6 @@ const Chat = () => {
         url: `/client/v1/chat/message`,
         headers: {
           'Content-Type': 'application/json',
-          'x-simple-auth-password': token || '',
         },
         onCancel: () => {
           setLoading(false);

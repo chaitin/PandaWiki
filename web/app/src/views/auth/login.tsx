@@ -1,9 +1,12 @@
 'use client';
 
-import { setAuthCookie } from '@/action/auth';
-import { apiClient } from '@/api';
 import { postShareProV1AuthDingtalk } from '@/request/pro/ShareAuth';
-import { getShareV1AuthGet } from '@/request/ShareAuth';
+import {
+  getShareV1AuthGet,
+  postShareV1AuthLoginSimple,
+} from '@/request/ShareAuth';
+import { getShareV1NodeList } from '@/request/ShareNode';
+
 import { DomainAuthType } from '@/request/types';
 import Logo from '@/assets/images/logo.png';
 import Footer from '@/components/footer';
@@ -47,15 +50,15 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      await setAuthCookie(kb_id, password, 30);
-      const result = await apiClient.clientGetNodeList(kb_id, password);
-      if (result.success) {
-        message.success('认证成功');
-        setNodeList?.(result.data ?? []);
-        router.push('/');
-      } else {
-        message.error(result.message);
-      }
+      postShareV1AuthLoginSimple({
+        password,
+      }).then(() => {
+        getShareV1NodeList().then((res) => {
+          setNodeList?.((res as any) ?? []);
+          message.success('认证成功');
+          router.push('/');
+        });
+      });
     } catch (error) {
       message.error('认证失败，请重试');
     } finally {

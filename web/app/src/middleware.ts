@@ -8,7 +8,6 @@ import { middleware as homeMiddleware } from './middleware/home';
 const proxyShare = async (request: NextRequest) => {
   // 转发到 process.env.TARGET
   const kb_id = request.headers.get('x-kb-id') || process.env.DEV_KB_ID || '';
-  const authToken = request.cookies.get(`auth_${kb_id}`)?.value || '';
 
   const targetOrigin = process.env.TARGET!;
   const targetUrl = new URL(
@@ -20,7 +19,6 @@ const proxyShare = async (request: NextRequest) => {
   // 可选：移除 host 头，避免冲突
   fetchHeaders.delete('host');
   fetchHeaders.set('x-kb-id', kb_id);
-  fetchHeaders.set('X-Simple-Auth-Password', authToken);
 
   const fetchOptions: RequestInit = {
     method: request.method,
