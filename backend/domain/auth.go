@@ -3,6 +3,9 @@ package domain
 type AuthType string
 
 const (
+	SessionCacheKey = "_session_store"
+	SessionName     = "_pw_auth_session"
+
 	AuthTypeNull       AuthType = ""           // 无认证
 	AuthTypeSimple     AuthType = "simple"     // 简单口令
 	AuthTypeEnterprise AuthType = "enterprise" // 企业认证

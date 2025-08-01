@@ -16,6 +16,10 @@ import (
 	"github.com/chaitin/panda-wiki/log"
 )
 
+const (
+	SessionKey = "SessionKey"
+)
+
 type SessionMiddleware struct {
 	logger *log.Logger
 	store  *redistore.RediStore
@@ -23,7 +27,7 @@ type SessionMiddleware struct {
 
 func NewSessionMiddleware(logger *log.Logger, config *config.Config, cache *cache.Cache) (*SessionMiddleware, error) {
 
-	secretKey, err := cache.GetOrSet(context.Background(), "SessionKey", uuid.New().String(), time.Duration(0))
+	secretKey, err := cache.GetOrSet(context.Background(), SessionKey, uuid.New().String(), time.Duration(0))
 	if err != nil {
 		logger.Error("session store create secret key failed: %v", log.Error(err))
 		return nil, err

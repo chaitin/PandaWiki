@@ -48,7 +48,7 @@ func (h *ShareAuthMiddleware) Authorize(next echo.HandlerFunc) echo.HandlerFunc 
 			return next(c)
 		}
 
-		sess, err := session.Get("_pw_auth_session", c)
+		sess, err := session.Get(domain.SessionName, c)
 		if err != nil {
 			h.logger.Error("session get failed", log.Error(err))
 			return c.JSON(http.StatusUnauthorized, domain.Response{

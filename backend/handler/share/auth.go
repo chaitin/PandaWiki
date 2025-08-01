@@ -122,7 +122,7 @@ func (h *ShareAuthHandler) AuthLoginSimple(c echo.Context) error {
 		return h.NewResponseWithError(c, "simple auth password is incorrect", nil)
 	}
 
-	sess, err := session.Get("_pw_auth_session", c)
+	sess, err := session.Get(domain.SessionName, c)
 	if err != nil {
 		h.logger.Error("get session failed", log.Error(err))
 		return err

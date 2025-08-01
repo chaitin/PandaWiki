@@ -296,6 +296,7 @@ definitions:
     - 6
     - 7
     - 8
+    format: int32
     type: integer
     x-enum-varnames:
     - AppTypeWeb
@@ -328,6 +329,10 @@ definitions:
       AuthTypeEnterprise: 企业认证
       AuthTypeNull: 无认证
       AuthTypeSimple: 简单口令
+    x-enum-descriptions:
+    - 无认证
+    - 简单口令
+    - 企业认证
     x-enum-varnames:
     - AuthTypeNull
     - AuthTypeSimple
@@ -490,6 +495,7 @@ definitions:
     - -1
     - 0
     - 1
+    format: int32
     type: integer
     x-enum-varnames:
     - CommentStatusReject
@@ -1195,6 +1201,7 @@ definitions:
     enum:
     - 1
     - 2
+    format: int32
     type: integer
     x-enum-varnames:
     - NodeStatusDraft
@@ -1215,6 +1222,7 @@ definitions:
     enum:
     - 1
     - 2
+    format: int32
     type: integer
     x-enum-varnames:
     - NodeTypeFolder
@@ -1223,6 +1231,7 @@ definitions:
     enum:
     - 1
     - 2
+    format: int32
     type: integer
     x-enum-varnames:
     - NodeVisibilityPrivate
@@ -1777,6 +1786,7 @@ paths:
         - -1
         - 0
         - 1
+        format: int32
         in: query
         name: status
         type: integer

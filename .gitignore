@@ -29,5 +29,6 @@ go.work.sum
 .vscode
 
 deploy
+local
 
 .idea

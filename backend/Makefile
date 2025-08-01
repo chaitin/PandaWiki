@@ -1,5 +1,5 @@
 generate:
-	swag fmt && swag init --exclude pro -g cmd/api/main.go --pd \
+	swag fmt --dir handler && swag init --exclude pro -g cmd/api/main.go --pd \
 	&& wire cmd/api/wire.go \
 	&& wire cmd/consumer/wire.go \
 	&& wire cmd/migrate/wire.go
@@ -7,7 +7,7 @@ generate:
 generate_pro:
 	wire cmd/migrate/wire.go \
 	&& cd pro \
-	&& swag fmt && swag init --instanceName pro -g cmd/api_pro/main.go --pd \
+	&& swag fmt --dir handler && swag init --instanceName pro -g cmd/api_pro/main.go --pd \
 	&& wire cmd/api_pro/wire.go \
 	&& wire cmd/consumer_pro/wire.go
 
