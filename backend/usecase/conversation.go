@@ -48,7 +48,7 @@ func (u *ConversationUsecase) GetConversationList(ctx context.Context, request *
 	if err != nil {
 		return nil, err
 	}
-	// get feedbackinfo
+	// get feedback info
 	conversationIDs := make([]string, 0, len(conversations))
 
 	for _, c := range conversations {
@@ -84,7 +84,7 @@ func (u *ConversationUsecase) GetConversationList(ctx context.Context, request *
 }
 
 func (u *ConversationUsecase) GetConversationDetail(ctx context.Context, conversationID string) (*domain.ConversationDetailResp, error) {
-	conversation, err := u.repo.GetConversationDetail(ctx, conversationID)
+	conversation, err := u.repo.GetConversationDetail(ctx, "", conversationID)
 	if err != nil {
 		return nil, err
 	}
@@ -216,4 +216,33 @@ func (u *ConversationUsecase) GetMessageDetail(ctx context.Context, messageId st
 		return nil, err
 	}
 	return message, nil
+}
+
+func (u *ConversationUsecase) GetShareConversationDetail(ctx context.Context, kbID, conversationID string) (*domain.ShareConversationDetailResp, error) {
+	conversation, err := u.repo.GetConversationDetail(ctx, kbID, conversationID)
+	if err != nil {
+		return nil, err
+	}
+	// get messages
+	messages, err := u.repo.GetConversationMessagesByID(ctx, conversationID)
+	if err != nil {
+		return nil, err
+	}
+	var shareMessages []*domain.ShareConversationMessage
+	for _, message := range messages {
+		shareMessages = append(shareMessages, &domain.ShareConversationMessage{
+			Role:      message.Role,
+			Content:   message.Content,
+			CreatedAt: message.CreatedAt,
+		})
+	}
+	shareConversationDetail := domain.ShareConversationDetailResp{
+		ID:        conversation.ID,
+		Subject:   conversation.Subject,
+		CreatedAt: conversation.CreatedAt,
+
+		Messages: shareMessages,
+	}
+	conversation.Messages = messages
+	return &shareConversationDetail, nil
 }

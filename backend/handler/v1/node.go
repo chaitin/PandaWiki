@@ -69,6 +69,7 @@ func (h *NodeHandler) CreateNode(c echo.Context) error {
 	if maxNode := c.Get("max_node"); maxNode != nil {
 		req.MaxNode = maxNode.(int)
 	}
+	h.logger.Info("create node", log.Any("req--> position", req.Position))
 	id, err := h.usecase.Create(c.Request().Context(), req)
 	if err != nil {
 		return h.NewResponseWithError(c, "create node failed", err)

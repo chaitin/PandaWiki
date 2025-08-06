@@ -327,6 +327,7 @@ definitions:
     - 6
     - 7
     - 8
+    format: int32
     type: integer
     x-enum-varnames:
     - AppTypeWeb
@@ -361,6 +362,10 @@ definitions:
       AuthTypeEnterprise: 企业认证
       AuthTypeNull: 无认证
       AuthTypeSimple: 简单口令
+    x-enum-descriptions:
+    - 无认证
+    - 简单口令
+    - 企业认证
     x-enum-varnames:
     - AuthTypeNull
     - AuthTypeSimple
@@ -524,6 +529,7 @@ definitions:
     - -1
     - 0
     - 1
+    format: int32
     type: integer
     x-enum-varnames:
     - CommentStatusReject
@@ -758,6 +764,8 @@ definitions:
         type: string
       parent_id:
         type: string
+      position:
+        type: number
       type:
         allOf:
         - $ref: '#/definitions/domain.NodeType'
@@ -1078,7 +1086,19 @@ definitions:
     x-enum-comments:
       ModelProviderBrandZhiPu: 智谱
     x-enum-descriptions:
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
+    - ""
     - 智谱
+    - ""
     x-enum-varnames:
     - ModelProviderBrandOpenAI
     - ModelProviderBrandOllama
@@ -1196,6 +1216,7 @@ definitions:
     enum:
     - 1
     - 2
+    format: int32
     type: integer
     x-enum-varnames:
     - NodeStatusDraft
@@ -1216,6 +1237,7 @@ definitions:
     enum:
     - 1
     - 2
+    format: int32
     type: integer
     x-enum-varnames:
     - NodeTypeFolder
@@ -1224,6 +1246,7 @@ definitions:
     enum:
     - 1
     - 2
+    format: int32
     type: integer
     x-enum-varnames:
     - NodeVisibilityPrivate
@@ -1430,6 +1453,28 @@ definitions:
       root_id:
         type: string
     type: object
+  domain.ShareConversationDetailResp:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      messages:
+        items:
+          $ref: '#/definitions/domain.ShareConversationMessage'
+        type: array
+      subject:
+        type: string
+    type: object
+  domain.ShareConversationMessage:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      role:
+        $ref: '#/definitions/schema.RoleType'
+    type: object
   domain.SimpleAuth:
     properties:
       enabled:
@@ -1564,6 +1609,8 @@ definitions:
         type: string
       name:
         type: string
+      position:
+        type: number
       summary:
         type: string
       visibility:
@@ -1779,6 +1826,7 @@ paths:
         - -1
         - 0
         - 1
+        format: int32
         in: query
         name: status
         type: integer
@@ -3475,6 +3523,37 @@ paths:
       summary: GetCommentList
       tags:
       - share_comment
+  /share/v1/conversation/detail:
+    get:
+      consumes:
+      - application/json
+      description: GetConversationDetail
+      parameters:
+      - description: kb id
+        in: header
+        name: X-KB-ID
+        required: true
+        type: string
+      - description: conversation id
+        in: query
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.ShareConversationDetailResp'
+              type: object
+      summary: GetConversationDetail
+      tags:
+      - share_conversation
   /share/v1/node/detail:
     get:
       consumes:
