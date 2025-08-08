@@ -3,24 +3,24 @@
 import { KBDetail, NodeDetail } from '@/assets/type';
 import { IconFile, IconFolder } from '@/components/icons';
 import { useStore } from '@/provider';
-import { Box, Stack, Button, Divider, TextField, alpha } from '@mui/material';
+import { Box, Button, Divider, Stack, TextField, alpha } from '@mui/material';
+import { Editor, UseTiptapReturn } from '@yu-cq/tiptap';
 import { Controller, useForm } from 'react-hook-form';
-import { TiptapReader, UseTiptapEditorReturn } from 'ct-tiptap-editor';
 
+import FeedbackDialog from '@/components/feedbackModal';
+import TextSelectionTooltip from '@/components/textSelectionTooltip';
+import { useTextSelection } from '@/hooks/useTextSelection';
+import { postShareProV1DocumentFeedback } from '@/request/pro/DocumentFeedback';
+import {
+  getShareV1CommentList,
+  postShareV1Comment,
+} from '@/request/ShareComment';
+import { base64ToFile } from '@/utils';
 import { message } from 'ct-mui';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import React, { useEffect, useRef, useState } from 'react';
-import { useTextSelection } from '@/hooks/useTextSelection';
-import TextSelectionTooltip from '@/components/textSelectionTooltip';
-import FeedbackDialog from '@/components/feedbackModal';
-import { postShareProV1DocumentFeedback } from '@/request/pro/DocumentFeedback';
-import { base64ToFile } from '@/utils';
-import {
-  getShareV1CommentList,
-  postShareV1Comment,
-} from '@/request/ShareComment';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -33,7 +33,7 @@ const DocContent = ({
   commentList: propsCommentList,
 }: {
   info?: NodeDetail;
-  editorRef: UseTiptapEditorReturn;
+  editorRef: UseTiptapReturn;
   docId: string;
   kbInfo?: KBDetail;
   commentList?: any[];
@@ -103,9 +103,9 @@ const DocContent = ({
       node_id: docId,
       image: feedbackData.screenshot
         ? base64ToFile(
-            feedbackData.screenshot!,
-            `${info?.name || 'screenshot'}.png`,
-          )
+          feedbackData.screenshot!,
+          `${info?.name || 'screenshot'}.png`,
+        )
         : undefined,
     });
   };
@@ -189,7 +189,7 @@ const DocContent = ({
         alignItems={mobile ? 'flex-start' : 'center'}
         justifyContent='space-between'
         sx={{
-          bgcolor: 'background.paper',
+          bgcolor: 'background.paper2',
           p: 3,
           borderRadius: '10px',
           border: '1px solid',
@@ -253,7 +253,7 @@ const DocContent = ({
           },
         }}
       >
-        <TiptapReader editorRef={editorRef} />
+        {editorRef.editor && <Editor editor={editorRef.editor} />}
       </Box>
       {appDetail?.web_app_comment_settings?.is_enable && (
         <>

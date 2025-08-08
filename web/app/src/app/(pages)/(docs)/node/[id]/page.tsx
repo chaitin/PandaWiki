@@ -3,7 +3,6 @@ import { getShareV1NodeDetail } from '@/request/ShareNode';
 import { formatMeta } from '@/utils';
 import Doc from '@/views/node';
 import { ResolvingMetadata } from 'next';
-import { cookies, headers } from 'next/headers';
 
 export interface PageProps {
   params: Promise<{ id: string }>;

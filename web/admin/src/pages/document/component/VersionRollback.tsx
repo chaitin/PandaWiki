@@ -1,4 +1,4 @@
-import { NodeReleaseItem } from '@/api';
+import { DomainNodeReleaseListItem } from "@/request/pro";
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { Box, Stack } from '@mui/material';
 import { Modal } from 'ct-mui';
@@ -6,8 +6,8 @@ import { Modal } from 'ct-mui';
 interface VersionRollbackProps {
   open: boolean;
   onClose: () => void;
-  onOk: () => void;
-  data: NodeReleaseItem;
+  onOk: () => void
+  data: DomainNodeReleaseListItem
 }
 
 const VersionRollback = ({

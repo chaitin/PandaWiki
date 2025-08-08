@@ -1,47 +1,47 @@
 'use client';
 
 import {
+  postShareProV1AuthCas,
   postShareProV1AuthDingtalk,
   postShareProV1AuthFeishu,
-  postShareProV1AuthWecom,
-  postShareProV1AuthOauth,
-  postShareProV1AuthCas,
   postShareProV1AuthLdap,
+  postShareProV1AuthOauth,
+  postShareProV1AuthWecom,
 } from '@/request/pro/ShareAuth';
 import {
   getShareV1AuthGet,
   postShareV1AuthLoginSimple,
 } from '@/request/ShareAuth';
-import { clearCookie } from '@/utils/cookie';
 import { getShareV1NodeList } from '@/request/ShareNode';
+import { clearCookie } from '@/utils/cookie';
 
-import { DomainAuthType, ConstsSourceType } from '@/request/types';
 import Logo from '@/assets/images/logo.png';
 import { FooterProvider } from '@/components/footer';
+import {
+  IconCAS,
+  IconDingDing,
+  IconFeishu,
+  IconLDAP,
+  IconLock,
+  IconOAuth,
+  IconPassword,
+  IconQiyeweixin,
+  IconUser,
+} from '@/components/icons';
 import { useStore } from '@/provider';
+import { ConstsSourceType, DomainAuthType } from '@/request/types';
 import {
   Box,
   Button,
+  IconButton,
   InputAdornment,
   Stack,
   TextField,
-  IconButton,
 } from '@mui/material';
 import { message } from 'ct-mui';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import {
-  IconLock,
-  IconDingDing,
-  IconFeishu,
-  IconQiyeweixin,
-  IconOAuth,
-  IconCAS,
-  IconUser,
-  IconPassword,
-  IconLDAP,
-} from '@/components/icons';
 
 export default function Login() {
   const [password, setPassword] = useState('');
@@ -387,8 +387,8 @@ export default function Login() {
                                   height: 16,
                                   color:
                                     loading ||
-                                    !username.trim() ||
-                                    !password.trim()
+                                      !username.trim() ||
+                                      !password.trim()
                                       ? ''
                                       : '#e73f3f',
                                 }}

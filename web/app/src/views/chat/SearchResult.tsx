@@ -91,7 +91,7 @@ const SearchResult = ({
         <Box sx={{ mt: 1 }}>
           <Stack
             sx={{
-              bgcolor: 'background.paper',
+              bgcolor: 'background.paper2',
               borderRadius: '10px',
               px: 2,
               py: 1,

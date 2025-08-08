@@ -1,16 +1,16 @@
 import {
-  getApiProV1NodeReleaseList,
   getApiProV1NodeReleaseDetail,
+  getApiProV1NodeReleaseList,
 } from '@/request/pro/Node';
 import {
-  DomainNodeReleaseListItem,
   DomainGetNodeReleaseDetailResp,
+  DomainNodeReleaseListItem,
 } from '@/request/pro/types';
 import { useAppSelector } from '@/store';
 import { addOpacityToColor } from '@/utils';
 import { Box, Stack, useMediaQuery, useTheme } from '@mui/material';
+import { Editor, TocList, useTiptap } from '@yu-cq/tiptap';
 import { Ellipsis, Message } from 'ct-mui';
-import { TiptapReader, useTiptapEditor } from 'ct-tiptap-editor';
 import dayjs from 'dayjs';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -38,18 +38,20 @@ const VersionList = ({ changeVersion }: VersionListProps) => {
   const [curNode, setCurNode] = useState<DomainGetNodeReleaseDetailResp | null>(
     null,
   );
-  const [headings, setHeadings] = useState<
-    { id: string; title: string; heading: number }[]
-  >([]);
-  const [maxH, setMaxH] = useState(0);
+  const [headings, setHeadings] = useState<TocList>([]);
 
-  const editorRef = useTiptapEditor({
+  const handleTocUpdate = (toc: TocList) => {
+    setHeadings(toc);
+  };
+
+  const editorRef = useTiptap({
     content: '',
     editable: false,
     immediatelyRender: true,
     onError: (error: Error) => {
       Message.error(error.message);
     },
+    onTocUpdate: handleTocUpdate,
   });
 
   const getDetail = (v: DomainNodeReleaseListItem) => {
@@ -64,10 +66,7 @@ const VersionList = ({ changeVersion }: VersionListProps) => {
 
   useEffect(() => {
     if (curNode && editorRef) {
-      editorRef.setContent(curNode.content || '').then(headings => {
-        setHeadings(headings);
-        setMaxH(Math.min(...headings.map(h => h.heading)));
-      });
+      editorRef.editor.commands.setContent(curNode.content || '');
     }
   }, [curNode]);
 
@@ -78,8 +77,7 @@ const VersionList = ({ changeVersion }: VersionListProps) => {
   }, [curVersion]);
 
   useEffect(() => {
-    getApiProV1NodeReleaseList({ kb_id, node_id: id }).then(res => {
-      console.log(res);
+    getApiProV1NodeReleaseList({ kb_id, node_id: id }).then((res) => {
       setVersion(res || []);
       if (res.length > 0) {
         setCurVersion(res[0]);
@@ -119,7 +117,7 @@ const VersionList = ({ changeVersion }: VersionListProps) => {
               },
             }}
           >
-            <TiptapReader editorRef={editorRef} />
+            <Editor editor={editorRef.editor} />
           </Box>
         )}
       </Box>
@@ -144,7 +142,7 @@ const VersionList = ({ changeVersion }: VersionListProps) => {
                 name={curNode?.name || ''}
                 summary={curNode?.meta?.summary || ''}
               />
-              <EditorDocNav headers={headings} maxH={maxH} />
+              <EditorDocNav headers={headings} />
             </Stack>
           </Box>
         </>

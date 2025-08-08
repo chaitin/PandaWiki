@@ -1,7 +1,6 @@
 'use client';
 
 import { ConversationItem } from '@/assets/type';
-import { postShareV1ChatFeedback } from '@/request/ShareChat';
 import Feedback from '@/components/feedback';
 import { useRouter } from 'next/navigation';
 import {
@@ -14,6 +13,7 @@ import {
 import MarkDown from '@/components/markdown';
 import MarkDown2 from '@/components/markdown2';
 import { useStore } from '@/provider';
+import { postShareV1ChatFeedback } from '@/request/ShareChat';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { IconCopy, IconNewChat } from '@/components/icons';
 import { copyText } from '@/utils';
@@ -164,7 +164,7 @@ const ChatResult = ({
                 bgcolor:
                   themeMode === 'dark'
                     ? 'background.default'
-                    : 'background.paper',
+                    : 'background.paper2',
               }}
             >
               <AccordionSummary
@@ -297,7 +297,7 @@ const ChatResult = ({
         <Box
           sx={{
             bgcolor:
-              themeMode === 'dark' ? 'background.paper' : 'background.default',
+              themeMode === 'dark' ? 'background.paper2' : 'background.default',
             px: 3,
             py: 2,
             borderRadius: '10px',
@@ -318,7 +318,7 @@ const ChatResult = ({
                 transition: 'all 0.5s ease-in-out',
                 bgcolor:
                   themeMode === 'dark'
-                    ? 'background.paper'
+                    ? 'background.paper2'
                     : 'background.default',
               },
               textarea: {

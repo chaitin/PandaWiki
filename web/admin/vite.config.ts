@@ -19,6 +19,11 @@ export default defineConfig(({ mode }) => {
           secure: false,
           changeOrigin: true,
         },
+        '/share': {
+          target: env.SHARE_TARGET,
+          secure: false,
+          changeOrigin: true,
+        },
       },
       host: '0.0.0.0',
     },

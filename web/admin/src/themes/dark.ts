@@ -1,4 +1,5 @@
 const dark = {
+  cssVariables: true,
   primary: {
     main: '#fdfdfd',
     contrastText: '#000',

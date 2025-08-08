@@ -1,4 +1,5 @@
 const light = {
+  cssVariables: true,
   primary: {
     main: '#3248F2',
     contrastText: '#fff',

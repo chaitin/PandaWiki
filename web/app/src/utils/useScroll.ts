@@ -1,16 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { TocItem, TocList } from "@yu-cq/tiptap";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-interface Heading {
-  id: string;
-  title: string;
-  heading: number;
-}
-
-const useScroll = (headings: Heading[]) => {
-  const [activeHeading, setActiveHeading] = useState<Heading | null>(null);
-  const isFirstLoad = useRef(true);
-  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isManualScroll = useRef(false);
+const useScroll = (headings: TocList) => {
+  const [activeHeading, setActiveHeading] = useState<TocItem | null>(null)
+  const isFirstLoad = useRef(true)
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const isManualScroll = useRef(false)
 
   const debounce = <T extends (...args: any[]) => any>(
     func: T,
@@ -24,45 +19,40 @@ const useScroll = (headings: Heading[]) => {
     };
   };
 
-  const scrollToElement = useCallback(
-    (elementId: string, offset = 80) => {
-      const element = document.getElementById(elementId);
-      if (element) {
-        const targetHeading = headings.find(h => h.id === elementId);
-        if (targetHeading) {
-          isManualScroll.current = true;
-          setActiveHeading(targetHeading);
-          location.hash = encodeURIComponent(targetHeading.title);
+  const scrollToElement = useCallback((elementId: string, offset = 80) => {
+    const element = document.getElementById(elementId)
+    if (element) {
+      const targetHeading = headings.find(h => h.id === elementId)
+      if (targetHeading) {
+        isManualScroll.current = true
+        setActiveHeading(targetHeading)
+        location.hash = encodeURIComponent(targetHeading.textContent)
 
-          const elementPosition = element.getBoundingClientRect().top;
-          const offsetPosition = elementPosition + window.scrollY - offset;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.scrollY - offset;
 
-          window.scrollTo({
-            top: offsetPosition,
-            behavior: 'smooth',
-          });
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth',
+        });
 
-          setTimeout(() => {
-            isManualScroll.current = false;
-          }, 1000);
-        }
+        setTimeout(() => {
+          isManualScroll.current = false;
+        }, 1000);
       }
-    },
+    }
+  },
     [headings],
   );
 
   const findActiveHeading = useCallback(() => {
-    const levels = Array.from(
-      new Set(headings.map(it => it.heading).sort((a, b) => a - b)),
-    ).slice(0, 3);
-    const visibleHeadings = headings.filter(header =>
-      levels.includes(header.heading),
-    );
+    const levels = Array.from(new Set(headings.map(it => it.level).sort((a, b) => a - b))).slice(0, 3)
+    const visibleHeadings = headings.filter(header => levels.includes(header.level))
 
     if (visibleHeadings.length === 0) return null;
 
-    const offset = 100;
-    let activeHeader: Heading | null = null;
+    const offset = 100
+    let activeHeader: TocItem | null = null
 
     for (let i = visibleHeadings.length - 1; i >= 0; i--) {
       const header = visibleHeadings[i];
@@ -99,7 +89,7 @@ const useScroll = (headings: Heading[]) => {
     if (isFirstLoad.current && headings.length > 0) {
       const hash = decodeURIComponent(location.hash).slice(1);
       if (hash) {
-        const targetHeading = headings.find(header => header.title === hash);
+        const targetHeading = headings.find(header => header.textContent === hash)
         if (targetHeading) {
           setActiveHeading(targetHeading);
           setTimeout(() => {

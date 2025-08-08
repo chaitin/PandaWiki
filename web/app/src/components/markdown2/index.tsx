@@ -1,27 +1,27 @@
 'use client';
 
 import { useStore } from '@/provider';
-import { addOpacityToColor, copyText } from '@/utils';
+import { copyText } from '@/utils';
 import { Box, useTheme } from '@mui/material';
-import 'katex/dist/katex.min.css';
 import mk from '@vscode/markdown-it-katex';
-import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/an-old-hope.css';
+import 'katex/dist/katex.min.css';
+import MarkdownIt from 'markdown-it';
 import React, {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  useMemo,
 } from 'react';
-import { incrementalRender } from './incrementalRenderer';
 import { createImageRenderer } from './imageRenderer';
-import {
-  useThinkingRenderer,
-  processThinkingContent,
-} from './thinkingRenderer';
+import { incrementalRender } from './incrementalRenderer';
 import { createMermaidRenderer } from './mermaidRenderer';
+import {
+  processThinkingContent,
+  useThinkingRenderer,
+} from './thinkingRenderer';
 
 // ==================== 类型定义 ====================
 interface MarkDown2Props {
@@ -344,7 +344,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
     fontSize: '14px',
     background: 'transparent',
     '--primary-color': theme.palette.primary.main,
-    '--background-paper': theme.palette.background.paper,
+    '--background-paper': theme.palette.background.paper2,
 
     // 省略号样式
     '.three-ellipsis': {
@@ -396,9 +396,9 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
     // 暗色主题下的 LaTeX 样式
     ...(themeMode === 'dark' && {
       '.katex, .katex *, .katex .mord, .katex .mrel, .katex .mop, .katex .mbin, .katex .mpunct, .katex .mopen, .katex .mclose, .katex-display':
-        {
-          color: `${theme.palette.text.primary} !important`,
-        },
+      {
+        color: `${theme.palette.text.primary} !important`,
+      },
     }),
   };
 

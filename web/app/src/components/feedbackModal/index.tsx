@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { TextField, Box, Typography, Stack } from '@mui/material';
-import { message, Modal } from 'ct-mui';
 import { useStore } from '@/provider';
+import { Box, Stack, TextField, Typography } from '@mui/material';
+import { message, Modal } from 'ct-mui';
+import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 
 interface FeedbackModalProps {
@@ -144,7 +144,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
                     transition: 'all 0.5s ease-in-out',
                     bgcolor:
                       themeMode === 'dark'
-                        ? 'background.paper'
+                        ? 'background.paper2'
                         : 'background.default',
                   },
                 }}

@@ -73,7 +73,7 @@ const Feedback = ({ open, onClose, onSubmit, data }: FeedbackProps) => {
               color: type === tag ? 'primary.main' : 'text.primary',
               bgcolor:
                 themeMode === 'dark'
-                  ? 'background.paper'
+                  ? 'background.paper2'
                   : 'background.default',
             }}
             onClick={() => {
@@ -90,7 +90,7 @@ const Feedback = ({ open, onClose, onSubmit, data }: FeedbackProps) => {
           border: '1px solid',
           borderColor: 'divider',
           bgcolor:
-            themeMode === 'dark' ? 'background.paper' : 'background.default',
+            themeMode === 'dark' ? 'background.paper2' : 'background.default',
           p: 2,
         }}
       >
@@ -108,7 +108,7 @@ const Feedback = ({ open, onClose, onSubmit, data }: FeedbackProps) => {
               transition: 'all 0.5s ease-in-out',
               bgcolor:
                 themeMode === 'dark'
-                  ? 'background.paper'
+                  ? 'background.paper2'
                   : 'background.default',
             },
             textarea: {

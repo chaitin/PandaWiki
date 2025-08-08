@@ -12,6 +12,8 @@ import { getLicenseInfo, getUser } from './api';
 import KBCreate from './components/KB/KBCreate';
 import { setLicense, setUser } from './store/slices/config';
 
+import '@yu-cq/tiptap/dist/index.css';
+
 function App() {
   const location = useLocation();
   const { pathname } = location;

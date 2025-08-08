@@ -1,6 +1,6 @@
+import StoreProvider from '@/provider';
 import { getShareV1AppWebInfo } from '@/request/ShareApp';
 import { getShareV1NodeList } from '@/request/ShareNode';
-import StoreProvider from '@/provider';
 import { Box } from '@mui/material';
 import parse, { DOMNode, domToReact } from 'html-react-parser';
 import Script from 'next/script';

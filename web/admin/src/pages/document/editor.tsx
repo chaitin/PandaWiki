@@ -1,13 +1,17 @@
-import { getNodeDetail, NodeDetail, updateNode, uploadFile } from '@/api';
 import {
-  DomainGetNodeReleaseDetailResp,
-  DomainNodeReleaseListItem,
-} from '@/request/pro/types';
+  getNodeDetail,
+  NodeDetail,
+  updateNode,
+  uploadFile
+} from '@/api';
+import { DomainGetNodeReleaseDetailResp, DomainNodeReleaseListItem } from '@/request/pro';
 import { useAppDispatch } from '@/store';
 import { setKbId } from '@/store/slices/config';
+import light from '@/themes/light';
+import componentStyleOverrides from '@/themes/override';
 import { Box, Stack, useMediaQuery } from '@mui/material';
+import { Editor, EditorThemeProvider, EditorToolbar, TocList, useTiptap, UseTiptapReturn } from '@yu-cq/tiptap';
 import { Message } from 'ct-mui';
-import { TiptapEditor, TiptapToolbar, useTiptapEditor } from 'ct-tiptap-editor';
 import dayjs from 'dayjs';
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -19,32 +23,51 @@ import EditorSummary from './component/EditorSummary';
 import VersionList from './component/VersionList';
 
 const DocEditor = () => {
-  const timer = useRef<NodeJS.Timeout | null>(null);
   const { id = '' } = useParams();
   const dispatch = useAppDispatch();
   const isWideScreen = useMediaQuery('(min-width:1400px)');
-  const [edited, setEdited] = useState(false);
+
+  const timer = useRef<NodeJS.Timeout | null>(null);
+
   const [detail, setDetail] = useState<NodeDetail | null>(null);
+  const [edited, setEdited] = useState(false);
+  const [headings, setHeadings] = useState<TocList>([]);
   const [docContent, setDocContent] = useState('');
-  const [headings, setHeadings] = useState<
-    { id: string; title: string; heading: number }[]
-  >([]);
-  const [maxH, setMaxH] = useState(0);
-  const [publishOpen, setPublishOpen] = useState(false);
   const [showVersion, setShowVersion] = useState(false);
+  const [publishOpen, setPublishOpen] = useState(false);
   const [curVersion, setCurVersion] = useState<
     | (DomainGetNodeReleaseDetailResp & { release: DomainNodeReleaseListItem })
     | null
   >(null);
 
+  const handleUpload = async (
+    file: File,
+    onProgress?: (progress: { progress: number }) => void,
+    abortSignal?: AbortSignal
+  ) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const { key } = await uploadFile(formData, {
+      onUploadProgress: ({ progress }) => {
+        onProgress?.({ progress: progress / 100 });
+      },
+      abortSignal,
+    });
+    return Promise.resolve('/static-file/' + key);
+  };
+
+  const handleTocUpdate = (toc: TocList) => {
+    setHeadings(toc)
+  };
+
   const handleSave = async (
     auto?: boolean,
     publish?: boolean,
     html?: string,
-    nodeDetail?: any,
+    nodeDetail?: NodeDetail | null,
   ) => {
     if (!editorRef || !detail) return;
-    const content = html || editorRef.getHtml();
+    const content = html || editorRef.getHTML();
     cancelTimer();
     try {
       const newDetail = nodeDetail ?? detail;
@@ -83,43 +106,32 @@ const DocEditor = () => {
     }
   };
 
-  const handleUpload = async (
-    file: File,
-    onProgress?: (progress: { progress: number }) => void,
-    abortSignal?: AbortSignal,
-  ) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const { key } = await uploadFile(formData, {
-      onUploadProgress: event => {
-        onProgress?.(event);
-      },
-      abortSignal,
-    });
-    return Promise.resolve('/static-file/' + key);
-  };
-
-  const editorRef = useTiptapEditor({
+  const editorRef = useTiptap({
+    editable: true,
     content: '',
+    limit: 100,
+    exclude: ['invisibleCharacters', 'youtube', 'mention'],
     immediatelyRender: true,
-    size: 100,
-    aiUrl: '/api/v1/creation/text',
-    onUpload: handleUpload,
-    onSave: html => handleSave(undefined, false, html),
+    onSave: (editor: UseTiptapReturn['editor']) => {
+      handleSave(undefined, false, editor.getHTML());
+    },
     onUpdate: () => {
       setEdited(true);
       if (detail) setDetail({ ...detail, status: 1 });
     },
     onError: (error: Error) => {
-      Message.error(error.message);
+      if (error.message) {
+        Message.error(error.message);
+      }
     },
+    onUpload: handleUpload,
+    onTocUpdate: handleTocUpdate,
   });
 
   const getDetail = (unCover?: boolean) => {
     getNodeDetail({ id }).then(res => {
       setDetail(res);
       if (!unCover) setDocContent(res.content || '');
-      setEdited(false);
       dispatch(setKbId(res.kb_id));
     });
   };
@@ -146,10 +158,7 @@ const DocEditor = () => {
   useEffect(() => {
     cancelTimer();
     if (editorRef) {
-      editorRef.setContent(docContent || '').then(headings => {
-        setHeadings(headings);
-        setMaxH(Math.min(...headings.map(h => h.heading)));
-      });
+      editorRef.editor.commands.setContent(docContent || '');
       resetTimer();
     }
     return () => cancelTimer();
@@ -177,64 +186,60 @@ const DocEditor = () => {
     };
   }, []);
 
-  if (!editorRef) return <></>;
-
   return (
-    <Box sx={{ color: 'text.primary', pb: 2 }}>
-      <Box
-        sx={{
-          position: 'fixed',
-          top: 0,
-          width: '100vw',
-          zIndex: 1000,
-          bgcolor: '#fff',
-          boxShadow: '0px 0px 10px 0px rgba(0, 0, 0, 0.1)',
+    <>
+      <EditorThemeProvider
+        colors={{ light }}
+        mode="light"
+        theme={{
+          components: componentStyleOverrides,
         }}
       >
-        <Box
-          sx={{
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            py: 1,
-          }}
-        >
-          <EditorHeader
-            detail={detail}
-            setDetail={setDetail}
-            setDocContent={setDocContent}
-            editorRef={editorRef}
-            resetTimer={resetTimer}
-            cancelTimer={cancelTimer}
-            showVersion={showVersion}
-            curVersion={curVersion}
-            setShowVersion={setShowVersion}
-            onSave={(auto, publish) => handleSave(auto, publish)}
-          />
-        </Box>
-        {!showVersion && (
-          <Box
+        <Box sx={{ color: 'text.primary' }}>
+          <Box sx={{
+            position: 'fixed',
+            top: 0,
+            width: '100vw',
+            zIndex: 1000,
+            bgcolor: '#fff',
+            boxShadow: '0px 0px 10px 0px rgba(0, 0, 0, 0.1)',
+          }}>
+            <Box sx={{
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              py: 1,
+            }}>
+              <EditorHeader
+                editorRef={editorRef}
+                detail={detail}
+                setDetail={setDetail}
+                setDocContent={setDocContent}
+                curVersion={curVersion}
+                showVersion={showVersion}
+                setShowVersion={setShowVersion}
+                onSave={(auto, publish) => handleSave(auto, publish)}
+              />
+            </Box>
+            {!showVersion && (
+              <Box
+                sx={{
+                  width: 900,
+                  margin: 'auto',
+                }}
+              >
+                <EditorToolbar editor={editorRef.editor} />
+              </Box>
+            )}
+          </Box>
+          {showVersion ? <VersionList changeVersion={setCurVersion} /> : <Box
             sx={{
-              width: 900,
-              margin: 'auto',
+              pt: '105px',
+              display: 'flex',
+              justifyContent: 'center',
+              gap: isWideScreen ? 1 : 0,
             }}
           >
-            <TiptapToolbar editorRef={editorRef} />
-          </Box>
-        )}
-      </Box>
-      {showVersion ? (
-        <VersionList changeVersion={setCurVersion} />
-      ) : (
-        <Box
-          sx={{
-            pt: '105px',
-            display: 'flex',
-            justifyContent: 'center',
-            gap: isWideScreen ? 1 : 0,
-          }}
-        >
-          {isWideScreen && (
-            <Box
+            {isWideScreen && <Box
               sx={{
                 width: 292,
                 position: 'fixed',
@@ -246,30 +251,26 @@ const DocEditor = () => {
               }}
             >
               <EditorFolder edited={edited} save={handleSave} />
-            </Box>
-          )}
-          <Box
-            className='editor-content'
-            sx={{
-              width: 800,
-              overflowY: 'auto',
-              position: 'relative',
-              zIndex: 1,
-              m: '0 auto',
-              '.editor-container': {
+            </Box>}
+            <Box
+              className='editor-content'
+              sx={{
+                width: 800,
+                overflowY: 'auto',
+                position: 'relative',
+                zIndex: 1,
+                m: '0 auto',
                 p: 4,
                 borderRadius: '6px',
                 bgcolor: '#fff',
                 '.tiptap': {
                   minHeight: 'calc(100vh - 185px)',
                 },
-              },
-            }}
-          >
-            <TiptapEditor editorRef={editorRef} />
-          </Box>
-          {isWideScreen && (
-            <Box
+              }}
+            >
+              <Editor editor={editorRef.editor} />
+            </Box>
+            {isWideScreen && <Box
               sx={{
                 width: 292,
                 position: 'fixed',
@@ -291,20 +292,20 @@ const DocEditor = () => {
                   detail={detail}
                   setDetail={setDetail}
                 />
-                <EditorDocNav headers={headings} maxH={maxH} />
+                <EditorDocNav headers={headings} />
               </Stack>
-            </Box>
-          )}
+            </Box>}
+          </Box>}
         </Box>
-      )}
+      </EditorThemeProvider>
       <VersionPublish
         open={publishOpen}
         defaultSelected={[id]}
         onClose={() => setPublishOpen(false)}
         refresh={() => getDetail()}
       />
-    </Box>
+    </>
   );
 };
 
-export default DocEditor;
+export default DocEditor; 
