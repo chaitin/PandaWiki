@@ -36,7 +36,7 @@ const ChatInput = ({
     borderRadius: '10px',
     border: '1px solid',
     borderColor: 'divider',
-    bgcolor: themeMode === 'dark' ? 'background.paper' : 'background.default',
+    bgcolor: themeMode === 'dark' ? 'background.paper2' : 'background.default',
     p: 2,
   }}>
     <TextField
@@ -50,7 +50,7 @@ const ChatInput = ({
           overflow: 'hidden',
           height: '52px !important',
           transition: 'all 0.5s ease-in-out',
-          bgcolor: themeMode === 'dark' ? 'background.paper' : 'background.default',
+          bgcolor: themeMode === 'dark' ? 'background.paper2' : 'background.default',
         },
         textarea: {
           lineHeight: '26px',

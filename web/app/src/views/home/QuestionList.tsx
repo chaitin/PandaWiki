@@ -41,7 +41,7 @@ const QuestionList = () => {
           borderColor: 'divider',
           px: 2,
           cursor: 'pointer',
-          bgcolor: themeMode === 'dark' ? 'background.paper' : 'background.default',
+          bgcolor: themeMode === 'dark' ? 'background.paper2' : 'background.default',
           '&:hover': {
             borderColor: 'primary.main',
             color: 'primary.main',

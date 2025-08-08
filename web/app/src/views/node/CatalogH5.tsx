@@ -2,12 +2,12 @@
 
 import { NodeListItem } from '@/assets/type';
 import { IconArrowDown, IconNav } from '@/components/icons';
-import { convertToTree, filterEmptyFolders } from '@/utils/drag';
 import { filterTreeBySearch } from '@/utils';
-import { Box, Stack, TextField } from '@mui/material';
+import { convertToTree, filterEmptyFolders } from '@/utils/drag';
 import SearchIcon from '@mui/icons-material/Search';
-import { useEffect, useState, useMemo } from 'react';
+import { Box, Stack, TextField } from '@mui/material';
 import { useDebounce } from 'ahooks';
+import { useEffect, useMemo, useState } from 'react';
 import CatalogFolder from './CatalogFolder';
 
 const CatalogH5 = ({ nodes }: { nodes: NodeListItem[] }) => {
@@ -41,7 +41,7 @@ const CatalogH5 = ({ nodes }: { nodes: NodeListItem[] }) => {
         right: 0,
         width: '100%',
         zIndex: 2,
-        bgcolor: 'background.paper',
+        bgcolor: 'background.paper2',
       }}
     >
       <Stack
@@ -89,7 +89,7 @@ const CatalogH5 = ({ nodes }: { nodes: NodeListItem[] }) => {
             : '0px',
           paddingBottom: 'env(safe-area-inset-bottom)',
           transition: 'height 0.3s ease-in-out',
-          bgcolor: 'background.paper',
+          bgcolor: 'background.paper2',
           overflowY: 'auto',
           overflowX: 'hidden',
           '&::-webkit-scrollbar': {

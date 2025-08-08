@@ -1,18 +1,15 @@
 'use client';
-import { useMemo } from 'react';
-import { IconFold, IconUnfold } from '@/components/icons';
+import { IconFold, IconSearch, IconUnfold } from '@/components/icons';
 import { useStore } from '@/provider';
-import { IconSearch } from '@/components/icons';
-import SearchIcon from '@mui/icons-material/Search';
+import { filterTreeBySearch } from '@/utils';
 import {
   addExpandState,
   convertToTree,
   filterEmptyFolders,
 } from '@/utils/drag';
-import { filterTreeBySearch } from '@/utils';
 import { Box, IconButton, TextField } from '@mui/material';
-import { useState } from 'react';
 import { useDebounce } from 'ahooks';
+import { useMemo, useState } from 'react';
 import CatalogFolder from './CatalogFolder';
 
 const Catalog = ({
@@ -92,9 +89,9 @@ const Catalog = ({
             width: 32,
             height: 32,
             color: 'text.primary',
-            bgcolor: 'background.paper',
+            bgcolor: 'background.paper2',
             '&:hover': {
-              bgcolor: 'background.paper',
+              bgcolor: 'background.paper2',
               borderColor: 'divider',
             },
           }}

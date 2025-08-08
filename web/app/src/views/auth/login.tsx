@@ -1,42 +1,31 @@
 'use client';
 
-import {
-  postShareProV1AuthDingtalk,
-  postShareProV1AuthFeishu,
-  postShareProV1AuthWecom,
-  postShareProV1AuthOauth,
-  postShareProV1AuthCas,
-} from '@/request/pro/ShareAuth';
-import {
-  getShareV1AuthGet,
-  postShareV1AuthLoginSimple,
-} from '@/request/ShareAuth';
-import { getShareV1NodeList } from '@/request/ShareNode';
-
-import { DomainAuthType, ConstsSourceType } from '@/request/types';
 import Logo from '@/assets/images/logo.png';
 import Footer from '@/components/footer';
+import {
+  IconCAS,
+  IconDingDing,
+  IconFeishu,
+  IconLock,
+  IconOAuth,
+  IconQiyeweixin,
+} from '@/components/icons';
 import { useStore } from '@/provider';
 import {
-  Box,
-  Button,
-  InputAdornment,
-  Stack,
-  TextField,
-  IconButton,
-} from '@mui/material';
+  postShareProV1AuthCas,
+  postShareProV1AuthDingtalk,
+  postShareProV1AuthFeishu,
+  postShareProV1AuthOauth,
+  postShareProV1AuthWecom,
+} from '@/request/pro/ShareAuth';
+import { getShareV1AuthGet, postShareV1AuthLoginSimple } from '@/request/ShareAuth';
+import { getShareV1NodeList } from '@/request/ShareNode';
+import { ConstsSourceType, DomainAuthType } from '@/request/types';
+import { Box, Button, IconButton, InputAdornment, Stack, TextField } from '@mui/material';
 import { message } from 'ct-mui';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import {
-  IconLock,
-  IconDingDing,
-  IconFeishu,
-  IconQiyeweixin,
-  IconOAuth,
-  IconCAS,
-} from '@/components/icons';
 
 export default function Login() {
   const [password, setPassword] = useState('');
@@ -44,13 +33,7 @@ export default function Login() {
   const [authType, setAuthType] = useState<DomainAuthType>();
   const [sourceType, setSourceType] = useState<ConstsSourceType>();
   const router = useRouter();
-  const {
-    kbDetail,
-    kb_id,
-    themeMode,
-    mobile = false,
-    setNodeList,
-  } = useStore();
+  const { kbDetail, kb_id, themeMode, mobile = false, setNodeList } = useStore();
 
   const handleLogin = async () => {
     if (!password.trim()) {
@@ -143,8 +126,7 @@ export default function Login() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          bgcolor:
-            themeMode === 'dark' ? 'background.default' : 'background.paper',
+          bgcolor: themeMode === 'dark' ? 'background.default' : 'background.paper2',
         }}
       >
         <Box
@@ -153,8 +135,7 @@ export default function Login() {
             maxWidth: 400,
             p: 4,
             backdropFilter: 'blur(2px)',
-            bgcolor:
-              themeMode === 'dark' ? 'background.paper' : 'background.default',
+            bgcolor: themeMode === 'dark' ? 'background.paper2' : 'background.default',
             borderRadius: '10px',
             ...(mobile && {
               m: 3,
@@ -164,20 +145,11 @@ export default function Login() {
           <Stack alignItems='center'>
             <Stack alignItems='center' gap={1} sx={{ mb: 5 }}>
               {kbDetail?.settings?.icon ? (
-                <img
-                  src={kbDetail?.settings?.icon}
-                  alt='logo'
-                  width={40}
-                  height={40}
-                />
+                <img src={kbDetail?.settings?.icon} alt='logo' width={40} height={40} />
               ) : (
                 <Image src={Logo.src} width={40} height={40} alt='logo' />
               )}
-              <Box
-                sx={{ fontSize: 28, lineHeight: '36px', fontWeight: 'bold' }}
-              >
-                {kbDetail?.settings?.title}
-              </Box>
+              <Box sx={{ fontSize: 28, lineHeight: '36px', fontWeight: 'bold' }}>{kbDetail?.settings?.title}</Box>
             </Stack>
             {authType === DomainAuthType.AuthTypeSimple && (
               <>
@@ -194,9 +166,7 @@ export default function Login() {
                     input: {
                       startAdornment: (
                         <InputAdornment position='start'>
-                          <IconLock
-                            sx={{ fontSize: 16, width: 24, height: 16 }}
-                          />
+                          <IconLock sx={{ fontSize: 16, width: 24, height: 16 }} />
                         </InputAdornment>
                       ),
                     },
@@ -212,7 +182,7 @@ export default function Login() {
                     },
                     '& .MuiOutlinedInput-root': {
                       pr: '18px',
-                      bgcolor: 'background.paper',
+                      bgcolor: 'background.paper2',
                       '& fieldset': {
                         borderRadius: '10px',
                         borderColor: 'divider',

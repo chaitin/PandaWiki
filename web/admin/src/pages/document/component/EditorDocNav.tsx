@@ -1,10 +1,10 @@
 import { Box, Stack } from "@mui/material"
+import { TocList } from "@yu-cq/tiptap"
 import { Ellipsis } from "ct-mui"
-import { useEffect, useState } from "react"
 
 interface EditorDocNavProps {
   title?: string
-  headers: { id: string, title: string, heading: number }[]
+  headers: TocList
   maxH: number
 }
 
@@ -15,30 +15,7 @@ const HeadingSx = [
 ]
 
 const EditorDocNav = ({ headers }: EditorDocNavProps) => {
-  const levels = Array.from(new Set(headers.map(it => it.heading).sort((a, b) => a - b))).slice(0, 3)
-  const [activeId, setActiveId] = useState<string>('')
-
-  useEffect(() => {
-    const showHeader = headers.filter(header => levels.includes(header.heading))
-    const handleScroll = () => {
-      const offset = 100
-      const scrollPosition = window.scrollY + offset
-
-      const activeHeader = showHeader.find(header => {
-        const element = document.getElementById(header.id)
-        if (!element) return false
-        const elementTop = element.getBoundingClientRect().top + window.scrollY
-        return elementTop >= scrollPosition
-      })
-
-      if (activeHeader) {
-        setActiveId(activeHeader.id)
-      }
-    }
-
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [headers])
+  const levels = Array.from(new Set(headers.map(it => it.level).sort((a, b) => a - b))).slice(0, 3)
 
   return <Stack sx={{
     width: 292,
@@ -65,8 +42,8 @@ const EditorDocNav = ({ headers }: EditorDocNavProps) => {
       msOverflowStyle: 'none',
       scrollbarWidth: 'none',
     }}>
-      {headers.filter(header => levels.includes(header.heading)).map(header => {
-        const idx = levels.indexOf(header.heading)
+      {headers.filter(header => levels.includes(header.level)).map(header => {
+        const idx = levels.indexOf(header.level)
         return <Stack key={header.id} direction={'row'} alignItems={'center'} gap={1} sx={{
           cursor: 'pointer',
           ':hover': {
@@ -74,7 +51,7 @@ const EditorDocNav = ({ headers }: EditorDocNavProps) => {
           },
           ml: idx * 2,
           ...HeadingSx[idx],
-          color: activeId === header.id ? 'primary.main' : HeadingSx[idx]?.color ?? 'inherit'
+          color: header.isActive ? 'primary.main' : HeadingSx[idx]?.color ?? 'inherit'
         }} onClick={() => {
           const element = document.getElementById(header.id)
           if (element) {
@@ -87,7 +64,7 @@ const EditorDocNav = ({ headers }: EditorDocNavProps) => {
             })
           }
         }}>
-          <Ellipsis arrow>{header.title}</Ellipsis>
+          <Ellipsis arrow>{header.textContent}</Ellipsis>
         </Stack>
       })}
     </Stack>

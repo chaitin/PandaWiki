@@ -39,7 +39,7 @@ const CatalogFolder = ({
           borderRadius: '10px',
           color: activeId === item.id ? 'primary.main' : 'inherit',
           '&:hover': {
-            bgcolor: themeMode === 'dark' ? '#394052' : 'background.paper',
+            bgcolor: themeMode === 'dark' ? '#394052' : 'background.paper2',
           },
         }}
         onClick={() => {

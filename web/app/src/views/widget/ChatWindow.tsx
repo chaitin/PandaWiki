@@ -2,10 +2,10 @@
 
 import { ConversationItem } from '@/assets/type';
 import Feedback from '@/components/feedback';
-import { postShareV1ChatFeedback } from '@/request/ShareChat';
 import { IconCai, IconCaied, IconZan, IconZaned } from '@/components/icons';
 import MarkDown from '@/components/markdown';
 import { useStore } from '@/provider';
+import { postShareV1ChatFeedback } from '@/request/ShareChat';
 import { AnswerStatus } from '@/views/chat/constant';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
@@ -127,7 +127,7 @@ const ChatWindow = ({
                 bgcolor:
                   themeMode === 'dark'
                     ? 'background.default'
-                    : 'background.paper',
+                    : 'background.paper2',
               }}
             >
               <AccordionSummary
