@@ -70,7 +70,7 @@ const DocCard = ({ node }: { node: RecommendNode }) => {
     width: mobile ? 'calc(100% - 48px)' : 'calc((100% - 32px) / 3)',
     transition: 'all 0.3s ease',
     color: 'text.primary',
-    bgcolor: 'background.paper',
+    bgcolor: 'background.paper2',
     ':hover': {
       borderColor: 'text.primary',
     },

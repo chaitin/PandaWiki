@@ -51,7 +51,7 @@ const MarkDown = ({ loading = false, content }: MarkDownProps) => {
           color: 'text.tertiary',
           marginBottom: '40px',
           lineHeight: '20px',
-          bgcolor: 'background.paper',
+          bgcolor: 'background.paper2',
           padding: '16px',
           cursor: 'pointer',
           borderRadius: '10px',
@@ -134,7 +134,7 @@ const MarkDown = ({ loading = false, content }: MarkDownProps) => {
                     size='small'
                     onClick={() => setShowThink(!showThink)}
                     sx={{
-                      bgcolor: 'background.paper',
+                      bgcolor: 'background.paper2',
                       ':hover': {
                         bgcolor: addOpacityToColor(
                           theme.palette.primary.main,

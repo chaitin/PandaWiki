@@ -22,7 +22,7 @@
     "ahooks": "^3.9.0",
     "axios": "^1.9.0",
     "ct-mui": "2.0.0",
-    "ct-tiptap-editor": "0.7.21",
+    "@yu-cq/tiptap": "0.0.15",
     "dayjs": "^1.11.13",
     "highlight.js": "^11.11.1",
     "html-react-parser": "^5.2.5",

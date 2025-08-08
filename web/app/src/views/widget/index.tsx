@@ -206,7 +206,7 @@ const Widget = () => {
             sx={{ lineHeight: '28px', fontSize: 20 }}
           >
             {widget?.settings?.widget_bot_settings?.btn_logo ||
-            widget?.settings?.icon ? (
+              widget?.settings?.icon ? (
               <img
                 src={
                   widget?.settings?.widget_bot_settings?.btn_logo ||
@@ -285,7 +285,7 @@ const Widget = () => {
                     cursor: 'pointer',
                     bgcolor:
                       themeMode === 'dark'
-                        ? 'background.paper'
+                        ? 'background.paper2'
                         : 'background.default',
                     '&:hover': {
                       borderColor: 'primary.main',

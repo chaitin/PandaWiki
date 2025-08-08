@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useCallback, useRef, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import { flushSync } from 'react-dom';
-import { useTheme, IconButton } from '@mui/material';
-import { Icon } from 'ct-mui';
 import { addOpacityToColor } from '@/utils';
+import { IconButton, useTheme } from '@mui/material';
+import { Icon } from 'ct-mui';
+import React, { useCallback, useRef } from 'react';
+import { flushSync } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 // ==================== 类型定义 ====================
 interface ThinkingComponentProps {
@@ -37,7 +37,7 @@ const ThinkingComponent: React.FC<ThinkingComponentProps> = ({
         color: theme.palette.text.secondary,
         marginBottom: '40px',
         lineHeight: '20px',
-        backgroundColor: theme.palette.background.paper,
+        backgroundColor: theme.palette.background.paper2,
         padding: '16px',
         cursor: 'pointer',
         borderRadius: '10px',
@@ -57,7 +57,7 @@ const ThinkingComponent: React.FC<ThinkingComponentProps> = ({
           size='small'
           onClick={onToggle}
           sx={{
-            bgcolor: 'background.paper',
+            bgcolor: 'background.paper2',
             ':hover': {
               bgcolor: addOpacityToColor(theme.palette.primary.main, 0.1),
               color: theme.palette.primary.main,

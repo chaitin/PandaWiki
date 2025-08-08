@@ -1,6 +1,6 @@
-import React from 'react';
-import { alpha, Box, Button, Popover, Tooltip } from '@mui/material';
 import { IconErrorCorrection } from '@/components/icons';
+import { alpha, Box, Button, Popover, Tooltip } from '@mui/material';
+import React from 'react';
 
 interface TextSelectionTooltipProps {
   open: boolean;
@@ -52,7 +52,7 @@ export const TextSelectionTooltip: React.FC<TextSelectionTooltipProps> = ({
           display: 'flex',
           alignItems: 'center',
           gap: 1,
-          bgcolor: 'background.paper',
+          bgcolor: 'background.paper2',
         }}
       >
         <Tooltip title='文档纠错'>

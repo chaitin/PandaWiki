@@ -2,29 +2,28 @@ import {
   createNode,
   NodeDetail,
   NodeListItem,
-  NodeReleaseDetail,
-  NodeReleaseItem,
-  updateNode,
+  updateNode
 } from '@/api';
 import Emoji from '@/components/Emoji';
 import DocAddByCustomText from '@/pages/document/component/DocAddByCustomText';
 import DocDelete from '@/pages/document/component/DocDelete';
+import { DomainGetNodeReleaseDetailResp, DomainNodeReleaseListItem } from '@/request/pro/types';
 import { useAppSelector } from '@/store';
 import { addOpacityToColor, getShortcutKeyText } from '@/utils';
+import InfoIcon from '@mui/icons-material/Info';
 import {
   Box,
   Button,
   IconButton,
   Stack,
+  styled,
   Tooltip,
   useTheme,
-  styled,
 } from '@mui/material';
-import InfoIcon from '@mui/icons-material/Info';
+import { UseTiptapReturn } from '@yu-cq/tiptap';
 import { Ellipsis, Icon, MenuSelect, Message } from 'ct-mui';
-import { UseTiptapEditorReturn } from 'ct-tiptap-editor';
 import dayjs from 'dayjs';
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import VersionRollback from './VersionRollback';
 
 const StyledMenuSelect = styled('div')<{ disabled?: boolean }>(
@@ -49,7 +48,7 @@ const StyledMenuSelect = styled('div')<{ disabled?: boolean }>(
 );
 
 interface EditorHeaderProps {
-  editorRef: UseTiptapEditorReturn;
+  editorRef: UseTiptapReturn;
   detail: NodeDetail | null;
   setDetail?: (data: NodeDetail) => void;
   onSave: (auto?: boolean, publish?: boolean) => void;
@@ -58,7 +57,7 @@ interface EditorHeaderProps {
   setShowVersion: (show: boolean) => void;
   showVersion: boolean;
   setDocContent: (content: string) => void;
-  curVersion: (NodeReleaseDetail & { release: NodeReleaseItem }) | null;
+  curVersion: (DomainGetNodeReleaseDetailResp & { release: DomainNodeReleaseListItem }) | null;
 }
 
 const EditorHeader = ({
@@ -88,12 +87,12 @@ const EditorHeader = ({
     if (!curVersion || !detail) return;
     setDetail?.({
       ...detail,
-      name: curVersion.name,
-      content: curVersion.content,
-      meta: curVersion.meta,
+      name: curVersion?.name || '',
+      content: curVersion?.content || '',
+      meta: curVersion?.meta || {},
       status: 1,
     });
-    setDocContent(curVersion.content);
+    setDocContent(curVersion?.content || '');
     setRollbackOpen(false);
     setShowVersion(false);
     Message.success(
@@ -114,7 +113,7 @@ const EditorHeader = ({
     if (!editorRef || !editor) return;
     cancelTimer?.();
     if (type === 'html') {
-      const html = editorRef.getHtml();
+      const html = editorRef.getHTML();
       if (!html) return;
       const blob = new Blob([html], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
@@ -126,7 +125,7 @@ const EditorHeader = ({
       Message.success('导出成功');
     }
     if (type === 'md') {
-      const markdown = editor.storage.markdown.getMarkdown();
+      const markdown = editorRef.getMarkdownByJSON()
       if (!markdown) return;
       const blob = new Blob([markdown], { type: 'text/markdown' });
       const url = URL.createObjectURL(blob);

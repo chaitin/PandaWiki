@@ -1,6 +1,6 @@
+import StoreProvider from '@/provider';
 import { getShareV1AppWebInfo } from '@/request/ShareApp';
 import { getShareV1NodeList } from '@/request/ShareNode';
-import StoreProvider from '@/provider';
 import { darkTheme, lightTheme } from '@/theme';
 import { Box } from '@mui/material';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v13-appRouter';
@@ -105,7 +105,7 @@ const Layout = async ({
               mobile={isMobile}
               token={authToken}
             >
-              <Box sx={{ bgcolor: 'background.paper' }}>{children}</Box>
+              <Box sx={{ bgcolor: 'background.paper2' }}>{children}</Box>
             </StoreProvider>
           </AppRouterCacheProvider>
         </ThemeProvider>
