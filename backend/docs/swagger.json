@@ -984,9 +984,9 @@
                 }
             }
         },
-        "/api/v1/crawler/shiyuan/analysis_export_file": {
+        "/api/v1/crawler/siyuan/analysis_export_file": {
             "post": {
-                "description": "Analyze ShiYuan Export File",
+                "description": "Analyze SiYuan Export File",
                 "consumes": [
                     "application/json"
                 ],
@@ -996,7 +996,7 @@
                 "tags": [
                     "crawler"
                 ],
-                "summary": "AnalysisShiyuanExportFile",
+                "summary": "AnalysisSiyuanExportFile",
                 "parameters": [
                     {
                         "type": "file",
@@ -1027,7 +1027,7 @@
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/domain.ShiYuanResp"
+                                                "$ref": "#/definitions/domain.SiYuanResp"
                                             }
                                         }
                                     }
@@ -5311,7 +5311,7 @@
                 }
             }
         },
-        "domain.ShiYuanResp": {
+        "domain.SiYuanResp": {
             "type": "object",
             "properties": {
                 "content": {

@@ -1469,7 +1469,7 @@ definitions:
       role:
         $ref: '#/definitions/schema.RoleType'
     type: object
-  domain.ShiYuanResp:
+  domain.SiYuanResp:
     properties:
       content:
         type: string
@@ -2329,11 +2329,11 @@ paths:
       summary: Scrape
       tags:
       - crawler
-  /api/v1/crawler/shiyuan/analysis_export_file:
+  /api/v1/crawler/siyuan/analysis_export_file:
     post:
       consumes:
       - application/json
-      description: Analyze ShiYuan Export File
+      description: Analyze SiYuan Export File
       parameters:
       - description: file
         in: formData
@@ -2356,10 +2356,10 @@ paths:
             - properties:
                 data:
                   items:
-                    $ref: '#/definitions/domain.ShiYuanResp'
+                    $ref: '#/definitions/domain.SiYuanResp'
                   type: array
               type: object
-      summary: AnalysisShiyuanExportFile
+      summary: AnalysisSiyuanExportFile
       tags:
       - crawler
   /api/v1/crawler/wikijs/analysis_export_file:

@@ -1,9 +1,9 @@
 package domain
 
-type ShiYuanReq struct {
+type SiYuanReq struct {
 	KBID string `json:"kb_id" validate:"required"`
 }
-type ShiYuanResp struct {
+type SiYuanResp struct {
 	Id      int    `json:"id"`
 	Title   string `json:"title"`
 	Content string `json:"content"`

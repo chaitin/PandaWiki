@@ -18,19 +18,19 @@ import (
 	"github.com/chaitin/panda-wiki/utils"
 )
 
-type ShiYuanUsecase struct {
+type SiYuanUsecase struct {
 	logger      *log.Logger
 	fileusecase *FileUsecase
 }
 
-func NewShiYuanUsecase(logger *log.Logger, fileusecase *FileUsecase) *ShiYuanUsecase {
-	return &ShiYuanUsecase{
-		logger:      logger.WithModule("usecase.shiyuanUsecase"),
+func NewShiYuanUsecase(logger *log.Logger, fileusecase *FileUsecase) *SiYuanUsecase {
+	return &SiYuanUsecase{
+		logger:      logger.WithModule("usecase.siyuanUsecase"),
 		fileusecase: fileusecase,
 	}
 }
 
-func (u *ShiYuanUsecase) AnalysisExportFile(ctx context.Context, fileHeader *multipart.FileHeader, kbID string) ([]domain.ShiYuanResp, error) {
+func (u *SiYuanUsecase) AnalysisExportFile(ctx context.Context, fileHeader *multipart.FileHeader, kbID string) ([]domain.SiYuanResp, error) {
 	reader, err := fileHeader.Open()
 	if err != nil {
 		return nil, fmt.Errorf("open file failed: %v", err)
@@ -40,7 +40,7 @@ func (u *ShiYuanUsecase) AnalysisExportFile(ctx context.Context, fileHeader *mul
 	if err != nil {
 		return nil, err
 	}
-	var results []domain.ShiYuanResp
+	var results []domain.SiYuanResp
 	type uploadResulet struct {
 		fileName string
 		keys     string
@@ -147,7 +147,7 @@ func (u *ShiYuanUsecase) AnalysisExportFile(ctx context.Context, fileHeader *mul
 			u.logger.Error("exchange markdown image url failed")
 			return nil, fmt.Errorf("exchange markdown image url failed: %v", err)
 		}
-		resp := domain.ShiYuanResp{
+		resp := domain.SiYuanResp{
 			Title:   fileName,
 			Content: string(newContent),
 		}

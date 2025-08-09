@@ -995,9 +995,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/crawler/shiyuan/analysis_export_file": {
+        "/api/v1/crawler/siyuan/analysis_export_file": {
             "post": {
-                "description": "Analyze ShiYuan Export File",
+                "description": "Analyze SiYuan Export File",
                 "consumes": [
                     "application/json"
                 ],
@@ -1007,7 +1007,7 @@ const docTemplate = `{
                 "tags": [
                     "crawler"
                 ],
-                "summary": "AnalysisShiyuanExportFile",
+                "summary": "AnalysisSiyuanExportFile",
                 "parameters": [
                     {
                         "type": "file",
@@ -1038,7 +1038,7 @@ const docTemplate = `{
                                         "data": {
                                             "type": "array",
                                             "items": {
-                                                "$ref": "#/definitions/domain.ShiYuanResp"
+                                                "$ref": "#/definitions/domain.SiYuanResp"
                                             }
                                         }
                                     }
@@ -5322,7 +5322,7 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.ShiYuanResp": {
+        "domain.SiYuanResp": {
             "type": "object",
             "properties": {
                 "content": {
