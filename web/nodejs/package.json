@@ -1,0 +1,25 @@
+{
+  "name": "tiptap-api",
+  "version": "1.0.0",
+  "description": "Simple API for converting HTML/Markdown to Tiptap JSON",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon --watch src --watch index.js --ext js --exec node index.js",
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@koa/router": "^14.0.0",
+    "@tiptap/core": "^3.1.0",
+    "@yu-cq/tiptap": "^0.0.17",
+    "koa": "^3.0.1",
+    "koa-bodyparser": "^4.4.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
