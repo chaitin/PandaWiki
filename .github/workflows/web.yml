@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        project: [admin, app]
+        project: [admin, app, nodejs]
 
     outputs:
       version: ${{ steps.get_version.outputs.VERSION }}
@@ -72,6 +72,7 @@ jobs:
           pnpm install
 
       - name: Build
+        if: matrix.project != 'nodejs'
         run: |
           cd web/${{ matrix.project }}
           if [ "${{ matrix.project }}" == "admin" ]; then
@@ -80,13 +81,22 @@ jobs:
           pnpm run build
 
       - name: 'Tar files'
-        run: tar -cvf web/${{ matrix.project }}/dist.tar web/${{ matrix.project }}/dist
+        run: |
+          if [ "${{ matrix.project }}" == "nodejs" ]; then
+            cd web/${{ matrix.project }}
+            tar -cvf ../nodejs.tar src index.js package.json pnpm-lock.yaml Dockerfile .dockerignore
+            cd ../..
+          else
+            tar -cvf web/${{ matrix.project }}/dist.tar web/${{ matrix.project }}/dist
+          fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.project }}-build
-          path: web/${{ matrix.project }}/dist.tar
+          path: |
+            web/${{ matrix.project }}/dist.tar
+            web/nodejs.tar
           if-no-files-found: error
           include-hidden-files: true
 
@@ -95,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        project: [admin, app]
+        project: [admin, app, nodejs]
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:
@@ -109,15 +119,25 @@ jobs:
 
       - name: Extract files
         run: |
-          tar -xvf dist.tar
+          if [ "${{ matrix.project }}" == "nodejs" ]; then
+            mkdir -p web/${{ matrix.project }}
+            tar -xvf nodejs.tar -C web/${{ matrix.project }}
+          else
+            tar -xvf dist.tar
+          fi
 
       - name: Check file structure
         run: |
           echo "Current directory: $(pwd)"
           echo "Listing web/${{ matrix.project }} directory:"
           ls -la web/${{ matrix.project }}
-          echo "Listing web/${{ matrix.project }}/dist directory:"
-          ls -la web/${{ matrix.project }}/dist
+          if [ "${{ matrix.project }}" == "nodejs" ]; then
+            echo "Listing web/${{ matrix.project }}/src directory:"
+            ls -la web/${{ matrix.project }}/src
+          else
+            echo "Listing web/${{ matrix.project }}/dist directory:"
+            ls -la web/${{ matrix.project }}/dist
+          fi
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -139,6 +159,6 @@ jobs:
           file: ./web/${{ matrix.project }}/Dockerfile
           push: true
           platforms: linux/amd64, linux/arm64
-          tags: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-${{ matrix.project == 'admin' && 'nginx' || 'app' }}:v${{ needs.build.outputs.version }}
+          tags: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-${{ matrix.project == 'admin' && 'nginx' || matrix.project == 'nodejs' && 'nodejs' || 'app' }}:v${{ needs.build.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
