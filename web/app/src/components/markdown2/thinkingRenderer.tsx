@@ -102,14 +102,14 @@ export const useThinkingRenderer = (options: ThinkingRendererOptions) => {
             showThink={showThink}
             onToggle={onToggle}
             loading={loading}
-          />
+          />,
         );
       });
 
       const html = container.innerHTML;
       return html;
     },
-    [showThink, onToggle, loading]
+    [showThink, onToggle, loading],
   );
 };
 

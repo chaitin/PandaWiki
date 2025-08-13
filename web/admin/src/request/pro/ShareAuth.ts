@@ -13,13 +13,49 @@
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainResponse,
+  GithubComChaitinPandaWikiProApiShareV1AuthCASReq,
+  GithubComChaitinPandaWikiProApiShareV1AuthCASResp,
   GithubComChaitinPandaWikiProApiShareV1AuthDingTalkReq,
   GithubComChaitinPandaWikiProApiShareV1AuthDingTalkResp,
   GithubComChaitinPandaWikiProApiShareV1AuthFeishuReq,
   GithubComChaitinPandaWikiProApiShareV1AuthFeishuResp,
+  GithubComChaitinPandaWikiProApiShareV1AuthLDAPReq,
+  GithubComChaitinPandaWikiProApiShareV1AuthLDAPResp,
+  GithubComChaitinPandaWikiProApiShareV1AuthOAuthReq,
+  GithubComChaitinPandaWikiProApiShareV1AuthOAuthResp,
   GithubComChaitinPandaWikiProApiShareV1AuthWecomReq,
   GithubComChaitinPandaWikiProApiShareV1AuthWecomResp,
 } from "./types";
+
+/**
+ * @description CAS登录
+ *
+ * @tags ShareAuth
+ * @name PostShareProV1AuthCas
+ * @summary CAS登录
+ * @request POST:/share/pro/v1/auth/cas
+ * @response `200` `(DomainResponse & {
+    data?: GithubComChaitinPandaWikiProApiShareV1AuthCASResp,
+
+})` OK
+ */
+
+export const postShareProV1AuthCas = (
+  param: GithubComChaitinPandaWikiProApiShareV1AuthCASReq,
+  params: RequestParams = {},
+) =>
+  httpRequest<
+    DomainResponse & {
+      data?: GithubComChaitinPandaWikiProApiShareV1AuthCASResp;
+    }
+  >({
+    path: `/share/pro/v1/auth/cas`,
+    method: "POST",
+    body: param,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
 
 /**
  * @description 钉钉登录
@@ -74,6 +110,66 @@ export const postShareProV1AuthFeishu = (
     }
   >({
     path: `/share/pro/v1/auth/feishu`,
+    method: "POST",
+    body: param,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+/**
+ * @description LDAP登录
+ *
+ * @tags ShareAuth
+ * @name PostShareProV1AuthLdap
+ * @summary LDAP登录
+ * @request POST:/share/pro/v1/auth/ldap
+ * @response `200` `(DomainResponse & {
+    data?: GithubComChaitinPandaWikiProApiShareV1AuthLDAPResp,
+
+})` OK
+ */
+
+export const postShareProV1AuthLdap = (
+  param: GithubComChaitinPandaWikiProApiShareV1AuthLDAPReq,
+  params: RequestParams = {},
+) =>
+  httpRequest<
+    DomainResponse & {
+      data?: GithubComChaitinPandaWikiProApiShareV1AuthLDAPResp;
+    }
+  >({
+    path: `/share/pro/v1/auth/ldap`,
+    method: "POST",
+    body: param,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+/**
+ * @description OAuth登录
+ *
+ * @tags ShareAuth
+ * @name PostShareProV1AuthOauth
+ * @summary OAuth登录
+ * @request POST:/share/pro/v1/auth/oauth
+ * @response `200` `(DomainResponse & {
+    data?: GithubComChaitinPandaWikiProApiShareV1AuthOAuthResp,
+
+})` OK
+ */
+
+export const postShareProV1AuthOauth = (
+  param: GithubComChaitinPandaWikiProApiShareV1AuthOAuthReq,
+  params: RequestParams = {},
+) =>
+  httpRequest<
+    DomainResponse & {
+      data?: GithubComChaitinPandaWikiProApiShareV1AuthOAuthResp;
+    }
+  >({
+    path: `/share/pro/v1/auth/oauth`,
     method: "POST",
     body: param,
     type: ContentType.Json,

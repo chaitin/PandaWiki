@@ -89,7 +89,7 @@ export async function middleware(request: NextRequest) {
         headers: {
           'Content-Type': 'application/json',
         },
-      }
+      },
     );
   }
 }

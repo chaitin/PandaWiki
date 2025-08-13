@@ -107,6 +107,9 @@ export enum ConstsSourceType {
   SourceTypeDingTalk = "dingtalk",
   SourceTypeFeishu = "feishu",
   SourceTypeWeCom = "wecom",
+  SourceTypeOAuth = "oauth",
+  SourceTypeCAS = "cas",
+  SourceTypeLDAP = "ldap",
 }
 
 export interface DomainAIFeedbackSettings {
@@ -489,6 +492,7 @@ export interface DomainCreateNodeReq {
   kb_id: string;
   name: string;
   parent_id?: string;
+  position?: number;
   type: 1 | 2;
   visibility?: DomainNodeVisibility;
 }
@@ -831,6 +835,19 @@ export interface DomainShareCommentListItem {
   root_id?: string;
 }
 
+export interface DomainShareConversationDetailResp {
+  created_at?: string;
+  id?: string;
+  messages?: DomainShareConversationMessage[];
+  subject?: string;
+}
+
+export interface DomainShareConversationMessage {
+  content?: string;
+  created_at?: string;
+  role?: SchemaRoleType;
+}
+
 export interface DomainSimpleAuth {
   enabled?: boolean;
   password?: string;
@@ -899,6 +916,7 @@ export interface DomainUpdateNodeReq {
   id: string;
   kb_id: string;
   name?: string;
+  position?: number;
   summary?: string;
   visibility?: DomainNodeVisibility;
 }
@@ -1176,6 +1194,11 @@ export interface PostShareV1ChatWidgetParams {
 
 export interface GetShareV1CommentListParams {
   /** nodeID */
+  id: string;
+}
+
+export interface GetShareV1ConversationDetailParams {
+  /** conversation id */
   id: string;
 }
 

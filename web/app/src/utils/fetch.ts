@@ -39,13 +39,13 @@ class SSEClient<T> {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'text/event-stream',
+        Accept: 'text/event-stream',
         ...headers,
       },
       body,
       signal: this.controller.signal,
     })
-      .then(async (response) => {
+      .then(async response => {
         if (!response.ok) {
           clearTimeout(timeoutId);
           throw new Error(`HTTP error! status: ${response.status}`);
@@ -70,7 +70,7 @@ class SSEClient<T> {
           this.processChunk(value, onMessage);
         }
       })
-      .catch((error) => {
+      .catch(error => {
         clearTimeout(timeoutId);
         if (error.name !== 'AbortError') {
           onError?.(error);
@@ -78,7 +78,10 @@ class SSEClient<T> {
       });
   }
 
-  private processChunk(chunk: Uint8Array | undefined, callback: SSECallback<T>) {
+  private processChunk(
+    chunk: Uint8Array | undefined,
+    callback: SSECallback<T>,
+  ) {
     if (!chunk) return;
 
     this.buffer += this.textDecoder.decode(chunk, { stream: true });
@@ -101,7 +104,7 @@ class SSEClient<T> {
             const data = JSON.parse(currentData) as T;
             callback(data);
           } catch (error) {
-            console.error(error)
+            console.error(error);
             this.options.onError?.(new Error('Failed to parse SSE data'));
           }
           currentData = '';

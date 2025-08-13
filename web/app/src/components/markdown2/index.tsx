@@ -49,7 +49,7 @@ const createMarkdownIt = (): MarkdownIt => {
         }
       }
       return `<pre class="hljs" style="cursor: pointer;"><code>${md.utils.escapeHtml(
-        str
+        str,
       )}</code></pre>`;
     },
   });
@@ -85,7 +85,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
   }, []);
 
   const handleThinkToggle = useCallback(() => {
-    setShowThink((prev) => !prev);
+    setShowThink(prev => !prev);
   }, []);
 
   const onScrollBottom = useCallback(() => {
@@ -123,7 +123,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
         onImageError: handleImageError,
         imageRenderCache: imageRenderCacheRef.current,
       }),
-    [handleImageLoad, handleImageError]
+    [handleImageLoad, handleImageError],
   );
 
   // 创建thinking渲染器
@@ -136,7 +136,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
   // 创建mermaid渲染器
   const renderMermaid = useMemo(
     () => createMermaidRenderer(mermaidSuccessIdRef),
-    []
+    [],
   );
 
   // ==================== 渲染器自定义 ====================
@@ -233,7 +233,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
           idx,
           options,
           env,
-          renderer
+          renderer,
         ) => {
           const token = tokens[idx];
           const content = token.content;
@@ -276,7 +276,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
           idx,
           options,
           env,
-          renderer
+          renderer,
         ) => {
           const token = tokens[idx];
           const content = token.content;
@@ -292,7 +292,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({ loading = false, content }) => {
 
       setupCustomHtmlHandlers();
     },
-    [renderImage, renderMermaid, renderThinking, showThink, theme]
+    [renderImage, renderMermaid, renderThinking, showThink, theme],
   );
 
   // ==================== Effects ====================

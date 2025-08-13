@@ -108,7 +108,7 @@ const CatalogH5 = ({ nodes }: { nodes: NodeListItem[] }) => {
           size='small'
           placeholder='搜索'
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={e => setSearchTerm(e.target.value)}
           sx={{
             width: '100%',
             mt: 2,
@@ -126,7 +126,7 @@ const CatalogH5 = ({ nodes }: { nodes: NodeListItem[] }) => {
           }}
         />
         <Box sx={{ py: 3 }}>
-          {tree.map((item) => (
+          {tree.map(item => (
             <CatalogFolder
               key={item.id}
               item={item}

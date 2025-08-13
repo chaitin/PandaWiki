@@ -14,8 +14,8 @@ import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainResponse,
   GetApiProV1AuthGetParams,
-  GithubComChaitinPandaWikiProApiAuthV1GetAuthResp,
-  GithubComChaitinPandaWikiProApiAuthV1SetAuthReq,
+  GithubComChaitinPandaWikiProApiAuthV1AuthGetResp,
+  GithubComChaitinPandaWikiProApiAuthV1AuthSetReq,
 } from "./types";
 
 /**
@@ -27,7 +27,7 @@ import {
  * @request GET:/api/pro/v1/auth/get
  * @secure
  * @response `200` `(DomainResponse & {
-    data?: GithubComChaitinPandaWikiProApiAuthV1GetAuthResp,
+    data?: GithubComChaitinPandaWikiProApiAuthV1AuthGetResp,
 
 })` OK
  */
@@ -38,7 +38,7 @@ export const getApiProV1AuthGet = (
 ) =>
   httpRequest<
     DomainResponse & {
-      data?: GithubComChaitinPandaWikiProApiAuthV1GetAuthResp;
+      data?: GithubComChaitinPandaWikiProApiAuthV1AuthGetResp;
     }
   >({
     path: `/api/pro/v1/auth/get`,
@@ -62,7 +62,7 @@ export const getApiProV1AuthGet = (
  */
 
 export const postApiProV1AuthSet = (
-  param: GithubComChaitinPandaWikiProApiAuthV1SetAuthReq,
+  param: GithubComChaitinPandaWikiProApiAuthV1AuthSetReq,
   params: RequestParams = {},
 ) =>
   httpRequest<DomainResponse>({

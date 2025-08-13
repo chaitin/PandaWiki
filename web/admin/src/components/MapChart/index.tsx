@@ -1,11 +1,11 @@
-import { TrendData } from "@/api";
-import { Box, useTheme } from "@mui/material";
-import type { ECharts } from "echarts";
-import { useEffect, useRef, useState } from "react";
+import { TrendData } from '@/api';
+import { Box, useTheme } from '@mui/material';
+import type { ECharts } from 'echarts';
+import { useEffect, useRef, useState } from 'react';
 
 interface Props {
-  map: "china" | "world" | string;
-  data: TrendData[]
+  map: 'china' | 'world' | string;
+  data: TrendData[];
   tooltipText: string;
 }
 
@@ -13,17 +13,17 @@ const MapChart = ({ map, data: chartData, tooltipText }: Props) => {
   const theme = useTheme();
   const domWrapRef = useRef<HTMLDivElement>(null);
   const echartRef = useRef<ECharts>(null!);
-  const [loading, setLoading] = useState(true)
-  const [max, setMax] = useState(0)
-  const [data, setData] = useState<{ name: string; value: number }[]>([])
+  const [loading, setLoading] = useState(true);
+  const [max, setMax] = useState(0);
+  const [data, setData] = useState<{ name: string; value: number }[]>([]);
 
   useEffect(() => {
-    setMax(Math.max(1, ...chartData.map((i) => i.count)))
-    setData(chartData.map(it => ({ name: it.name, value: it.count })))
+    setMax(Math.max(1, ...chartData.map(i => i.count)));
+    setData(chartData.map(it => ({ name: it.name, value: it.count })));
     if (domWrapRef.current && !echartRef.current) {
-      echartRef.current = (window as any).echarts.init(domWrapRef.current)
+      echartRef.current = (window as any).echarts.init(domWrapRef.current);
     }
-  }, [chartData])
+  }, [chartData]);
 
   useEffect(() => {
     if (!echartRef.current) return;
@@ -43,11 +43,11 @@ const MapChart = ({ map, data: chartData, tooltipText }: Props) => {
       visualMap: [
         {
           show: true,
-          orient: "horizontal",
+          orient: 'horizontal',
           left: 8,
           bottom: 8,
           itemWidth: 10,
-          color: ["#3082FF", "#EBF3FF"],
+          color: ['#3082FF', '#EBF3FF'],
           max,
           textStyle: {
             color: theme.palette.primary.main,
@@ -56,12 +56,12 @@ const MapChart = ({ map, data: chartData, tooltipText }: Props) => {
       ],
       series: [
         {
-          type: "map",
+          type: 'map',
           map,
           data: data,
           itemStyle: {
             borderColor: theme.palette.divider,
-            areaColor: "#DDE4F0",
+            areaColor: '#DDE4F0',
             emphasis: {
               show: true,
               areaColor: '#A9C0E3',
@@ -76,17 +76,22 @@ const MapChart = ({ map, data: chartData, tooltipText }: Props) => {
 
     const resize = () => {
       if (echartRef.current) {
-        echartRef.current.resize()
+        echartRef.current.resize();
       }
-    }
-    window.addEventListener('resize', resize)
+    };
+    window.addEventListener('resize', resize);
     return () => {
-      window.removeEventListener('resize', resize)
-    }
+      window.removeEventListener('resize', resize);
+    };
   }, [map, data]);
 
   // if (!loading) return <div style={{ width: '100%', height: 292 }} />
-  return <Box sx={{ width: '100%', height: 292, pr: '200px' }} ref={domWrapRef}></Box>
+  return (
+    <Box
+      sx={{ width: '100%', height: 292, pr: '200px' }}
+      ref={domWrapRef}
+    ></Box>
+  );
 };
 
 export default MapChart;

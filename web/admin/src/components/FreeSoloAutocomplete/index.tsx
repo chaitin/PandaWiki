@@ -1,4 +1,4 @@
-import { useCommitPendingInput } from '@/hooks'
+import { useCommitPendingInput } from '@/hooks';
 import {
   Autocomplete,
   AutocompleteProps,
@@ -6,14 +6,14 @@ import {
   Chip,
   TextField,
   TextFieldProps,
-} from '@mui/material'
-import { ReactNode } from 'react'
+} from '@mui/material';
+import { ReactNode } from 'react';
 
 export type FreeSoloAutocompleteProps<T> = {
-  width?: number
-  placeholder?: string
-  inputProps?: TextFieldProps
-  options?: T[]
+  width?: number;
+  placeholder?: string;
+  inputProps?: TextFieldProps;
+  options?: T[];
 } & ReturnType<typeof useCommitPendingInput<T>> &
   Omit<
     AutocompleteProps<T, true, false, true>,
@@ -23,7 +23,7 @@ export type FreeSoloAutocompleteProps<T> = {
     | 'inputValue'
     | 'onInputChange'
     | 'options'
-  >
+  >;
 
 export function FreeSoloAutocomplete<T>({
   width,
@@ -56,7 +56,7 @@ export function FreeSoloAutocomplete<T>({
       inputValue={inputValue}
       onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
       onBlur={commit}
-      renderInput={(params) => (
+      renderInput={params => (
         <TextField
           {...params}
           {...inputProps}
@@ -74,11 +74,11 @@ export function FreeSoloAutocomplete<T>({
               {...getTagProps({ index })}
               key={index}
             />
-          )
-        })
+          );
+        });
       }}
       blurOnSelect={false}
       {...autocompleteProps}
     />
-  )
+  );
 }

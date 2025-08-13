@@ -6,13 +6,13 @@ import React, { useCallback } from 'react';
 import zh from '../../../public/emoji-data/zh.json';
 
 interface EmojiPickerProps {
-  type: 1 | 2
-  readOnly?: boolean
+  type: 1 | 2;
+  readOnly?: boolean;
   value?: string;
   collapsed?: boolean;
   onChange?: (emoji: string) => void;
-  sx?: SxProps
-  iconSx?: SxProps
+  sx?: SxProps;
+  iconSx?: SxProps;
 }
 
 const EmojiPicker: React.FC<EmojiPickerProps> = ({
@@ -24,7 +24,9 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
   sx,
   iconSx,
 }) => {
-  const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(null);
+  const [anchorEl, setAnchorEl] = React.useState<HTMLButtonElement | null>(
+    null,
+  );
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation();
@@ -36,23 +38,42 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
     setAnchorEl(null);
   };
 
-  const handleSelect = useCallback((emoji: any) => {
-    onChange?.(emoji.native);
-    handleClose();
-  }, [onChange]);
+  const handleSelect = useCallback(
+    (emoji: any) => {
+      onChange?.(emoji.native);
+      handleClose();
+    },
+    [onChange],
+  );
 
   const open = Boolean(anchorEl);
   const id = open ? 'emoji-picker' : undefined;
 
   return (
     <>
-      <IconButton size='small' aria-describedby={id} onClick={handleClick} sx={{
-        cursor: 'pointer',
-        height: 28,
-        color: 'text.primary',
-        ...sx
-      }}>
-        {value || <Icon type={type === 1 ? collapsed ? 'icon-wenjianjia' : 'icon-wenjianjia-kai' : 'icon-wenjian'} sx={{ fontSize: 16, ...iconSx }} />}
+      <IconButton
+        size='small'
+        aria-describedby={id}
+        onClick={handleClick}
+        sx={{
+          cursor: 'pointer',
+          height: 28,
+          color: 'text.primary',
+          ...sx,
+        }}
+      >
+        {value || (
+          <Icon
+            type={
+              type === 1
+                ? collapsed
+                  ? 'icon-wenjianjia'
+                  : 'icon-wenjianjia-kai'
+                : 'icon-wenjian'
+            }
+            sx={{ fontSize: 16, ...iconSx }}
+          />
+        )}
       </IconButton>
       <Popover
         id={id}
@@ -71,9 +92,9 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
           locale='zh'
           i18n={zh}
           onEmojiSelect={handleSelect}
-          previewPosition="none"
-          searchPosition="sticky"
-          skinTonePosition="none"
+          previewPosition='none'
+          searchPosition='sticky'
+          skinTonePosition='none'
           perLine={9}
           emojiSize={24}
         />

@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/boj/redistore"
-	"github.com/chaitin/panda-wiki/config"
-	"github.com/chaitin/panda-wiki/store/cache"
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 
+	"github.com/chaitin/panda-wiki/config"
 	"github.com/chaitin/panda-wiki/log"
+	"github.com/chaitin/panda-wiki/store/cache"
 )
 
 const (
@@ -51,6 +51,7 @@ func NewSessionMiddleware(logger *log.Logger, config *config.Config, cache *cach
 		Path:     "/",
 		MaxAge:   int((1 * 24 * time.Hour).Seconds()),
 		SameSite: http.SameSiteLaxMode,
+		HttpOnly: true,
 	}
 
 	return &SessionMiddleware{

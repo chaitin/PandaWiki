@@ -76,6 +76,7 @@ func (h *ShareAuthMiddleware) Authorize(next echo.HandlerFunc) echo.HandlerFunc 
 					Message: "Unauthorized",
 				})
 			}
+			c.Set("user_id", userId)
 			return next(c)
 		}
 

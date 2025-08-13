@@ -61,10 +61,18 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq) 
 			return err
 		}
 
-		newPos := maxPos + (domain.MaxPosition-maxPos)/2.0
-		if newPos-maxPos < domain.MinPositionGap {
-			if err := r.reorderPositionsByParentID(tx, req.KBID, req.ParentID); err != nil {
-				return err
+		var newPos float64
+		if req.Position != nil { // user specify position
+			if *req.Position > domain.MaxPosition || *req.Position < 0 {
+				return errors.New("user specify position out of range")
+			}
+			newPos = *req.Position
+		} else { // default the last
+			newPos = maxPos + (domain.MaxPosition-maxPos)/2.0
+			if newPos-maxPos < domain.MinPositionGap {
+				if err := r.reorderPositionsByParentID(tx, req.KBID, req.ParentID); err != nil {
+					return err
+				}
 			}
 		}
 
@@ -143,54 +151,94 @@ func (r *NodeRepository) GetLatestNodeReleaseByNodeIDs(ctx context.Context, kbID
 }
 
 func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.UpdateNodeReq) error {
-	updateMap := map[string]any{}
-	updateStatus := false
-	if req.Name != nil {
-		updateMap["name"] = *req.Name
-		updateStatus = true
-	}
-	if req.Content != nil {
-		updateMap["content"] = *req.Content
-		updateStatus = true
-	}
-
-	// Handle multiple meta field updates
-	if req.Emoji != nil || req.Summary != nil {
-		metaExpr := "meta"
-		var args []interface{}
-
-		if req.Emoji != nil {
-			// First jsonb_set: jsonb_set(meta, '{emoji}', to_jsonb(?::text))
-			metaExpr = "jsonb_set(" + metaExpr + ", '{emoji}', to_jsonb(?::text))"
-			args = append(args, *req.Emoji) // First parameter for emoji
-			updateStatus = true
-		}
-
-		if req.Summary != nil {
-			// Second jsonb_set: jsonb_set(previous_expr, '{summary}', to_jsonb(?::text))
-			metaExpr = "jsonb_set(" + metaExpr + ", '{summary}', to_jsonb(?::text))"
-			args = append(args, *req.Summary) // Second parameter for summary
-			updateStatus = true
-		}
-
-		updateMap["meta"] = gorm.Expr(metaExpr, args...)
-	}
-
-	if req.Visibility != nil {
-		updateMap["visibility"] = *req.Visibility
-		updateStatus = true
-	}
-	if updateStatus {
-		updateMap["status"] = domain.NodeStatusDraft
-	}
-	if len(updateMap) > 0 {
-		return r.db.WithContext(ctx).
-			Model(&domain.Node{}).
+	// Use transaction to ensure data consistency
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Get current node data with row-level lock
+		var currentNode domain.Node
+		if err := tx.Model(&domain.Node{}).
 			Where("id = ?", req.ID).
 			Where("kb_id = ?", req.KBID).
-			Updates(updateMap).Error
-	}
-	return nil
+			// Use FOR UPDATE to lock the row until the transaction is complete
+			Clauses(clause.Locking{Strength: "UPDATE"}).
+			First(&currentNode).Error; err != nil {
+			return err
+		}
+
+		updateMap := make(map[string]any)
+		updateStatus := false
+
+		// Compare and update Name
+		if req.Name != nil && *req.Name != currentNode.Name {
+			updateMap["name"] = *req.Name
+			updateStatus = true
+		}
+
+		// Compare and update Content
+		if req.Content != nil && *req.Content != currentNode.Content {
+			updateMap["content"] = *req.Content
+			updateStatus = true
+		}
+
+		if req.Position != nil && *req.Position != currentNode.Position { // user specify position
+			updateMap["position"] = *req.Position
+			if *req.Position > domain.MaxPosition || *req.Position < 0 {
+				return errors.New("user specify position out of range")
+			}
+			updateStatus = true
+		}
+
+		// Handle multiple meta field updates
+		if req.Emoji != nil || req.Summary != nil {
+			metaExpr := "meta"
+			var args []any
+			metaUpdated := false
+
+			// Compare and update Emoji
+			if req.Emoji != nil && *req.Emoji != currentNode.Meta.Emoji {
+				// First jsonb_set: jsonb_set(meta, '{emoji}', to_jsonb(?::text))
+				metaExpr = "jsonb_set(" + metaExpr + ", '{emoji}', to_jsonb(?::text))"
+				args = append(args, *req.Emoji) // First parameter for emoji
+				metaUpdated = true
+			}
+
+			// Compare and update Summary
+			if req.Summary != nil && *req.Summary != currentNode.Meta.Summary {
+				// Second jsonb_set: jsonb_set(previous_expr, '{summary}', to_jsonb(?::text))
+				metaExpr = "jsonb_set(" + metaExpr + ", '{summary}', to_jsonb(?::text))"
+				args = append(args, *req.Summary) // Second parameter for summary
+				metaUpdated = true
+			}
+
+			if metaUpdated {
+				updateMap["meta"] = gorm.Expr(metaExpr, args...)
+				updateStatus = true
+			}
+		}
+
+		// Compare and update Visibility
+		if req.Visibility != nil && *req.Visibility != currentNode.Visibility {
+			updateMap["visibility"] = *req.Visibility
+			updateStatus = true
+		}
+
+		// If any field is updated, set status to draft
+		if updateStatus {
+			updateMap["status"] = domain.NodeStatusDraft
+		}
+
+		// Perform update if there are changes
+		if len(updateMap) > 0 {
+			// Use the transaction's DB instance for the update
+			return tx.Model(&domain.Node{}).
+				Where("id = ?", req.ID).
+				Where("kb_id = ?", req.KBID).
+				Updates(updateMap).Error
+		}
+		return nil
+	})
+
+	// Return any error from the transaction
+	return err
 }
 
 func (r *NodeRepository) GetByID(ctx context.Context, id string) (*domain.NodeDetailResp, error) {

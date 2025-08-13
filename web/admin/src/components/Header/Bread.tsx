@@ -1,11 +1,11 @@
-import { useAppSelector } from '@/store'
-import { Box, Stack, useTheme } from '@mui/material'
-import { Icon } from 'ct-mui'
-import { useEffect, useState } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
-import KBSelect from '../KB/KBSelect'
+import { useAppSelector } from '@/store';
+import { Box, Stack, useTheme } from '@mui/material';
+import { Icon } from 'ct-mui';
+import { useEffect, useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import KBSelect from '../KB/KBSelect';
 
-const HomeBread = { title: '文档', to: '/' }
+const HomeBread = { title: '文档', to: '/' };
 const OtherBread = {
   document: { title: '文档', to: '/' },
   stat: { title: '统计', to: '/stat' },
@@ -13,32 +13,32 @@ const OtherBread = {
   feedback: { title: '反馈', to: '/feedback' },
   application: { title: '设置', to: '/setting' },
   release: { title: '发布', to: '/release' },
-}
+};
 
 const Bread = () => {
-  const theme = useTheme()
-  const { pathname } = useLocation()
-  const [breads, setBreads] = useState<{ title: string; to: string }[]>([])
-  const { pageName } = useAppSelector((state) => state.breadcrumb)
+  const theme = useTheme();
+  const { pathname } = useLocation();
+  const [breads, setBreads] = useState<{ title: string; to: string }[]>([]);
+  const { pageName } = useAppSelector(state => state.breadcrumb);
 
   useEffect(() => {
-    const curBreads: { title: string; to: string }[] = []
+    const curBreads: { title: string; to: string }[] = [];
     if (pathname === '/') {
-      curBreads.push(HomeBread)
+      curBreads.push(HomeBread);
     } else {
-      const pieces = pathname.split('/').filter((it) => it !== '')
-      pieces.forEach((it) => {
-        const bread = OtherBread[it as keyof typeof OtherBread]
+      const pieces = pathname.split('/').filter(it => it !== '');
+      pieces.forEach(it => {
+        const bread = OtherBread[it as keyof typeof OtherBread];
         if (bread) {
-          curBreads.push(bread)
+          curBreads.push(bread);
         }
-      })
+      });
     }
     if (pageName) {
-      curBreads.push({ title: pageName, to: 'custom' })
+      curBreads.push({ title: pageName, to: 'custom' });
     }
-    setBreads(curBreads)
-  }, [pathname, pageName])
+    setBreads(curBreads);
+  }, [pathname, pageName]);
 
   return (
     <Stack
@@ -98,10 +98,10 @@ const Bread = () => {
               </NavLink>
             )}
           </Stack>
-        )
+        );
       })}
     </Stack>
-  )
-}
+  );
+};
 
-export default Bread
+export default Bread;

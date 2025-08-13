@@ -67,11 +67,15 @@ func (r *ConversationRepository) GetConversationList(ctx context.Context, reques
 	return conversations, uint64(count), nil
 }
 
-func (r *ConversationRepository) GetConversationDetail(ctx context.Context, conversationID string) (*domain.ConversationDetailResp, error) {
+func (r *ConversationRepository) GetConversationDetail(ctx context.Context, kbID, conversationID string) (*domain.ConversationDetailResp, error) {
 	conversation := &domain.ConversationDetailResp{}
-	if err := r.db.WithContext(ctx).
+	query := r.db.WithContext(ctx).
 		Model(&domain.Conversation{}).
-		Where("id = ?", conversationID).
+		Where("id = ?", conversationID)
+	if kbID != "" {
+		query = query.Where("kb_id = ?", kbID)
+	}
+	if err := query.
 		First(conversation).Error; err != nil {
 		return nil, err
 	}

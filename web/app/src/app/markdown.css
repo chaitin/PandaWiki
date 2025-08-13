@@ -4,7 +4,7 @@
   --color-prettylights-syntax-comment: #6e7781;
   --color-prettylights-syntax-constant: #0550ae;
   --color-prettylights-syntax-entity: #8250df;
-  --color-prettylights-syntax-storage-modifier-import: #21222D;
+  --color-prettylights-syntax-storage-modifier-import: #21222d;
   --color-prettylights-syntax-entity-tag: #116329;
   --color-prettylights-syntax-keyword: #cf222e;
   --color-prettylights-syntax-string: #0a3069;
@@ -17,8 +17,8 @@
   --color-prettylights-syntax-string-regexp: #116329;
   --color-prettylights-syntax-markup-list: #3b2300;
   --color-prettylights-syntax-markup-heading: #0550ae;
-  --color-prettylights-syntax-markup-italic: #21222D;
-  --color-prettylights-syntax-markup-bold: #21222D;
+  --color-prettylights-syntax-markup-italic: #21222d;
+  --color-prettylights-syntax-markup-bold: #21222d;
   --color-prettylights-syntax-markup-deleted-text: #82071e;
   --color-prettylights-syntax-markup-deleted-bg: #ffebe9;
   --color-prettylights-syntax-markup-inserted-text: #116329;
@@ -33,24 +33,24 @@
   --color-prettylights-syntax-constant-other-reference-link: #0a3069;
 
   /* 基础颜色 - 亮色主题 */
-  --color-fg-default: #21222D;
-  --color-fg-h: #21222D;
+  --color-fg-default: #21222d;
+  --color-fg-h: #21222d;
   --color-fg-muted: #57606a;
   --color-fg-subtle: #6e7781;
   --color-canvas-default: #ffffff;
   --color-canvas-subtle: #f6f8fa;
-  --color-border-default: #ECEEF1;
-  --color-border-muted: #ECEEF1;
+  --color-border-default: #eceef1;
+  --color-border-muted: #eceef1;
   --color-neutral-muted: rgba(175, 184, 193, 0.2);
-  --color-accent-fg: #6E73FE;
-  --color-accent-emphasis: #6E73FE;
+  --color-accent-fg: #6e73fe;
+  --color-accent-emphasis: #6e73fe;
   --color-attention-subtle: #fff8c5;
-  --color-danger-fg: #F64E54;
-  --color-primary-main: #6E73FE;
+  --color-danger-fg: #f64e54;
+  --color-primary-main: #6e73fe;
 
   /* 代码块颜色 */
   --code-bg: #ffffff;
-  --code-color: #21222D;
+  --code-color: #21222d;
   --inline-code-bg: #fff5f5;
   --inline-code-color: #ff502c;
 }
@@ -90,8 +90,8 @@
   --color-prettylights-syntax-constant-other-reference-link: #a5d6ff;
 
   /* 基础颜色 - 暗色主题 */
-  --color-fg-default: #FFFFFF;
-  --color-fg-h: #FFFFFF;
+  --color-fg-default: #ffffff;
+  --color-fg-h: #ffffff;
   --color-fg-muted: rgba(255, 255, 255, 0.7);
   --color-fg-subtle: rgba(255, 255, 255, 0.5);
   --color-canvas-default: #141923;
@@ -99,15 +99,15 @@
   --color-border-default: #525770;
   --color-border-muted: #525770;
   --color-neutral-muted: rgba(110, 118, 129, 0.4);
-  --color-accent-fg: #6E73FE;
-  --color-accent-emphasis: #6E73FE;
+  --color-accent-fg: #6e73fe;
+  --color-accent-emphasis: #6e73fe;
   --color-attention-subtle: rgba(187, 128, 9, 0.15);
-  --color-danger-fg: #F64E54;
-  --color-primary-main: #6E73FE;
+  --color-danger-fg: #f64e54;
+  --color-primary-main: #6e73fe;
 
   /* 代码块颜色 - 暗色主题 */
   --code-bg: #141923;
-  --code-color: #FFFFFF;
+  --code-color: #ffffff;
   --inline-code-bg: rgba(255, 255, 255, 0.1);
   --inline-code-color: #ff7b72;
 }
@@ -118,8 +118,9 @@
   margin: 0;
   color: var(--color-fg-default);
   background-color: var(--color-canvas-default);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans',
-    Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica,
+    Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   font-size: 14px;
   line-height: 1.5;
   word-wrap: break-word;
@@ -324,7 +325,7 @@
   cursor: pointer;
 }
 
-.markdown-body details:not([open])>*:not(summary) {
+.markdown-body details:not([open]) > *:not(summary) {
   display: none !important;
 }
 
@@ -521,15 +522,15 @@
   content: '';
 }
 
-.markdown-body>*:first-child {
+.markdown-body > *:first-child {
   margin-top: 0 !important;
 }
 
-.markdown-body>*:nth-child(2) {
+.markdown-body > *:nth-child(2) {
   margin-top: 0 !important;
 }
 
-.markdown-body>*:last-child {
+.markdown-body > *:last-child {
   margin-bottom: 0 !important;
 }
 
@@ -566,11 +567,11 @@
   margin-bottom: 16px;
 }
 
-.markdown-body blockquote> :first-child {
+.markdown-body blockquote > :first-child {
   margin-top: 0;
 }
 
-.markdown-body blockquote> :last-child {
+.markdown-body blockquote > :last-child {
   margin-bottom: 0;
 }
 
@@ -669,7 +670,7 @@
   list-style-type: decimal;
 }
 
-.markdown-body div>ol:not([type]) {
+.markdown-body div > ol:not([type]) {
   list-style-type: decimal;
 }
 
@@ -681,11 +682,11 @@
   margin-bottom: 0;
 }
 
-.markdown-body li>p {
+.markdown-body li > p {
   margin-top: 16px;
 }
 
-.markdown-body li+li {
+.markdown-body li + li {
   margin-top: 0.25em;
 }
 
@@ -752,7 +753,7 @@
   overflow: hidden;
 }
 
-.markdown-body span.frame>span {
+.markdown-body span.frame > span {
   display: block;
   float: left;
   width: auto;
@@ -780,7 +781,7 @@
   clear: both;
 }
 
-.markdown-body span.align-center>span {
+.markdown-body span.align-center > span {
   display: block;
   margin: 13px auto 0;
   overflow: hidden;
@@ -798,7 +799,7 @@
   clear: both;
 }
 
-.markdown-body span.align-right>span {
+.markdown-body span.align-right > span {
   display: block;
   margin: 13px 0 0;
   overflow: hidden;
@@ -828,7 +829,7 @@
   overflow: hidden;
 }
 
-.markdown-body span.float-right>span {
+.markdown-body span.float-right > span {
   display: block;
   margin: 13px auto 0;
   overflow: hidden;
@@ -859,7 +860,7 @@
   font-size: 85%;
 }
 
-.markdown-body pre>code {
+.markdown-body pre > code {
   padding: 0;
   margin: 0;
   word-break: normal;
@@ -1125,7 +1126,7 @@
   cursor: pointer;
 }
 
-.markdown-body .task-list-item+.task-list-item {
+.markdown-body .task-list-item + .task-list-item {
   margin-top: 4px;
 }
 
@@ -1147,7 +1148,9 @@
 }
 
 .markdown-body .contains-task-list:hover .task-list-item-convert-container,
-.markdown-body .contains-task-list:focus-within .task-list-item-convert-container {
+.markdown-body
+  .contains-task-list:focus-within
+  .task-list-item-convert-container {
   display: block;
   width: auto;
   height: 24px;
@@ -1179,6 +1182,6 @@
 
 .markdown-body .chat-error {
   display: inline-block;
-  color: #FF502C;
+  color: #ff502c;
   font-weight: bold;
 }

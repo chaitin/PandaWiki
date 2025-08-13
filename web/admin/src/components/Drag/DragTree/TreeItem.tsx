@@ -34,7 +34,7 @@ const TreeItem = React.forwardRef<
   TreeItemComponentProps<ITreeItem>
 >((props, ref) => {
   const theme = useTheme();
-  const { kb_id: id } = useAppSelector((state) => state.config);
+  const { kb_id: id } = useAppSelector(state => state.config);
   const { item, collapsed } = props;
   const context = useContext(AppContext);
 
@@ -80,7 +80,7 @@ const TreeItem = React.forwardRef<
       });
       setItems(temp);
     },
-    [items, item, setItems]
+    [items, item, setItems],
   );
 
   const renameItem = useCallback(() => {
@@ -96,7 +96,7 @@ const TreeItem = React.forwardRef<
     (id: string) => {
       const temp = [...items];
       const remove = (value: ITreeItem[]) => {
-        return value.filter((item) => {
+        return value.filter(item => {
           if (item.id === id) return false;
           if (item.children) {
             item.children = remove(item.children);
@@ -107,7 +107,7 @@ const TreeItem = React.forwardRef<
       const newItems = remove(temp);
       setItems(newItems);
     },
-    [items, item, setItems]
+    [items, item, setItems],
   );
 
   const handleSelectChange = useCallback(
@@ -119,15 +119,15 @@ const TreeItem = React.forwardRef<
         const temp = [...selected];
         if (temp.includes(id)) {
           onSelectChange?.(
-            temp.filter((item) => item !== id),
-            id
+            temp.filter(item => item !== id),
+            id,
           );
         } else {
           onSelectChange?.([...temp, id], id);
         }
       }
     },
-    [onSelectChange, selected, items, relativeSelect]
+    [onSelectChange, selected, items, relativeSelect],
   );
 
   useEffect(() => {
@@ -156,7 +156,13 @@ const TreeItem = React.forwardRef<
   const menuList = useMemo(() => {
     if (menu) {
       return (
-        menu({ item, createItem, renameItem, isEditting, removeItem }) || []
+        menu({
+          item,
+          createItem,
+          renameItem,
+          isEditing: isEditting,
+          removeItem,
+        }) || []
       );
     }
     return [];
@@ -179,7 +185,7 @@ const TreeItem = React.forwardRef<
         direction='row'
         alignItems={'center'}
         gap={2}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         <div
           className={'dnd-sortable-tree_simple_handle'}
@@ -194,7 +200,7 @@ const TreeItem = React.forwardRef<
               height: '35px',
             }}
             checked={selected.includes(item.id)}
-            onChange={(e) => {
+            onChange={e => {
               e.stopPropagation();
               handleSelectChange(item.id);
             }}
@@ -230,7 +236,7 @@ const TreeItem = React.forwardRef<
                   direction='row'
                   alignItems={'center'}
                   gap={2}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={e => e.stopPropagation()}
                 >
                   <Emoji
                     type={item.type}
@@ -249,12 +255,12 @@ const TreeItem = React.forwardRef<
                         bgcolor: 'background.paper',
                       },
                     }}
-                    onChange={(e) => setValue(e.target.value)}
+                    onChange={e => setValue(e.target.value)}
                   />
                   <Button
                     variant='contained'
                     size='small'
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       if (item.name) {
                         updateNode({
@@ -287,7 +293,7 @@ const TreeItem = React.forwardRef<
                           parent_id: item.parentId,
                           type: item.type,
                           emoji,
-                        }).then((res) => {
+                        }).then(res => {
                           Message.success('创建成功');
                           const temp = [...items];
                           const newItem = {
@@ -313,7 +319,7 @@ const TreeItem = React.forwardRef<
                   <Button
                     variant='outlined'
                     size='small'
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation();
                       if (!item.name) {
                         removeItem(item.id);
@@ -342,7 +348,7 @@ const TreeItem = React.forwardRef<
                   }}
                 >
                   <Box
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={e => e.stopPropagation()}
                     sx={{ flexShrink: 0, cursor: 'pointer' }}
                   >
                     <Emoji
@@ -351,7 +357,7 @@ const TreeItem = React.forwardRef<
                       type={item.type}
                       collapsed={collapsed}
                       value={item.emoji}
-                      onChange={async (value) => {
+                      onChange={async value => {
                         try {
                           await updateNode({
                             id: item.id,
@@ -414,7 +420,7 @@ const TreeItem = React.forwardRef<
                             px: 1,
                             bgcolor: addOpacityToColor(
                               theme.palette.error.main,
-                              0.1
+                              0.1,
                             ),
                           }}
                         >
@@ -432,7 +438,7 @@ const TreeItem = React.forwardRef<
                               px: 1,
                               bgcolor: addOpacityToColor(
                                 theme.palette.warning.main,
-                                0.1
+                                0.1,
                               ),
                             }}
                           >
@@ -448,7 +454,7 @@ const TreeItem = React.forwardRef<
                               px: 1,
                               bgcolor: addOpacityToColor(
                                 theme.palette.success.main,
-                                0.1
+                                0.1,
                               ),
                             }}
                           >
@@ -467,7 +473,7 @@ const TreeItem = React.forwardRef<
                     >
                       {dayjs(item.updated_at).fromNow()}
                     </Box>
-                    <Box onClick={(e) => e.stopPropagation()}>
+                    <Box onClick={e => e.stopPropagation()}>
                       <TreeMenu menu={menuList} />
                     </Box>
                   </Stack>

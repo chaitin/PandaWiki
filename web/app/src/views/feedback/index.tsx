@@ -92,7 +92,7 @@ const Feedback = () => {
                 mb: 4,
               }}
             >
-              {tags.map((tag) => (
+              {tags.map(tag => (
                 <Box
                   key={tag}
                   sx={{
@@ -162,7 +162,7 @@ const Feedback = () => {
                     border: 'none',
                   },
                 }}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={e => setContent(e.target.value)}
               />
             </Box>
             <Button

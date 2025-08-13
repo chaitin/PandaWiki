@@ -75,6 +75,10 @@ func (f *FeishuUseCase) GetSpacelist(ctx context.Context, req *domain.GetSpaceLi
 		}
 		f.logger.Debug("resp", log.Any("resp", resp))
 		for _, v := range resp.Data.Items {
+			if v.Name == nil || v.SpaceId == nil {
+				f.logger.Warn("Skipping space with nil name or spaceId", log.Any("space", v))
+				continue
+			}
 			respData = append(respData, &domain.GetSpaceListResp{
 				Name:    *v.Name,
 				SpaceId: *v.SpaceId,
@@ -131,6 +135,9 @@ func (f *FeishuUseCase) SearchWiki(ctx context.Context, req *domain.SearchWikiRe
 
 	// 从通道中收集结果
 	for doc := range resultChan {
+		if !lo.Contains([]int{2, 3, 5, 8, 9}, doc.ObjType) {
+			continue
+		}
 		results = append(results, &domain.SearchWikiResp{
 			Title:    doc.Title,
 			SpaceId:  doc.SpaceId,
@@ -167,6 +174,9 @@ func (f *FeishuUseCase) searchWiki(ctx context.Context, client *lark.Client, spa
 		}
 		for _, v := range resp.Data.Items {
 			var objType int
+			if v.ObjType == nil {
+				continue
+			}
 			switch *v.ObjType {
 			case "docx":
 				objType = 8
@@ -182,6 +192,10 @@ func (f *FeishuUseCase) searchWiki(ctx context.Context, client *lark.Client, spa
 				objType = 0
 			}
 			if objType == 9 {
+				continue
+			}
+			if v.Title == nil || v.SpaceId == nil || v.ObjToken == nil || v.NodeToken == nil || v.OriginNodeToken == nil || v.HasChild == nil {
+				f.logger.Warn("Skipping node with nil fields", log.Any("node", v))
 				continue
 			}
 			respData = append(respData, &domain.SearchWikiTemp{
@@ -318,12 +332,6 @@ func searchDocx(ctx context.Context, client *lark.Client, accessToken, folderTok
 		builder.Build(),
 		larkcore.WithUserAccessToken(accessToken),
 	)
-	if resp.Msg != "success" {
-		select {
-		case errChan <- fmt.Errorf("search doc failed: %s", resp.Msg):
-		case <-ctx.Done():
-		}
-	}
 	if err != nil {
 		select {
 		case errChan <- fmt.Errorf("search doc failed: %w", err):
@@ -331,7 +339,13 @@ func searchDocx(ctx context.Context, client *lark.Client, accessToken, folderTok
 		}
 		return
 	}
-
+	if resp.Msg != "success" {
+		select {
+		case errChan <- fmt.Errorf("search doc failed: %s", resp.Msg):
+		case <-ctx.Done():
+		}
+		return
+	}
 	var wg sync.WaitGroup
 
 	for _, v := range resp.Data.Files {
@@ -339,6 +353,9 @@ func searchDocx(ctx context.Context, client *lark.Client, accessToken, folderTok
 		case <-ctx.Done():
 			return
 		default:
+			if v.Type == nil || v.Token == nil {
+				continue
+			}
 			if *v.Type == "folder" {
 				wg.Add(1)
 				go func(token string) {
@@ -360,6 +377,9 @@ func searchDocx(ctx context.Context, client *lark.Client, accessToken, folderTok
 					temp = 9
 				default:
 					temp = 0
+				}
+				if v.Url == nil {
+					continue
 				}
 				select {
 				case dataChan <- &domain.SearchDocxResp{
@@ -590,6 +610,7 @@ func (f *FeishuUseCase) getAppTables(ctx context.Context, appID, secret, appTabl
 		if err != nil {
 			return nil, err
 		}
+
 		results = append(results, resp.Data.Items...)
 		if !*resp.Data.HasMore {
 			break
@@ -608,12 +629,24 @@ func (f *FeishuUseCase) downloadSheet(ctx context.Context, objType int, appID, s
 			f.logger.Error("get sheets failed", log.Error(err))
 			return "", "", err
 		}
+		if len(sheets) == 0 {
+			return "", "", fmt.Errorf("no sheets found")
+		}
+		if sheets[0].SheetId == nil {
+			return "", "", fmt.Errorf("sheetId is nil")
+		}
 		subIDs = []string{*sheets[0].SheetId}
 	case 3:
 		tables, err := f.getAppTables(ctx, appID, secret, sheetToken, usserAccessToken)
 		if err != nil {
 			f.logger.Error("get app tables failed", log.Error(err))
 			return "", "", err
+		}
+		if len(tables) == 0 {
+			return "", "", fmt.Errorf("no tables found")
+		}
+		if tables[0].TableId == nil {
+			return "", "", fmt.Errorf("tableId is nil")
 		}
 		subIDs = []string{*tables[0].TableId}
 	default:

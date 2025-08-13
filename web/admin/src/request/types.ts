@@ -54,7 +54,6 @@ export enum DomainModelType {
 }
 
 export enum DomainModelProvider {
-  /** 智谱 */
   ModelProviderBrandOpenAI = "OpenAI",
   ModelProviderBrandOllama = "Ollama",
   ModelProviderBrandDeepSeek = "DeepSeek",
@@ -66,6 +65,7 @@ export enum DomainModelProvider {
   ModelProviderBrandBaiLian = "BaiLian",
   ModelProviderBrandVolcengine = "Volcengine",
   ModelProviderBrandGemini = "Gemini",
+  /** 智谱 */
   ModelProviderBrandZhiPu = "ZhiPu",
   ModelProviderBrandOther = "Other",
 }
@@ -107,6 +107,9 @@ export enum ConstsSourceType {
   SourceTypeDingTalk = "dingtalk",
   SourceTypeFeishu = "feishu",
   SourceTypeWeCom = "wecom",
+  SourceTypeOAuth = "oauth",
+  SourceTypeCAS = "cas",
+  SourceTypeLDAP = "ldap",
 }
 
 export interface DomainAIFeedbackSettings {
@@ -489,6 +492,7 @@ export interface DomainCreateNodeReq {
   kb_id: string;
   name: string;
   parent_id?: string;
+  position?: number;
   type: 1 | 2;
   visibility?: DomainNodeVisibility;
 }
@@ -831,6 +835,25 @@ export interface DomainShareCommentListItem {
   root_id?: string;
 }
 
+export interface DomainShareConversationDetailResp {
+  created_at?: string;
+  id?: string;
+  messages?: DomainShareConversationMessage[];
+  subject?: string;
+}
+
+export interface DomainShareConversationMessage {
+  content?: string;
+  created_at?: string;
+  role?: SchemaRoleType;
+}
+
+export interface DomainSiYuanResp {
+  content?: string;
+  id?: number;
+  title?: string;
+}
+
 export interface DomainSimpleAuth {
   enabled?: boolean;
   password?: string;
@@ -899,6 +922,7 @@ export interface DomainUpdateNodeReq {
   id: string;
   kb_id: string;
   name?: string;
+  position?: number;
   summary?: string;
   visibility?: DomainNodeVisibility;
 }
@@ -1030,6 +1054,16 @@ export interface PostApiV1CrawlerConfluenceAnalysisExportFilePayload {
 }
 
 export interface PostApiV1CrawlerEpubConvertPayload {
+  /**
+   * file
+   * @format binary
+   */
+  file: File;
+  /** kb_id */
+  kb_id: string;
+}
+
+export interface PostApiV1CrawlerSiyuanAnalysisExportFilePayload {
   /**
    * file
    * @format binary
@@ -1176,6 +1210,11 @@ export interface PostShareV1ChatWidgetParams {
 
 export interface GetShareV1CommentListParams {
   /** nodeID */
+  id: string;
+}
+
+export interface GetShareV1ConversationDetailParams {
+  /** conversation id */
   id: string;
 }
 

@@ -7,7 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "api": "cx-swagger-api"
+    "api": "cx-swagger-api",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,scss,md,mdx,json,yml,yaml,mjs,cjs}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,css,scss,md,mdx,json,yml,yaml,mjs,cjs}\"",
+    "prepare": "cd ../../ && husky web/app/.husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,css,scss,md,mdx,json,yml,yaml,mjs,cjs}": "prettier --write"
   },
   "dependencies": {
     "@emotion/cache": "^11.14.0",
@@ -58,7 +64,11 @@
     "dotenv": "^17.2.1",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
+    "eslint-config-prettier": "^9.1.2",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
+    "prettier": "^3.6.2",
     "typescript": "^5"
   },
   "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac"

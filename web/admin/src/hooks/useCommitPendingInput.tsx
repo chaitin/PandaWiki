@@ -1,6 +1,12 @@
 import { useRef, useState } from 'react';
 
-export function useCommitPendingInput<T>({ value, setValue }: { value: T[], setValue: (v: T[]) => void }) {
+export function useCommitPendingInput<T>({
+  value,
+  setValue,
+}: {
+  value: T[];
+  setValue: (v: T[]) => void;
+}) {
   const [inputValue, setInputValue] = useState('');
   // 用于同步获取最新值（解决闭包问题）
   const valueRef = useRef(value);

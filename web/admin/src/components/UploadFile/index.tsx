@@ -5,17 +5,26 @@ import { useEffect, useRef, useState } from 'react';
 import CustomImage from '../CustomImage';
 
 interface UploadFileProps {
-  type: 'url' | 'base64'
-  id: string
-  name: string
-  disabled?: boolean
+  type: 'url' | 'base64';
+  id: string;
+  name: string;
+  disabled?: boolean;
   value: string;
   accept: string;
   onChange: (url: string) => void;
   width?: number;
 }
 
-const UploadFile = ({ id, name, value, onChange, accept, type, width, disabled = false }: UploadFileProps) => {
+const UploadFile = ({
+  id,
+  name,
+  value,
+  onChange,
+  accept,
+  type,
+  width,
+  disabled = false,
+}: UploadFileProps) => {
   const [preview, setPreview] = useState<string>(value);
   const currentPreviewUrl = useRef<string | null>(null);
 
@@ -23,7 +32,9 @@ const UploadFile = ({ id, name, value, onChange, accept, type, width, disabled =
     setPreview(value);
   }, [value]);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -43,7 +54,7 @@ const UploadFile = ({ id, name, value, onChange, accept, type, width, disabled =
         URL.revokeObjectURL(previewUrl);
         currentPreviewUrl.current = null;
       } catch (error) {
-        console.error(error)
+        console.error(error);
         Message.error('图片处理失败');
         setPreview(value);
         URL.revokeObjectURL(previewUrl);
@@ -51,15 +62,15 @@ const UploadFile = ({ id, name, value, onChange, accept, type, width, disabled =
       }
     } else {
       try {
-        const formData = new FormData()
-        formData.append("file", file)
+        const formData = new FormData();
+        formData.append('file', file);
         const res = await uploadFile(formData);
         onChange('/static-file/' + res.key);
         URL.revokeObjectURL(previewUrl);
         currentPreviewUrl.current = null;
       } catch (error) {
-        console.error(error)
-        Message.error('上传失败')
+        console.error(error);
+        Message.error('上传失败');
         setPreview(value);
         URL.revokeObjectURL(previewUrl);
         currentPreviewUrl.current = null;
@@ -81,13 +92,13 @@ const UploadFile = ({ id, name, value, onChange, accept, type, width, disabled =
       <input
         id={id || name}
         disabled={disabled}
-        type="file"
+        type='file'
         accept={accept}
         style={{ display: 'none' }}
         onChange={handleFileChange}
       />
       <Box
-        component="label"
+        component='label'
         htmlFor={id || name}
         sx={{
           width: width || 190,
@@ -106,8 +117,8 @@ const UploadFile = ({ id, name, value, onChange, accept, type, width, disabled =
             borderColor: 'text.primary',
             '.upload-file-img-del-icon': {
               opacity: 1,
-            }
-          }
+            },
+          },
         }}
       >
         {preview ? (
@@ -115,34 +126,49 @@ const UploadFile = ({ id, name, value, onChange, accept, type, width, disabled =
             <CustomImage
               src={preview}
               preview={false}
-              alt="Preview"
-              width="100%"
-              sx={{ objectFit: 'cover', cursor: disabled ? 'not-allowed' : 'pointer' }}
+              alt='Preview'
+              width='100%'
+              sx={{
+                objectFit: 'cover',
+                cursor: disabled ? 'not-allowed' : 'pointer',
+              }}
             />
-            <IconButton size='small' className='upload-file-img-del-icon' sx={{
-              transition: 'all 0.5s',
-              position: 'absolute',
-              top: 0,
-              right: 0,
-              zIndex: 1000,
-              opacity: 0,
-            }} onClick={(event) => {
-              event.stopPropagation()
-              event.preventDefault()
-              setPreview('')
-              onChange('')
-            }}>
-              <Icon type='icon-icon_tool_close' sx={{ color: 'text.auxiliary' }} />
+            <IconButton
+              size='small'
+              className='upload-file-img-del-icon'
+              sx={{
+                transition: 'all 0.5s',
+                position: 'absolute',
+                top: 0,
+                right: 0,
+                zIndex: 1000,
+                opacity: 0,
+              }}
+              onClick={event => {
+                event.stopPropagation();
+                event.preventDefault();
+                setPreview('');
+                onChange('');
+              }}
+            >
+              <Icon
+                type='icon-icon_tool_close'
+                sx={{ color: 'text.auxiliary' }}
+              />
             </IconButton>
           </>
         ) : (
-          <Stack alignItems={'center'} gap={0.5} sx={{ color: 'text.disabled', fontSize: 12 }}>
+          <Stack
+            alignItems={'center'}
+            gap={0.5}
+            sx={{ color: 'text.disabled', fontSize: 12 }}
+          >
             <Icon type='icon-shangchuan' sx={{ fontSize: 18 }} />
             点击上传
           </Stack>
         )}
       </Box>
-    </Box >
+    </Box>
   );
 };
 

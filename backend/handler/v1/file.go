@@ -54,7 +54,6 @@ func (h *FileHandler) Upload(c echo.Context) error {
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get file", err)
 	}
-
 	key, err := h.fileUsecase.UploadFile(cxt, kbID, file)
 	if err != nil {
 		return h.NewResponseWithError(c, "upload failed", err)

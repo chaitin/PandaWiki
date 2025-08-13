@@ -11,7 +11,7 @@ interface FeedbackProps {
     message_id: string,
     score: number,
     type: string,
-    content?: string
+    content?: string,
   ) => void;
   data: ConversationItem | null;
 }
@@ -59,7 +59,7 @@ const Feedback = ({ open, onClose, onSubmit, data }: FeedbackProps) => {
           mb: 2,
         }}
       >
-        {tags.map((tag) => (
+        {tags.map(tag => (
           <Box
             key={tag}
             sx={{
@@ -128,7 +128,7 @@ const Feedback = ({ open, onClose, onSubmit, data }: FeedbackProps) => {
               border: 'none',
             },
           }}
-          onChange={(e) => setContent(e.target.value)}
+          onChange={e => setContent(e.target.value)}
         />
       </Box>
     </Modal>

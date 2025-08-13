@@ -156,7 +156,7 @@ const Home = () => {
             placeholder={kbDetail?.settings?.search_placeholder || '开始搜索'}
             autoComplete='off'
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={e => setSearchText(e.target.value)}
             onKeyDown={handleKeyDown}
             InputProps={{
               endAdornment: (

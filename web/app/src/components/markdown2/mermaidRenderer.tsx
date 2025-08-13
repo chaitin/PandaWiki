@@ -35,7 +35,7 @@ export const initializeMermaid = (): boolean => {
  * 创建 Mermaid 渲染器
  */
 export const createMermaidRenderer = (
-  mermaidSuccessIdRef: React.RefObject<Map<number, string>>
+  mermaidSuccessIdRef: React.RefObject<Map<number, string>>,
 ) => {
   return (code: string, mermaidCount: number): string => {
     const svg = mermaidSuccessIdRef.current?.get(mermaidCount) || '';
@@ -53,6 +53,6 @@ export const createMermaidRenderer = (
       } catch (renderError) {}
     });
 
-    return `<div class="mermaid-container ${className}">${svg}</div>`;
+    return `<pre><div class="mermaid-container ${className}">${svg}</div></pre>`;
   };
 };

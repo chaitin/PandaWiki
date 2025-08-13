@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
             destination: `${process.env.TARGET}/share/v1/:path*`,
             basePath: false as const,
           },
-        ]
+        ],
       );
     }
     return rewritesPath;

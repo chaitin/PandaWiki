@@ -97,7 +97,7 @@ const Header = () => {
             <TextField
               size='small'
               value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
+              onChange={e => setSearchValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder='搜索...'
               sx={{

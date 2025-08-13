@@ -10,14 +10,14 @@ import CardWeb from './component/CardWeb';
 import CardFeedback from './component/CardFeedback';
 
 const Setting = () => {
-  const { kb_id } = useAppSelector((state) => state.config);
+  const { kb_id } = useAppSelector(state => state.config);
   const [kb, setKb] = useState<DomainKnowledgeBaseDetail | null>(null);
   const isWideScreen = useMediaQuery('(min-width:1400px)');
   const [url, setUrl] = useState<string>('');
 
   const getKb = () => {
     if (!kb_id) return;
-    getApiV1KnowledgeBaseDetail({ id: kb_id }).then((res) => setKb(res));
+    getApiV1KnowledgeBaseDetail({ id: kb_id }).then(res => setKb(res));
   };
 
   useEffect(() => {

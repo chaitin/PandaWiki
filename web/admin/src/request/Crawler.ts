@@ -31,10 +31,12 @@ import {
   DomainSearchDocxResp,
   DomainSearchWikiReq,
   DomainSearchWikiResp,
+  DomainSiYuanResp,
   DomainWikiJSResp,
   DomainYuqueResp,
   PostApiV1CrawlerConfluenceAnalysisExportFilePayload,
   PostApiV1CrawlerEpubConvertPayload,
+  PostApiV1CrawlerSiyuanAnalysisExportFilePayload,
   PostApiV1CrawlerWikijsAnalysisExportFilePayload,
   PostApiV1CrawlerYuqueAnalysisExportFilePayload,
 } from "./types";
@@ -365,6 +367,36 @@ export const postApiV1CrawlerScrape = (
     method: "POST",
     body: body,
     type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+/**
+ * @description Analyze SiYuan Export File
+ *
+ * @tags crawler
+ * @name PostApiV1CrawlerSiyuanAnalysisExportFile
+ * @summary AnalysisSiyuanExportFile
+ * @request POST:/api/v1/crawler/siyuan/analysis_export_file
+ * @response `200` `(DomainResponse & {
+    data?: (DomainSiYuanResp)[],
+
+})` OK
+ */
+
+export const postApiV1CrawlerSiyuanAnalysisExportFile = (
+  data: PostApiV1CrawlerSiyuanAnalysisExportFilePayload,
+  params: RequestParams = {},
+) =>
+  httpRequest<
+    DomainResponse & {
+      data?: DomainSiYuanResp[];
+    }
+  >({
+    path: `/api/v1/crawler/siyuan/analysis_export_file`,
+    method: "POST",
+    body: data,
+    type: ContentType.FormData,
     format: "json",
     ...params,
   });

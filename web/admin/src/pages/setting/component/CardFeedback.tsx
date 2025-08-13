@@ -26,6 +26,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { useEffect, useState } from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
 import { Message } from 'ct-mui';
+import { FormItem, SettingCard, SettingCardItem } from './Common';
 
 interface CardCommentProps {
   kb: DomainKnowledgeBaseDetail;
@@ -35,7 +36,6 @@ interface CardCommentProps {
 const StyledCardTitle = styled(Box)(({ theme }) => ({
   fontWeight: 'bold',
   padding: `${theme.spacing(1.5)} ${theme.spacing(2)}`,
-  // @ts-expect-error 忽略类型错误
   backgroundColor: theme.palette.background.paper2,
 }));
 
@@ -92,7 +92,7 @@ const DocumentComments = ({
   data: AppDetail;
   refresh: () => void;
 }) => {
-  const { license } = useAppSelector((state) => state.config);
+  const { license } = useAppSelector(state => state.config);
   const [isEdit, setIsEdit] = useState(false);
   const { control, handleSubmit, setValue } = useForm({
     defaultValues: {
@@ -108,13 +108,13 @@ const DocumentComments = ({
     setValue(
       'moderation_enable',
       // @ts-expect-error 忽略类型错误
-      +data?.settings?.web_app_comment_settings?.moderation_enable
+      +data?.settings?.web_app_comment_settings?.moderation_enable,
     );
   }, [data]);
 
   const isPro = license.edition === 1 || license.edition === 2;
 
-  const onSubmit = handleSubmit((formData) => {
+  const onSubmit = handleSubmit(formData => {
     updateAppDetail(
       { id: data.id },
       {
@@ -128,7 +128,7 @@ const DocumentComments = ({
             moderation_enable: Boolean(formData.moderation_enable),
           },
         },
-      }
+      },
     ).then(() => {
       Message.success('保存成功');
       setIsEdit(false);
@@ -136,82 +136,63 @@ const DocumentComments = ({
     });
   });
   return (
-    <Stack>
-      <StyledHeader>
-        <StyledHeaderTitle>文档评论</StyledHeaderTitle>
-        {isEdit && (
-          <Button variant='contained' size='small' onClick={onSubmit}>
-            保存
-          </Button>
-        )}
-      </StyledHeader>
-      <StyledContentStack>
-        <StyledRow>
-          <StyledLabel>文档评论</StyledLabel>
-          <Controller
-            control={control}
-            name='is_open'
-            render={({ field }) => (
-              <RadioGroup
-                row
-                {...field}
-                onChange={(e) => {
-                  setIsEdit(true);
-                  field.onChange(+e.target.value as 1 | 0);
-                }}
-              >
-                <FormControlLabel
-                  value={1}
-                  control={<Radio size='small' />}
-                  label={<StyledRadioLabel>启用</StyledRadioLabel>}
-                />
-                <FormControlLabel
-                  value={0}
-                  control={<Radio size='small' />}
-                  label={<StyledRadioLabel>禁用</StyledRadioLabel>}
-                />
-              </RadioGroup>
-            )}
-          />
-        </StyledRow>
-        <StyledRow>
-          <StyledLabel sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-            评论审核
-            {!isPro && (
-              <Tooltip title='联创版和企业版可用' placement='top' arrow>
-                <InfoIcon sx={{ color: 'text.secondary', fontSize: 14 }} />
-              </Tooltip>
-            )}
-          </StyledLabel>
-          <Controller
-            control={control}
-            name='moderation_enable'
-            render={({ field }) => (
-              <RadioGroup
-                row
-                {...field}
-                value={isPro ? field.value : undefined}
-                onChange={(e) => {
-                  setIsEdit(true);
-                  field.onChange(+e.target.value as 1 | 0);
-                }}
-              >
-                <FormControlLabel
-                  value={1}
-                  control={<Radio size='small' disabled={!isPro} />}
-                  label={<StyledRadioLabel>启用</StyledRadioLabel>}
-                />
-                <FormControlLabel
-                  value={0}
-                  control={<Radio size='small' disabled={!isPro} />}
-                  label={<StyledRadioLabel>禁用</StyledRadioLabel>}
-                />
-              </RadioGroup>
-            )}
-          />
-        </StyledRow>
-      </StyledContentStack>
-    </Stack>
+    <SettingCardItem title='文档评论' isEdit={isEdit} onSubmit={onSubmit}>
+      <FormItem label='文档评论'>
+        <Controller
+          control={control}
+          name='is_open'
+          render={({ field }) => (
+            <RadioGroup
+              row
+              {...field}
+              onChange={e => {
+                setIsEdit(true);
+                field.onChange(+e.target.value as 1 | 0);
+              }}
+            >
+              <FormControlLabel
+                value={1}
+                control={<Radio size='small' />}
+                label={<StyledRadioLabel>启用</StyledRadioLabel>}
+              />
+              <FormControlLabel
+                value={0}
+                control={<Radio size='small' />}
+                label={<StyledRadioLabel>禁用</StyledRadioLabel>}
+              />
+            </RadioGroup>
+          )}
+        />
+      </FormItem>
+      <FormItem label='评论审核' tooltip={!isPro && '联创版和企业版可用'}>
+        <Controller
+          control={control}
+          name='moderation_enable'
+          render={({ field }) => (
+            <RadioGroup
+              row
+              {...field}
+              value={isPro ? field.value : undefined}
+              onChange={e => {
+                setIsEdit(true);
+                field.onChange(+e.target.value as 1 | 0);
+              }}
+            >
+              <FormControlLabel
+                value={1}
+                control={<Radio size='small' disabled={!isPro} />}
+                label={<StyledRadioLabel>启用</StyledRadioLabel>}
+              />
+              <FormControlLabel
+                value={0}
+                control={<Radio size='small' disabled={!isPro} />}
+                label={<StyledRadioLabel>禁用</StyledRadioLabel>}
+              />
+            </RadioGroup>
+          )}
+        />
+      </FormItem>
+    </SettingCardItem>
   );
 };
 
@@ -233,7 +214,7 @@ const AIQuestion = ({
   });
   const [inputValue, setInputValue] = useState('');
 
-  const onSubmit = handleSubmit((formData) => {
+  const onSubmit = handleSubmit(formData => {
     updateAppDetail(
       { id: data.id },
       {
@@ -244,7 +225,7 @@ const AIQuestion = ({
             ...formData,
           },
         },
-      }
+      },
     ).then(() => {
       Message.success('保存成功');
       setIsEdit(false);
@@ -256,91 +237,76 @@ const AIQuestion = ({
     setValue(
       'is_enabled',
       // @ts-expect-error 忽略类型错误
-      data.settings?.ai_feedback_settings?.is_enabled ?? true
+      data.settings?.ai_feedback_settings?.is_enabled ?? true,
     );
 
     setValue(
       'ai_feedback_type',
       // @ts-expect-error 忽略类型错误
-      data.settings?.ai_feedback_settings?.ai_feedback_type || []
+      data.settings?.ai_feedback_settings?.ai_feedback_type || [],
     );
   }, [data]);
 
   return (
-    <Stack>
-      <StyledHeader>
-        <StyledHeaderTitle>AI 问答评价</StyledHeaderTitle>
-        {isEdit && (
-          <Button variant='contained' size='small' onClick={onSubmit}>
-            保存
-          </Button>
-        )}
-      </StyledHeader>
-      <StyledContentStack>
-        <StyledRow>
-          <StyledLabel>AI 问答评价</StyledLabel>
-          <Box sx={{ flex: 1 }}>
-            <Controller
-              control={control}
-              name='ai_feedback_type'
-              render={({ field }) => (
-                <Autocomplete
-                  {...field}
-                  multiple
-                  freeSolo
-                  options={AI_FEEDBACK_OPTIONS}
-                  inputValue={inputValue}
-                  onInputChange={(_, newInputValue) =>
-                    setInputValue(newInputValue)
-                  }
-                  onChange={(_, newValue) => {
-                    setIsEdit(true);
-                    const newValues = [...new Set(newValue as string[])];
-                    field.onChange(newValues);
-                  }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      size='small'
-                      placeholder='选择或输入评价，可多选，回车确认'
-                      variant='outlined'
-                    />
-                  )}
+    <SettingCardItem title='AI 问答评价' isEdit={isEdit} onSubmit={onSubmit}>
+      <FormItem label='AI 问答评价'>
+        <Controller
+          control={control}
+          name='ai_feedback_type'
+          render={({ field }) => (
+            <Autocomplete
+              {...field}
+              multiple
+              freeSolo
+              fullWidth
+              options={AI_FEEDBACK_OPTIONS}
+              inputValue={inputValue}
+              onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
+              onChange={(_, newValue) => {
+                setIsEdit(true);
+                const newValues = [...new Set(newValue as string[])];
+                field.onChange(newValues);
+              }}
+              renderInput={params => (
+                <TextField
+                  {...params}
+                  size='small'
+                  placeholder='选择或输入评价，可多选，回车确认'
+                  variant='outlined'
                 />
               )}
             />
-          </Box>
-        </StyledRow>
-        <StyledRow>
-          <StyledLabel>评价开关</StyledLabel>
-          <Controller
-            control={control}
-            name='is_enabled'
-            render={({ field }) => (
-              <RadioGroup
-                row
-                {...field}
-                onChange={(e) => {
-                  setIsEdit(true);
-                  field.onChange(e.target.value === 'true');
-                }}
-              >
-                <FormControlLabel
-                  value={true}
-                  control={<Radio size='small' />}
-                  label={<StyledRadioLabel>启用</StyledRadioLabel>}
-                />
-                <FormControlLabel
-                  value={false}
-                  control={<Radio size='small' />}
-                  label={<StyledRadioLabel>禁用</StyledRadioLabel>}
-                />
-              </RadioGroup>
-            )}
-          />
-        </StyledRow>
-      </StyledContentStack>
-    </Stack>
+          )}
+        />
+      </FormItem>
+      <FormItem label='评价开关'>
+        <Controller
+          control={control}
+          name='is_enabled'
+          render={({ field }) => (
+            <RadioGroup
+              row
+              {...field}
+              onChange={e => {
+                setIsEdit(true);
+                field.onChange(e.target.value === 'true');
+              }}
+            >
+              <FormControlLabel
+                value={true}
+                control={<Radio size='small' />}
+                label={<StyledRadioLabel>启用</StyledRadioLabel>}
+              />
+              <FormControlLabel
+                value={false}
+                control={<Radio size='small' />}
+                label={<StyledRadioLabel>禁用</StyledRadioLabel>}
+              />
+            </RadioGroup>
+          )}
+        />{' '}
+      </FormItem>
+    </SettingCardItem>
   );
 };
 
@@ -352,14 +318,14 @@ const DocumentCorrection = ({
   refresh: () => void;
 }) => {
   const [isEdit, setIsEdit] = useState(false);
-  const { license } = useAppSelector((state) => state.config);
+  const { license } = useAppSelector(state => state.config);
   const { control, handleSubmit, setValue } = useForm({
     defaultValues: {
       document_feedback_is_enabled: 0,
     },
   });
 
-  const onSubmit = handleSubmit((formData) => {
+  const onSubmit = handleSubmit(formData => {
     console.log(data);
     updateAppDetail(
       { id: data.id },
@@ -368,10 +334,10 @@ const DocumentCorrection = ({
           ...data.settings,
           // @ts-expect-error 忽略类型错误
           document_feedback_is_enabled: Boolean(
-            formData.document_feedback_is_enabled
+            formData.document_feedback_is_enabled,
           ),
         },
-      }
+      },
     ).then(() => {
       Message.success('保存成功');
       setIsEdit(false);
@@ -385,61 +351,52 @@ const DocumentCorrection = ({
     setValue(
       'document_feedback_is_enabled',
       // @ts-expect-error 忽略类型错误
-      +data?.settings?.document_feedback_is_enabled
+      +data?.settings?.document_feedback_is_enabled,
     );
   }, [data]);
 
   return (
-    <Stack>
-      <StyledHeader>
-        <StyledHeaderTitle
-          sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}
-        >
+    <SettingCardItem
+      title={
+        <>
           文档纠错
           {!isPro && (
             <Tooltip title='联创版和企业版可用' placement='top' arrow>
               <InfoIcon sx={{ color: 'text.secondary', fontSize: 14 }} />
             </Tooltip>
           )}
-        </StyledHeaderTitle>
-        {isEdit && (
-          <Button variant='contained' size='small' onClick={onSubmit}>
-            保存
-          </Button>
+        </>
+      }
+      isEdit={isEdit}
+      onSubmit={onSubmit}
+    >
+      <Controller
+        control={control}
+        name='document_feedback_is_enabled'
+        render={({ field }) => (
+          <RadioGroup
+            row
+            {...field}
+            value={isPro ? field.value : undefined}
+            onChange={e => {
+              setIsEdit(true);
+              field.onChange(+e.target.value as 1 | 0);
+            }}
+          >
+            <FormControlLabel
+              value={1}
+              control={<Radio size='small' disabled={!isPro} />}
+              label={<StyledRadioLabel>启用</StyledRadioLabel>}
+            />
+            <FormControlLabel
+              value={0}
+              control={<Radio size='small' disabled={!isPro} />}
+              label={<StyledRadioLabel>禁用</StyledRadioLabel>}
+            />
+          </RadioGroup>
         )}
-      </StyledHeader>
-      <StyledContentStack>
-        <StyledRow>
-          <StyledLabel>文档纠错</StyledLabel>
-          <Controller
-            control={control}
-            name='document_feedback_is_enabled'
-            render={({ field }) => (
-              <RadioGroup
-                row
-                {...field}
-                value={isPro ? field.value : undefined}
-                onChange={(e) => {
-                  setIsEdit(true);
-                  field.onChange(+e.target.value as 1 | 0);
-                }}
-              >
-                <FormControlLabel
-                  value={1}
-                  control={<Radio size='small' disabled={!isPro} />}
-                  label={<StyledRadioLabel>启用</StyledRadioLabel>}
-                />
-                <FormControlLabel
-                  value={0}
-                  control={<Radio size='small' disabled={!isPro} />}
-                  label={<StyledRadioLabel>禁用</StyledRadioLabel>}
-                />
-              </RadioGroup>
-            )}
-          />
-        </StyledRow>
-      </StyledContentStack>
-    </Stack>
+      />
+    </SettingCardItem>
   );
 };
 
@@ -456,14 +413,11 @@ const CardFeedback = ({ kb }: CardCommentProps) => {
   }, [kb]);
 
   return (
-    <Card>
-      <StyledCardTitle>反馈</StyledCardTitle>
+    <SettingCard title='反馈'>
       <AIQuestion data={info} refresh={getInfo} />
-      <Divider />
       <DocumentComments data={info} refresh={getInfo} />
-      <Divider />
       <DocumentCorrection data={info} refresh={getInfo} />
-    </Card>
+    </SettingCard>
   );
 };
 

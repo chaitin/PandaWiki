@@ -1,4 +1,4 @@
-import { ITreeItem, NodeListItem } from "@/assets/type";
+import { ITreeItem, NodeListItem } from '@/assets/type';
 
 export function convertToTree(data: NodeListItem[]) {
   const nodeMap = new Map<string, ITreeItem>();
@@ -54,27 +54,38 @@ export const filterEmptyFolders = (data: ITreeItem[]): ITreeItem[] => {
   return data
     .map(item => {
       if (item.children && item.children.length > 0) {
-        const filteredChildren = filterEmptyFolders(item.children)
-        return { ...item, children: filteredChildren }
+        const filteredChildren = filterEmptyFolders(item.children);
+        return { ...item, children: filteredChildren };
       }
-      return item
+      return item;
     })
     .filter(item => {
       if (item.type === 1) {
-        return item.children && item.children.length > 0
+        return item.children && item.children.length > 0;
       }
-      return true
-    })
-}
+      return true;
+    });
+};
 
-export const addExpandState = (nodes: ITreeItem[], activeId: string, defaultExpand: boolean): ITreeItem[] => {
-  const findParentPath = (nodes: ITreeItem[], targetId: string, path: string[] = []): string[] | null => {
+export const addExpandState = (
+  nodes: ITreeItem[],
+  activeId: string,
+  defaultExpand: boolean,
+): ITreeItem[] => {
+  const findParentPath = (
+    nodes: ITreeItem[],
+    targetId: string,
+    path: string[] = [],
+  ): string[] | null => {
     for (const node of nodes) {
       if (node.id === targetId) {
         return path;
       }
       if (node.children && node.children.length > 0) {
-        const found = findParentPath(node.children, targetId, [...path, node.id]);
+        const found = findParentPath(node.children, targetId, [
+          ...path,
+          node.id,
+        ]);
         if (found) return found;
       }
     }
@@ -91,7 +102,7 @@ export const addExpandState = (nodes: ITreeItem[], activeId: string, defaultExpa
         return {
           ...node,
           defaultExpand: isExpanded,
-          children: addExpand(node.children)
+          children: addExpand(node.children),
         };
       }
       return node;

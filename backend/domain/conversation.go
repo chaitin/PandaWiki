@@ -142,3 +142,16 @@ type ConversationMessageListItem struct {
 
 	IPAddress *IPAddress `json:"ip_address" gorm:"-"`
 }
+
+type ShareConversationDetailResp struct {
+	ID        string                      `json:"id"`
+	Subject   string                      `json:"subject"`
+	Messages  []*ShareConversationMessage `json:"messages" gorm:"-"`
+	CreatedAt time.Time                   `json:"created_at"`
+}
+
+type ShareConversationMessage struct {
+	Role      schema.RoleType `json:"role"`
+	Content   string          `json:"content"`
+	CreatedAt time.Time       `json:"created_at"`
+}

@@ -14,7 +14,7 @@ import dayjs from 'dayjs';
 import { useEffect, useState, useMemo } from 'react';
 
 const Correction = () => {
-  const { kb_id = '', license } = useAppSelector((state) => state.config);
+  const { kb_id = '', license } = useAppSelector(state => state.config);
   const [data, setData] = useState<DomainDocumentFeedbackListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -90,7 +90,7 @@ const Correction = () => {
       dataIndex: 'correction_suggestion',
       title: '建议',
       render: (
-        text: DomainDocumentFeedbackListItem['correction_suggestion']
+        text: DomainDocumentFeedbackListItem['correction_suggestion'],
       ) => {
         return <Ellipsis>{text}</Ellipsis>;
       },
@@ -188,7 +188,7 @@ const Correction = () => {
       page: paramPage || page,
       per_page: paramPageSize || pageSize,
     })
-      .then((res) => {
+      .then(res => {
         setData(res.data || []);
         setTotal(res.total || 0);
       })
@@ -208,7 +208,7 @@ const Correction = () => {
 
   useEffect(() => {
     if (kb_id) {
-      getApiV1KnowledgeBaseDetail({ id: kb_id }).then((res) => {
+      getApiV1KnowledgeBaseDetail({ id: kb_id }).then(res => {
         if (res.access_settings?.base_url) {
           setBaseUrl(res!.access_settings!.base_url!);
         } else {

@@ -21,14 +21,14 @@ interface VersionListProps {
   changeVersion: (
     version: DomainGetNodeReleaseDetailResp & {
       release: DomainNodeReleaseListItem;
-    }
+    },
   ) => void;
 }
 
 const VersionList = ({ changeVersion }: VersionListProps) => {
   const theme = useTheme();
   const { id = '' } = useParams();
-  const { kb_id } = useAppSelector((state) => state.config);
+  const { kb_id } = useAppSelector(state => state.config);
   const isWideScreen = useMediaQuery('(min-width:1400px)');
 
   const [version, setVersion] = useState<DomainNodeReleaseListItem[]>([]);
@@ -36,7 +36,7 @@ const VersionList = ({ changeVersion }: VersionListProps) => {
     useState<DomainNodeReleaseListItem | null>(null);
 
   const [curNode, setCurNode] = useState<DomainGetNodeReleaseDetailResp | null>(
-    null
+    null,
   );
   const [headings, setHeadings] = useState<
     { id: string; title: string; heading: number }[]
@@ -53,7 +53,7 @@ const VersionList = ({ changeVersion }: VersionListProps) => {
   });
 
   const getDetail = (v: DomainNodeReleaseListItem) => {
-    getApiProV1NodeReleaseDetail({ id: v.id! }).then((res) => {
+    getApiProV1NodeReleaseDetail({ id: v.id! }).then(res => {
       setCurNode(res);
       changeVersion({
         ...res,
@@ -64,9 +64,9 @@ const VersionList = ({ changeVersion }: VersionListProps) => {
 
   useEffect(() => {
     if (curNode && editorRef) {
-      editorRef.setContent(curNode.content || '').then((headings) => {
+      editorRef.setContent(curNode.content || '').then(headings => {
         setHeadings(headings);
-        setMaxH(Math.min(...headings.map((h) => h.heading)));
+        setMaxH(Math.min(...headings.map(h => h.heading)));
       });
     }
   }, [curNode]);
@@ -78,7 +78,7 @@ const VersionList = ({ changeVersion }: VersionListProps) => {
   }, [curVersion]);
 
   useEffect(() => {
-    getApiProV1NodeReleaseList({ kb_id, node_id: id }).then((res) => {
+    getApiProV1NodeReleaseList({ kb_id, node_id: id }).then(res => {
       console.log(res);
       setVersion(res || []);
       if (res.length > 0) {
@@ -179,7 +179,7 @@ const VersionList = ({ changeVersion }: VersionListProps) => {
             overflowY: 'auto',
           }}
         >
-          {version.map((it) => (
+          {version.map(it => (
             <Box
               key={it.release_id}
               onClick={() => {
@@ -200,7 +200,7 @@ const VersionList = ({ changeVersion }: VersionListProps) => {
                 ...(it.release_id === curVersion?.release_id && {
                   bgcolor: `${addOpacityToColor(
                     theme.palette.primary.main,
-                    0.1
+                    0.1,
                   )} !important`,
                   borderLeft: `4px solid`,
                   borderLeftColor: `${theme.palette.primary.main} !important`,

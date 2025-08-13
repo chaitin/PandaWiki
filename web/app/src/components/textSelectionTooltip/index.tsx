@@ -61,7 +61,7 @@ export const TextSelectionTooltip: React.FC<TextSelectionTooltipProps> = ({
             variant='text'
             onClick={onFeedbackClick}
             loading={isCapturingScreenshot}
-            sx={(theme) => ({
+            sx={theme => ({
               fontSize: 12,
               px: 0,
               py: 0.5,

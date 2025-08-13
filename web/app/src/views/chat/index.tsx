@@ -6,22 +6,18 @@ import SSEClient from '@/utils/fetch';
 import { Box, Stack } from '@mui/material';
 import { message } from 'ct-mui';
 import dayjs from 'dayjs';
-import { useSetState } from 'ahooks';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ChatResult from './ChatResult';
 import ChatTab from './ChatTab';
 import SearchResult from './SearchResult';
 import { AnswerStatus } from './constant';
 
-const Chat = () => {
-  const {
-    mobile = false,
-    kb_id,
-    token,
-    kbDetail,
-    catalogShow,
-    catalogWidth,
-  } = useStore();
+const Chat = ({
+  conversation: initialConversation,
+}: {
+  conversation: ConversationItem[];
+}) => {
+  const { mobile = false, catalogShow, catalogWidth } = useStore();
 
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
   const sseClientRef = useRef<SSEClient<{
@@ -31,11 +27,8 @@ const Chat = () => {
   }> | null>(null);
 
   const messageIdRef = useRef('');
-
-  const [conversation, setConversation] = useState<ConversationItem[]>([]);
-  const [conversationMap, setConversationMap] = useSetState<{
-    [key: string]: ConversationItem;
-  }>({});
+  const [conversation, setConversation] =
+    useState<ConversationItem[]>(initialConversation);
   const [loading, setLoading] = useState(false);
   const [thinking, setThinking] = useState<keyof typeof AnswerStatus>(4);
   const [nonce, setNonce] = useState('');
@@ -45,6 +38,16 @@ const Chat = () => {
   const [answer, setAnswer] = useState('');
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const [showType, setShowType] = useState<'chat' | 'search'>('chat');
+
+  const onReset = () => {
+    setConversationId('');
+    setConversation([]);
+    setAnswer('');
+    setChunkResult([]);
+    setChunkLoading(false);
+    setLoading(false);
+    setNonce('');
+  };
 
   const chatAnswer = async (q: string) => {
     setChunkLoading(true);
@@ -66,16 +69,16 @@ const Chat = () => {
         JSON.stringify(reqData),
         ({ type, content, chunk_result }) => {
           if (type === 'conversation_id') {
-            setConversationId((prev) => prev + content);
+            setConversationId(prev => prev + content);
           } else if (type === 'message_id') {
             messageIdRef.current += content;
           } else if (type === 'nonce') {
-            setNonce((prev) => prev + content);
+            setNonce(prev => prev + content);
           } else if (type === 'error') {
             setChunkLoading(false);
             setLoading(false);
             setThinking(4);
-            setAnswer((prev) => {
+            setAnswer(prev => {
               if (content) {
                 return prev + `\n\n回答出现错误：<error>${content}</error>`;
               }
@@ -83,14 +86,20 @@ const Chat = () => {
             });
             if (content) message.error(content);
           } else if (type === 'done') {
-            setAnswer((prevAnswer) => {
-              setConversation((prev) => {
+            setAnswer(prevAnswer => {
+              setConversation(prev => {
                 const newConversation = [...prev];
-                newConversation[newConversation.length - 1].a = prevAnswer;
-                newConversation[newConversation.length - 1].update_time =
-                  dayjs().format('YYYY-MM-DD HH:mm:ss');
-                newConversation[newConversation.length - 1].message_id =
-                  messageIdRef.current;
+                const lastConversation =
+                  newConversation[newConversation.length - 1];
+                if (lastConversation) {
+                  lastConversation.a = prevAnswer;
+                  lastConversation.update_time = dayjs().format(
+                    'YYYY-MM-DD HH:mm:ss',
+                  );
+                  lastConversation.message_id = messageIdRef.current;
+                  lastConversation.source = 'chat';
+                }
+
                 return newConversation;
               });
               return '';
@@ -100,7 +109,7 @@ const Chat = () => {
             setThinking(4);
           } else if (type === 'data') {
             setChunkLoading(false);
-            setAnswer((prev) => {
+            setAnswer(prev => {
               const newAnswer = prev + content;
               if (newAnswer.includes('</think>')) {
                 setThinking(3);
@@ -114,24 +123,29 @@ const Chat = () => {
               return newAnswer;
             });
           } else if (type === 'chunk_result') {
-            setChunkResult((prev) => {
+            setChunkResult(prev => {
               return [...prev, chunk_result];
             });
           }
-        }
+        },
       );
     }
   };
 
   const onSearch = (q: string, reset: boolean = false) => {
     if (loading || !q.trim()) return;
-    const newConversation = reset ? [] : [...conversation];
+    const newConversation = reset
+      ? []
+      : conversation.some(item => item.source === 'history')
+        ? []
+        : [...conversation];
     newConversation.push({
       q,
       a: '',
       score: 0,
       message_id: '',
       update_time: '',
+      source: 'chat',
     });
     messageIdRef.current = '';
     setConversation(newConversation);
@@ -179,35 +193,39 @@ const Chat = () => {
   }, []);
 
   useEffect(() => {
-    if (kb_id) {
-      sseClientRef.current = new SSEClient({
-        url: `/share/v1/chat/message`,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        onCancel: () => {
-          setLoading(false);
-          setThinking(4);
-          setAnswer((prev) => {
-            let value = '';
-            if (prev) {
-              value = prev + '\n\n<error>Request canceled</error>';
-            }
-            setConversation((prev) => {
-              const newConversation = [...prev];
-              newConversation[newConversation.length - 1].a = value;
-              newConversation[newConversation.length - 1].update_time =
-                dayjs().format('YYYY-MM-DD HH:mm:ss');
-              newConversation[newConversation.length - 1].message_id =
-                messageIdRef.current;
-              return newConversation;
-            });
-            return '';
+    sseClientRef.current = new SSEClient({
+      url: `/share/v1/chat/message`,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      onCancel: () => {
+        setLoading(false);
+        setThinking(4);
+        setAnswer(prev => {
+          let value = '';
+          if (prev) {
+            value = prev + '\n\n<error>Request canceled</error>';
+          }
+          setConversation(prev => {
+            const newConversation = [...prev];
+            newConversation[newConversation.length - 1].a = value;
+            newConversation[newConversation.length - 1].update_time =
+              dayjs().format('YYYY-MM-DD HH:mm:ss');
+            newConversation[newConversation.length - 1].message_id =
+              messageIdRef.current;
+            return newConversation;
           });
-        },
-      });
-    }
+          return '';
+        });
+      },
+    });
   }, []);
+
+  useEffect(() => {
+    if (conversationId) {
+      window.history.replaceState(null, '', `/chat/${conversationId}`);
+    }
+  }, [conversationId]);
 
   if (mobile) {
     return (
@@ -224,6 +242,7 @@ const Chat = () => {
               setThinking={setThinking}
               onSearch={onSearch}
               setConversation={setConversation}
+              onReset={onReset}
               handleSearchAbort={handleSearchAbort}
             />
           ) : (
@@ -264,34 +283,37 @@ const Chat = () => {
             loading={loading}
             thinking={thinking}
             setThinking={setThinking}
+            onReset={onReset}
             onSearch={onSearch}
             setConversation={setConversation}
             handleSearchAbort={handleSearchAbort}
           />
         </Box>
-        <Box
-          sx={{
-            flexShrink: 0,
-            width: 388,
-            border: '1px solid',
-            borderColor: 'divider',
-            borderRadius: '10px',
-            p: 3,
-            bgcolor: 'background.paper',
-          }}
-        >
+        {(chunkLoading || chunkResult.length > 0) && (
           <Box
             sx={{
-              fontSize: '20px',
-              fontWeight: '700',
-              lineHeight: '28px',
-              mb: 2,
+              flexShrink: 0,
+              width: 388,
+              border: '1px solid',
+              borderColor: 'divider',
+              borderRadius: '10px',
+              p: 3,
+              bgcolor: 'background.paper',
             }}
           >
-            搜索结果
+            <Box
+              sx={{
+                fontSize: '20px',
+                fontWeight: '700',
+                lineHeight: '28px',
+                mb: 2,
+              }}
+            >
+              搜索结果
+            </Box>
+            <SearchResult list={chunkResult} loading={chunkLoading} />
           </Box>
-          <SearchResult list={chunkResult} loading={chunkLoading} />
-        </Box>
+        )}
       </Stack>
     </Box>
   );

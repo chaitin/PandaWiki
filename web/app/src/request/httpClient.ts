@@ -257,23 +257,24 @@ export class HttpClient<SecurityDataType = unknown> {
             : payloadFormatter(body),
       },
     ).then(async (response) => {
-      if (
-        typeof window !== "undefined" &&
-        !pathnameWhiteList.includes(window.location.pathname)
-      ) {
-        const urlObj = new URL(response.url);
-        if (response.status === 401) {
-          redirectToLogin();
+      if (response.status === 401) {
+        console.log("response 401:", response);
+        if (typeof window === "undefined") {
+          const pathname = await getServerPathname();
+          if (!pathnameWhiteList.includes(pathname)) {
+            redirect("/auth/login");
+          }
+          return;
         }
-      }
 
-      if (response.status === 401 && typeof window === "undefined") {
-        const pathname = await getServerPathname();
-        if (!pathnameWhiteList.includes(pathname)) {
-          redirect("/auth/login");
-          return Promise.reject(response);
-        } else {
-          return {};
+        if (typeof window !== "undefined") {
+          if (!pathnameWhiteList.includes(window.location.pathname)) {
+            const urlObj = new URL(response.url);
+            if (response.status === 401) {
+              redirectToLogin();
+            }
+          }
+          return;
         }
       }
 
@@ -308,11 +309,9 @@ export class HttpClient<SecurityDataType = unknown> {
             }
           }
         }
-        throw {
-          status: data.code || response.status,
-          error: data.message,
-          url: response.url,
-        };
+        const errorMessage = { data, url: response.url, response };
+        console.log("response error:", errorMessage);
+        throw errorMessage;
       }
       return data.data;
     });

@@ -39,6 +39,26 @@ func (u *WikiJSUsecase) AnalysisExportFile(ctx context.Context, fileHeader *mult
 		return nil, fmt.Errorf("open file failed: %v", err)
 	}
 	defer reader.Close()
+	// 用户直接上传pages.json.gz文件的情况
+	if filepath.Ext(fileHeader.Filename) == ".gz" {
+		var pages []domain.WikiJSPage
+		gr, err := gzip.NewReader(reader)
+		if err != nil {
+			return nil, err
+		}
+		if err := json.NewDecoder(gr).Decode(&pages); err != nil {
+			return nil, err
+		}
+		var res []domain.WikiJSResp
+		for _, page := range pages {
+			res = append(res, domain.WikiJSResp{
+				Id:      page.Id,
+				Title:   page.Title,
+				Content: page.Render,
+			})
+		}
+		return &res, nil
+	}
 	zipReader, err := zip.NewReader(reader, fileHeader.Size)
 	if err != nil {
 		return nil, err

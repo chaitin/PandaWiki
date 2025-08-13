@@ -1,22 +1,22 @@
-import ReactDOM, { type Root } from 'react-dom/client'
+import ReactDOM, { type Root } from 'react-dom/client';
 
-const MARK = '__ct_react_root__'
+const MARK = '__ct_react_root__';
 
 type ContainerType = (Element | DocumentFragment) & {
-  [MARK]?: Root
-}
+  [MARK]?: Root;
+};
 
 export function render(node: React.ReactElement, container: ContainerType) {
-  const root = container[MARK] || ReactDOM.createRoot(container)
+  const root = container[MARK] || ReactDOM.createRoot(container);
 
-  root.render(node)
+  root.render(node);
 
-  container[MARK] = root
+  container[MARK] = root;
 }
 
 export async function unmount(container: ContainerType) {
   return Promise.resolve().then(() => {
-    container[MARK]?.unmount()
-    delete container[MARK]
-  })
+    container[MARK]?.unmount();
+    delete container[MARK];
+  });
 }

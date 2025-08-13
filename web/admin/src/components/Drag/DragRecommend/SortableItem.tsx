@@ -1,11 +1,11 @@
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { FC } from "react";
-import Item, { ItemProps } from "./Item";
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { FC } from 'react';
+import Item, { ItemProps } from './Item';
 
 type SortableItemProps = ItemProps & {
-  refresh: () => void
-}
+  refresh: () => void;
+};
 
 const SortableItem: FC<SortableItemProps> = ({ item, refresh, ...rest }) => {
   const {
@@ -14,7 +14,7 @@ const SortableItem: FC<SortableItemProps> = ({ item, refresh, ...rest }) => {
     listeners,
     setNodeRef,
     transform,
-    transition
+    transition,
   } = useSortable({ id: item.id });
 
   const style = {
@@ -31,7 +31,7 @@ const SortableItem: FC<SortableItemProps> = ({ item, refresh, ...rest }) => {
       withOpacity={isDragging}
       dragHandleProps={{
         ...attributes,
-        ...listeners
+        ...listeners,
       }}
       item={item}
       {...rest}

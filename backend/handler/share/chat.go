@@ -91,6 +91,14 @@ func (h *ShareChatHandler) ChatMessage(c echo.Context) error {
 	c.Response().Header().Set("Connection", "keep-alive")
 	c.Response().Header().Set("Transfer-Encoding", "chunked")
 
+	// get user info --> no enterprise is nil
+	userID := c.Get("user_id")
+	h.logger.Debug("userid:", userID)
+	if userID != nil { // find userinfo from auth
+		userIDValue := userID.(uint)
+		req.Info.UserInfo.AuthUserID = userIDValue
+	}
+
 	eventCh, err := h.chatUsecase.Chat(c.Request().Context(), &req)
 	if err != nil {
 		return h.sendErrMsg(c, err.Error())

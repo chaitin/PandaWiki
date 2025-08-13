@@ -4,29 +4,26 @@
 import { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 
+const MERMAID_CONFIG = {
+  startOnLoad: false,
+  theme: 'default' as const,
+  securityLevel: 'loose' as const,
+  fontFamily: 'inherit',
+  suppressErrorRendering: true,
+};
+
 const MermaidDiagram = ({ chart }: { chart: string }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-
-  const renderDiagram = async () => {
-    try {
-      const { svg } = await mermaid.render('mermaid-svg', chart);
-      containerRef.current!.innerHTML = svg;
-    } catch (error: any) {
-      console.error('Mermaid 渲染错误:', error);
-      containerRef.current!.innerHTML = `<div>流程图渲染错误: ${error?.message}</div>`;
-    }
-  };
+  const isMermaidInitialized = useRef(false);
 
   useEffect(() => {
     if (!containerRef.current || !chart) return;
 
     // 初始化 Mermaid
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'default',
-      securityLevel: 'loose',
-      fontFamily: 'inherit',
-    });
+    if (!isMermaidInitialized.current) {
+      mermaid.initialize(MERMAID_CONFIG);
+      isMermaidInitialized.current = true;
+    }
 
     // 清理容器
     containerRef.current.innerHTML = '';

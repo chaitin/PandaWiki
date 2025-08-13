@@ -57,7 +57,7 @@ func (r *CommentRepository) GetCommentListByKbID(ctx context.Context, req *domai
 		}
 	} else {
 		if edition == 1 || edition == 2 {
-			query = query.Where("comments.status = ?", req.Status)
+			query = query.Where("comments.status = ?", *req.Status)
 		}
 		// 按照时间排序来查询kb_id的comments ->reject pending accepted
 		if err := query.Count(&count).Error; err != nil {

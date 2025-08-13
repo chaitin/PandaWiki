@@ -69,10 +69,9 @@ type JWTConfig struct {
 }
 
 type S3Config struct {
-	Endpoint    string `mapstructure:"endpoint"`
-	AccessKey   string `mapstructure:"access_key"`
-	SecretKey   string `mapstructure:"secret_key"`
-	MaxFileSize int64  `mapstructure:"max_file_size"`
+	Endpoint  string `mapstructure:"endpoint"`
+	AccessKey string `mapstructure:"access_key"`
+	SecretKey string `mapstructure:"secret_key"`
 }
 
 func NewConfig() (*Config, error) {
@@ -116,10 +115,9 @@ func NewConfig() (*Config, error) {
 			JWT:  JWTConfig{Secret: ""},
 		},
 		S3: S3Config{
-			Endpoint:    "panda-wiki-minio:9000",
-			AccessKey:   "s3panda-wiki",
-			SecretKey:   "",
-			MaxFileSize: 100 * 1024 * 1024, // 100MB
+			Endpoint:  "panda-wiki-minio:9000",
+			AccessKey: "s3panda-wiki",
+			SecretKey: "",
 		},
 		CaddyAPI:     "/app/run/caddy-admin.sock",
 		SubnetPrefix: "169.254.15",

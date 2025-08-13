@@ -87,6 +87,8 @@ type CreateNodeReq struct {
 	Visibility *NodeVisibility `json:"visibility"`
 
 	MaxNode int `json:"-"`
+
+	Position *float64 `json:"position"`
 }
 
 type GetNodeListReq struct {
@@ -184,6 +186,7 @@ type UpdateNodeReq struct {
 	Emoji      *string         `json:"emoji"`
 	Visibility *NodeVisibility `json:"visibility"`
 	Summary    *string         `json:"summary"`
+	Position   *float64        `json:"position"`
 }
 
 type ShareNodeListItemResp struct {

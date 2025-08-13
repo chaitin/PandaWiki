@@ -3,8 +3,8 @@ import axios, {
   AxiosInstance,
   AxiosRequestConfig,
   AxiosResponse,
-} from "axios";
-import { Message } from "ct-mui";
+} from 'axios';
+import { Message } from 'ct-mui';
 
 type BasicResponse<T> = {
   data: T;
@@ -21,15 +21,15 @@ type ErrorResponse = {
 type Response<T> = BasicResponse<T> | ErrorResponse;
 
 const request = <T>(options: AxiosRequestConfig): Promise<T> => {
-  const token = localStorage.getItem('panda_wiki_token') || ''
+  const token = localStorage.getItem('panda_wiki_token') || '';
   const config = {
-    baseURL: "/",
+    baseURL: '/',
     timeout: 0,
     withCredentials: true,
     headers: {
       Authorization: `Bearer ${token}`,
     },
-  }
+  };
   const service: AxiosInstance = axios.create(config);
   service.interceptors.response.use(
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -40,7 +40,7 @@ const request = <T>(options: AxiosRequestConfig): Promise<T> => {
         if (res.success) {
           return res.data;
         }
-        Message.error(res.message || "网络异常");
+        Message.error(res.message || '网络异常');
         return Promise.reject(res);
       }
       Message.error(response.statusText);
@@ -48,12 +48,12 @@ const request = <T>(options: AxiosRequestConfig): Promise<T> => {
     },
     (error: AxiosError) => {
       if (error.response?.status === 401) {
-        window.location.href = '/login'
-        localStorage.removeItem('panda_wiki_token')
+        window.location.href = '/login';
+        localStorage.removeItem('panda_wiki_token');
       }
-      Message.error(error.response?.statusText || "网络异常");
+      Message.error(error.response?.statusText || '网络异常');
       return Promise.reject(error.response);
-    }
+    },
   );
 
   return service(options);

@@ -1,6 +1,11 @@
 package domain
 
 import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+	"fmt"
+
 	"github.com/chaitin/panda-wiki/consts"
 )
 
@@ -28,4 +33,27 @@ type AuthLoginSimpleReq struct {
 }
 
 type AuthLoginSimpleResp struct {
+}
+
+type AuthInfo struct {
+	ID           uint         `gorm:"column:id" json:"id,omitempty"`
+	AuthUserInfo AuthUserInfo `json:"auth_user_info" gorm:"type:jsonb"`
+}
+
+type AuthUserInfo struct {
+	Username  string `json:"username,omitempty"`
+	AvatarUrl string `json:"avatar_url,omitempty"`
+	Email     string `json:"email,omitempty"`
+}
+
+func (s *AuthUserInfo) Scan(value any) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New(fmt.Sprint("invalid user info type:", value))
+	}
+	return json.Unmarshal(bytes, s)
+}
+
+func (s *AuthUserInfo) Value() (driver.Value, error) {
+	return json.Marshal(s)
 }

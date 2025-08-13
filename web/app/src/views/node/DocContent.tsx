@@ -104,7 +104,7 @@ const DocContent = ({
       image: feedbackData.screenshot
         ? base64ToFile(
             feedbackData.screenshot!,
-            `${info?.name || 'screenshot'}.png`
+            `${info?.name || 'screenshot'}.png`,
           )
         : undefined,
     });
@@ -131,12 +131,12 @@ const DocContent = ({
         content: data.content,
         node_id: docId,
         user_name: data.name,
-      }).then((res) => {
+      }).then(res => {
         getComment();
         reset();
         message.success('评论成功');
       });
-    }
+    },
   );
   if (!editorRef || !info) return null;
 
@@ -163,7 +163,7 @@ const DocContent = ({
           marginLeft: 0,
         }),
       }}
-      sx={(theme) => ({
+      sx={theme => ({
         wordBreak: 'break-all',
         color: 'text.primary',
         px: 10,
@@ -172,7 +172,7 @@ const DocContent = ({
         '& ::selection': {
           backgroundColor: `${alpha(
             theme.palette.primary.main,
-            0.2
+            0.2,
           )} !important`,
         },
         ...(mobile && {
@@ -279,11 +279,11 @@ const DocContent = ({
                 <TextField
                   {...field}
                   inputRef={contentInputRef}
-                  onFocus={(e) => {
+                  onFocus={e => {
                     setContentFocused(true);
                     // field.onFocus?.(e);
                   }}
-                  onBlur={(e) => {
+                  onBlur={e => {
                     setContentFocused(false);
                     field.onBlur?.();
                   }}

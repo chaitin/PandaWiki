@@ -1,5 +1,3 @@
-
-
 export const PageStatus = {
   1: {
     label: '正在处理',
@@ -16,18 +14,18 @@ export const PageStatus = {
     color: '#FE4545',
     bgcolor: '#FEECEC',
   },
-}
+};
 
 export const PluginType = {
   1: '内置工具',
   2: '自定义工具',
-}
+};
 
 export const IconMap = {
   'gpt-4o': 'icon-chatgpt',
   'deepseek-r1': 'icon-deepseek',
-  'deepseek-v3-0324': 'icon-deepseek'
-}
+  'deepseek-v3-0324': 'icon-deepseek',
+};
 
 export const AppType = {
   1: {
@@ -57,8 +55,8 @@ export const AppType = {
   7: {
     label: 'Discord 机器人',
     icon: 'icon-a-discordjiqiren',
-  }
-}
+  },
+};
 
 export const AnswerStatus = {
   1: '正在为您查找结果',
@@ -66,36 +64,36 @@ export const AnswerStatus = {
   3: '正在回答',
   4: '',
   5: '等待工具确认运行',
-}
+};
 
 export const PageType = {
   1: '在线网页',
   2: '离线文件',
   3: '自定义文档',
-}
+};
 
 export const VersionMap = {
   free: {
     label: '免费版',
-    offlineFileSize: 5
+    offlineFileSize: 5,
   },
   contributor: {
     label: '社区贡献者版',
-    offlineFileSize: 10
+    offlineFileSize: 10,
   },
   pro: {
     label: '专业版',
-    offlineFileSize: 20
+    offlineFileSize: 20,
   },
   business: {
     label: '商业版',
-    offlineFileSize: 20
+    offlineFileSize: 20,
   },
   enterprise: {
     label: '旗舰版',
-    offlineFileSize: 20
+    offlineFileSize: 20,
   },
-}
+};
 
 export const ModelProvider = {
   BaiZhiCloud: {
@@ -145,7 +143,8 @@ export const ModelProvider = {
     urlWrite: false,
     secretRequired: true,
     customHeader: false,
-    modelDocumentUrl: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
+    modelDocumentUrl:
+      'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
     defaultBaseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
   },
   OpenAI: {
@@ -195,7 +194,8 @@ export const ModelProvider = {
     urlWrite: true,
     secretRequired: true,
     customHeader: false,
-    modelDocumentUrl: 'https://portal.azure.com/#view/Microsoft_Azure_ProjectOxford/CognitiveServicesHub/~/OpenAI',
+    modelDocumentUrl:
+      'https://portal.azure.com/#view/Microsoft_Azure_ProjectOxford/CognitiveServicesHub/~/OpenAI',
     defaultBaseUrl: 'https://<resource_name>.openai.azure.com',
   },
   Gemini: {
@@ -208,15 +208,15 @@ export const ModelProvider = {
     modelDocumentUrl: 'https://ai.google.dev/gemini-api/docs',
     defaultBaseUrl: 'https://generativelanguage.googleapis.com',
   },
-  ZhiPu: {  
-    label: 'ZhiPu',  
-    cn: '智谱',  
-    icon: 'icon-zhipuqingyan', // 需要添加对应的图标  
-    urlWrite: false,  
-    secretRequired: true,  
-    customHeader: false,  
-    modelDocumentUrl: 'https://open.bigmodel.cn/usercenter/apikeys',  
-    defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',  
+  ZhiPu: {
+    label: 'ZhiPu',
+    cn: '智谱',
+    icon: 'icon-zhipuqingyan', // 需要添加对应的图标
+    urlWrite: false,
+    secretRequired: true,
+    customHeader: false,
+    modelDocumentUrl: 'https://open.bigmodel.cn/usercenter/apikeys',
+    defaultBaseUrl: 'https://open.bigmodel.cn/api/paas/v4',
   },
   Other: {
     label: 'Other',
@@ -227,34 +227,41 @@ export const ModelProvider = {
     customHeader: false,
     modelDocumentUrl: '',
     defaultBaseUrl: '',
-  }
-}
+  },
+};
 
 export const MAC_SYMBOLS = {
-  ctrl: "⌘",
-  alt: "⌥",
-  shift: "⇧",
-}
+  ctrl: '⌘',
+  alt: '⌥',
+  shift: '⇧',
+};
 
-export const chartColor = ['#3082FF', '#FFD268', '#9E68FC', '#3248F2', '#63CFC3', '#FF5576']
+export const chartColor = [
+  '#3082FF',
+  '#FFD268',
+  '#9E68FC',
+  '#3248F2',
+  '#63CFC3',
+  '#FF5576',
+];
 
 export const FeedbackType = {
   1: '内容不准确',
   2: '没有帮助',
   3: '其他',
-}
+};
 
-export const Free = 0
-export const Contributor = 1
-export const Enterprise = 2
+export const Free = 0;
+export const Contributor = 1;
+export const Enterprise = 2;
 export const EditionType = {
   [Free]: {
-    text: '开源版'
+    text: '开源版',
   },
   [Contributor]: {
-    text: '联创版'
+    text: '联创版',
   },
   [Enterprise]: {
-    text: '企业版'
-  }
-}
+    text: '企业版',
+  },
+};

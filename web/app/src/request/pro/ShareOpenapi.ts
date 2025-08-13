@@ -13,13 +13,47 @@
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
   DomainResponse,
+  GetShareProV1OpenapiCasCallbackParams,
   GetShareProV1OpenapiDingtalkCallbackParams,
   GetShareProV1OpenapiFeishuCallbackParams,
+  GetShareProV1OpenapiOauthCallbackParams,
   GetShareProV1OpenapiWecomCallbackParams,
+  GithubComChaitinPandaWikiProApiShareV1CASCallbackResp,
   GithubComChaitinPandaWikiProApiShareV1DingtalkCallbackResp,
   GithubComChaitinPandaWikiProApiShareV1FeishuCallbackResp,
+  GithubComChaitinPandaWikiProApiShareV1OAuthCallbackResp,
   GithubComChaitinPandaWikiProApiShareV1WecomCallbackResp,
 } from "./types";
+
+/**
+ * @description CAS回调
+ *
+ * @tags ShareOpenapi
+ * @name GetShareProV1OpenapiCasCallback
+ * @summary CAS回调
+ * @request GET:/share/pro/v1/openapi/cas/callback
+ * @response `200` `(DomainResponse & {
+    data?: GithubComChaitinPandaWikiProApiShareV1CASCallbackResp,
+
+})` OK
+ */
+
+export const getShareProV1OpenapiCasCallback = (
+  query: GetShareProV1OpenapiCasCallbackParams,
+  params: RequestParams = {},
+) =>
+  httpRequest<
+    DomainResponse & {
+      data?: GithubComChaitinPandaWikiProApiShareV1CASCallbackResp;
+    }
+  >({
+    path: `/share/pro/v1/openapi/cas/callback`,
+    method: "GET",
+    query: query,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
 
 /**
  * @description dingtalk回调
@@ -74,6 +108,36 @@ export const getShareProV1OpenapiFeishuCallback = (
     }
   >({
     path: `/share/pro/v1/openapi/feishu/callback`,
+    method: "GET",
+    query: query,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+/**
+ * @description OAuth回调
+ *
+ * @tags ShareOpenapi
+ * @name GetShareProV1OpenapiOauthCallback
+ * @summary OAuth回调
+ * @request GET:/share/pro/v1/openapi/oauth/callback
+ * @response `200` `(DomainResponse & {
+    data?: GithubComChaitinPandaWikiProApiShareV1OAuthCallbackResp,
+
+})` OK
+ */
+
+export const getShareProV1OpenapiOauthCallback = (
+  query: GetShareProV1OpenapiOauthCallbackParams,
+  params: RequestParams = {},
+) =>
+  httpRequest<
+    DomainResponse & {
+      data?: GithubComChaitinPandaWikiProApiShareV1OAuthCallbackResp;
+    }
+  >({
+    path: `/share/pro/v1/openapi/oauth/callback`,
     method: "GET",
     query: query,
     type: ContentType.Json,

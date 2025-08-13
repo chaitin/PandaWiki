@@ -12,7 +12,7 @@ const proxyShare = async (request: NextRequest) => {
   const targetOrigin = process.env.TARGET!;
   const targetUrl = new URL(
     request.nextUrl.pathname + request.nextUrl.search,
-    targetOrigin
+    targetOrigin,
   );
   // 构造 fetch 选项
   const fetchHeaders = new Headers(request.headers);
@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
     const widgetInfo: any = await getShareV1AppWidgetInfo();
     if (widgetInfo) {
       if (!widgetInfo?.settings?.widget_bot_settings?.is_open) {
-        return NextResponse.redirect(new URL('/not-fount', request.url));
+        return NextResponse.rewrite(new URL('/not-fount', request.url));
       }
     }
     return;

@@ -35,7 +35,7 @@ const CustomSwitch = styled(Switch)(({ checked }) => {
       height: 16,
       margin: 2,
     },
-  }
-})
+  };
+});
 
-export default CustomSwitch
+export default CustomSwitch;

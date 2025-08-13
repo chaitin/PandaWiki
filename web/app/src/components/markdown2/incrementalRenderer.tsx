@@ -14,7 +14,7 @@ interface DiffResult {
  */
 function findHtmlDiffs(
   oldHtml: string,
-  newHtml: string
+  newHtml: string,
 ): { shouldUpdate: boolean; diffs: DiffResult[] } {
   // 如果完全相同，不需要更新
   if (oldHtml === newHtml) {
@@ -60,7 +60,7 @@ function findHtmlDiffs(
 export function incrementalRender(
   container: HTMLElement,
   newHtml: string,
-  oldContent: string
+  oldContent: string,
 ): void {
   if (!container) return;
 

@@ -92,7 +92,7 @@ const Sidebar = () => {
         PandaWiki
       </Box>
       <Stack sx={{ pt: 2, flexGrow: 1 }} gap={1}>
-        {menus.map((it) => {
+        {menus.map(it => {
           let isActive = false;
           if (it.value === '/') {
             isActive = pathname === '/';

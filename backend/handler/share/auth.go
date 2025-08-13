@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/sessions"
-	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 
 	"github.com/chaitin/panda-wiki/domain"
@@ -124,21 +123,25 @@ func (h *ShareAuthHandler) AuthLoginSimple(c echo.Context) error {
 		return h.NewResponseWithError(c, "simple auth password is incorrect", nil)
 	}
 
-	sess, err := session.Get(domain.SessionName, c)
-	if err != nil {
-		h.logger.Error("get session failed", log.Error(err))
-		return err
+	s := c.Get(domain.SessionCacheKey)
+	if s == nil {
+		return h.NewResponseWithError(c, "get session cache key failed", nil)
+	}
+	store := s.(sessions.Store)
+
+	newSess := sessions.NewSession(store, domain.SessionName)
+	newSess.IsNew = true
+
+	newSess.Options = &sessions.Options{
+		Path:     "/",
+		MaxAge:   86400 * 1,
+		HttpOnly: true,
 	}
 
-	sess.Values["kb_id"] = kbID
-	sess.Options = &sessions.Options{
-		Path:   "/",
-		MaxAge: 86400 * 7,
-	}
+	newSess.Values["kb_id"] = kb.ID
 
-	if err := sess.Save(c.Request(), c.Response()); err != nil {
-		h.logger.Error("save session failed", log.Error(err))
-		return err
+	if err := newSess.Save(c.Request(), c.Response()); err != nil {
+		return h.NewResponseWithError(c, "save session failed", nil)
 	}
 
 	return h.NewResponseWithData(c, nil)

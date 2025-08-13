@@ -4,7 +4,7 @@ import { getShareV1NodeDetail } from '@/request/ShareNode';
 import { postShareV1StatPage } from '@/request/ShareStat';
 import NotData from '@/assets/images/nodata.png';
 import { Heading, KBDetail, NodeDetail } from '@/assets/type';
-import Footer from '@/components/footer';
+import { FooterProvider } from '@/components/footer';
 import Header from '@/components/header';
 import { VisitSceneNode } from '@/constant';
 import { useStore } from '@/provider';
@@ -22,12 +22,10 @@ import DocContent from './DocContent';
 
 const Doc = ({
   node: defaultNode,
-  token,
   kbInfo,
   commentList,
 }: {
   node?: NodeDetail;
-  token?: string;
   kbInfo?: KBDetail;
   commentList?: any[];
 }) => {
@@ -37,7 +35,6 @@ const Doc = ({
   const [firstRequest, setFirstRequest] = useState(true);
   const {
     nodeList = [],
-    kb_id,
     kbDetail,
     mobile = false,
     catalogShow,
@@ -182,7 +179,7 @@ const Doc = ({
             }),
           }}
         >
-          <Footer />
+          <FooterProvider />
         </Box>
         <Zoom in={showScrollTop}>
           <Fab
@@ -275,7 +272,7 @@ const Doc = ({
           )}
         </Stack>
       )}
-      <Footer />
+      <FooterProvider />
       <Zoom in={showScrollTop}>
         <Fab
           size='small'

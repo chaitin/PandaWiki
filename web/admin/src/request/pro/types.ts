@@ -10,12 +10,14 @@
  * ---------------------------------------------------------------
  */
 
+/** @format int32 */
 export enum DomainLicenseEdition {
   LicenseEditionFree = 0,
   LicenseEditionContributor = 1,
   LicenseEditionEnterprise = 2,
 }
 
+/** @format int32 */
 export enum DomainCommentStatus {
   CommentStatusReject = -1,
   CommentStatusPending = 0,
@@ -26,6 +28,9 @@ export enum ConstsSourceType {
   SourceTypeDingTalk = "dingtalk",
   SourceTypeFeishu = "feishu",
   SourceTypeWeCom = "wecom",
+  SourceTypeOAuth = "oauth",
+  SourceTypeCAS = "cas",
+  SourceTypeLDAP = "ldap",
 }
 
 export interface DomainCommentModerateListReq {
@@ -34,7 +39,7 @@ export interface DomainCommentModerateListReq {
 }
 
 export interface DomainCreatePromptReq {
-  content: string;
+  content?: string;
   kb_id: string;
 }
 
@@ -109,7 +114,37 @@ export interface DomainResponse {
   success?: boolean;
 }
 
+export interface GithubComChaitinPandaWikiProApiAuthV1AuthGetResp {
+  agent_id?: string;
+  authorize_url?: string;
+  auths?: GithubComChaitinPandaWikiProApiAuthV1AuthItem[];
+  avatar_field?: string;
+  /** 绑定DN */
+  bind_dn?: string;
+  /** 绑定密码 */
+  bind_password?: string;
+  cas_url?: string;
+  /** CAS特定配置 */
+  cas_version?: string;
+  client_id?: string;
+  client_secret?: string;
+  email_field?: string;
+  id_field?: string;
+  /** LDAP特定配置 */
+  ldap_server_url?: string;
+  name_field?: string;
+  scopes?: string[];
+  source_type?: ConstsSourceType;
+  token_url?: string;
+  /** 用户基础DN */
+  user_base_dn?: string;
+  /** 用户查询过滤器 */
+  user_filter?: string;
+  user_info_url?: string;
+}
+
 export interface GithubComChaitinPandaWikiProApiAuthV1AuthItem {
+  avatar_url?: string;
   created_at?: string;
   id?: number;
   ip?: string;
@@ -118,20 +153,42 @@ export interface GithubComChaitinPandaWikiProApiAuthV1AuthItem {
   username?: string;
 }
 
-export interface GithubComChaitinPandaWikiProApiAuthV1GetAuthResp {
+export interface GithubComChaitinPandaWikiProApiAuthV1AuthSetReq {
   agent_id?: string;
-  auths?: GithubComChaitinPandaWikiProApiAuthV1AuthItem[];
+  authorize_url?: string;
+  avatar_field?: string;
+  /** 绑定DN */
+  bind_dn?: string;
+  /** 绑定密码 */
+  bind_password?: string;
+  cas_url?: string;
+  /** CAS特定配置 */
+  cas_version?: string;
   client_id?: string;
   client_secret?: string;
+  email_field?: string;
+  id_field?: string;
+  kb_id?: string;
+  /** LDAP特定配置 */
+  ldap_server_url?: string;
+  name_field?: string;
+  scopes?: string[];
   source_type?: ConstsSourceType;
+  token_url?: string;
+  /** 用户基础DN */
+  user_base_dn?: string;
+  /** 用户查询过滤器 */
+  user_filter?: string;
+  user_info_url?: string;
 }
 
-export interface GithubComChaitinPandaWikiProApiAuthV1SetAuthReq {
-  agent_id?: string;
-  clientID?: string;
-  clientSecret?: string;
+export interface GithubComChaitinPandaWikiProApiShareV1AuthCASReq {
   kb_id?: string;
-  sourceType?: ConstsSourceType;
+  redirect_url?: string;
+}
+
+export interface GithubComChaitinPandaWikiProApiShareV1AuthCASResp {
+  url?: string;
 }
 
 export interface GithubComChaitinPandaWikiProApiShareV1AuthDingTalkReq {
@@ -152,6 +209,26 @@ export interface GithubComChaitinPandaWikiProApiShareV1AuthFeishuResp {
   url?: string;
 }
 
+export interface GithubComChaitinPandaWikiProApiShareV1AuthLDAPReq {
+  kb_id?: string;
+  password: string;
+  username: string;
+}
+
+export type GithubComChaitinPandaWikiProApiShareV1AuthLDAPResp = Record<
+  string,
+  any
+>;
+
+export interface GithubComChaitinPandaWikiProApiShareV1AuthOAuthReq {
+  kb_id?: string;
+  redirect_url?: string;
+}
+
+export interface GithubComChaitinPandaWikiProApiShareV1AuthOAuthResp {
+  url?: string;
+}
+
 export interface GithubComChaitinPandaWikiProApiShareV1AuthWecomReq {
   kb_id?: string;
   redirect_url?: string;
@@ -160,6 +237,11 @@ export interface GithubComChaitinPandaWikiProApiShareV1AuthWecomReq {
 export interface GithubComChaitinPandaWikiProApiShareV1AuthWecomResp {
   url?: string;
 }
+
+export type GithubComChaitinPandaWikiProApiShareV1CASCallbackResp = Record<
+  string,
+  any
+>;
 
 export type GithubComChaitinPandaWikiProApiShareV1DingtalkCallbackResp = Record<
   string,
@@ -171,10 +253,24 @@ export type GithubComChaitinPandaWikiProApiShareV1FeishuCallbackResp = Record<
   any
 >;
 
+export type GithubComChaitinPandaWikiProApiShareV1OAuthCallbackResp = Record<
+  string,
+  any
+>;
+
 export type GithubComChaitinPandaWikiProApiShareV1WecomCallbackResp = Record<
   string,
   any
 >;
+
+export interface GithubComChaitinPandaWikiProDomainBlockWords {
+  words?: string[];
+}
+
+export interface GithubComChaitinPandaWikiProDomainCreateBlockWordsReq {
+  block_words?: string[];
+  kb_id: string;
+}
 
 export interface HandlerV1DocFeedBackLists {
   data?: DomainDocumentFeedbackListItem[];
@@ -183,7 +279,12 @@ export interface HandlerV1DocFeedBackLists {
 
 export interface GetApiProV1AuthGetParams {
   kb_id?: string;
-  source_type?: "dingtalk" | "feishu" | "wecom";
+  source_type?: "dingtalk" | "feishu" | "wecom" | "oauth" | "cas" | "ldap";
+}
+
+export interface GetApiProV1BlockParams {
+  /** knowledge base ID */
+  kb_id: string;
 }
 
 export interface GetApiProV1DocumentListParams {
@@ -209,15 +310,17 @@ export interface GetApiProV1PromptParams {
 }
 
 export interface PostApiV1LicensePayload {
+  /** license edition */
+  license_edition: "contributor" | "enterprise";
   /** license type */
   license_type: "file" | "code";
   /**
    * license file
    * @format binary
    */
-  license_file: File;
+  license_file?: File;
   /** license code */
-  license_code: string;
+  license_code?: string;
 }
 
 export interface PostShareProV1DocumentFeedbackPayload {
@@ -234,12 +337,22 @@ export interface PostShareProV1DocumentFeedbackPayload {
   image?: File;
 }
 
+export interface GetShareProV1OpenapiCasCallbackParams {
+  state?: string;
+  ticket?: string;
+}
+
 export interface GetShareProV1OpenapiDingtalkCallbackParams {
   code?: string;
   state?: string;
 }
 
 export interface GetShareProV1OpenapiFeishuCallbackParams {
+  code?: string;
+  state?: string;
+}
+
+export interface GetShareProV1OpenapiOauthCallbackParams {
   code?: string;
   state?: string;
 }

@@ -17,7 +17,7 @@ const Feedback = () => {
   const [tab, setTab] = useState(tabParam || 'evaluate');
   const [commentStatus, setCommentStatus] = useState(99);
   const [showCommentsFilter, setShowCommentsFilter] = useState(false);
-  const { license } = useAppSelector((state) => state.config);
+  const { license } = useAppSelector(state => state.config);
   const isPro = license.edition === 1 || license.edition === 2;
 
   return (
@@ -30,7 +30,7 @@ const Feedback = () => {
       >
         <CusTabs
           value={tab}
-          onChange={(value) => {
+          onChange={value => {
             setTab(value as string);
             navigate(`/feedback/${value}`);
           }}
@@ -65,7 +65,7 @@ const Feedback = () => {
           <Select
             value={commentStatus}
             sx={{ width: 120 }}
-            onChange={(e) => {
+            onChange={e => {
               setCommentStatus(+e.target.value as number);
             }}
           >

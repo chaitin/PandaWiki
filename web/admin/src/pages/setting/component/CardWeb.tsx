@@ -57,7 +57,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
       <CardStyle
         id={info.id}
         data={info}
-        refresh={(value) => {
+        refresh={value => {
           setInfo({
             ...info,
             settings: {
@@ -75,7 +75,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
       <CardWebHeader
         id={info.id}
         data={info}
-        refresh={(value) => {
+        refresh={value => {
           setInfo({
             ...info,
             settings: {
@@ -89,7 +89,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
       <CardCatalog
         id={info.id}
         data={info}
-        refresh={(value) => {
+        refresh={value => {
           setInfo({
             ...info,
             settings: {
@@ -106,7 +106,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
       <CardFooter
         id={info.id}
         data={info}
-        refresh={(value) => {
+        refresh={value => {
           setInfo({
             ...info,
             settings: {
@@ -123,7 +123,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
       <CardWebWelcome
         id={info.id}
         data={info}
-        refresh={(value) => {
+        refresh={value => {
           setInfo({
             ...info,
             settings: {
@@ -137,7 +137,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
       <CardWebSEO
         id={info.id}
         data={info}
-        refresh={(value) => {
+        refresh={value => {
           setInfo({
             ...info,
             settings: {
@@ -151,7 +151,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
       <CardWebCustomCode
         id={info.id}
         data={info}
-        refresh={(value) => {
+        refresh={value => {
           setInfo({
             ...info,
             settings: {

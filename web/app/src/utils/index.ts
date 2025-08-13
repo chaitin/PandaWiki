@@ -12,7 +12,7 @@ export function addOpacityToColor(color: string, opacity: number) {
     blue = parseInt(color.slice(5, 7), 16);
   } else if (color.startsWith('rgb')) {
     const matches = color.match(
-      /^rgba?\((\d+),\s*(\d+),\s*(\d+)/
+      /^rgba?\((\d+),\s*(\d+),\s*(\d+)/,
     ) as RegExpMatchArray;
     red = parseInt(matches[1], 10);
     green = parseInt(matches[2], 10);
@@ -28,7 +28,7 @@ export function addOpacityToColor(color: string, opacity: number) {
 
 export const copyText = (text: string, callback?: () => void) => {
   const isOriginIP = /^http:\/\/(\d{1,3}\.){3}\d{1,3}(:\d+)?$/.test(
-    window.location.origin
+    window.location.origin,
   );
 
   if (isOriginIP) {
@@ -77,7 +77,7 @@ export const formatMeta = async (
     description,
     keywords,
   }: { title?: string; description?: string; keywords?: string | string[] },
-  parent: ResolvingMetadata
+  parent: ResolvingMetadata,
 ) => {
   const keywordsIsEmpty =
     !keywords || (Array.isArray(keywords) && !keywords.length);
@@ -95,7 +95,7 @@ export const formatMeta = async (
 };
 
 export const parsePathname = (
-  pathname: string
+  pathname: string,
 ): { page: string; id: string; hash: string; search: string } => {
   const [filterSearch, search] = pathname.split('?');
   const [path, hash] = filterSearch.split('#');
@@ -125,9 +125,9 @@ export class AsyncChain {
 
   // 执行链式调用，每一帧执行一个方法
   execute() {
-    this.methods.forEach((method) => {
+    this.methods.forEach(method => {
       this.chain = this.chain.then(() => {
-        return new Promise((resolve) => {
+        return new Promise(resolve => {
           // 使用 requestAnimationFrame 确保在下一帧执行
           requestAnimationFrame(() => {
             Promise.resolve(method()).then(resolve).catch(resolve);
@@ -145,7 +145,7 @@ export class AsyncChain {
  */
 export const filterTreeBySearch = (
   tree: ITreeItem[],
-  searchTerm: string
+  searchTerm: string,
 ): ITreeItem[] => {
   if (!searchTerm.trim()) {
     return tree;
@@ -197,7 +197,7 @@ export const filterTreeBySearch = (
  */
 export const highlightText = (
   text: string,
-  searchTerm: string
+  searchTerm: string,
 ): React.ReactNode => {
   if (!searchTerm.trim()) {
     return text;
@@ -205,7 +205,7 @@ export const highlightText = (
 
   const regex = new RegExp(
     `(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
-    'gi'
+    'gi',
   );
   const parts = text.split(regex);
 
@@ -220,7 +220,7 @@ export const highlightText = (
             fontWeight: 'bold',
           },
         },
-        part
+        part,
       );
     }
     return part;

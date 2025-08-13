@@ -83,8 +83,9 @@ const ImageComponent: React.FC<ImageComponentProps> = ({
   onError,
 }) => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>(
-    'loading'
+    'loading',
   );
+  const classname = `image-container-${imageIndex}`;
   const [previewOpen, setPreviewOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -105,11 +106,11 @@ const ImageComponent: React.FC<ImageComponentProps> = ({
     if (!styleStr) return {};
     const styleObj: Record<string, string> = {};
     const declarations = styleStr.split(';').filter(Boolean);
-    declarations.forEach((decl) => {
-      const [prop, value] = decl.split(':').map((s) => s.trim());
+    declarations.forEach(decl => {
+      const [prop, value] = decl.split(':').map(s => s.trim());
       if (prop && value) {
         const camelProp = prop.replace(/-([a-z])/g, (_, letter) =>
-          letter.toUpperCase()
+          letter.toUpperCase(),
         );
         styleObj[camelProp] = value;
       }
@@ -168,20 +169,16 @@ const ImageComponent: React.FC<ImageComponentProps> = ({
   }
 
   return (
-    <>
-      <div ref={containerRef} className='image-container'>
-        <img
-          src={src}
-          alt={alt || 'markdown-img'}
-          data-key={`img_${imageIndex}`}
-          referrerPolicy='no-referrer'
-          onLoad={handleLoad}
-          onError={handleError}
-          onClick={handleImageClick}
-          {...getOtherProps()}
-        />
-      </div>
-
+    <div ref={containerRef} className={`image-container ${classname}`}>
+      <img
+        src={src}
+        alt={alt || 'markdown-img'}
+        referrerPolicy='no-referrer'
+        onLoad={handleLoad}
+        onError={handleError}
+        onClick={handleImageClick}
+        {...getOtherProps()}
+      />
       {/* 图片预览弹窗 */}
       <Dialog
         sx={{
@@ -200,7 +197,7 @@ const ImageComponent: React.FC<ImageComponentProps> = ({
           style={{ width: '100%', height: '100%' }}
         />
       </Dialog>
-    </>
+    </div>
   );
 };
 
@@ -217,7 +214,7 @@ export const createImageRenderer = (options: ImageRendererOptions) => {
     src: string,
     alt: string,
     attrs: [string, string][] = [],
-    imageIndex: number
+    imageIndex: number,
   ) => {
     // 检查缓存
     const cached = imageRenderCache.get(imageIndex);
@@ -236,9 +233,21 @@ export const createImageRenderer = (options: ImageRendererOptions) => {
         imageIndex={imageIndex}
         onLoad={onImageLoad}
         onError={onImageError}
-      />
+      />,
     );
 
-    return container.innerHTML;
+    setTimeout(() => {
+      const imageContainer = document.querySelector(
+        `.image-container-${imageIndex}`,
+      );
+      if (imageContainer) {
+        imageContainer.outerHTML = container.innerHTML;
+      }
+    });
+
+    return (
+      container.innerHTML ||
+      `<div  className="image-container image-container-${imageIndex}"}></div>`
+    );
   };
 };

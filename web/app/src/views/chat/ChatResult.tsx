@@ -3,6 +3,7 @@
 import { ConversationItem } from '@/assets/type';
 import { postShareV1ChatFeedback } from '@/request/ShareChat';
 import Feedback from '@/components/feedback';
+import { useRouter } from 'next/navigation';
 import {
   IconArrowUp,
   IconCai,
@@ -10,14 +11,18 @@ import {
   IconZan,
   IconZaned,
 } from '@/components/icons';
-import MarkDown from '@/components/markdown2';
+import MarkDown from '@/components/markdown';
+import MarkDown2 from '@/components/markdown2';
 import { useStore } from '@/provider';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { IconCopy, IconNewChat } from '@/components/icons';
+import { copyText } from '@/utils';
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
   Box,
+  Button,
   IconButton,
   Skeleton,
   Stack,
@@ -44,6 +49,7 @@ interface ChatResultProps {
   handleSearchAbort: () => void;
   setConversation: (conversation: ConversationItem[]) => void;
   setThinking: (thinking: keyof typeof AnswerStatus) => void;
+  onReset: () => void;
 }
 
 const ChatResult = ({
@@ -56,15 +62,11 @@ const ChatResult = ({
   handleSearchAbort,
   setThinking,
   setConversation,
+  onReset,
 }: ChatResultProps) => {
+  const router = useRouter();
   const [input, setInput] = useState('');
-  const {
-    mobile = false,
-    themeMode = 'light',
-    kb_id = '',
-    token,
-    kbDetail,
-  } = useStore();
+  const { mobile = false, themeMode = 'light', kbDetail } = useStore();
   const [open, setOpen] = useState(false);
   const [conversationItem, setConversationItem] =
     useState<ConversationItem | null>(null);
@@ -94,11 +96,9 @@ const ChatResult = ({
     message_id: string,
     score: number,
     type?: string,
-    content?: string
+    content?: string,
   ) => {
     const data: any = {
-      kb_id,
-      authToken: token,
       conversation_id,
       message_id,
       score,
@@ -108,9 +108,9 @@ const ChatResult = ({
     await postShareV1ChatFeedback(data);
     message.success('反馈成功');
     setConversation(
-      conversation.map((item) => {
+      conversation.map(item => {
         return item.message_id === message_id ? { ...item, score } : item;
-      })
+      }),
     );
   };
 
@@ -139,7 +139,6 @@ const ChatResult = ({
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
         ...(mobile && {
-          position: 'relative',
           overflow: 'hidden',
           height: 'calc(100vh - 180px)',
         }),
@@ -185,13 +184,16 @@ const ChatResult = ({
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                {index === conversation.length - 1 ? (
+                {item.source === 'history' ? (
+                  <MarkDown content={item.a} />
+                ) : index === conversation.length - 1 ? (
                   // 最后一个对话项：显示合并后的内容，避免闪烁
-                  <MarkDown content={item.a || answer || ''} />
+                  <MarkDown2 content={item.a || answer || ''} />
                 ) : (
                   // 非最后一个对话项：正常显示
-                  <MarkDown content={item.a} />
+                  <MarkDown2 content={item.a} />
                 )}
+
                 {index === conversation.length - 1 &&
                   loading &&
                   !answer &&
@@ -205,10 +207,10 @@ const ChatResult = ({
             </Accordion>
             {(index !== conversation.length - 1 || !loading) && (
               <Stack
-                direction='row'
-                alignItems='center'
+                direction={mobile ? 'column' : 'row'}
+                alignItems={mobile ? 'flex-start' : 'center'}
                 justifyContent='space-between'
-                gap={3}
+                gap={mobile ? 1 : 3}
                 sx={{
                   fontSize: 12,
                   color: 'text.tertiary',
@@ -219,7 +221,14 @@ const ChatResult = ({
                 <Stack direction='row' gap={3} alignItems='center'>
                   <span>生成于 {dayjs(item.update_time).fromNow()}</span>
 
-                  {isFeedbackEnabled && (
+                  <IconCopy
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      copyText(item.a);
+                    }}
+                  />
+
+                  {isFeedbackEnabled && item.source === 'chat' && (
                     <>
                       {item.score === 1 && (
                         <IconZaned sx={{ cursor: 'pointer' }} />
@@ -257,18 +266,34 @@ const ChatResult = ({
       </Stack>
       <Box
         sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 1,
           position: 'absolute',
           left: 0,
           right: 0,
           bottom: 0,
-          borderRadius: '10px',
-          border: '1px solid',
-          borderColor: 'divider',
+
           ...(mobile && {
             p: 0,
+            left: 24,
+            right: 24,
           }),
         }}
       >
+        {conversation.length > 0 && (
+          <Button
+            variant='outlined'
+            sx={{ alignSelf: 'center' }}
+            onClick={() => {
+              router.push(`/chat`);
+              onReset();
+            }}
+          >
+            <IconNewChat sx={{ fontSize: 18, mr: 1 }} />
+            开启新会话
+          </Button>
+        )}
         <Box
           sx={{
             bgcolor:
@@ -276,6 +301,8 @@ const ChatResult = ({
             px: 3,
             py: 2,
             borderRadius: '10px',
+            border: '1px solid',
+            borderColor: 'divider',
           }}
         >
           <TextField
@@ -311,8 +338,8 @@ const ChatResult = ({
             }}
             size='small'
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => {
               const isComposing =
                 e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229;
               if (

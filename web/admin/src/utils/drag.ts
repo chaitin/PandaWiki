@@ -1,21 +1,22 @@
-import { ITreeItem, NodeListItem } from "@/api";
-import { TreeMenuItem, TreeMenuOptions } from "@/components/Drag/DragTree/TreeMenu";
+import { ITreeItem, NodeListItem } from '@/api';
 import {
-  TreeItems
-} from "dnd-kit-sortable-tree";
-import { createContext } from "react";
+  TreeMenuItem,
+  TreeMenuOptions,
+} from '@/components/Drag/DragTree/TreeMenu';
+import { TreeItems } from 'dnd-kit-sortable-tree';
+import { createContext } from 'react';
 
 export interface DragTreeProps {
-  data: ITreeItem[]
-  readOnly?: boolean
-  menu?: (opra: TreeMenuOptions) => TreeMenuItem[]
-  refresh?: () => void
-  ui?: 'select' | 'move'
-  selected?: string[]
-  supportSelect?: boolean
-  onSelectChange?: (value: string[], id?: string) => void
-  relativeSelect?: boolean
-  traverseFolder?: boolean
+  data: ITreeItem[];
+  readOnly?: boolean;
+  menu?: (opra: TreeMenuOptions) => TreeMenuItem[];
+  refresh?: () => void;
+  ui?: 'select' | 'move';
+  selected?: string[];
+  supportSelect?: boolean;
+  onSelectChange?: (value: string[], id?: string) => void;
+  relativeSelect?: boolean;
+  traverseFolder?: boolean;
 }
 
 // 定义上下文类型
@@ -25,36 +26,48 @@ export interface AppContextType {
 }
 
 // 使用正确的类型创建上下文
-export const AppContext = createContext<(Omit<DragTreeProps, 'data'> & AppContextType) | null>(null);
+export const AppContext = createContext<
+  (Omit<DragTreeProps, 'data'> & AppContextType) | null
+>(null);
 
 export const checkValidateInput = (value: string) => {
   if (!value) {
     return {
       result: false,
-      message: 'Required'
-    }
+      message: 'Required',
+    };
   } else {
     return {
       result: true,
-    }
+    };
   }
-}
+};
 
-export const checkValidateTree = (tree: TreeItems<ITreeItem>): ITreeItem | undefined => {
+export const checkValidateTree = (
+  tree: TreeItems<ITreeItem>,
+): ITreeItem | undefined => {
   if (!tree?.length) return undefined;
 
-  const findEditingNode = (items: TreeItems<ITreeItem>): ITreeItem | undefined => {
-    return items.find(node =>
-      node.isEditting ||
-      (node.level === 1 && node.children?.length &&
-        findEditingNode(node.children as TreeItems<ITreeItem>))
+  const findEditingNode = (
+    items: TreeItems<ITreeItem>,
+  ): ITreeItem | undefined => {
+    return items.find(
+      node =>
+        node.isEditting ||
+        (node.level === 1 &&
+          node.children?.length &&
+          findEditingNode(node.children as TreeItems<ITreeItem>)),
     );
   };
 
   return findEditingNode(tree);
 };
 
-export const updateTree = (tree: TreeItems<ITreeItem>, id: string, updateData: ITreeItem) => {
+export const updateTree = (
+  tree: TreeItems<ITreeItem>,
+  id: string,
+  updateData: ITreeItem,
+) => {
   // 创建一个 Map 来存储所有节点的引用
   const nodeMap = new Map<string, ITreeItem>();
 
@@ -126,19 +139,34 @@ export function convertToTree(data: NodeListItem[]) {
   return rootNodes;
 }
 
-export function getSiblingItemIds(items: TreeItems<ITreeItem>, draggedId: string) {
-  const result = { prevItemId: null as string | null, nextItemId: null as string | null };
+export function getSiblingItemIds(
+  items: TreeItems<ITreeItem>,
+  draggedId: string,
+) {
+  const result = {
+    prevItemId: null as string | null,
+    nextItemId: null as string | null,
+  };
 
   // 构建父子关系 Map
-  const parentMap = new Map<string, { parent: TreeItems<ITreeItem>; index: number }>();
+  const parentMap = new Map<
+    string,
+    { parent: TreeItems<ITreeItem>; index: number }
+  >();
 
-  const buildParentMap = (tree: TreeItems<ITreeItem>, parentArray: TreeItems<ITreeItem>) => {
+  const buildParentMap = (
+    tree: TreeItems<ITreeItem>,
+    parentArray: TreeItems<ITreeItem>,
+  ) => {
     tree.forEach((item, index) => {
       // 将当前项添加到 parentMap，记录它在父级数组中的位置
       parentMap.set(item.id, { parent: parentArray, index });
 
       if (item.children?.length) {
-        buildParentMap(item.children as TreeItems<ITreeItem>, item.children as TreeItems<ITreeItem>);
+        buildParentMap(
+          item.children as TreeItems<ITreeItem>,
+          item.children as TreeItems<ITreeItem>,
+        );
       }
     });
   };

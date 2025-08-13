@@ -7,7 +7,10 @@ import (
 	"os"
 	"strings"
 
-	htmltomarkdown "github.com/JohannesKaufmann/html-to-markdown/v2"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table"
 	"github.com/google/uuid"
 
 	"github.com/chaitin/pandawiki/sdk/rag"
@@ -20,6 +23,7 @@ import (
 type CTRAG struct {
 	client *rag.Client
 	logger *log.Logger
+	mdConv *converter.Converter
 }
 
 func NewCTRAG(config *config.Config, logger *log.Logger) (*CTRAG, error) {
@@ -27,9 +31,17 @@ func NewCTRAG(config *config.Config, logger *log.Logger) (*CTRAG, error) {
 		config.RAG.CTRAG.BaseURL,
 		config.RAG.CTRAG.APIKey,
 	)
+	conv := converter.NewConverter(
+		converter.WithPlugins(
+			base.NewBasePlugin(),
+			commonmark.NewCommonmarkPlugin(),
+			table.NewTablePlugin(table.WithSpanCellBehavior(table.SpanBehaviorMirror)),
+		),
+	)
 	return &CTRAG{
 		client: client,
 		logger: logger.WithModule("store.vector.ct"),
+		mdConv: conv,
 	}, nil
 }
 
@@ -74,7 +86,7 @@ func (s *CTRAG) UpsertRecords(ctx context.Context, datasetID string, nodeRelease
 	// convert html to markdown
 	markdown := nodeRelease.Content
 	if strings.HasPrefix(nodeRelease.Content, "<") {
-		markdown, err = htmltomarkdown.ConvertString(nodeRelease.Content)
+		markdown, err = s.mdConv.ConvertString(nodeRelease.Content)
 		if err != nil {
 			return "", fmt.Errorf("convert html to markdown failed: %w", err)
 		}

@@ -2,7 +2,13 @@
 import { Message } from 'ct-mui';
 import { useEffect, useRef, useState } from 'react';
 
-export function useBindCaptcha(id: string, { init = false, businessId = '0195ea3c-ab47-73f3-9f8e-e72b8fd7f089' }: { init: boolean, businessId?: string }) {
+export function useBindCaptcha(
+  id: string,
+  {
+    init = false,
+    businessId = '0195ea3c-ab47-73f3-9f8e-e72b8fd7f089',
+  }: { init: boolean; businessId?: string },
+) {
   const captcha = useRef<any>({});
   const resolveRef = useRef<any>(null);
   const [load, setLoad] = useState(false);
@@ -26,12 +32,12 @@ export function useBindCaptcha(id: string, { init = false, businessId = '0195ea3
             Message.error('验证失败');
           }
         }
-      }
+      },
     );
     const oldStart = captcha.current.start.bind(captcha.current);
     captcha.current.start = (e: any) => {
       oldStart(e);
-      return new Promise((resolve) => {
+      return new Promise(resolve => {
         resolveRef.current = resolve;
       });
     };
@@ -39,7 +45,8 @@ export function useBindCaptcha(id: string, { init = false, businessId = '0195ea3
 
   const loadCaptcha = () => {
     const script = document.createElement('script');
-    script.src = 'https://0195ea3c-ab47-73f3-9f8e-e72b8fd7f089.safepoint.s-captcha-r1.com/v1/static/web.js';
+    script.src =
+      'https://0195ea3c-ab47-73f3-9f8e-e72b8fd7f089.safepoint.s-captcha-r1.com/v1/static/web.js';
     document.body.appendChild(script);
     script.onload = () => {
       setLoad(true);
@@ -58,6 +65,4 @@ export function useBindCaptcha(id: string, { init = false, businessId = '0195ea3
   }, [init, load]);
 
   return [captcha, token] as [any, string];
-};
-
-
+}

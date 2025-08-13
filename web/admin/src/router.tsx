@@ -25,7 +25,7 @@ const Loader = () => (
 );
 
 const LazyLoadable = (
-  Component: LazyExoticComponent<() => JSX.Element>
+  Component: LazyExoticComponent<() => JSX.Element>,
 ): React.ForwardRefExoticComponent<any> =>
   forwardRef((props: any, ref: React.Ref<any>) => (
     <Suspense fallback={<Loader />}>
@@ -37,13 +37,13 @@ const router = [
   {
     path: '/',
     element: createElement(
-      LazyLoadable(lazy(() => import('./pages/document')))
+      LazyLoadable(lazy(() => import('./pages/document'))),
     ),
   },
   {
     path: '/doc/editor/:id',
     element: createElement(
-      LazyLoadable(lazy(() => import('./pages/document/editor')))
+      LazyLoadable(lazy(() => import('./pages/document/editor'))),
     ),
   },
   {
@@ -65,13 +65,13 @@ const router = [
   {
     path: '/conversation',
     element: createElement(
-      LazyLoadable(lazy(() => import('./pages/conversation')))
+      LazyLoadable(lazy(() => import('./pages/conversation'))),
     ),
   },
   {
     path: '/feedback/:tab?',
     element: createElement(
-      LazyLoadable(lazy(() => import('./pages/feedback')))
+      LazyLoadable(lazy(() => import('./pages/feedback'))),
     ),
   },
 ];

@@ -1,0 +1,23 @@
+# Build outputs
+dist
+
+# Package managers
+node_modules
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Logs
+*.log
+
+# Generated
+public
+api-templates
+src/request
+scripts
+src/assets/fonts/iconfont.js
+src/assets/json
+
+
+# Misc
+.DS_Store

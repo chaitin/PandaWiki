@@ -1,11 +1,14 @@
 import { FooterSetting } from '@/api/type';
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { FC } from "react";
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { FC } from 'react';
 import { Control, FieldErrors } from 'react-hook-form';
-import Item, { ItemProps } from "./Item";
+import Item, { ItemProps } from './Item';
 
-type SortableItemProps = Omit<ItemProps, 'withOpacity' | 'isDragging' | 'dragHandleProps'> & {
+type SortableItemProps = Omit<
+  ItemProps,
+  'withOpacity' | 'isDragging' | 'dragHandleProps'
+> & {
   id: string;
   groupIndex: number;
   control: Control<FooterSetting>;
@@ -21,7 +24,7 @@ const SortableItem: FC<SortableItemProps> = ({ id, ...rest }) => {
     listeners,
     setNodeRef,
     transform,
-    transition
+    transition,
   } = useSortable({ id });
 
   const style = {
@@ -36,11 +39,11 @@ const SortableItem: FC<SortableItemProps> = ({ id, ...rest }) => {
       withOpacity={isDragging}
       dragHandleProps={{
         ...attributes,
-        ...listeners
+        ...listeners,
       }}
       {...rest}
     />
   );
 };
 
-export default SortableItem; 
+export default SortableItem;

@@ -152,7 +152,7 @@ const Comments = ({
   commentStatus: number;
   setShowCommentsFilter: (show: boolean) => void;
 }) => {
-  const { kb_id = '', license } = useAppSelector((state) => state.config);
+  const { kb_id = '', license } = useAppSelector(state => state.config);
   const [data, setData] = useState<DomainCommentListItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -364,7 +364,7 @@ const Comments = ({
           ? undefined
           : paramCommentStatus || commentStatus,
     })
-      .then((res) => {
+      .then(res => {
         setData(res.data || []);
         setTotal(res.total || 0);
       })
@@ -377,7 +377,7 @@ const Comments = ({
     getApiV1AppDetail({
       kb_id: kb_id,
       type: '1',
-    }).then((res) => {
+    }).then(res => {
       setAppSetting(res.settings?.web_app_comment_settings || {});
     });
   };
@@ -400,7 +400,7 @@ const Comments = ({
 
   useEffect(() => {
     if (kb_id) {
-      getApiV1KnowledgeBaseDetail({ id: kb_id }).then((res) => {
+      getApiV1KnowledgeBaseDetail({ id: kb_id }).then(res => {
         if (res.access_settings?.base_url) {
           setBaseUrl(res!.access_settings!.base_url!);
         } else {

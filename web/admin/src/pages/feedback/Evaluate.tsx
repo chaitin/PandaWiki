@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react';
 import Detail from './Detail';
 
 const Evaluate = () => {
-  const { kb_id = '' } = useAppSelector((state) => state.config);
+  const { kb_id = '' } = useAppSelector(state => state.config);
   const [searchParams] = useURLSearchParams();
   const subject = searchParams.get('subject') || '';
   const remoteIp = searchParams.get('remote_ip') || '';
@@ -177,7 +177,7 @@ const Evaluate = () => {
       per_page: pageSize,
       kb_id,
     })
-      .then((res) => {
+      .then(res => {
         setData(res.data || []);
         setTotal(res.total || 0);
       })

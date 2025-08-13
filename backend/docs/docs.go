@@ -168,6 +168,7 @@ const docTemplate = `{
                             1
                         ],
                         "type": "integer",
+                        "format": "int32",
                         "x-enum-varnames": [
                             "CommentStatusReject",
                             "CommentStatusPending",
@@ -985,6 +986,60 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/domain.ScrapeResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/crawler/siyuan/analysis_export_file": {
+            "post": {
+                "description": "Analyze SiYuan Export File",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "crawler"
+                ],
+                "summary": "AnalysisSiyuanExportFile",
+                "parameters": [
+                    {
+                        "type": "file",
+                        "description": "file",
+                        "name": "file",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "kb_id",
+                        "name": "kb_id",
+                        "in": "formData",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/domain.SiYuanResp"
+                                            }
                                         }
                                     }
                                 }
@@ -2896,6 +2951,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/share/v1/conversation/detail": {
+            "get": {
+                "description": "GetConversationDetail",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "share_conversation"
+                ],
+                "summary": "GetConversationDetail",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "kb id",
+                        "name": "X-KB-ID",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "conversation id",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.ShareConversationDetailResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/share/v1/node/detail": {
             "get": {
                 "description": "GetNodeDetail",
@@ -3008,12 +3114,18 @@ const docTemplate = `{
             "enum": [
                 "dingtalk",
                 "feishu",
-                "wecom"
+                "wecom",
+                "oauth",
+                "cas",
+                "ldap"
             ],
             "x-enum-varnames": [
                 "SourceTypeDingTalk",
                 "SourceTypeFeishu",
-                "SourceTypeWeCom"
+                "SourceTypeWeCom",
+                "SourceTypeOAuth",
+                "SourceTypeCAS",
+                "SourceTypeLDAP"
             ]
         },
         "domain.AIFeedbackSettings": {
@@ -3492,6 +3604,7 @@ const docTemplate = `{
         },
         "domain.AppType": {
             "type": "integer",
+            "format": "int32",
             "enum": [
                 1,
                 2,
@@ -3547,6 +3660,11 @@ const docTemplate = `{
                 "AuthTypeNull": "无认证",
                 "AuthTypeSimple": "简单口令"
             },
+            "x-enum-descriptions": [
+                "无认证",
+                "简单口令",
+                "企业认证"
+            ],
             "x-enum-varnames": [
                 "AuthTypeNull",
                 "AuthTypeSimple",
@@ -3789,6 +3907,7 @@ const docTemplate = `{
         },
         "domain.CommentStatus": {
             "type": "integer",
+            "format": "int32",
             "enum": [
                 -1,
                 0,
@@ -4157,6 +4276,9 @@ const docTemplate = `{
                 },
                 "parent_id": {
                     "type": "string"
+                },
+                "position": {
+                    "type": "number"
                 },
                 "type": {
                     "enum": [
@@ -4635,7 +4757,19 @@ const docTemplate = `{
                 "ModelProviderBrandZhiPu": "智谱"
             },
             "x-enum-descriptions": [
-                "智谱"
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "智谱",
+                ""
             ],
             "x-enum-varnames": [
                 "ModelProviderBrandOpenAI",
@@ -4802,6 +4936,7 @@ const docTemplate = `{
         },
         "domain.NodeStatus": {
             "type": "integer",
+            "format": "int32",
             "enum": [
                 1,
                 2
@@ -4831,6 +4966,7 @@ const docTemplate = `{
         },
         "domain.NodeType": {
             "type": "integer",
+            "format": "int32",
             "enum": [
                 1,
                 2
@@ -4842,6 +4978,7 @@ const docTemplate = `{
         },
         "domain.NodeVisibility": {
             "type": "integer",
+            "format": "int32",
             "enum": [
                 1,
                 2
@@ -5163,6 +5300,54 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.ShareConversationDetailResp": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ShareConversationMessage"
+                    }
+                },
+                "subject": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ShareConversationMessage": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/schema.RoleType"
+                }
+            }
+        },
+        "domain.SiYuanResp": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.SimpleAuth": {
             "type": "object",
             "properties": {
@@ -5365,6 +5550,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "position": {
+                    "type": "number"
+                },
                 "summary": {
                     "type": "string"
                 },
@@ -5376,6 +5564,9 @@ const docTemplate = `{
         "domain.UserInfo": {
             "type": "object",
             "properties": {
+                "auth_user_id": {
+                    "type": "integer"
+                },
                 "avatar": {
                     "description": "avatar",
                     "type": "string"

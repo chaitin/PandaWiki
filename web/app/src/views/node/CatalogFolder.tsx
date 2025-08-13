@@ -115,7 +115,7 @@ const CatalogFolder = ({
       </Box>
       {item.children && item.children.length > 0 && isExpanded && (
         <>
-          {item.children.map((child) => (
+          {item.children.map(child => (
             <CatalogFolder
               id={activeId}
               key={child.id}

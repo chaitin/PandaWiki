@@ -60,7 +60,7 @@ const ChatWindow = ({
     message_id: string,
     score: number,
     type?: string,
-    content?: string
+    content?: string,
   ) => {
     const data: any = {
       conversation_id,
@@ -72,9 +72,9 @@ const ChatWindow = ({
     await postShareV1ChatFeedback(data);
     message.success('反馈成功');
     setConversation(
-      conversation.map((item) => {
+      conversation.map(item => {
         return item.message_id === message_id ? { ...item, score } : item;
-      })
+      }),
     );
   };
 

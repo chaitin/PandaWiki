@@ -2,12 +2,12 @@ import { KnowledgeBaseListItem, LicenseInfo, UserInfo } from '@/api';
 import { createSlice } from '@reduxjs/toolkit';
 
 export interface config {
-  user: UserInfo
-  kb_id: string
-  license: LicenseInfo
-  kbList: KnowledgeBaseListItem[]
-  kb_c: boolean
-  modelStatus: boolean
+  user: UserInfo;
+  kb_id: string;
+  license: LicenseInfo;
+  kbList: KnowledgeBaseListItem[];
+  kb_c: boolean;
+  modelStatus: boolean;
 }
 const initialState: config = {
   user: {
@@ -23,34 +23,41 @@ const initialState: config = {
   kb_id: '',
   kbList: [],
   kb_c: false,
-  modelStatus: false
-}
+  modelStatus: false,
+};
 
 const configSlice = createSlice({
   name: 'config',
   initialState,
   reducers: {
     setUser(state, { payload }) {
-      state.user = payload
+      state.user = payload;
     },
     setKbId(state, { payload }) {
-      localStorage.setItem('kb_id', payload)
-      state.kb_id = payload
+      localStorage.setItem('kb_id', payload);
+      state.kb_id = payload;
     },
     setKbList(state, { payload }) {
-      state.kbList = payload
+      state.kbList = payload;
     },
     setKbC(state, { payload }) {
-      state.kb_c = payload
+      state.kb_c = payload;
     },
     setModelStatus(state, { payload }) {
-      state.modelStatus = payload
+      state.modelStatus = payload;
     },
     setLicense(state, { payload }) {
-      state.license = payload
+      state.license = payload;
     },
   },
-})
+});
 
-export const { setUser, setKbId, setKbList, setKbC, setModelStatus, setLicense } = configSlice.actions;
-export default configSlice.reducer
+export const {
+  setUser,
+  setKbId,
+  setKbList,
+  setKbC,
+  setModelStatus,
+  setLicense,
+} = configSlice.actions;
+export default configSlice.reducer;

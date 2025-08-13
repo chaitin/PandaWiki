@@ -25,7 +25,7 @@ declare module '@mui/material/Button' {
   }
 }
 
-import type { } from '@mui/material/themeCssVarsAugmentation';
+import type {} from '@mui/material/themeCssVarsAugmentation';
 
 declare global {
   interface Window {

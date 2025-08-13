@@ -27,12 +27,13 @@ type ConversationInfo struct {
 }
 
 type UserInfo struct {
-	UserID   string      `json:"user_id"`
-	NickName string      `json:"name"`
-	From     MessageFrom `json:"from"`
-	RealName string      `json:"real_name"`
-	Email    string      `json:"email"`
-	Avatar   string      `json:"avatar"` // avatar
+	AuthUserID uint        `json:"auth_user_id"`
+	UserID     string      `json:"user_id"`
+	NickName   string      `json:"name"`
+	From       MessageFrom `json:"from"`
+	RealName   string      `json:"real_name"`
+	Email      string      `json:"email"`
+	Avatar     string      `json:"avatar"` // avatar
 }
 
 func (s *ConversationInfo) Scan(value any) error {

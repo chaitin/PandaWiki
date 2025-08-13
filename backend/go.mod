@@ -19,6 +19,7 @@ require (
 	github.com/cloudwego/eino-ext/components/model/gemini v0.1.2
 	github.com/cloudwego/eino-ext/components/model/ollama v0.0.0-20250624023530-68a1e4282a8e
 	github.com/cloudwego/eino-ext/components/model/openai v0.0.0-20250522060253-ddb617598b09
+	github.com/go-ldap/ldap/v3 v3.4.11
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/golang-migrate/migrate/v4 v4.18.3
@@ -39,6 +40,7 @@ require (
 	github.com/ollama/ollama v0.5.12
 	github.com/open-dingtalk/dingtalk-stream-sdk-go v0.9.1
 	github.com/pkoukk/tiktoken-go v0.1.7
+	github.com/pkoukk/tiktoken-go-loader v0.0.1
 	github.com/redis/go-redis/v9 v9.8.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/russross/blackfriday/v2 v2.1.0
@@ -48,6 +50,7 @@ require (
 	github.com/spf13/viper v1.20.1
 	github.com/swaggo/echo-swagger v1.4.1
 	github.com/swaggo/swag v1.16.5
+	github.com/tidwall/gjson v1.14.1
 	github.com/yuin/goldmark v1.7.11
 	go.opentelemetry.io/contrib/instrumentation/github.com/labstack/echo/otelecho v0.60.0
 	go.opentelemetry.io/otel v1.35.0
@@ -74,6 +77,7 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
 	cloud.google.com/go/longrunning v0.5.7 // indirect
+	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
 	github.com/JohannesKaufmann/dom v0.2.0 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/alecthomas/chroma v0.10.0 // indirect
@@ -101,6 +105,7 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/getkin/kin-openapi v0.118.0 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
+	github.com/go-asn1-ber/asn1-ber v1.5.8-0.20250403174932-29230038a667 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -170,7 +175,6 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/swaggo/files/v2 v2.0.2 // indirect
-	github.com/tidwall/gjson v1.14.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect

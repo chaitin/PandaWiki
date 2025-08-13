@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import Lottie from "lottie-react"
-import { CSSProperties } from "react"
+import Lottie from 'lottie-react';
+import { CSSProperties } from 'react';
 
 const LottieIcon = ({
   id,
@@ -8,15 +8,22 @@ const LottieIcon = ({
   loop = true,
   autoplay = true,
   style,
-}: { id: string, src: any, loop?: boolean, autoplay?: boolean, style?: CSSProperties }) => {
+}: {
+  id: string;
+  src: any;
+  loop?: boolean;
+  autoplay?: boolean;
+  style?: CSSProperties;
+}) => {
+  return (
+    <Lottie
+      id={id}
+      animationData={src}
+      loop={loop}
+      autoplay={autoplay}
+      style={{ ...style }}
+    />
+  );
+};
 
-  return <Lottie
-    id={id}
-    animationData={src}
-    loop={loop}
-    autoplay={autoplay}
-    style={{ ...style }}
-  />
-}
-
-export default LottieIcon
+export default LottieIcon;

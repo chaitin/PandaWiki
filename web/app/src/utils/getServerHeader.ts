@@ -7,7 +7,7 @@ export async function getServerHeader(): Promise<Record<string, string>> {
   // 手动构建 cookie header，避免转义问题
   const allCookies = cookieStore.getAll();
   const cookieHeader = allCookies
-    .map((cookie) => `${cookie.name}=${cookie.value}`)
+    .map(cookie => `${cookie.name}=${cookie.value}`)
     .join('; ');
 
   return {

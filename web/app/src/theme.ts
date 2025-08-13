@@ -185,7 +185,7 @@ const lightTheme = createTheme(
     },
   },
   zhCN,
-  CuiZhCN
+  CuiZhCN,
 );
 
 const darkTheme = createTheme(
@@ -361,7 +361,7 @@ const darkTheme = createTheme(
     },
   },
   zhCN,
-  CuiZhCN
+  CuiZhCN,
 );
 
 export { darkTheme, lightTheme };

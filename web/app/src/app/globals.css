@@ -7,8 +7,8 @@
 }
 
 body {
-  font-family: var(--font-gilory), 'Roboto', 'Helvetica',
-    'Arial', sans-serif !important;
+  font-family:
+    var(--font-gilory), 'Roboto', 'Helvetica', 'Arial', sans-serif !important;
 }
 
 a {
@@ -26,7 +26,7 @@ a {
   }
 }
 
-[class^="ellipsis-"] {
+[class^='ellipsis-'] {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   overflow: hidden;

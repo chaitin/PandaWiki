@@ -1,4 +1,6 @@
 import { activeLicense, getLicenseInfo } from '@/api';
+import { postApiV1License } from '@/request/pro/License';
+import { PostApiV1LicensePayload } from '@/request/pro/types';
 import HelpCenter from '@/assets/json/help-center.json';
 import Takeoff from '@/assets/json/takeoff.json';
 import IconUpgrade from '@/assets/json/upgrade.json';
@@ -6,7 +8,15 @@ import Upload from '@/components/UploadFile/Drag';
 import { EditionType } from '@/constant/enums';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setLicense } from '@/store/slices/config';
-import { Box, Button, IconButton, Stack, TextField } from '@mui/material';
+import {
+  Box,
+  Button,
+  IconButton,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+} from '@mui/material';
 import { CusTabs, Icon, Message, Modal } from 'ct-mui';
 import dayjs from 'dayjs';
 import { useState } from 'react';
@@ -26,33 +36,36 @@ const AuthTypeModal = ({
   latestVersion,
 }: AuthTypeModalProps) => {
   const dispatch = useAppDispatch();
-  const { license } = useAppSelector((state) => state.config);
+  const { license } = useAppSelector(state => state.config);
 
-  const [selected, setSelected] = useState(
-    license.edition === 2 ? 'file' : 'code'
+  const [selected, setSelected] = useState<'file' | 'code'>(
+    license.edition === 2 ? 'file' : 'code',
+  );
+  const [authVersion, setAuthVersion] = useState<'contributor' | 'enterprise'>(
+    license.edition === 2 ? 'enterprise' : 'contributor',
   );
   const [updateOpen, setUpdateOpen] = useState(false);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState<File | undefined>(undefined);
 
   const handleSubmit = () => {
+    const params: PostApiV1LicensePayload = {
+      license_edition: authVersion,
+      license_type: selected,
+      license_code: code,
+      license_file: file,
+    };
     setLoading(true);
-    const data = new FormData();
-    data.append('license_type', selected);
-    if (selected === 'code') {
-      data.append('license_code', code);
-    } else if (file) {
-      data.append('license_file', file);
-    }
-    activeLicense(data)
+
+    postApiV1License(params)
       .then(() => {
         Message.success('激活成功');
         setUpdateOpen(false);
         setCode('');
-        setFile(null);
+        setFile(undefined);
 
-        getLicenseInfo().then((res) => {
+        getLicenseInfo().then(res => {
           dispatch(setLicense(res));
         });
       })
@@ -92,7 +105,7 @@ const AuthTypeModal = ({
                   }
                   onClick={() => {
                     window.open(
-                      'https://pandawiki.docs.baizhi.cloud/node/01971615-05b8-7924-9af7-15f73784f893'
+                      'https://pandawiki.docs.baizhi.cloud/node/01971615-05b8-7924-9af7-15f73784f893',
                     );
                   }}
                 >
@@ -108,37 +121,75 @@ const AuthTypeModal = ({
                 {EditionType[license.edition as keyof typeof EditionType].text}
               </Box>
               {license.edition === 0 ? (
-                <Button
-                  size='small'
-                  startIcon={
-                    <Box>
-                      <LottieIcon
-                        id='version'
-                        src={Takeoff}
-                        style={{ width: 16, height: 16, display: 'flex' }}
-                      />
-                    </Box>
-                  }
-                  onClick={() => setUpdateOpen(true)}
-                >
-                  激活授权
-                </Button>
+                <Stack direction={'row'} gap={2}>
+                  <Button
+                    size='small'
+                    startIcon={
+                      <Box>
+                        <LottieIcon
+                          id='version'
+                          src={Takeoff}
+                          style={{ width: 16, height: 16, display: 'flex' }}
+                        />
+                      </Box>
+                    }
+                    onClick={() => setUpdateOpen(true)}
+                  >
+                    激活授权
+                  </Button>
+                  <Button
+                    size='small'
+                    startIcon={
+                      <Box>
+                        <LottieIcon
+                          id='consult'
+                          src={HelpCenter}
+                          style={{ width: 16, height: 16, display: 'flex' }}
+                        />
+                      </Box>
+                    }
+                    onClick={() => {
+                      window.open('https://baizhi.cloud/consult');
+                    }}
+                  >
+                    商务咨询
+                  </Button>
+                </Stack>
               ) : (
-                <Button
-                  size='small'
-                  startIcon={
-                    <Box>
-                      <LottieIcon
-                        id='version'
-                        src={Takeoff}
-                        style={{ width: 16, height: 16, display: 'flex' }}
-                      />
-                    </Box>
-                  }
-                  onClick={() => setUpdateOpen(true)}
-                >
-                  切换授权
-                </Button>
+                <Stack direction={'row'} gap={2}>
+                  <Button
+                    size='small'
+                    startIcon={
+                      <Box>
+                        <LottieIcon
+                          id='version'
+                          src={Takeoff}
+                          style={{ width: 16, height: 16, display: 'flex' }}
+                        />
+                      </Box>
+                    }
+                    onClick={() => setUpdateOpen(true)}
+                  >
+                    切换授权
+                  </Button>
+                  <Button
+                    size='small'
+                    startIcon={
+                      <Box>
+                        <LottieIcon
+                          id='consult'
+                          src={HelpCenter}
+                          style={{ width: 16, height: 16, display: 'flex' }}
+                        />
+                      </Box>
+                    }
+                    onClick={() => {
+                      window.open('https://baizhi.cloud/consult');
+                    }}
+                  >
+                    商务咨询
+                  </Button>
+                </Stack>
               )}
             </Stack>
           </Stack>
@@ -164,6 +215,8 @@ const AuthTypeModal = ({
               )}
             </Box>
           )}
+
+          
         </Stack>
       </Modal>
       <Modal
@@ -184,8 +237,20 @@ const AuthTypeModal = ({
             { label: '离线激活', value: 'file', disabled: loading },
           ]}
           value={selected}
-          change={(v: string) => setSelected(v)}
+          change={(v: string) => setSelected(v as 'file' | 'code')}
         />
+        <TextField
+          select
+          fullWidth
+          sx={{ mt: 2 }}
+          value={authVersion}
+          onChange={e =>
+            setAuthVersion(e.target.value as 'contributor' | 'enterprise')
+          }
+        >
+          <MenuItem value='contributor'>联创版</MenuItem>
+          <MenuItem value='enterprise'>企业版</MenuItem>
+        </TextField>
         {selected === 'code' && (
           <TextField
             sx={{ mt: 2 }}
@@ -193,14 +258,14 @@ const AuthTypeModal = ({
             variant='outlined'
             value={code}
             fullWidth
-            onChange={(e) => setCode(e.target.value)}
+            onChange={e => setCode(e.target.value)}
           />
         )}
         {selected === 'file' && (
           <Box sx={{ mt: 2 }}>
             <Upload
               file={file ? [file] : []}
-              onChange={(accept) => setFile(accept[0])}
+              onChange={accept => setFile(accept[0])}
               type='drag'
               multiple={false}
               size={1024 * 1024}
@@ -224,7 +289,7 @@ const AuthTypeModal = ({
                   <Icon type='icon-wenjian' />
                   {file.name}
                 </Stack>
-                <IconButton onClick={() => setFile(null)}>
+                <IconButton onClick={() => setFile(undefined)}>
                   <Icon type='icon-icon_tool_close' sx={{ fontSize: 16 }} />
                 </IconButton>
               </Stack>

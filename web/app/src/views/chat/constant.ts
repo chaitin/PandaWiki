@@ -3,4 +3,4 @@ export const AnswerStatus = {
   2: '正在思考',
   3: '正在回答',
   4: '',
-}
+};

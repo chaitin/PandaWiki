@@ -43,11 +43,7 @@ func (u *FileUsecase) UploadFile(ctx context.Context, kbID string, file *multipa
 	ext := strings.ToLower(filepath.Ext(file.Filename))
 	filename := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), ext)
 
-	maxSize := u.config.S3.MaxFileSize
 	size := file.Size
-	if size > int64(maxSize) { // 100MB
-		return "", fmt.Errorf("file size too large")
-	}
 
 	contentType := file.Header.Get("Content-Type")
 	if contentType == "" {
@@ -81,11 +77,7 @@ func (u *FileUsecase) UploadFileFromBytes(ctx context.Context, kbID string, file
 	ext := strings.ToLower(filepath.Ext(filename))
 	s3Filename := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), ext)
 
-	maxSize := u.config.S3.MaxFileSize
 	size := int64(len(fileBytes))
-	if size > int64(maxSize) { // 100MB
-		return "", fmt.Errorf("file size too large")
-	}
 
 	contentType := mime.TypeByExtension(ext)
 	if contentType == "" {
@@ -120,12 +112,6 @@ func (u *FileUsecase) UploadFileFromReader(
 	reader io.Reader,
 	size int64, // 必须提供对象大小
 ) (string, error) {
-	// 验证对象大小
-	maxSize := u.config.S3.MaxFileSize
-	if size > int64(maxSize) {
-		return "", fmt.Errorf("file size too large (max %d bytes, got %d)", maxSize, size)
-	}
-
 	// 生成唯一文件名
 	ext := strings.ToLower(filepath.Ext(filename))
 	s3Filename := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), ext)

@@ -1,22 +1,22 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit';
 
 export type breadcrumb = {
-  pageName: string,
-}
+  pageName: string;
+};
 
 const initialState: breadcrumb = {
-  pageName: ''
-}
+  pageName: '',
+};
 
 const breadcrumbSlice = createSlice({
   name: 'breadcrumb',
   initialState: initialState,
   reducers: {
     setPageName(state, { payload }) {
-      state.pageName = payload
-    }
+      state.pageName = payload;
+    },
   },
-})
+});
 
 export const { setPageName } = breadcrumbSlice.actions;
-export default breadcrumbSlice.reducer
+export default breadcrumbSlice.reducer;

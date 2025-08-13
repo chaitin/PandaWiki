@@ -36,8 +36,8 @@
   --color-fg-subtle: #6e7781;
   --color-canvas-default: #ffffff;
   --color-canvas-subtle: #f6f8fa;
-  --color-border-default: #ECEEF1;
-  --color-border-muted: #ECEEF1;
+  --color-border-default: #eceef1;
+  --color-border-muted: #eceef1;
   --color-neutral-muted: rgba(175, 184, 193, 0.2);
   --color-accent-fg: #0969da;
   --color-accent-emphasis: #0969da;
@@ -52,8 +52,9 @@
   margin: 0;
   color: var(--color-fg-default);
   background-color: var(--color-canvas-default);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans',
-    Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica,
+    Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
   font-size: 14px;
   line-height: 1.5;
   word-wrap: break-word;
@@ -258,7 +259,7 @@
   cursor: pointer;
 }
 
-.markdown-body details:not([open])>*:not(summary) {
+.markdown-body details:not([open]) > *:not(summary) {
   display: none !important;
 }
 
@@ -455,15 +456,15 @@
   content: '';
 }
 
-.markdown-body>*:first-child {
+.markdown-body > *:first-child {
   margin-top: 0 !important;
 }
 
-.markdown-body>*:nth-child(2) {
+.markdown-body > *:nth-child(2) {
   margin-top: 0 !important;
 }
 
-.markdown-body>*:last-child {
+.markdown-body > *:last-child {
   margin-bottom: 0 !important;
 }
 
@@ -500,11 +501,11 @@
   margin-bottom: 16px;
 }
 
-.markdown-body blockquote> :first-child {
+.markdown-body blockquote > :first-child {
   margin-top: 0;
 }
 
-.markdown-body blockquote> :last-child {
+.markdown-body blockquote > :last-child {
   margin-bottom: 0;
 }
 
@@ -603,7 +604,7 @@
   list-style-type: decimal;
 }
 
-.markdown-body div>ol:not([type]) {
+.markdown-body div > ol:not([type]) {
   list-style-type: decimal;
 }
 
@@ -615,11 +616,11 @@
   margin-bottom: 0;
 }
 
-.markdown-body li>p {
+.markdown-body li > p {
   margin-top: 16px;
 }
 
-.markdown-body li+li {
+.markdown-body li + li {
   margin-top: 0.25em;
 }
 
@@ -686,7 +687,7 @@
   overflow: hidden;
 }
 
-.markdown-body span.frame>span {
+.markdown-body span.frame > span {
   display: block;
   float: left;
   width: auto;
@@ -714,7 +715,7 @@
   clear: both;
 }
 
-.markdown-body span.align-center>span {
+.markdown-body span.align-center > span {
   display: block;
   margin: 13px auto 0;
   overflow: hidden;
@@ -732,7 +733,7 @@
   clear: both;
 }
 
-.markdown-body span.align-right>span {
+.markdown-body span.align-right > span {
   display: block;
   margin: 13px 0 0;
   overflow: hidden;
@@ -762,7 +763,7 @@
   overflow: hidden;
 }
 
-.markdown-body span.float-right>span {
+.markdown-body span.float-right > span {
   display: block;
   margin: 13px auto 0;
   overflow: hidden;
@@ -794,7 +795,7 @@
   font-size: 85%;
 }
 
-.markdown-body pre>code {
+.markdown-body pre > code {
   padding: 0;
   margin: 0;
   word-break: normal;
@@ -1059,7 +1060,7 @@
   cursor: pointer;
 }
 
-.markdown-body .task-list-item+.task-list-item {
+.markdown-body .task-list-item + .task-list-item {
   margin-top: 4px;
 }
 
@@ -1081,7 +1082,9 @@
 }
 
 .markdown-body .contains-task-list:hover .task-list-item-convert-container,
-.markdown-body .contains-task-list:focus-within .task-list-item-convert-container {
+.markdown-body
+  .contains-task-list:focus-within
+  .task-list-item-convert-container {
   display: block;
   width: auto;
   height: 24px;
@@ -1117,13 +1120,13 @@
 
 .chat-tool {
   position: relative;
-  border: 1px solid #ECEEF1;
+  border: 1px solid #eceef1;
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 16px;
   cursor: pointer;
   height: 54px;
-  background-color: #F8F9FA;
+  background-color: #f8f9fa;
 }
 
 .chat-tool .chat-tool-args,
@@ -1156,7 +1159,7 @@
   align-items: center;
   gap: 4px;
   font-weight: bold;
-  color: #3248F2;
+  color: #3248f2;
   cursor: pointer;
   font-size: 14px;
   padding-right: 16px;
@@ -1172,7 +1175,7 @@
 }
 
 .chat-tool-expend-text-active {
-  color: #3248F2;
+  color: #3248f2;
 }
 
 .chat-tool-name {
@@ -1181,8 +1184,8 @@
   line-height: 21px;
   height: 53px;
   font-weight: bold;
-  border-bottom: 1px solid #ECEEF1;
-  background-color: #FFFFFF;
+  border-bottom: 1px solid #eceef1;
+  background-color: #ffffff;
 }
 
 .chat-tool-name-text {
@@ -1200,9 +1203,9 @@
 .chat-tool-result {
   max-height: 300px;
   overflow: auto;
-  color: #21222D;
+  color: #21222d;
   position: relative;
-  background-color: #F8F9FA;
+  background-color: #f8f9fa;
 }
 
 .chat-tool pre {
@@ -1217,6 +1220,6 @@
 
 .chat-error {
   display: inline-block;
-  color: #FF502C;
+  color: #ff502c;
   font-weight: bold;
 }

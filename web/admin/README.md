@@ -1,9 +1,11 @@
 # PandaWiki Admin
 
 ## 项目概述
+
 PandaWiki Admin 是一个基于现代前端技术栈构建的管理后台，用于管理 PandaWiki 的内容和功能。项目采用 React 19 和 Vite 作为开发工具，集成了丰富的 UI 组件和编辑器功能。
 
 ## 功能特性
+
 - 富文本编辑：支持 Markdown 和 Tiptap 编辑器
 - 拖拽排序：使用 DnD Kit 实现灵活的拖拽功能
 - 图表展示：集成 ECharts 用于数据可视化
@@ -11,6 +13,7 @@ PandaWiki Admin 是一个基于现代前端技术栈构建的管理后台，用�
 - API 文档生成：支持 Swagger API 自动生成
 
 ## 技术栈
+
 - **前端框架**: React 19
 - **构建工具**: Vite
 - **UI 组件库**: Material-UI (MUI)
@@ -19,6 +22,7 @@ PandaWiki Admin 是一个基于现代前端技术栈构建的管理后台，用�
 - **富文本编辑器**: Tiptap
 
 ## 安装与运行
+
 1. 克隆项目：
    ```bash
    git clone https://github.com/your-repo/PandaWiki.git
@@ -28,7 +32,8 @@ PandaWiki Admin 是一个基于现代前端技术栈构建的管理后台，用�
    pnpm install
    ```
 3. 配置环境变量：
-   - 根据需求修改环境变量，实际字段如下：
+   - 在项目根目录下，新建文件 `.env.local` , 根据需求修改环境变量，实际字段如下：
+
      ```env
      # 目标服务配置
      TARGET=http://your_target_ip:8000 # 后端服务地址
@@ -41,6 +46,7 @@ PandaWiki Admin 是一个基于现代前端技术栈构建的管理后台，用�
      SWAGGER_BASE_URL=http://your_swagger_ip:8000 # Swagger API 文档地址
      SWAGGER_AUTH_TOKEN=your_swagger_token # Swagger 认证令牌
      ```
+
 4. 启动开发服务器：
    ```bash
    pnpm dev
@@ -55,14 +61,17 @@ PandaWiki Admin 是一个基于现代前端技术栈构建的管理后台，用�
    ```
 
 ### 其他命令
+
 - 下载图标资源：`pnpm icon`
 - 生成 API 文档：`pnpm api`
 
 ## 环境配置
+
 - 开发环境变量文件：`.env.local`
 - 生产环境配置：`nginx.conf` 和 `Dockerfile`
 
 ## 项目结构
+
 ```
 ├── src/                  # 源代码目录
 ├── public/               # 静态资源
@@ -72,4 +81,3 @@ PandaWiki Admin 是一个基于现代前端技术栈构建的管理后台，用�
 ├── ssl/                  # SSL 证书
 └── ...
 ```
-

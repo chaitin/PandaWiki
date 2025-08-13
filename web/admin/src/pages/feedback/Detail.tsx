@@ -29,7 +29,7 @@ const Detail = ({
 
   useEffect(() => {
     if (open && id && data) {
-      getApiV1ConversationMessageDetail({ id }).then((res) => {
+      getApiV1ConversationMessageDetail({ id }).then(res => {
         setConversations({
           user: data.question,
           assistant: res.content!,

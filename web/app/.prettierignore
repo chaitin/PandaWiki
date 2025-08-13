@@ -1,0 +1,23 @@
+# Build outputs
+.next
+out
+build
+coverage
+dist
+
+# Package managers
+node_modules
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Logs
+*.log
+
+# Generated
+public
+api-templates
+src/request
+
+# Misc
+.DS_Store

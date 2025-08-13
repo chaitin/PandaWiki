@@ -100,9 +100,14 @@ func createApp() (*App, error) {
 		return nil, err
 	}
 	ipAddressRepo := ipdb2.NewIPAddressRepo(ipdbIPDB, logger)
-	conversationUsecase := usecase.NewConversationUsecase(conversationRepository, nodeRepository, geoRepo, logger, ipAddressRepo)
+	authRepo := pg2.NewAuthRepo(db, logger)
+	conversationUsecase := usecase.NewConversationUsecase(conversationRepository, nodeRepository, geoRepo, logger, ipAddressRepo, authRepo)
 	modelUsecase := usecase.NewModelUsecase(modelRepository, nodeRepository, ragRepository, ragService, logger, configConfig, knowledgeBaseRepository)
-	chatUsecase := usecase.NewChatUsecase(llmUsecase, conversationUsecase, modelUsecase, appRepository, logger)
+	blockWordRepo := pg2.NewBlockWordRepo(db, logger)
+	chatUsecase, err := usecase.NewChatUsecase(llmUsecase, knowledgeBaseRepository, conversationUsecase, modelUsecase, appRepository, blockWordRepo, authRepo, logger)
+	if err != nil {
+		return nil, err
+	}
 	appUsecase := usecase.NewAppUsecase(appRepository, nodeUsecase, logger, configConfig, chatUsecase)
 	appHandler := v1.NewAppHandler(echo, baseHandler, logger, authMiddleware, appUsecase, modelUsecase, conversationUsecase, configConfig)
 	fileUsecase := usecase.NewFileUsecase(logger, minioClient, configConfig)
@@ -119,7 +124,8 @@ func createApp() (*App, error) {
 	feishuUseCase := usecase.NewFeishuUseCase(logger, minioClient, crawlerUsecase)
 	confluenceUsecase := usecase.NewConfluenceUsecase(logger, minioClient, crawlerUsecase, fileUsecase)
 	yuqueUsecase := usecase.NewYuqueUsecase(logger, fileUsecase)
-	crawlerHandler := v1.NewCrawlerHandler(echo, baseHandler, authMiddleware, logger, configConfig, crawlerUsecase, notionUseCase, epubUsecase, wikiJSUsecase, feishuUseCase, confluenceUsecase, yuqueUsecase)
+	siYuanUsecase := usecase.NewShiYuanUsecase(logger, fileUsecase)
+	crawlerHandler := v1.NewCrawlerHandler(echo, baseHandler, authMiddleware, logger, configConfig, crawlerUsecase, notionUseCase, epubUsecase, wikiJSUsecase, feishuUseCase, confluenceUsecase, yuqueUsecase, siYuanUsecase)
 	creationUsecase := usecase.NewCreationUsecase(logger, llmUsecase, modelUsecase)
 	creationHandler := v1.NewCreationHandler(echo, baseHandler, logger, creationUsecase)
 	statRepository := pg2.NewStatRepository(db)
@@ -149,14 +155,16 @@ func createApp() (*App, error) {
 	shareStatHandler := share.NewShareStatHandler(baseHandler, echo, statUseCase, logger)
 	shareCommentHandler := share.NewShareCommentHandler(echo, baseHandler, logger, commentUsecase, appUsecase)
 	shareAuthHandler := share.NewShareAuthHandler(echo, baseHandler, logger, knowledgeBaseUsecase)
+	shareConversationHandler := share.NewShareConversationHandler(baseHandler, echo, conversationUsecase, logger)
 	shareHandler := &share.ShareHandler{
-		ShareNodeHandler:    shareNodeHandler,
-		ShareAppHandler:     shareAppHandler,
-		ShareChatHandler:    shareChatHandler,
-		ShareSitemapHandler: shareSitemapHandler,
-		ShareStatHandler:    shareStatHandler,
-		ShareCommentHandler: shareCommentHandler,
-		ShareAuthHandler:    shareAuthHandler,
+		ShareNodeHandler:         shareNodeHandler,
+		ShareAppHandler:          shareAppHandler,
+		ShareChatHandler:         shareChatHandler,
+		ShareSitemapHandler:      shareSitemapHandler,
+		ShareStatHandler:         shareStatHandler,
+		ShareCommentHandler:      shareCommentHandler,
+		ShareAuthHandler:         shareAuthHandler,
+		ShareConversationHandler: shareConversationHandler,
 	}
 	client, err := telemetry.NewClient(logger, knowledgeBaseRepository)
 	if err != nil {

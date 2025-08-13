@@ -1,17 +1,27 @@
+'use client';
+
+import { KBDetail } from '@/assets/type';
 import logo from '@/assets/images/logo.png';
-import { useStore } from '@/provider';
 import { Box, Divider, Stack } from '@mui/material';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useStore } from '@/provider';
 
 const Footer = ({
   showBrand = true,
   fullWidth = false,
+  kbDetail,
+  mobile,
+  catalogShow,
+  catalogWidth,
 }: {
+  kbDetail?: KBDetail;
+  mobile?: boolean;
+  catalogShow?: boolean;
+  catalogWidth?: number;
   showBrand?: boolean;
   fullWidth?: boolean;
 }) => {
-  const { kbDetail, mobile = false, catalogShow, catalogWidth } = useStore();
   const footerSetting = kbDetail?.settings?.footer_settings;
 
   if (mobile)
@@ -95,7 +105,7 @@ const Footer = ({
                   >
                     {group.name}
                   </Box>
-                  {group.links?.map((link) => (
+                  {group.links?.map(link => (
                     <Link
                       href={link.url}
                       target='_blank'
@@ -214,7 +224,7 @@ const Footer = ({
               )}
             </Box>
             <Stack direction={'row'} justifyContent={'flex-end'} gap={15}>
-              {footerSetting?.brand_groups?.map((group) => (
+              {footerSetting?.brand_groups?.map(group => (
                 <Stack
                   gap={1.5}
                   key={group.name}
@@ -236,7 +246,7 @@ const Footer = ({
                   >
                     {group.name}
                   </Box>
-                  {group.links?.map((link) => (
+                  {group.links?.map(link => (
                     <Link
                       href={link.url}
                       target='_blank'
@@ -318,6 +328,26 @@ const Footer = ({
         </Stack>
       </Box>
     </Box>
+  );
+};
+
+export const FooterProvider = ({
+  showBrand = true,
+  fullWidth = false,
+}: {
+  showBrand?: boolean;
+  fullWidth?: boolean;
+}) => {
+  const { kbDetail, mobile = false, catalogShow, catalogWidth } = useStore();
+  return (
+    <Footer
+      showBrand={showBrand}
+      fullWidth={fullWidth}
+      kbDetail={kbDetail}
+      mobile={mobile}
+      catalogShow={catalogShow}
+      catalogWidth={catalogWidth}
+    />
   );
 };
 

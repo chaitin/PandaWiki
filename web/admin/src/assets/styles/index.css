@@ -83,14 +83,13 @@ body {
 
 code,
 .code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family:
+    source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
 a {
   text-decoration: none;
 }
-
 
 ::-webkit-scrollbar {
   width: 4px;
@@ -196,7 +195,7 @@ input {
   appearance: textfield;
 }
 
-[class^="ellipsis-"] {
+[class^='ellipsis-'] {
   display: -webkit-box;
   -webkit-box-orient: vertical;
   overflow: hidden;

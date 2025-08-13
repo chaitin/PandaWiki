@@ -21,6 +21,7 @@ import (
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
 	"github.com/google/uuid"
 	"github.com/minio/minio-go/v7"
+	tiktoken_loader "github.com/pkoukk/tiktoken-go-loader"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/renderer/html"
@@ -339,4 +340,12 @@ func ExchangeMarkDownImageUrl(
 		return "", err
 	}
 	return string(converted), nil
+}
+
+type Localloader struct{}
+
+func (m *Localloader) LoadTiktokenBpe(_ string) (map[string]int, error) {
+	a := tiktoken_loader.NewOfflineLoader()
+	res, err := a.LoadTiktokenBpe("cl100k_base.tiktoken")
+	return res, err
 }

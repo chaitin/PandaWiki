@@ -1,4 +1,4 @@
-import { addOpacityToColor } from "@/utils";
+import { addOpacityToColor } from '@/utils';
 import CloseIcon from '@mui/icons-material/Close';
 import { Box, IconButton, Modal, SxProps, useTheme } from '@mui/material';
 import { useState } from 'react';
@@ -36,7 +36,7 @@ const CustomImage = ({
   return (
     <>
       <Box
-        component="img"
+        component='img'
         src={src}
         alt={alt}
         width={width}
@@ -69,7 +69,7 @@ const CustomImage = ({
             <CloseIcon />
           </IconButton>
           <Box
-            component="img"
+            component='img'
             src={src}
             alt={alt}
             sx={{

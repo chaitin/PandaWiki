@@ -38,39 +38,54 @@ const DragBrand: FC<DragBrandProps> = ({ control, errors, setIsEdit }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor));
 
-  const { fields: brandGroupFields, append: appendBrandGroup, remove: removeBrandGroup, move } = useFieldArray({
+  const {
+    fields: brandGroupFields,
+    append: appendBrandGroup,
+    remove: removeBrandGroup,
+    move,
+  } = useFieldArray({
     control,
-    name: "brand_groups"
+    name: 'brand_groups',
   });
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id as string);
   }, []);
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    if (active.id !== over?.id) {
-      const oldIndex = brandGroupFields.findIndex((_, index) => `group-${index}` === active.id);
-      const newIndex = brandGroupFields.findIndex((_, index) => `group-${index}` === over!.id);
-      move(oldIndex, newIndex);
-      setIsEdit(true);
-    }
-    setActiveId(null);
-  }, [brandGroupFields, move, setIsEdit]);
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (active.id !== over?.id) {
+        const oldIndex = brandGroupFields.findIndex(
+          (_, index) => `group-${index}` === active.id,
+        );
+        const newIndex = brandGroupFields.findIndex(
+          (_, index) => `group-${index}` === over!.id,
+        );
+        move(oldIndex, newIndex);
+        setIsEdit(true);
+      }
+      setActiveId(null);
+    },
+    [brandGroupFields, move, setIsEdit],
+  );
 
   const handleDragCancel = useCallback(() => {
     setActiveId(null);
   }, []);
 
-  const handleRemove = useCallback((index: number) => {
-    removeBrandGroup(index);
-    setIsEdit(true);
-  }, [removeBrandGroup, setIsEdit]);
+  const handleRemove = useCallback(
+    (index: number) => {
+      removeBrandGroup(index);
+      setIsEdit(true);
+    },
+    [removeBrandGroup, setIsEdit],
+  );
 
   const handleAddBrandGroup = () => {
     appendBrandGroup({
       name: '',
-      links: [{ name: '', url: '' }]
+      links: [{ name: '', url: '' }],
     });
     setIsEdit(true);
   };
@@ -78,8 +93,10 @@ const DragBrand: FC<DragBrandProps> = ({ control, errors, setIsEdit }) => {
   if (brandGroupFields.length === 0) {
     return (
       <Button
-        size="small"
-        startIcon={<Icon type="icon-add" sx={{ fontSize: '12px !important' }} />}
+        size='small'
+        startIcon={
+          <Icon type='icon-add' sx={{ fontSize: '12px !important' }} />
+        }
         onClick={handleAddBrandGroup}
       >
         添加一个链接组
@@ -96,7 +113,10 @@ const DragBrand: FC<DragBrandProps> = ({ control, errors, setIsEdit }) => {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <SortableContext items={brandGroupFields.map((_, index) => `group-${index}`)} strategy={rectSortingStrategy}>
+        <SortableContext
+          items={brandGroupFields.map((_, index) => `group-${index}`)}
+          strategy={rectSortingStrategy}
+        >
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {brandGroupFields.map((group, groupIndex) => (
               <SortableItem
@@ -124,8 +144,10 @@ const DragBrand: FC<DragBrandProps> = ({ control, errors, setIsEdit }) => {
         </DragOverlay>
       </DndContext>
       <Button
-        size="small"
-        startIcon={<Icon type="icon-add" sx={{ fontSize: '12px !important' }} />}
+        size='small'
+        startIcon={
+          <Icon type='icon-add' sx={{ fontSize: '12px !important' }} />
+        }
         onClick={handleAddBrandGroup}
       >
         添加一个链接组

@@ -1,12 +1,12 @@
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { FC } from "react";
-import Item, { ItemProps } from "./Item";
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { FC } from 'react';
+import Item, { ItemProps } from './Item';
 
 type SortableItemProps = ItemProps & {
-  selectedBtnId: string | null
-  setSelectedBtnId: (id: string | null) => void
-}
+  selectedBtnId: string | null;
+  setSelectedBtnId: (id: string | null) => void;
+};
 
 const SortableItem: FC<SortableItemProps> = ({ item, ...rest }) => {
   const {
@@ -15,7 +15,7 @@ const SortableItem: FC<SortableItemProps> = ({ item, ...rest }) => {
     listeners,
     setNodeRef,
     transform,
-    transition
+    transition,
   } = useSortable({ id: item.id });
 
   const style = {
@@ -30,7 +30,7 @@ const SortableItem: FC<SortableItemProps> = ({ item, ...rest }) => {
       withOpacity={isDragging}
       dragHandleProps={{
         ...attributes,
-        ...listeners
+        ...listeners,
       }}
       item={item}
       {...rest}

@@ -17,7 +17,7 @@ export const useTextSelection = ({
 }: TextSelectionHookProps = {}) => {
   const [selectedText, setSelectedText] = useState('');
   const [tooltipAnchor, setTooltipAnchor] = useState<TooltipPosition | null>(
-    null
+    null,
   );
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const [screenshot, setScreenshot] = useState<string | undefined>(undefined);
@@ -66,7 +66,7 @@ export const useTextSelection = ({
           overlay.className = 'text-selection-highlight-overlay';
           overlay.setAttribute(
             'data-highlight-id',
-            `highlight-${Date.now()}-${index}`
+            `highlight-${Date.now()}-${index}`,
           );
 
           // 动态获取主题色
@@ -125,7 +125,7 @@ export const useTextSelection = ({
         return null;
       }
     },
-    [highlightStyleInitialized]
+    [highlightStyleInitialized],
   );
 
   // 移除高亮样式
@@ -135,13 +135,13 @@ export const useTextSelection = ({
         elements: HTMLElement[];
         isMultiple: boolean;
         rangyApplied?: boolean;
-      } | null
+      } | null,
     ) => {
       if (!highlightData) return;
 
       try {
         // 移除高亮覆盖层元素
-        highlightData.elements.forEach((overlayElement) => {
+        highlightData.elements.forEach(overlayElement => {
           if (overlayElement && overlayElement.parentNode) {
             overlayElement.parentNode.removeChild(overlayElement);
           }
@@ -149,9 +149,9 @@ export const useTextSelection = ({
 
         // 额外清理：查找并移除任何残留的高亮覆盖层
         const remainingOverlays = document.querySelectorAll(
-          '.text-selection-highlight-overlay'
+          '.text-selection-highlight-overlay',
         );
-        remainingOverlays.forEach((overlay) => {
+        remainingOverlays.forEach(overlay => {
           if (overlay.parentNode) {
             overlay.parentNode.removeChild(overlay);
           }
@@ -162,7 +162,7 @@ export const useTextSelection = ({
         console.warn('移除高亮失败:', error);
       }
     },
-    []
+    [],
   );
 
   // 截取页面截图
@@ -187,7 +187,7 @@ export const useTextSelection = ({
       }
 
       // 延迟确保DOM完全更新
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await new Promise(resolve => setTimeout(resolve, 150));
 
       // 截取当前浏览器窗口（视口）
       const targetElement = document.body;
@@ -196,7 +196,7 @@ export const useTextSelection = ({
         quality: 0.9,
         pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
         backgroundColor: '#ffffff',
-        filter: (node) => {
+        filter: node => {
           // 过滤掉tooltip相关元素和高亮覆盖层
           if (node.nodeType === Node.ELEMENT_NODE) {
             const element = node as Element;
@@ -322,7 +322,7 @@ export const useTextSelection = ({
 
     try {
       // 小延迟确保UI状态更新完成
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // 在保留选中状态和tooltip的情况下截图
       const screenshotData = await captureScreenshot();
@@ -355,7 +355,7 @@ export const useTextSelection = ({
         setScreenshot(undefined);
       }
     },
-    [tooltipOpen]
+    [tooltipOpen],
   );
 
   // 设置事件监听器
@@ -384,9 +384,9 @@ export const useTextSelection = ({
 
     // 清理可能存在的高亮覆盖层元素
     const highlightOverlays = document.querySelectorAll(
-      '.text-selection-highlight-overlay'
+      '.text-selection-highlight-overlay',
     );
-    highlightOverlays.forEach((overlay) => {
+    highlightOverlays.forEach(overlay => {
       if (overlay.parentNode) {
         overlay.parentNode.removeChild(overlay);
       }

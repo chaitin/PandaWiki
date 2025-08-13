@@ -13,7 +13,7 @@ const StatPage = {
 export async function middleware(
   request: NextRequest,
   headers: Record<string, string>,
-  session: string
+  session: string,
 ) {
   const url = request.nextUrl.clone();
   const { page, id } = parsePathname(url.pathname);
@@ -43,7 +43,7 @@ export async function middleware(
             'x-pw-session-id': session,
             ...headers,
           },
-        }
+        },
       );
     }
 

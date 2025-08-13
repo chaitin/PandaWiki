@@ -265,12 +265,12 @@ export type DingBotSetting = {
 };
 
 export type WechatOfficeAccountSetting = {
-  wechat_official_account_is_enabled: boolean,
-  wechat_official_account_app_id: string,
-  wechat_official_account_app_secret: string,
-  wechat_official_account_token: string,
-  wechat_official_account_encodingaeskey: string,
-}
+  wechat_official_account_is_enabled: boolean;
+  wechat_official_account_app_id: string;
+  wechat_official_account_app_secret: string;
+  wechat_official_account_token: string;
+  wechat_official_account_encodingaeskey: string;
+};
 
 export type WecomBotSetting = {
   wechat_app_is_enabled: boolean;
@@ -567,6 +567,8 @@ export type ImportDocType =
   | 'Epub'
   | 'Wiki.js'
   | 'Yuque'
+  | 'Siyuan'
+  | 'MinDoc'
   | 'Feishu'
   | 'Confluence';
 
@@ -631,7 +633,7 @@ export type ConversationDistributionItem = {
 
 // ============================================》license
 export type LicenseInfo = {
-  edition: 0 | 1 | 2
-  expired_at: number
-  started_at: number
-}
+  edition: 0 | 1 | 2;
+  expired_at: number;
+  started_at: number;
+};

@@ -7,6 +7,7 @@ import (
 
 const (
 	SettingKeySystemPrompt = "system_prompt"
+	SettingBlockWords      = "block_words"
 )
 
 // table: settings
