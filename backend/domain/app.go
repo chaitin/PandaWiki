@@ -108,6 +108,13 @@ type AppSettings struct {
 	DocumentFeedBackIsEnabled *bool `json:"document_feedback_is_enabled,omitempty"`
 	// AI feedback
 	AIFeedbackSettings AIFeedbackSettings `json:"ai_feedback_settings"`
+	// WebAppCustomStyle
+	WebAppCustomSettings WebAppCustomSettings `json:"web_app_custom_style"`
+}
+
+type WebAppCustomSettings struct {
+	AllowThemeSwitching *bool  `json:"allow_theme_switching"`
+	HeaderPlaceholder   string `json:"header_search_placeholder"`
 }
 
 type WebAppCommentSettings struct {
@@ -243,7 +250,9 @@ type AppSettingsResp struct {
 	// document feedback
 	DocumentFeedBackIsEnabled *bool `json:"document_feedback_is_enabled,omitempty"`
 	// AI feedback
-	AIFeedbackSettings AIFeedbackSettings `json:"ai_feedback_settings,omitempty"`
+	AIFeedbackSettings AIFeedbackSettings `json:"ai_feedback_settings"`
+	// WebAppCustomStyle
+	WebAppCustomSettings WebAppCustomSettings `json:"web_app_custom_style"`
 }
 
 func (s *AppSettingsResp) Scan(value any) error {
