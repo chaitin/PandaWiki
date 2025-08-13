@@ -54,7 +54,6 @@ export enum DomainModelType {
 }
 
 export enum DomainModelProvider {
-  /** 智谱 */
   ModelProviderBrandOpenAI = "OpenAI",
   ModelProviderBrandOllama = "Ollama",
   ModelProviderBrandDeepSeek = "DeepSeek",
@@ -66,6 +65,7 @@ export enum DomainModelProvider {
   ModelProviderBrandBaiLian = "BaiLian",
   ModelProviderBrandVolcengine = "Volcengine",
   ModelProviderBrandGemini = "Gemini",
+  /** 智谱 */
   ModelProviderBrandZhiPu = "ZhiPu",
   ModelProviderBrandOther = "Other",
 }
@@ -848,6 +848,12 @@ export interface DomainShareConversationMessage {
   role?: SchemaRoleType;
 }
 
+export interface DomainSiYuanResp {
+  content?: string;
+  id?: number;
+  title?: string;
+}
+
 export interface DomainSimpleAuth {
   enabled?: boolean;
   password?: string;
@@ -1048,6 +1054,16 @@ export interface PostApiV1CrawlerConfluenceAnalysisExportFilePayload {
 }
 
 export interface PostApiV1CrawlerEpubConvertPayload {
+  /**
+   * file
+   * @format binary
+   */
+  file: File;
+  /** kb_id */
+  kb_id: string;
+}
+
+export interface PostApiV1CrawlerSiyuanAnalysisExportFilePayload {
   /**
    * file
    * @format binary

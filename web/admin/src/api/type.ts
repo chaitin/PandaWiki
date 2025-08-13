@@ -370,6 +370,13 @@ export type OtherSetting = {
   base_url: string;
 };
 
+export type CustomSetting = {
+  web_app_custom_style: {
+    allow_theme_switching?: boolean;
+    header_search_placeholder?: string;
+  };
+};
+
 export type AppSetting = HeaderSetting &
   WelcomeSetting &
   SEOSetting &
@@ -381,7 +388,8 @@ export type AppSetting = HeaderSetting &
   FeishuBotSetting &
   DiscordBotSetting &
   ThemeMode &
-  OtherSetting;
+  OtherSetting &
+  CustomSetting;
 
 export type RecommendNode = {
   id: string;

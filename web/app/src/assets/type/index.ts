@@ -67,6 +67,10 @@ export interface KBDetail {
     footer_settings?: FooterSetting | null;
     catalog_settings?: CatalogSetting | null;
     theme_and_style?: ThemeAndStyleSetting | null;
+    web_app_custom_style: {
+      allow_theme_switching?: boolean;
+      header_search_placeholder?: string;
+    };
   };
   recommend_nodes: RecommendNode[];
 }

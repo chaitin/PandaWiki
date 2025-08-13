@@ -1,4 +1,5 @@
 export * from './Auth'
+export * from './Block'
 export * from './Comment'
 export * from './DocumentFeedback'
 export * from './License'

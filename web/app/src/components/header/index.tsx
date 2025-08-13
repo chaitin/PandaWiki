@@ -14,6 +14,7 @@ const Header = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { mobile = false, kbDetail, catalogShow, catalogWidth } = useStore();
+  console.log(kbDetail);
   const [searchValue, setSearchValue] = useState('');
 
   const handleSearch = () => {
@@ -99,7 +100,10 @@ const Header = () => {
               value={searchValue}
               onChange={e => setSearchValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder='搜索...'
+              placeholder={
+                kbDetail?.settings?.web_app_custom_style
+                  ?.header_search_placeholder || '搜索...'
+              }
               sx={{
                 width: '300px',
                 bgcolor: 'background.default',

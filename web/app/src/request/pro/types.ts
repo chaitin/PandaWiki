@@ -263,6 +263,15 @@ export type GithubComChaitinPandaWikiProApiShareV1WecomCallbackResp = Record<
   any
 >;
 
+export interface GithubComChaitinPandaWikiProDomainBlockWords {
+  words?: string[];
+}
+
+export interface GithubComChaitinPandaWikiProDomainCreateBlockWordsReq {
+  block_words?: string[];
+  kb_id: string;
+}
+
 export interface HandlerV1DocFeedBackLists {
   data?: DomainDocumentFeedbackListItem[];
   total?: number;
@@ -271,6 +280,11 @@ export interface HandlerV1DocFeedBackLists {
 export interface GetApiProV1AuthGetParams {
   kb_id?: string;
   source_type?: "dingtalk" | "feishu" | "wecom" | "oauth" | "cas" | "ldap";
+}
+
+export interface GetApiProV1BlockParams {
+  /** knowledge base ID */
+  kb_id: string;
 }
 
 export interface GetApiProV1DocumentListParams {

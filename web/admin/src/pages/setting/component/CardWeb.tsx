@@ -13,6 +13,7 @@ import CardWebHeader from './CardWebHeader';
 import CardWebSEO from './CardWebSEO';
 import CardWebWelcome from './CardWebWelcome';
 import CardProxy from './CardProxy';
+import CardCustom from './CardCustom';
 import { DomainKnowledgeBaseDetail } from '@/request/types';
 
 interface CardWebProps {
@@ -51,6 +52,8 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
       <CardProxy kb={kb} refresh={refresh} />
       <Divider sx={{ my: 2 }} />
       <CardBasicInfo kb={kb} refresh={refresh} />
+      <Divider sx={{ my: 2 }} />
+      <CardCustom></CardCustom>
       <Divider sx={{ my: 2 }} />
       <CardAuth kb={kb} refresh={refresh} />
       <Divider sx={{ my: 2 }} />

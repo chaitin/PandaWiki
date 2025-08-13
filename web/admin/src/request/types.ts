@@ -186,6 +186,8 @@ export interface DomainAppSettings {
   title?: string;
   /** webapp comment settings */
   web_app_comment_settings?: DomainWebAppCommentSettings;
+  /** WebAppCustomStyle */
+  web_app_custom_style?: DomainWebAppCustomSettings;
   wechat_app_agent_id?: string;
   wechat_app_corpid?: string;
   wechat_app_encodingaeskey?: string;
@@ -251,6 +253,8 @@ export interface DomainAppSettingsResp {
   title?: string;
   /** webapp comment settings */
   web_app_comment_settings?: DomainWebAppCommentSettings;
+  /** WebAppCustomStyle */
+  web_app_custom_style?: DomainWebAppCustomSettings;
   wechat_app_agent_id?: string;
   wechat_app_corpid?: string;
   wechat_app_encodingaeskey?: string;
@@ -953,6 +957,11 @@ export interface DomainUserListItemResp {
 export interface DomainWebAppCommentSettings {
   is_enable?: boolean;
   moderation_enable?: boolean;
+}
+
+export interface DomainWebAppCustomSettings {
+  allow_theme_switching?: boolean;
+  header_search_placeholder?: string;
 }
 
 export interface DomainWidgetBotSettings {
