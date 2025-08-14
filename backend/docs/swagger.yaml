@@ -160,6 +160,10 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.WebAppCommentSettings'
         description: webapp comment settings
+      web_app_custom_style:
+        allOf:
+        - $ref: '#/definitions/domain.WebAppCustomSettings'
+        description: WebAppCustomStyle
       wechat_app_agent_id:
         type: string
       wechat_app_corpid:
@@ -280,6 +284,10 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.WebAppCommentSettings'
         description: webapp comment settings
+      web_app_custom_style:
+        allOf:
+        - $ref: '#/definitions/domain.WebAppCustomSettings'
+        description: WebAppCustomStyle
       wechat_app_agent_id:
         type: string
       wechat_app_corpid:
@@ -1685,6 +1693,13 @@ definitions:
         type: boolean
       moderation_enable:
         type: boolean
+    type: object
+  domain.WebAppCustomSettings:
+    properties:
+      allow_theme_switching:
+        type: boolean
+      header_search_placeholder:
+        type: string
     type: object
   domain.WidgetBotSettings:
     properties:

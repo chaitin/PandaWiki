@@ -412,6 +412,8 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		DocumentFeedBackIsEnabled: app.Settings.DocumentFeedBackIsEnabled,
 		// AI Feedback
 		AIFeedbackSettings: app.Settings.AIFeedbackSettings,
+		// WebApp Custom Settings
+		WebAppCustomSettings: app.Settings.WebAppCustomSettings,
 	}
 	// init ai feedback string
 	if app.Settings.AIFeedbackSettings.AIFeedbackType == nil {
@@ -464,6 +466,8 @@ func (u *AppUsecase) GetWebAppInfo(ctx context.Context, kbID string) (*domain.Ap
 			DocumentFeedBackIsEnabled: app.Settings.DocumentFeedBackIsEnabled,
 			// AI Feedback
 			AIFeedbackSettings: app.Settings.AIFeedbackSettings,
+			// WebApp Custom Settings
+			WebAppCustomSettings: app.Settings.WebAppCustomSettings,
 		},
 	}
 	// init ai feedback string
