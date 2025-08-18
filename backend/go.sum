@@ -125,8 +125,8 @@ github.com/certifi/gocertifi v0.0.0-20190105021004-abcd57078448/go.mod h1:GJKEex
 github.com/cespare/xxhash/v2 v2.1.2/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/chaitin/ModelKit v1.4.0 h1:JOSGA9UwJ+UKxIrUAtcwlzuRVcWSTtBqArwOkw3PEwc=
-github.com/chaitin/ModelKit v1.4.0/go.mod h1:IRTq/CXbuk8/Gr3Gy/78ZDBTN7HMmxW7YvRjrfW9jdA=
+github.com/chaitin/ModelKit v1.4.1 h1:mxTiB3Wye9brAbri/rdmFl+8eIcyp2iOMh5g8xA6ZNU=
+github.com/chaitin/ModelKit v1.4.1/go.mod h1:IRTq/CXbuk8/Gr3Gy/78ZDBTN7HMmxW7YvRjrfW9jdA=
 github.com/chaitin/pandawiki/sdk/rag v0.0.0-20250603120336-22cceff60479 h1:Hs9v1MlfLUR0BVXnLzWecCL2srSYD0tgC7hVQOer8rg=
 github.com/chaitin/pandawiki/sdk/rag v0.0.0-20250603120336-22cceff60479/go.mod h1:c9cq9DFEaqynk1avg8CSOhZZOClQI1LmhCo8v7NAN3w=
 github.com/chyroc/lark v0.0.113 h1:sIW5lTCzx8DUietWfX0XTuh6BgosVT34n5HUED9pk38=
