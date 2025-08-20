@@ -36,8 +36,8 @@ importers:
         specifier: ^1.1.2
         version: 1.1.2
       '@yu-cq/tiptap':
-        specifier: 0.2.4
-        version: 0.2.4(@tiptap/extension-code-block@3.1.0(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0))(@tiptap/extension-drag-handle@3.0.9(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/extension-collaboration@2.14.0(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0)(y-prosemirror@1.3.5(prosemirror-model@1.25.1)(prosemirror-state@1.4.3)(prosemirror-view@1.39.3)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27)))(@tiptap/extension-node-range@3.0.9(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0)(@tiptap/y-tiptap@3.0.0(prosemirror-model@1.25.1)(prosemirror-state@1.4.3)(prosemirror-view@1.39.3)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27)))(@types/react@19.1.4)(emojibase@16.0.0)(happy-dom@18.0.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: 0.2.7
+        version: 0.2.7(@tiptap/extension-code-block@3.1.0(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0))(@tiptap/extension-drag-handle@3.0.9(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/extension-collaboration@2.14.0(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0)(y-prosemirror@1.3.5(prosemirror-model@1.25.1)(prosemirror-state@1.4.3)(prosemirror-view@1.39.3)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27)))(@tiptap/extension-node-range@3.0.9(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0)(@tiptap/y-tiptap@3.0.0(prosemirror-model@1.25.1)(prosemirror-state@1.4.3)(prosemirror-view@1.39.3)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27)))(@types/react@19.1.4)(emojibase@16.0.0)(happy-dom@18.0.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       ahooks:
         specifier: ^3.9.0
         version: 3.9.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -1515,8 +1515,8 @@ packages:
   '@vscode/markdown-it-katex@1.1.2':
     resolution: {integrity: sha512-+4IIv5PgrmhKvW/3LpkpkGg257OViEhXkOOgCyj5KMsjsOfnRXkni8XAuuF9Ui5p3B8WnUovlDXAQNb8RJ/RaQ==}
 
-  '@yu-cq/tiptap@0.2.4':
-    resolution: {integrity: sha512-TvfPqC6gxhpzBECOROT0DSbfNIiTj7rJGJsIbVLvyAnK3EFuoWddmTp3eDyB/KHcxUGc1YYKz21Yy938mUdnIw==}
+  '@yu-cq/tiptap@0.2.7':
+    resolution: {integrity: sha512-6o1TfxXBKJSfVbiT7iJfrQm5EZTGR26qlDMyj6KgJf9anUI7EYq/WDU9MooYqfh3dYbj39LbQkM//zxklkSxZg==}
     peerDependencies:
       react: '>=16.9.0'
       react-dom: '>=16.9.0'
@@ -5496,7 +5496,7 @@ snapshots:
     dependencies:
       katex: 0.16.22
 
-  '@yu-cq/tiptap@0.2.4(@tiptap/extension-code-block@3.1.0(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0))(@tiptap/extension-drag-handle@3.0.9(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/extension-collaboration@2.14.0(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0)(y-prosemirror@1.3.5(prosemirror-model@1.25.1)(prosemirror-state@1.4.3)(prosemirror-view@1.39.3)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27)))(@tiptap/extension-node-range@3.0.9(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0)(@tiptap/y-tiptap@3.0.0(prosemirror-model@1.25.1)(prosemirror-state@1.4.3)(prosemirror-view@1.39.3)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27)))(@types/react@19.1.4)(emojibase@16.0.0)(happy-dom@18.0.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
+  '@yu-cq/tiptap@0.2.7(@tiptap/extension-code-block@3.1.0(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0))(@tiptap/extension-drag-handle@3.0.9(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/extension-collaboration@2.14.0(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0)(y-prosemirror@1.3.5(prosemirror-model@1.25.1)(prosemirror-state@1.4.3)(prosemirror-view@1.39.3)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27)))(@tiptap/extension-node-range@3.0.9(@tiptap/core@3.1.0(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0))(@tiptap/pm@3.1.0)(@tiptap/y-tiptap@3.0.0(prosemirror-model@1.25.1)(prosemirror-state@1.4.3)(prosemirror-view@1.39.3)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27)))(@types/react@19.1.4)(emojibase@16.0.0)(happy-dom@18.0.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@emotion/react': 11.14.0(@types/react@19.1.4)(react@19.1.1)
       '@emotion/styled': 11.14.1(@emotion/react@11.14.0(@types/react@19.1.4)(react@19.1.1))(@types/react@19.1.4)(react@19.1.1)
