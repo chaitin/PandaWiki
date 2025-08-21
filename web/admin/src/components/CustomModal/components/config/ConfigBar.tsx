@@ -1,19 +1,28 @@
 import { Stack } from '@mui/material';
 import { Dispatch, SetStateAction } from 'react';
-import { Component } from '../index';
+import { Component } from '../../index';
+import { DomainAppDetailResp } from '@/request/types';
 
 interface ConfigBarProps {
   curComponent: string;
   components: Component[];
   setIsEdit: Dispatch<SetStateAction<boolean>>;
+  data: DomainAppDetailResp | null | undefined;
+  isEdit: boolean;
 }
-const ConfigBar = ({ curComponent, components, setIsEdit }: ConfigBarProps) => {
+const ConfigBar = ({
+  curComponent,
+  components,
+  setIsEdit,
+  data,
+  isEdit,
+}: ConfigBarProps) => {
   const curConfig = components.find(c => c.name === curComponent);
   return (
     <Stack
       sx={{
-        width: '324px',
-        minWidth: '324px',
+        width: '400px',
+        minWidth: '400px',
         bgcolor: '#FFFFFF',
         borderLeft: '1px solid #ECEEF1',
         paddingTop: '19px',
@@ -33,7 +42,11 @@ const ConfigBar = ({ curComponent, components, setIsEdit }: ConfigBarProps) => {
             pb: 4,
           }}
         >
-          <curConfig.component {...curConfig.props} setIsEdit={setIsEdit} />
+          <curConfig.component
+            setIsEdit={setIsEdit}
+            data={data}
+            isEdit={isEdit}
+          />
         </Stack>
       ) : null}
     </Stack>

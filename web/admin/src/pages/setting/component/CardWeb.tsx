@@ -90,7 +90,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
           });
         }}
       />
-      <CardFooter
+      {/* <CardFooter
         id={info.id}
         data={info}
         refresh={value => {
@@ -105,7 +105,7 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
             },
           });
         }}
-      />
+      /> */}
       <CardWebWelcome
         id={info.id}
         data={info}

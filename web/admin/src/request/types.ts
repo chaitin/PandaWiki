@@ -1037,6 +1037,14 @@ export interface DomainSimpleAuth {
   password?: string;
 }
 
+export interface DomainSocialMediaAccount {
+  channel?: string;
+  icon?: string;
+  link?: string;
+  phone?: string;
+  text?: string;
+}
+
 export interface DomainSource {
   obj_token?: string;
   obj_type?: number;
@@ -1113,7 +1121,10 @@ export interface DomainWebAppCommentSettings {
 
 export interface DomainWebAppCustomSettings {
   allow_theme_switching?: boolean;
+  footer_show_intro?: boolean;
   header_search_placeholder?: string;
+  show_brand_info?: boolean;
+  social_media_accounts?: DomainSocialMediaAccount[];
 }
 
 export interface DomainWidgetBotSettings {

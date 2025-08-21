@@ -35,6 +35,7 @@ declare module '@mui/material/styles' {
   interface TypeBackground {
     paper0?: string;
     paper2?: string;
+    footer: string;
   }
 }
 
@@ -70,6 +71,7 @@ const lightThemeOptions = [
         paper0: '#F1F2F8',
         paper: '#FFFFFF',
         paper2: '#F8F9FA',
+        footer: '#14141B',
       },
       text: {
         primary: '#21222D',
@@ -267,6 +269,7 @@ const darkThemeOptions = [
         paper0: '#141923',
         paper: '#141923',
         paper2: '#202531',
+        footer: '#242425',
       },
       text: {
         primary: '#FFFFFF',

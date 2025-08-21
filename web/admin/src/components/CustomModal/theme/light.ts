@@ -66,6 +66,7 @@ const light = {
     paper0: '#F1F2F8',
     paper: '#FFFFFF',
     paper2: '#F8F9FA',
+
     default: '#FFFFFF',
     chip: '#FFFFFF',
     circle: '#E6E8EC',
@@ -123,6 +124,7 @@ const lightTheme = {
     ...light.background,
     default: '#fff',
     paper: '#F8F9FA',
+    footer: '#14141B',
   },
   text: {
     ...light.text,
@@ -133,4 +135,4 @@ const lightTheme = {
   },
   divider: '#ECEEF1',
 };
-export default light;
+export default lightTheme;
