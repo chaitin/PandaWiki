@@ -9,6 +9,10 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { IconPhone, IconWechat } from '../icons';
 import Overlay from './Overlay';
+import { useStore } from '@/provider';
+import { IconWechat, IconPhone } from '../icons';
+import Overlay from './Overlay';
+import { useState } from 'react';
 
 const Footer = ({
   showBrand = true,

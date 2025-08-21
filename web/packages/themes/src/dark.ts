@@ -46,6 +46,7 @@ const darkPalette: PaletteOptions = {
     paper: '#141923',
     paper2: '#141923',
     paper3: '#202531',
+    footer: '#242425',
   },
   text: {
     primary: '#FFFFFF',

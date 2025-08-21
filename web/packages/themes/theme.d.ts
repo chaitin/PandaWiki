@@ -40,5 +40,6 @@ declare module '@mui/material/styles' {
   interface TypeBackground {
     paper2?: string;
     paper3?: string;
+    footer?: string;
   }
 }
