@@ -45,6 +45,7 @@ const lightPalette: PaletteOptions = {
     paper: '#FFFFFF',
     paper2: '#F1F2F8',
     paper3: '#F8F9FA',
+    footer: '#14141B',
   },
   text: {
     primary: '#21222D',

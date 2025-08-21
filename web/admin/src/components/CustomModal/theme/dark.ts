@@ -66,6 +66,7 @@ const dark = {
     chip: 'rgba(145,147,171,0.16)',
     circle: '#3B476A',
     focus: '#542996',
+    footer: '#242425',
   },
   common: {},
   shadows: 'transparent',
