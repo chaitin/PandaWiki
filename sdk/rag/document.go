@@ -14,8 +14,8 @@ import (
 )
 
 // UploadDocuments 上传文档（支持多文件和权限设置）
-func (c *Client) UploadDocumentsAndParse(ctx context.Context, datasetID string, filePaths []string, groupIDs []int) ([]Document, error) {
-	documents, err := c.UploadDocuments(ctx, datasetID, filePaths, groupIDs)
+func (c *Client) UploadDocumentsAndParse(ctx context.Context, datasetID string, filePaths []string) ([]Document, error) {
+	documents, err := c.UploadDocuments(ctx, datasetID, filePaths)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (c *Client) UploadDocumentsAndParse(ctx context.Context, datasetID string, 
 }
 
 // UploadDocuments 上传文档（支持多文件和权限设置）
-func (c *Client) UploadDocuments(ctx context.Context, datasetID string, filePaths []string, groupIDs []int) ([]Document, error) {
+func (c *Client) UploadDocuments(ctx context.Context, datasetID string, filePaths []string) ([]Document, error) {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 	for _, path := range filePaths {
@@ -55,16 +55,6 @@ func (c *Client) UploadDocuments(ctx context.Context, datasetID string, filePath
 		}
 	}
 
-	// 添加 group_ids
-	if len(groupIDs) > 0 {
-		gids, err := json.Marshal(groupIDs)
-		if err != nil {
-			return nil, err
-		}
-		if err := w.WriteField("group_ids", string(gids)); err != nil {
-			return nil, err
-		}
-	}
 	w.Close()
 
 	urlPath := fmt.Sprintf("datasets/%s/documents", datasetID)
@@ -191,13 +181,12 @@ func (c *Client) UpdateDocumentsGroupIDsBatch(ctx context.Context, datasetID str
 }
 
 // UploadDocumentText 上传文本内容为文档
-// jsonStr 形如 {"filename": "xxx.txt", "content": "...", "file_type": "text/plain", "group_ids": [1,2,3]}
+// jsonStr 形如 {"filename": "xxx.txt", "content": "...", "file_type": "text/plain"}
 func (c *Client) UploadDocumentText(ctx context.Context, datasetID string, jsonStr string) ([]Document, error) {
 	type input struct {
 		Filename string `json:"filename"`
 		Content  string `json:"content"`
 		FileType string `json:"file_type"`
-		GroupIDs []int  `json:"group_ids,omitempty"`
 	}
 	var in input
 	if err := json.Unmarshal([]byte(jsonStr), &in); err != nil {
@@ -267,17 +256,6 @@ func (c *Client) UploadDocumentText(ctx context.Context, datasetID string, jsonS
 	// 添加文件类型
 	if err := w.WriteField("file_type", in.FileType); err != nil {
 		return nil, err
-	}
-
-	// 添加 group_ids
-	if len(in.GroupIDs) > 0 {
-		gids, err := json.Marshal(in.GroupIDs)
-		if err != nil {
-			return nil, err
-		}
-		if err := w.WriteField("group_ids", string(gids)); err != nil {
-			return nil, err
-		}
 	}
 
 	w.Close()
