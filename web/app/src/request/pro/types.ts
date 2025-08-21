@@ -43,6 +43,7 @@ export enum ConstsSourceType {
   SourceTypeWechatServiceBot = "wechat_service_bot",
   SourceTypeDiscordBot = "discord_bot",
   SourceTypeWechatOfficialAccount = "wechat_official_account",
+  SourceTypeOpenAIAPI = "openai_api",
 }
 
 /** @format int32 */
@@ -461,7 +462,8 @@ export interface GetApiProV1AuthGetParams {
     | "wechat_bot"
     | "wechat_service_bot"
     | "discord_bot"
-    | "wechat_official_account";
+    | "wechat_official_account"
+    | "openai_api";
 }
 
 export interface DeleteApiProV1AuthGroupDeleteParams {

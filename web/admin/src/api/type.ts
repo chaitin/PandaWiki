@@ -273,7 +273,7 @@ export type WechatOfficeAccountSetting = {
 
 export type WecomBotSetting = {
   wechat_app_is_enabled: boolean;
-  wechat_app_agent_id: number;
+  wechat_app_agent_id: string;
   wechat_app_secret: string;
   wechat_app_token: string;
   wechat_app_encodingaeskey: string;
@@ -373,8 +373,18 @@ export type CustomSetting = {
   web_app_custom_style: {
     allow_theme_switching?: boolean;
     header_search_placeholder?: string;
+    show_brand_info?: boolean;
+    social_media_accounts?: DomainSocialMediaAccount[];
+    footer_show_intro?: boolean;
   };
 };
+export interface DomainSocialMediaAccount {
+  channel?: string;
+  icon?: string;
+  link?: string;
+  text?: string;
+  phone?: string;
+}
 
 export type AppSetting = HeaderSetting &
   WelcomeSetting &

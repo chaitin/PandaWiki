@@ -1,5 +1,5 @@
 import { AppDetail, HeaderSetting } from '@/api';
-import DragBtn from './DragBtn';
+import DragBtn from '../basicComponents/DragBtn';
 import UploadFile from '@/components/UploadFile';
 import { Stack, Box, TextField } from '@mui/material';
 import { Icon } from '@ctzhian/ui';
@@ -9,13 +9,12 @@ import { useAppDispatch, useAppSelector } from '@/store';
 import { setAppPreviewData } from '@/store/slices/config';
 
 interface CardWebHeaderProps {
-  id?: string;
   data?: AppDetail | null;
   setIsEdit: Dispatch<SetStateAction<boolean>>;
-  refresh: (value: HeaderSetting) => void;
+  isEdit: boolean;
 }
 
-const HeaderConfig = ({ data, setIsEdit }: CardWebHeaderProps) => {
+const HeaderConfig = ({ data, setIsEdit, isEdit }: CardWebHeaderProps) => {
   const { appPreviewData } = useAppSelector(state => state.config);
   const dispatch = useAppDispatch();
   const {
@@ -58,7 +57,21 @@ const HeaderConfig = ({ data, setIsEdit }: CardWebHeaderProps) => {
   };
 
   useEffect(() => {
-    if (data?.settings) {
+    if (isEdit && appPreviewData) {
+      setValue('title', appPreviewData?.settings?.title || '');
+      setValue('icon', appPreviewData?.settings?.icon || '');
+      setValue('btns', appPreviewData.settings?.btns || []);
+      setValue(
+        'header_search_placeholder',
+        appPreviewData?.settings?.web_app_custom_style
+          ?.header_search_placeholder || '',
+      );
+      setValue(
+        'allow_theme_switching',
+        appPreviewData?.settings?.web_app_custom_style?.allow_theme_switching ||
+          false,
+      );
+    } else if (data?.settings) {
       setValue('title', data.settings?.title || '');
       setValue('icon', data.settings?.icon || '');
       setValue('btns', data.settings?.btns || []);
@@ -83,6 +96,7 @@ const HeaderConfig = ({ data, setIsEdit }: CardWebHeaderProps) => {
         btns: btns,
         icon: icon,
         web_app_custom_style: {
+          ...appPreviewData?.settings?.web_app_custom_style,
           header_search_placeholder: header_search_placeholder,
           allow_theme_switching: allow_theme_switching,
         },
@@ -252,6 +266,7 @@ const HeaderConfig = ({ data, setIsEdit }: CardWebHeaderProps) => {
           </Box>
           <Box>
             <DragBtn
+              control={control}
               data={btns}
               onChange={btns => {
                 setValue('btns', btns);
@@ -261,43 +276,6 @@ const HeaderConfig = ({ data, setIsEdit }: CardWebHeaderProps) => {
             />
           </Box>
         </Stack>
-        {/* <Stack direction={'column'} gap={2}>
-          <Controller
-            control={control}
-            name='allow_theme_switching'
-            render={({ field }) => (
-              <Box
-                sx={{
-                  fontSize: 14,
-                  lineHeight: '22px',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  '&::before': {
-                    content: '""',
-                    display: 'inline-block',
-                    width: 4,
-                    height: 12,
-                    bgcolor: '#3248F2',
-                    borderRadius: '2px',
-                    mr: 1,
-                  },
-                }}
-              >
-                是否允许切换主题
-                <Switch
-                  sx={{ marginLeft: 'auto' }}
-                  {...field}
-                  checked={field.value}
-                  onChange={e => {
-                    field.onChange(e.target.checked);
-                    setIsEdit(true);
-                  }}
-                ></Switch>
-              </Box>
-            )}
-          />
-        </Stack> */}
       </Stack>
     </>
   );

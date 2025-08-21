@@ -19,15 +19,16 @@ import { Stack } from '@mui/material';
 import { Dispatch, FC, SetStateAction, useCallback, useState } from 'react';
 import Item from './Item';
 import SortableItem from './SortableItem';
+import { Control } from 'react-hook-form';
 
 interface DragBtnProps {
   data: CardWebHeaderBtn[];
-  columns?: number;
   onChange: (data: CardWebHeaderBtn[]) => void;
   setIsEdit: Dispatch<SetStateAction<boolean>>;
+  control: Control<any>;
 }
 
-const DragBtn: FC<DragBtnProps> = ({ data, onChange, setIsEdit }) => {
+const DragBtn: FC<DragBtnProps> = ({ data, onChange, setIsEdit, control }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor));
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -37,25 +38,25 @@ const DragBtn: FC<DragBtnProps> = ({ data, onChange, setIsEdit }) => {
     (event: DragEndEvent) => {
       const { active, over } = event;
       if (active.id !== over?.id) {
-        const oldIndex = data.findIndex((item) => item.id === active.id);
-        const newIndex = data.findIndex((item) => item.id === over!.id);
+        const oldIndex = data.findIndex(item => item.id === active.id);
+        const newIndex = data.findIndex(item => item.id === over!.id);
         const newData = arrayMove(data, oldIndex, newIndex);
         onChange(newData);
       }
 
       setActiveId(null);
     },
-    [data, onChange]
+    [data, onChange],
   );
   const handleDragCancel = useCallback(() => {
     setActiveId(null);
   }, []);
   const handleRemove = useCallback(
     (id: string) => {
-      const newData = data.filter((item) => item.id !== id);
+      const newData = data.filter(item => item.id !== id);
       onChange(newData);
     },
-    [data, onChange]
+    [data, onChange],
   );
 
   if (data.length === 0) return null;
@@ -69,7 +70,7 @@ const DragBtn: FC<DragBtnProps> = ({ data, onChange, setIsEdit }) => {
       onDragCancel={handleDragCancel}
     >
       <SortableContext
-        items={data.map((item) => item.id)}
+        items={data.map(item => item.id)}
         strategy={rectSortingStrategy}
       >
         <Stack direction={'row'} flexWrap={'wrap'} gap={2}>
@@ -81,6 +82,7 @@ const DragBtn: FC<DragBtnProps> = ({ data, onChange, setIsEdit }) => {
               handleRemove={handleRemove}
               setIsEdit={setIsEdit}
               data={data}
+              control={control}
             />
           ))}
         </Stack>
@@ -89,9 +91,10 @@ const DragBtn: FC<DragBtnProps> = ({ data, onChange, setIsEdit }) => {
         {activeId ? (
           <Item
             isDragging
-            item={data.find((item) => item.id === activeId)!}
+            item={data.find(item => item.id === activeId)!}
             setIsEdit={setIsEdit}
             data={data}
+            control={control}
           />
         ) : null}
       </DragOverlay>

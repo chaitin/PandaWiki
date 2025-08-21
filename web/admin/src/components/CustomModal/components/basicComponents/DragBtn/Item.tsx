@@ -22,9 +22,9 @@ import {
   SetStateAction,
   useEffect,
 } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Control, Controller, useForm } from 'react-hook-form';
 
-export type ItemProps = HTMLAttributes<HTMLDivElement> & {
+export type ItemProps = Omit<HTMLAttributes<HTMLDivElement>, 'onChange'> & {
   item: CardWebHeaderBtn;
   withOpacity?: boolean;
   isDragging?: boolean;
@@ -32,6 +32,7 @@ export type ItemProps = HTMLAttributes<HTMLDivElement> & {
   handleRemove?: (id: string) => void;
   setIsEdit: Dispatch<SetStateAction<boolean>>;
   data: CardWebHeaderBtn[];
+  control: Control<any>;
 };
 
 const Item = forwardRef<HTMLDivElement, ItemProps>(
@@ -44,7 +45,8 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
       dragHandleProps,
       handleRemove,
       setIsEdit,
-      data,
+      data: btns,
+      control,
       ...props
     },
     ref,
@@ -58,28 +60,6 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
       backgroundColor: '#ffffff',
       ...style,
     };
-    const { control, setValue, watch } = useForm<{ btns: CardWebHeaderBtn[] }>({
-      defaultValues: {
-        btns: [],
-      },
-    });
-    const btns = watch('btns');
-    useEffect(() => {
-      if (data) {
-        setValue('btns', data);
-      }
-    }, [data]);
-    useEffect(() => {
-      if (!appPreviewData) return;
-      const previewData = {
-        ...appPreviewData,
-        settings: {
-          ...appPreviewData.settings,
-          btns: btns,
-        },
-      };
-      dispatch(setAppPreviewData(previewData));
-    }, [btns]);
     return (
       <Box ref={ref} style={inlineStyles} {...props}>
         <Stack
@@ -93,8 +73,8 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
             border: '1px solid',
             borderColor: 'divider',
             borderRadius: '10px',
-            height: '244px',
-            width: '276px',
+            height: '234px',
+            width: '346px',
           }}
         >
           <Controller
@@ -124,11 +104,9 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                         label='按钮样式'
                         onChange={e => {
                           const newBtns = [
-                            // @ts-expect-error 类型不匹配
                             ...(appPreviewData?.settings.btns || []),
                           ];
                           const index = newBtns.findIndex(
-                            // @ts-expect-error 类型不匹配
                             (btn: CardWebHeaderBtn) => btn.id === curBtn.id,
                           );
                           newBtns[index] = {
@@ -139,7 +117,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                           setIsEdit(true);
                         }}
                         sx={{
-                          width: '114px',
+                          width: '144px',
                           height: '36px',
                         }}
                       >
@@ -166,11 +144,9 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                         label='打开方式'
                         onChange={e => {
                           const newBtns = [
-                            // @ts-expect-error 类型不匹配
                             ...(appPreviewData?.settings.btns || []),
                           ];
                           const index = newBtns.findIndex(
-                            // @ts-expect-error 类型不匹配
                             (btn: CardWebHeaderBtn) => btn.id === curBtn.id,
                           );
                           newBtns[index] = {
@@ -181,7 +157,7 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                           setIsEdit(true);
                         }}
                         sx={{
-                          width: '114px',
+                          width: '144px',
                           height: '36px',
                         }}
                       >
@@ -198,11 +174,9 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                         checked={curBtn.showIcon}
                         onChange={e => {
                           const newBtns = [
-                            // @ts-expect-error 类型不匹配
                             ...(appPreviewData?.settings.btns || []),
                           ];
                           const index = newBtns.findIndex(
-                            // @ts-expect-error 类型不匹配
                             (btn: CardWebHeaderBtn) => btn.id === curBtn.id,
                           );
                           newBtns[index] = {
@@ -226,13 +200,10 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                       width={36}
                       value={curBtn.icon}
                       onChange={(url: string) => {
-                        console.log(url);
                         const newBtns = [
-                          // @ts-expect-error 类型不匹配
                           ...(appPreviewData?.settings.btns || []),
                         ];
                         const index = newBtns.findIndex(
-                          // @ts-expect-error 类型不匹配
                           (btn: CardWebHeaderBtn) => btn.id === curBtn.id,
                         );
                         newBtns[index] = { ...curBtn, icon: url };
@@ -243,8 +214,12 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                   </Stack>
                   <TextField
                     label='按钮文本'
+                    slotProps={{
+                      inputLabel: {
+                        shrink: true,
+                      },
+                    }}
                     sx={{
-                      width: '236px',
                       height: '36px',
                       '& .MuiOutlinedInput-root': {
                         height: '36px',
@@ -254,16 +229,15 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                         },
                       },
                     }}
+                    fullWidth
                     placeholder='请输入文本'
                     variant='outlined'
                     value={curBtn.text}
                     onChange={e => {
                       const newBtns = [
-                        // @ts-expect-error 类型不匹配
                         ...(appPreviewData?.settings.btns || []),
                       ];
                       const index = newBtns.findIndex(
-                        // @ts-expect-error 类型不匹配
                         (btn: CardWebHeaderBtn) => btn.id === curBtn.id,
                       );
                       newBtns[index] = { ...curBtn, text: e.target.value };
@@ -273,8 +247,12 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                   />
                   <TextField
                     label='按钮链接'
+                    slotProps={{
+                      inputLabel: {
+                        shrink: true,
+                      },
+                    }}
                     sx={{
-                      width: '236px',
                       height: '36px',
                       '& .MuiOutlinedInput-root': {
                         height: '36px',
@@ -284,16 +262,15 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                         },
                       },
                     }}
+                    fullWidth
                     placeholder='请输入链接'
                     value={curBtn.url}
                     variant='outlined'
                     onChange={e => {
                       const newBtns = [
-                        // @ts-expect-error 类型不匹配
                         ...(appPreviewData?.settings.btns || []),
                       ];
                       const index = newBtns.findIndex(
-                        // @ts-expect-error 类型不匹配
                         (btn: CardWebHeaderBtn) => btn.id === curBtn.id,
                       );
                       newBtns[index] = { ...curBtn, url: e.target.value };
@@ -319,10 +296,11 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
               sx={{
                 color: 'text.tertiary',
                 ':hover': { color: 'error.main' },
-                fontSize: '12px',
+                width: '28px',
+                height: '28px',
               }}
             >
-              <Icon type='icon-shanchu2' />
+              <Icon type='icon-shanchu2' sx={{ fontSize: '12px' }} />
             </IconButton>
             <IconButton
               size='small'

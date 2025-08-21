@@ -10,8 +10,8 @@ import { useState } from 'react';
 import Logo from '@/assets/images/logo.png';
 import { Icon } from '@ctzhian/ui';
 import { AppSetting } from '@/api';
-import NavBtns from './NavBtns';
-import { getButtonThemeStyle } from './buttonThemeUtils';
+import NavBtns from '../basicComponents/NavBtns';
+import { getButtonThemeStyle } from '../basicComponents/buttonThemeUtils';
 
 interface HeaderProps {
   settings: Partial<AppSetting>;
@@ -36,8 +36,7 @@ const Header = ({ settings, renderMode }: HeaderProps) => {
       sx={{
         position: 'relative',
         zIndex: 10,
-        pr: 5,
-        pl: 5,
+        paddingX: '15%',
         height: 64,
         bgcolor: 'background.default',
         borderBottom: '1px solid',

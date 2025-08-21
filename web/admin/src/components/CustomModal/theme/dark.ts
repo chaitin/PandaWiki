@@ -119,6 +119,7 @@ const darkTheme = {
     ...dark.background,
     default: '#141923',
     paper: '#202531',
+    footer: '#242425',
   },
   text: {
     ...dark.text,

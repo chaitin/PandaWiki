@@ -1,7 +1,7 @@
 import { MenuItem, Select, Stack, Typography } from '@mui/material';
 import { Icon } from '@ctzhian/ui';
 import { Dispatch, SetStateAction } from 'react';
-import { Component } from '../index';
+import { Component } from '../../index';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setAppPreviewData } from '@/store/slices/config';
 interface ComponentBarProps {
@@ -23,8 +23,8 @@ const ComponentBar = ({
   return (
     <Stack
       sx={{
-        width: '320px',
-        minWidth: '320px',
+        width: '20px',
+        minWidth: '200px',
         bgcolor: '#FFFFFF',
         borderRight: '1px solid #ECEEF1',
         height: '100%',

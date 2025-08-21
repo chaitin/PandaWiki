@@ -23,13 +23,15 @@ const NavBtns = ({ detail }: { detail?: Partial<AppSetting> }) => {
       <Box
         sx={{
           position: 'absolute',
+          width: '100%',
+          height: '110vh',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          zIndex: 1,
+          zIndex: 999,
           transition: 'all 0.3s ease-in-out',
-          transform: 'translateX(100%) translateY(-100%)',
+          transform: 'translateX(200%) translateY(-200%)',
           ...(open && {
             bgcolor: 'background.default',
             transform: 'translateX(0) translateY(0)',
@@ -45,7 +47,7 @@ const NavBtns = ({ detail }: { detail?: Partial<AppSetting> }) => {
           {detail?.icon && <img src={detail?.icon} alt='logo' width={32} />}
           <Box sx={{ fontSize: 18 }}>{detail?.title}</Box>
         </Stack>
-        <Stack gap={4} sx={{ px: 3, mt: 4 }}>
+        <Stack gap={4} sx={{ px: 3, mt: 4, bgcolor: 'background.default' }}>
           {detail?.btns?.map(item => (
             <Button
               key={item.id}

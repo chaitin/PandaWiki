@@ -49,6 +49,7 @@ export enum DomainModelType {
   ModelTypeChat = "chat",
   ModelTypeEmbedding = "embedding",
   ModelTypeRerank = "rerank",
+  ModelTypeAnalysis = "analysis",
 }
 
 export enum DomainMessageFrom {
@@ -73,6 +74,7 @@ export enum DomainAppType {
   AppTypeWechatServiceBot = 6,
   AppTypeDisCordBot = 7,
   AppTypeWechatOfficialAccount = 8,
+  AppTypeOpenAIAPI = 9,
 }
 
 export enum ConstsWatermarkSetting {
@@ -124,6 +126,7 @@ export enum ConstsSourceType {
   SourceTypeWechatServiceBot = "wechat_service_bot",
   SourceTypeDiscordBot = "discord_bot",
   SourceTypeWechatOfficialAccount = "wechat_official_account",
+  SourceTypeOpenAIAPI = "openai_api",
 }
 
 export enum ConstsNodePermName {
@@ -252,6 +255,8 @@ export interface DomainAppSettings {
   head_code?: string;
   icon?: string;
   keyword?: string;
+  /** OpenAI API Bot settings */
+  openai_api_bot_settings?: DomainOpenAIAPIBotSettings;
   recommend_node_ids?: string[];
   recommend_questions?: string[];
   search_placeholder?: string;
@@ -324,6 +329,8 @@ export interface DomainAppSettingsResp {
   head_code?: string;
   icon?: string;
   keyword?: string;
+  /** OpenAI API settings */
+  openai_api_bot_settings?: DomainOpenAIAPIBotSettings;
   recommend_node_ids?: string[];
   recommend_questions?: string[];
   search_placeholder?: string;
@@ -541,9 +548,9 @@ export interface DomainCreateModelReq {
   api_version?: string;
   base_url: string;
   model: string;
-  param?: DomainModelParam;
+  parameters?: DomainModelParam;
   provider: GithubComChaitinPandaWikiDomainModelProvider;
-  type: "chat" | "embedding" | "rerank";
+  type: "chat" | "embedding" | "rerank" | "analysis";
 }
 
 export interface DomainCreateNodeReq {
@@ -624,7 +631,7 @@ export interface DomainGetProviderModelListReq {
   api_key?: string;
   base_url: string;
   provider: string;
-  type: "chat" | "embedding" | "rerank";
+  type: "chat" | "embedding" | "rerank" | "analysis";
 }
 
 export interface DomainGetProviderModelListResp {
@@ -715,24 +722,6 @@ export interface DomainLink {
   url?: string;
 }
 
-export interface DomainModelDetailResp {
-  api_header?: string;
-  api_key?: string;
-  /** for azure openai */
-  api_version?: string;
-  base_url?: string;
-  completion_tokens?: number;
-  created_at?: string;
-  id?: string;
-  model?: string;
-  parameters?: DomainModelParam;
-  prompt_tokens?: number;
-  provider?: GithubComChaitinPandaWikiDomainModelProvider;
-  total_tokens?: number;
-  type?: DomainModelType;
-  updated_at?: string;
-}
-
 export interface DomainModelParam {
   context_window?: number;
   max_tokens?: number;
@@ -811,6 +800,104 @@ export interface DomainNotnionGetListReq {
 
 export interface DomainObjectUploadResp {
   key?: string;
+}
+
+export interface DomainOpenAIAPIBotSettings {
+  is_enabled?: boolean;
+  secret_key?: string;
+}
+
+export interface DomainOpenAIChoice {
+  /** for streaming */
+  delta?: DomainOpenAIMessage;
+  finish_reason?: string;
+  index?: number;
+  message?: DomainOpenAIMessage;
+}
+
+export interface DomainOpenAICompletionsRequest {
+  frequency_penalty?: number;
+  max_tokens?: number;
+  messages: DomainOpenAIMessage[];
+  model: string;
+  presence_penalty?: number;
+  response_format?: DomainOpenAIResponseFormat;
+  stop?: string[];
+  stream?: boolean;
+  temperature?: number;
+  tool_choice?: DomainOpenAIToolChoice;
+  tools?: DomainOpenAITool[];
+  top_p?: number;
+  user?: string;
+}
+
+export interface DomainOpenAICompletionsResponse {
+  choices?: DomainOpenAIChoice[];
+  created?: number;
+  id?: string;
+  model?: string;
+  object?: string;
+  usage?: DomainOpenAIUsage;
+}
+
+export interface DomainOpenAIError {
+  code?: string;
+  message?: string;
+  param?: string;
+  type?: string;
+}
+
+export interface DomainOpenAIErrorResponse {
+  error?: DomainOpenAIError;
+}
+
+export interface DomainOpenAIFunction {
+  description?: string;
+  name: string;
+  parameters?: Record<string, any>;
+}
+
+export interface DomainOpenAIFunctionCall {
+  arguments: string;
+  name: string;
+}
+
+export interface DomainOpenAIFunctionChoice {
+  name: string;
+}
+
+export interface DomainOpenAIMessage {
+  content?: string;
+  name?: string;
+  role: string;
+  tool_call_id?: string;
+  tool_calls?: DomainOpenAIToolCall[];
+}
+
+export interface DomainOpenAIResponseFormat {
+  type: string;
+}
+
+export interface DomainOpenAITool {
+  function?: DomainOpenAIFunction;
+  type: string;
+}
+
+export interface DomainOpenAIToolCall {
+  function: DomainOpenAIFunctionCall;
+  id: string;
+  type: string;
+}
+
+export interface DomainOpenAIToolChoice {
+  function?: DomainOpenAIFunctionChoice;
+  type?: string;
+}
+
+export interface DomainOpenAIUsage {
+  completion_tokens?: number;
+  prompt_tokens?: number;
+  total_tokens?: number;
 }
 
 export interface DomainPWResponse {
@@ -950,6 +1037,14 @@ export interface DomainSimpleAuth {
   password?: string;
 }
 
+export interface DomainSocialMediaAccount {
+  channel?: string;
+  icon?: string;
+  link?: string;
+  phone?: string;
+  text?: string;
+}
+
 export interface DomainSource {
   obj_token?: string;
   obj_type?: number;
@@ -972,6 +1067,7 @@ export interface DomainThemeAndStyle {
 }
 
 export interface DomainUpdateAppReq {
+  kb_id?: string;
   name?: string;
   settings?: DomainAppSettings;
 }
@@ -989,10 +1085,11 @@ export interface DomainUpdateModelReq {
   api_version?: string;
   base_url: string;
   id: string;
+  is_active?: boolean;
   model: string;
-  param?: DomainModelParam;
+  parameters?: DomainModelParam;
   provider: GithubComChaitinPandaWikiDomainModelProvider;
-  type: "chat" | "embedding" | "rerank";
+  type: "chat" | "embedding" | "rerank" | "analysis";
 }
 
 export interface DomainUpdateNodeReq {
@@ -1024,7 +1121,10 @@ export interface DomainWebAppCommentSettings {
 
 export interface DomainWebAppCustomSettings {
   allow_theme_switching?: boolean;
+  footer_show_intro?: boolean;
   header_search_placeholder?: string;
+  show_brand_info?: boolean;
+  social_media_accounts?: DomainSocialMediaAccount[];
 }
 
 export interface DomainWidgetBotSettings {
@@ -1053,7 +1153,7 @@ export interface GithubComChaitinPandaWikiDomainCheckModelReq {
   base_url: string;
   model: string;
   provider: GithubComChaitinPandaWikiDomainModelProvider;
-  type: "chat" | "embedding" | "rerank";
+  type: "chat" | "embedding" | "rerank" | "analysis";
 }
 
 export interface GithubComChaitinPandaWikiDomainCheckModelResp {
@@ -1069,6 +1169,7 @@ export interface GithubComChaitinPandaWikiDomainModelListItem {
   base_url?: string;
   completion_tokens?: number;
   id?: string;
+  is_active?: boolean;
   model?: string;
   parameters?: DomainModelParam;
   prompt_tokens?: number;
@@ -1259,6 +1360,8 @@ export interface PutApiV1AppParams {
 }
 
 export interface DeleteApiV1AppParams {
+  /** kb id */
+  kb_id: string;
   /** app id */
   id: string;
 }
@@ -1396,11 +1499,6 @@ export interface DeleteApiV1KnowledgeBaseUserDeleteParams {
 export interface GetApiV1KnowledgeBaseUserListParams {
   /** Knowledge Base ID */
   kb_id: string;
-}
-
-export interface GetApiV1ModelDetailParams {
-  /** model id */
-  id: string;
 }
 
 export interface GetApiV1NodeDetailParams {

@@ -1,4 +1,4 @@
-import { KnowledgeBaseListItem } from '@/api';
+import { AppSetting, KnowledgeBaseListItem } from '@/api';
 import { DomainLicenseResp } from '@/request/pro/types';
 import {
   DomainAppDetailResp,
@@ -17,7 +17,11 @@ export interface config {
   kb_c: boolean;
   modelStatus: boolean;
   kbDetail: DomainKnowledgeBaseDetail;
-  appPreviewData: DomainAppDetailResp | null;
+  appPreviewData:
+    | (Omit<DomainAppDetailResp, 'settings'> & {
+        settings: Partial<AppSetting>;
+      })
+    | null;
   refreshAdminRequest: () => void;
 }
 const initialState: config = {

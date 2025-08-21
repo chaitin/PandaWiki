@@ -1,5 +1,5 @@
 import { uploadFile } from '@/api';
-import { Box, IconButton, Stack } from '@mui/material';
+import { Box, IconButton, LinearProgress, Stack } from '@mui/material';
 import { Icon, message } from '@ctzhian/ui';
 import { useEffect, useRef, useState } from 'react';
 import CustomImage from '../CustomImage';
@@ -26,7 +26,10 @@ const UploadFile = ({
   disabled = false,
 }: UploadFileProps) => {
   const [preview, setPreview] = useState<string>(value);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [isUploading, setIsUploading] = useState<boolean>(false);
   const currentPreviewUrl = useRef<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setPreview(value);
@@ -39,6 +42,11 @@ const UploadFile = ({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // 如果正在上传其他文件，先取消
+    if (isUploading && abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
     if (currentPreviewUrl.current) {
       URL.revokeObjectURL(currentPreviewUrl.current);
     }
@@ -46,19 +54,31 @@ const UploadFile = ({
     const previewUrl = URL.createObjectURL(file);
     currentPreviewUrl.current = previewUrl;
     setPreview(previewUrl);
+    setUploadProgress(0);
+    setIsUploading(true);
+
+    // 创建新的 AbortController 用于取消上传
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     if (type === 'base64') {
       try {
         // 压缩并转换图片为base64
         const compressedBase64 = await compressAndConvertToBase64(file);
         onChange(compressedBase64);
+        setUploadProgress(null);
+        setIsUploading(false);
         clearInputValue();
         URL.revokeObjectURL(previewUrl);
         currentPreviewUrl.current = null;
       } catch (error) {
+        if (abortController.signal.aborted) return;
+
         console.error(error);
         message.error('图片处理失败');
         setPreview(value);
+        setUploadProgress(null);
+        setIsUploading(false);
         clearInputValue();
         URL.revokeObjectURL(previewUrl);
         currentPreviewUrl.current = null;
@@ -67,15 +87,30 @@ const UploadFile = ({
       try {
         const formData = new FormData();
         formData.append('file', file);
-        const res = await uploadFile(formData);
+        const res = await uploadFile(formData, {
+          onUploadProgress: event => {
+            setUploadProgress(event.progress);
+          },
+          abortSignal: abortController.signal,
+        });
         onChange('/static-file/' + res.key);
+        setUploadProgress(null);
+        setIsUploading(false);
         clearInputValue();
         URL.revokeObjectURL(previewUrl);
         currentPreviewUrl.current = null;
-      } catch (error) {
+      } catch (error: any) {
+        if (abortController.signal.aborted) {
+          setUploadProgress(null);
+          setIsUploading(false);
+          return;
+        }
+
         console.error(error);
         message.error('上传失败');
         setPreview(value);
+        setUploadProgress(null);
+        setIsUploading(false);
         clearInputValue();
         URL.revokeObjectURL(previewUrl);
         currentPreviewUrl.current = null;
@@ -90,20 +125,23 @@ const UploadFile = ({
     }
   };
 
-  // 组件卸载时清理临时URL
+  // 组件卸载时清理临时URL和取消上传
   useEffect(() => {
     return () => {
       if (currentPreviewUrl.current) {
         URL.revokeObjectURL(currentPreviewUrl.current);
       }
+      if (isUploading && abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
-  }, []);
+  }, [isUploading]);
 
   return (
     <Box>
       <input
         id={id || name}
-        disabled={disabled}
+        disabled={disabled || isUploading}
         type='file'
         accept={accept}
         style={{ display: 'none' }}
@@ -118,13 +156,14 @@ const UploadFile = ({
           borderRadius: '10px',
           border: '1px solid',
           borderColor: 'background.paper3',
-          cursor: 'pointer',
+          cursor: disabled || isUploading ? 'not-allowed' : 'pointer',
           bgcolor: 'background.paper3',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           overflow: 'hidden',
           position: 'relative',
+          opacity: disabled || isUploading ? 0.8 : 1,
           ':hover': {
             borderColor: 'text.primary',
             '.upload-file-img-del-icon': {
@@ -133,7 +172,26 @@ const UploadFile = ({
           },
         }}
       >
-        {preview ? (
+        {isUploading && uploadProgress !== null ? (
+          <Stack
+            width='100%'
+            height='100%'
+            justifyContent='center'
+            alignItems='center'
+            spacing={1}
+          >
+            <Box width='80%'>
+              <LinearProgress
+                variant='determinate'
+                value={uploadProgress}
+                sx={{ borderRadius: '4px' }}
+              />
+            </Box>
+            <Box width='80%' textAlign='center' fontSize={12}>
+              {uploadProgress}%
+            </Box>
+          </Stack>
+        ) : preview ? (
           <>
             <CustomImage
               src={preview}
@@ -143,6 +201,21 @@ const UploadFile = ({
               sx={{
                 objectFit: 'cover',
                 cursor: disabled ? 'not-allowed' : 'pointer',
+              }}
+            />
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                bgcolor: 'rgba(0, 0, 0, 0.3)',
+                opacity: 0,
+                transition: 'opacity 0.5s',
+                ':hover': {
+                  opacity: 1,
+                },
               }}
             />
             <IconButton
@@ -164,10 +237,7 @@ const UploadFile = ({
                 onChange('');
               }}
             >
-              <Icon
-                type='icon-icon_tool_close'
-                sx={{ color: 'text.tertiary' }}
-              />
+              <Icon type='icon-icon_tool_close' sx={{ color: '#fff' }} />
             </IconButton>
           </>
         ) : (

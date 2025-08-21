@@ -75,8 +75,18 @@ export interface KBDetail {
     web_app_custom_style: {
       allow_theme_switching?: boolean;
       header_search_placeholder?: string;
+      show_brand_info?: boolean;
+      social_media_accounts?: DomainSocialMediaAccount[];
+      footer_show_intro?: boolean;
     };
   };
+}
+export interface DomainSocialMediaAccount {
+  channel?: string;
+  icon?: string;
+  link?: string;
+  text?: string;
+  phone?: string;
 }
 
 export type WidgetInfo = {

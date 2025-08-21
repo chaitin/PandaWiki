@@ -9,10 +9,11 @@ import { DomainAppDetailResp } from '@/request/types';
 import { getApiV1AppDetail, putApiV1App } from '@/request/App';
 import { useAppSelector, useAppDispatch } from '@/store';
 import { setAppPreviewData } from '@/store/slices/config';
-import ComponentBar from './components/ComponentBar';
-import ConfigBar from './components/ConfigBar';
+import ComponentBar from './components/components/ComponentBar';
+import ConfigBar from './components/config/ConfigBar';
 import ShowContent from './components/ShowContent';
-import HeaderConfig from './components/HeaderConfig';
+import HeaderConfig from './components/config/HeaderConfig';
+import FooterConfig from './components/config/FooterConfig';
 
 interface CustomModalProps {
   open: boolean;
@@ -23,7 +24,6 @@ export interface Component {
   name: string;
   title: string;
   component: React.ComponentType<any>;
-  props?: Record<string, any>;
 }
 
 const CustomModal = ({ open, onCancel }: CustomModalProps) => {
@@ -32,24 +32,21 @@ const CustomModal = ({ open, onCancel }: CustomModalProps) => {
   const [kb, setKb] = useState<DomainKnowledgeBaseDetail | null>(null);
   const [info, setInfo] = useState<DomainAppDetailResp>();
   const [renderMode, setRenderMode] = useState<'pc' | 'mobile'>('pc');
+  const [curComponent, setCurComponent] = useState<string>('header');
+  const [isEdit, setIsEdit] = useState(false);
+  const [scale, setScale] = useState(1);
   const [components, setComponents] = useState<Component[]>([
     {
       name: 'header',
       title: '顶部导航',
       component: HeaderConfig,
-      props: {
-        id: info?.id,
-        data: info,
-      },
     },
-    // {
-    //   name: '1',
-    //   component: () => null,
-    // },
+    {
+      name: 'footer',
+      title: '底部导航',
+      component: FooterConfig,
+    },
   ]);
-  const [curComponent, setCurComponent] = useState<string>('header');
-  const [isEdit, setIsEdit] = useState(false);
-  const [scale, setScale] = useState(1);
   const appPreviewData = useAppSelector(state => state.config.appPreviewData);
 
   const refresh = (value: DomainAppDetailResp) => {
@@ -68,14 +65,16 @@ const CustomModal = ({ open, onCancel }: CustomModalProps) => {
     if (!kb) return;
     const res = await getApiV1AppDetail({ kb_id: kb.id!, type: '1' });
     setInfo(res);
-    setAppPreviewData(res);
+    dispatch(setAppPreviewData(res));
   };
   const onSubmit = () => {
     if (!info || !appPreviewData) return;
     putApiV1App(
       { id: info.id! },
+      // @ts-expect-error 类型不匹配
       { settings: { ...info.settings, ...appPreviewData.settings }, kb_id },
     ).then(() => {
+      // @ts-expect-error 类型不匹配
       refresh(appPreviewData);
       message.success('保存成功');
       setIsEdit(false);
@@ -94,24 +93,18 @@ const CustomModal = ({ open, onCancel }: CustomModalProps) => {
   };
   useEffect(() => {
     if (!info) return;
-
     dispatch(setAppPreviewData(info));
-
     setComponents([
       {
         name: 'header',
         component: HeaderConfig,
         title: '顶部导航',
-        props: {
-          id: info.id,
-          data: info,
-          setIsEdit,
-        },
       },
-      // {
-      //   name: 'footer',
-      //   component: () => null,
-      // },
+      {
+        name: 'footer',
+        title: '底部导航',
+        component: FooterConfig,
+      },
     ]);
   }, [info]);
 
@@ -285,6 +278,8 @@ const CustomModal = ({ open, onCancel }: CustomModalProps) => {
               curComponent={curComponent}
               components={components}
               setIsEdit={setIsEdit}
+              data={info as any}
+              isEdit={isEdit}
             ></ConfigBar>
           </Stack>
         </Modal>

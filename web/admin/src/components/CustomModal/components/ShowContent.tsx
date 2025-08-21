@@ -9,10 +9,15 @@ import {
 import { ThemeProvider } from '@ctzhian/ui';
 
 import { Dispatch, SetStateAction, useMemo, useState, useEffect } from 'react';
-import { AppSetting } from '@/api';
-import Header from './Header';
+import { AppDetail, AppSetting } from '@/api';
+import Header from './components/Header';
+import Footer from './components/Footer';
+import componentStyleOverrides from '@/themes/override';
+import light from '../theme/light';
+import dark from '../theme/dark';
 import { themeOptions } from '@/themes';
 import { Component } from '..';
+import { options } from './config/FooterConfig';
 
 interface ShowContentProps {
   curComponent: Component;
@@ -32,18 +37,6 @@ const ShowContent = ({
   useEffect(() => {
     setMode(appPreviewData?.settings?.theme_mode as 'light' | 'dark');
   }, [appPreviewData?.settings?.theme_mode]);
-  // @ts-expect-error 类型错误
-  const settings: Partial<AppSetting> = useMemo(() => {
-    return (
-      appPreviewData?.settings || {
-        title: '默认标题',
-        icon: '',
-        btns: [],
-        header_search_placeholder: '',
-        allow_theme_switching: false,
-      }
-    );
-  }, [appPreviewData]);
 
   // 渲染带高亮边框的组件
   const renderHighlightedComponent = (
@@ -76,13 +69,16 @@ const ShowContent = ({
             sx={{
               position: 'absolute',
               left: '-2px',
-              bottom: '-24px',
+              ...(curComponent.name === 'footer'
+                ? { top: '-24px' }
+                : { bottom: '-24px' }),
               fontWeight: 400,
               lineHeight: '22px',
               bgcolor: '#5F58FE',
               color: '#FFFFFF',
               fontSize: '14px',
               padding: '1px 16px',
+              zIndex: 20,
             }}
           >
             {curComponent.title}
@@ -124,18 +120,51 @@ const ShowContent = ({
           height: '100%',
           overflowX: renderMode === 'pc' ? 'auto' : 'hidden',
           overflowY: 'auto',
-          position: 'relative',
-          bgcolor: 'background.default',
-          transform: `scale(${scale})`,
-          transformOrigin: 'left top',
-          transition: 'transform 0.2s ease',
+          borderRight: '1px solid #ECEEF1',
+          borderLeft: '1px solid #ECEEF1',
+          borderTop: '1px solid #ECEEF1',
+          '&::-webkit-scrollbar': {
+            height: '6px', // 滚动条高度
+          },
         }}
       >
-        {/* Header预览部分 */}
-        {renderHighlightedComponent(
-          'header',
-          <Header settings={settings} renderMode={renderMode} />,
-        )}
+        <Stack
+          sx={{
+            minWidth: renderMode === 'pc' ? `1200px` : '375px',
+            width: renderMode === 'pc' ? `100%` : '375px',
+            margin: '0 auto',
+            boxShadow:
+              renderMode === 'pc' ? null : '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+            minHeight: '800px',
+            height: '100%',
+            overflowX: renderMode === 'pc' ? 'auto' : 'hidden',
+            overflowY: 'auto',
+            position: 'relative',
+            bgcolor: 'background.default',
+            transform: `scale(${scale})`,
+            transformOrigin: 'left top',
+            transition: 'transform 0.2s ease',
+          }}
+        >
+          {/* Header预览部分 */}
+          {renderHighlightedComponent(
+            'header',
+            <Header
+              settings={appPreviewData?.settings!}
+              renderMode={renderMode}
+            />,
+          )}
+          <Box sx={{ flex: 1 }} /> {/* 添加一个弹性空间 */}
+          {/* Footer预览部分 */}
+          {renderHighlightedComponent(
+            'footer',
+            <Footer
+              settings={appPreviewData?.settings!}
+              renderMode={renderMode}
+              options={options}
+            />,
+          )}
+        </Stack>
       </Stack>
     </Stack>
   );
