@@ -29,7 +29,9 @@
     "@mui/lab": "6.0.0-beta.19",
     "@mui/material": "^6.2.0",
     "@reduxjs/toolkit": "^2.5.0",
-    "@yu-cq/tiptap": "0.3.6",
+    "@tiptap/extension-collaboration": "^3.3.0",
+    "@tiptap/extension-collaboration-caret": "^3.3.0",
+    "@yu-cq/tiptap": "0.3.10",
     "axios": "^1.7.9",
     "ct-mui": "1.0.1-beta.11",
     "dayjs": "^1.11.13",
@@ -60,7 +62,9 @@
     "rehype-sanitize": "^6.0.0",
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
-    "remark-math": "^6.0.0"
+    "remark-math": "^6.0.0",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.27"
   },
   "devDependencies": {
     "@c-x/cx-swagger-api": "^1.0.1",

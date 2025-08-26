@@ -1,7 +1,10 @@
-import { DomainKnowledgeBaseDetail, V1UserInfoResp } from '@/request/types';
-import { DomainLicenseResp } from '@/request/pro/types';
 import { KnowledgeBaseListItem } from '@/api';
-import { DomainAppDetailResp } from '@/request/types';
+import { DomainLicenseResp } from '@/request/pro/types';
+import {
+  DomainAppDetailResp,
+  DomainKnowledgeBaseDetail,
+  V1UserInfoResp,
+} from '@/request/types';
 import { createSlice } from '@reduxjs/toolkit';
 
 export interface config {
@@ -45,6 +48,9 @@ const configSlice = createSlice({
     setKbId(state, { payload }) {
       localStorage.setItem('kb_id', payload);
       state.kb_id = payload;
+      state.kbDetail = state.kbList.find(
+        item => item.id === payload,
+      ) as DomainKnowledgeBaseDetail;
     },
     setKbList(state, { payload }) {
       state.kbList = payload;

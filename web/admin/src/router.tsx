@@ -41,10 +41,30 @@ const router = [
     ),
   },
   {
-    path: '/doc/editor/:id',
+    path: '/doc/editor',
     element: createElement(
       LazyLoadable(lazy(() => import('./pages/document/editor'))),
     ),
+    children: [
+      {
+        path: ':id',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/document/editor/edit'))),
+        ),
+      },
+      {
+        path: 'history/:id',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/document/editor/history'))),
+        ),
+      },
+      {
+        path: 'space',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/document/editor/space'))),
+        ),
+      },
+    ],
   },
   {
     path: '/login',

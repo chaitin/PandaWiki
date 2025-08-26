@@ -1,26 +1,28 @@
 'use client';
 
 import { KBDetail, NodeDetail } from '@/assets/type';
-import { IconFile, IconFolder } from '@/components/icons';
-import { useStore } from '@/provider';
-import { Box, Button, Divider, Stack, TextField, alpha } from '@mui/material';
-import { Editor, UseTiptapReturn } from '@yu-cq/tiptap';
-import { Controller, useForm } from 'react-hook-form';
-import { useParams } from 'next/navigation';
 import FeedbackDialog from '@/components/feedbackModal';
+import { IconFile, IconFolder } from '@/components/icons';
 import TextSelectionTooltip from '@/components/textSelectionTooltip';
 import { useTextSelection } from '@/hooks/useTextSelection';
+import { useStore } from '@/provider';
 import { postShareProV1DocumentFeedback } from '@/request/pro/DocumentFeedback';
 import {
   getShareV1CommentList,
   postShareV1Comment,
 } from '@/request/ShareComment';
 import { base64ToFile } from '@/utils';
+import { Box, Button, Divider, Stack, TextField, alpha } from '@mui/material';
+import { Editor, UseTiptapReturn } from '@yu-cq/tiptap';
 import { message } from 'ct-mui';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { useParams } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+
+// @ts-ignore
 import Cap from '@cap.js/widget';
 
 dayjs.extend(relativeTime);
@@ -105,9 +107,9 @@ const DocContent = ({
       node_id: docId,
       image: feedbackData.screenshot
         ? base64ToFile(
-            feedbackData.screenshot!,
-            `${info?.name || 'screenshot'}.png`,
-          )
+          feedbackData.screenshot!,
+          `${info?.name || 'screenshot'}.png`,
+        )
         : undefined,
     });
   };
@@ -269,10 +271,6 @@ const DocContent = ({
           mt: 3,
           '.tiptap.ProseMirror': {
             color: 'text.primary',
-          },
-          '.editor-table': {
-            width: 'auto',
-            maxWidth: '100%',
           },
         }}
       >

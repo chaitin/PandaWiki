@@ -1,8 +1,9 @@
-import { NodeDetail, NodeListItem } from '@/api';
-import { putApiV1NodeDetail, postApiV1Node } from '@/request/Node';
+import { NodeListItem } from '@/api';
 import Emoji from '@/components/Emoji';
 import DocAddByCustomText from '@/pages/document/component/DocAddByCustomText';
 import DocDelete from '@/pages/document/component/DocDelete';
+import { V1NodeDetailResp } from '@/request';
+import { postApiV1Node, putApiV1NodeDetail } from '@/request/Node';
 import {
   DomainGetNodeReleaseDetailResp,
   DomainNodeReleaseListItem,
@@ -48,8 +49,8 @@ const StyledMenuSelect = styled('div')<{ disabled?: boolean }>(
 
 interface EditorHeaderProps {
   editorRef: UseTiptapReturn;
-  detail: NodeDetail | null;
-  setDetail?: (data: NodeDetail) => void;
+  detail: V1NodeDetailResp | null;
+  setDetail?: (data: V1NodeDetailResp) => void;
   onSave: (auto?: boolean, publish?: boolean) => void;
   resetTimer?: () => void;
   cancelTimer?: () => void;
@@ -57,8 +58,8 @@ interface EditorHeaderProps {
   showVersion: boolean;
   setDocContent: (content: string) => void;
   curVersion:
-    | (DomainGetNodeReleaseDetailResp & { release: DomainNodeReleaseListItem })
-    | null;
+  | (DomainGetNodeReleaseDetailResp & { release: DomainNodeReleaseListItem })
+  | null;
 }
 
 const EditorHeader = ({
@@ -214,12 +215,12 @@ const EditorHeader = ({
               <Emoji
                 sx={{ flexShrink: 0 }}
                 readOnly={showVersion}
-                type={detail?.type}
-                value={detail?.meta?.emoji}
+                type={detail?.type || 2}
+                value={detail?.meta?.emoji || ''}
                 onChange={value => {
                   cancelTimer?.();
                   putApiV1NodeDetail({
-                    id: detail.id,
+                    id: detail.id!,
                     kb_id: kb_id,
                     emoji: value,
                   })
@@ -268,10 +269,10 @@ const EditorHeader = ({
                         postApiV1Node({
                           name: detail.name + ' [副本]',
                           content: detail.content,
-                          kb_id: detail.kb_id,
+                          kb_id: kb_id,
                           parent_id: detail.parent_id || undefined,
-                          type: detail.type,
-                          emoji: detail.meta.emoji,
+                          type: detail.type || 2,
+                          emoji: detail.meta?.emoji || '',
                         }).then(res => {
                           Message.success('复制成功');
                           window.open(`/doc/editor/${res.id}`, '_blank');

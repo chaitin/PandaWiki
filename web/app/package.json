@@ -26,7 +26,7 @@
     "@mui/material-nextjs": "^7.1.0",
     "@types/markdown-it": "13.0.1",
     "@vscode/markdown-it-katex": "^1.1.2",
-    "@yu-cq/tiptap": "0.3.6",
+    "@yu-cq/tiptap": "0.3.10",
     "ahooks": "^3.9.0",
     "axios": "^1.9.0",
     "ct-mui": "2.0.0",

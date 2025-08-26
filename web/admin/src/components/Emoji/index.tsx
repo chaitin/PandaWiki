@@ -1,6 +1,6 @@
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
-import { IconButton, Popover, SxProps } from '@mui/material';
+import { Box, IconButton, Popover, SxProps } from '@mui/material';
 import { Icon } from 'ct-mui';
 import React, { useCallback } from 'react';
 import zh from '../../../public/emoji-data/zh.json';
@@ -62,7 +62,11 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
           ...sx,
         }}
       >
-        {value || (
+        {value ? (
+          <Box component='span' sx={{ fontSize: 14, ...iconSx }}>
+            {value}
+          </Box>
+        ) : (
           <Icon
             type={
               type === 1

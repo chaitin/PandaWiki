@@ -1,6 +1,6 @@
-import { NodeDetail } from '@/api';
-import { putApiV1NodeDetail, postApiV1Node } from '@/request/Node';
 import Emoji from '@/components/Emoji';
+import { V1NodeDetailResp } from '@/request';
+import { postApiV1Node, putApiV1NodeDetail } from '@/request/Node';
 import { useAppSelector } from '@/store';
 import { Box, TextField } from '@mui/material';
 import { Message, Modal } from 'ct-mui';
@@ -9,9 +9,9 @@ import { Controller, useForm } from 'react-hook-form';
 
 interface DocAddByCustomTextProps {
   open: boolean;
-  data?: NodeDetail | null;
+  data?: V1NodeDetailResp;
   onClose: () => void;
-  setDetail?: (data: NodeDetail) => void;
+  setDetail?: (data: V1NodeDetailResp) => void;
   refresh?: () => void;
   type?: 1 | 2;
 }
@@ -46,7 +46,7 @@ const DocAddByCustomText = ({
   const submit = (value: { name: string; emoji: string }) => {
     if (data) {
       putApiV1NodeDetail({
-        id: data.id,
+        id: data.id || '',
         kb_id: id,
         name: value.name,
         emoji: value.emoji,
@@ -56,7 +56,6 @@ const DocAddByCustomText = ({
         handleClose();
         refresh?.();
         setDetail?.({
-          ...data,
           name: value.name,
           meta: { ...data.meta, emoji: value.emoji },
           status: 1,
@@ -86,7 +85,7 @@ const DocAddByCustomText = ({
     if (data) {
       reset({
         name: data.name || '',
-        emoji: data.meta.emoji || '',
+        emoji: data.meta?.emoji || '',
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

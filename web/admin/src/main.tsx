@@ -1,5 +1,4 @@
 import '@/assets/fonts/font.css';
-import '@/assets/fonts/iconfont';
 import '@/assets/styles/index.css';
 import '@/assets/styles/markdown.css';
 import dayjs from 'dayjs';
@@ -11,6 +10,8 @@ import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import store from './store';
+
+import '@/assets/fonts/iconfont';
 
 dayjs.extend(duration);
 dayjs.extend(relativeTime);
