@@ -10,6 +10,19 @@ const nextConfig: NextConfig = {
       fullUrl: true,
     },
   },
+  async headers() {
+    return [
+      {
+        source: '/cap@0.0.6/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, must-revalidate',
+          },
+        ],
+      },
+    ];
+  },
   async rewrites() {
     const rewritesPath = [];
     if (process.env.NODE_ENV === 'development') {
