@@ -72,6 +72,8 @@ jobs:
           pnpm install
 
       - name: Build
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
         run: |
           cd web/${{ matrix.project }}
           if [ "${{ matrix.project }}" == "admin" ]; then

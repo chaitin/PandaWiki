@@ -24,6 +24,7 @@
     "@mui/lab": "7.0.0-beta.12",
     "@mui/material": "^7.1.0",
     "@mui/material-nextjs": "^7.1.0",
+    "@sentry/nextjs": "^10.8.0",
     "@types/markdown-it": "13.0.1",
     "@vscode/markdown-it-katex": "^1.1.2",
     "@yu-cq/tiptap": "0.3.13",
