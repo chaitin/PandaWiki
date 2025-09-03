@@ -5,7 +5,10 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/getsentry/sentry-go"
+	sentryecho "github.com/getsentry/sentry-go/echo"
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -40,6 +43,20 @@ func NewEcho(
 	sessionMiddleware *PWMiddleware.SessionMiddleware,
 ) *echo.Echo {
 
+	// Initialize Sentry if enabled
+	if config.Sentry.Enabled && config.Sentry.DSN != "" {
+		err := sentry.Init(sentry.ClientOptions{
+			Dsn: config.Sentry.DSN,
+		})
+		if err != nil {
+			logger.Error("Failed to initialize Sentry", log.Error(err))
+		} else {
+			logger.Info("Sentry initialized successfully")
+			// Flush buffered events on the default client before the program terminates.
+			defer sentry.Flush(2 * time.Second)
+		}
+	}
+
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
@@ -50,6 +67,15 @@ func NewEcho(
 	}
 	// register validator
 	e.Validator = &echoValidator{validator: validator.New()}
+
+	// Add Sentry middleware if enabled
+	if config.Sentry.Enabled && config.Sentry.DSN != "" {
+		e.Use(sentryecho.New(sentryecho.Options{
+			Repanic: true,
+			Timeout: 5 * time.Second,
+		}))
+		sentry.CaptureMessage("It works!")
+	}
 
 	if config.GetBool("apm.enabled") {
 		e.Use(middlewareOtel.Middleware(config.GetString("apm.service_name")))

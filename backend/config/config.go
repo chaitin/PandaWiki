@@ -8,17 +8,18 @@ import (
 )
 
 type Config struct {
-	Log           LogConfig   `mapstructure:"log"`
-	HTTP          HTTPConfig  `mapstructure:"http"`
-	AdminPassword string      `mapstructure:"admin_password"`
-	PG            PGConfig    `mapstructure:"pg"`
-	MQ            MQConfig    `mapstructure:"mq"`
-	RAG           RAGConfig   `mapstructure:"rag"`
-	Redis         RedisConfig `mapstructure:"redis"`
-	Auth          AuthConfig  `mapstructure:"auth"`
-	S3            S3Config    `mapstructure:"s3"`
-	CaddyAPI      string      `mapstructure:"caddy_api"`
-	SubnetPrefix  string      `mapstructure:"subnet_prefix"`
+	Log           LogConfig    `mapstructure:"log"`
+	HTTP          HTTPConfig   `mapstructure:"http"`
+	AdminPassword string       `mapstructure:"admin_password"`
+	PG            PGConfig     `mapstructure:"pg"`
+	MQ            MQConfig     `mapstructure:"mq"`
+	RAG           RAGConfig    `mapstructure:"rag"`
+	Redis         RedisConfig  `mapstructure:"redis"`
+	Auth          AuthConfig   `mapstructure:"auth"`
+	S3            S3Config     `mapstructure:"s3"`
+	Sentry        SentryConfig `mapstructure:"sentry"`
+	CaddyAPI      string       `mapstructure:"caddy_api"`
+	SubnetPrefix  string       `mapstructure:"subnet_prefix"`
 }
 
 type LogConfig struct {
@@ -74,6 +75,11 @@ type S3Config struct {
 	SecretKey string `mapstructure:"secret_key"`
 }
 
+type SentryConfig struct {
+	Enabled bool   `mapstructure:"enabled"`
+	DSN     string `mapstructure:"dsn"`
+}
+
 func NewConfig() (*Config, error) {
 	// set default config
 	SUBNET_PREFIX := os.Getenv("SUBNET_PREFIX")
@@ -118,6 +124,10 @@ func NewConfig() (*Config, error) {
 			Endpoint:  "panda-wiki-minio:9000",
 			AccessKey: "s3panda-wiki",
 			SecretKey: "",
+		},
+		Sentry: SentryConfig{
+			Enabled: false,
+			DSN:     "",
 		},
 		CaddyAPI:     "/app/run/caddy-admin.sock",
 		SubnetPrefix: "169.254.15",
@@ -189,6 +199,13 @@ func overrideWithEnv(c *Config) {
 	// s3
 	if env := os.Getenv("S3_ENDPOINT"); env != "" {
 		c.S3.Endpoint = env
+	}
+	// sentry
+	if env := os.Getenv("SENTRY_ENABLED"); env != "" {
+		c.Sentry.Enabled = env == "true"
+	}
+	if env := os.Getenv("SENTRY_DSN"); env != "" {
+		c.Sentry.DSN = env
 	}
 }
 
