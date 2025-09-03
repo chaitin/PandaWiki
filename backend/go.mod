@@ -18,6 +18,8 @@ require (
 	github.com/chaitin/pandawiki/sdk/rag v0.0.0-20250821111634-e0b93366d1c0
 	github.com/cloudwego/eino v0.3.51
 	github.com/cloudwego/eino-ext/components/model/deepseek v0.0.0-20250522060253-ddb617598b09
+	github.com/getsentry/sentry-go v0.35.1
+	github.com/getsentry/sentry-go/echo v0.35.1
 	github.com/go-ldap/ldap/v3 v3.4.11
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/golang-jwt/jwt/v5 v5.3.0
