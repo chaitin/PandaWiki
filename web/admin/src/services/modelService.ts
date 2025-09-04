@@ -1,26 +1,27 @@
-import { createModel, testModel, updateModel, getModelNameList } from '@/api';
+import { createModel, getModelNameList, testModel, updateModel } from '@/api';
 import type {
-  ModelService as IModelService,
-  CreateModelReq as UICreateModelData,
-  UpdateModelReq as UIUpdateModelData,
-  CheckModelReq as UICheckModelData,
-  ListModelReq as UIGetModelNameData,
-  Model,
-  ModelListItem as UIModelListItem,
-} from '@yokowu/modelkit-ui';
-import type {
-  ModelListItem as LocalModelListItem,
-  CreateModelData as LocalCreateModelData,
-  UpdateModelData as LocalUpdateModelData,
   CheckModelData as LocalCheckModelData,
+  CreateModelData as LocalCreateModelData,
   GetModelNameData as LocalGetModelNameData,
+  UpdateModelData as LocalUpdateModelData,
 } from '@/api/type';
 import { ModelProvider } from '@/constant/enums';
+import { GithubComChaitinPandaWikiDomainModelListItem } from '@/request';
+import type {
+  ModelService as IModelService,
+  Model,
+  CheckModelReq as UICheckModelData,
+  CreateModelReq as UICreateModelData,
+  ListModelReq as UIGetModelNameData,
+  ModelListItem as UIModelListItem,
+  UpdateModelReq as UIUpdateModelData,
+} from '@yokowu/modelkit-ui';
 const modelkitModelTypeToLocal = (
   modelType: string,
-): 'chat' | 'embedding' | 'rerank' => {
+): 'chat' | 'embedding' | 'rerank' | 'analysis' => {
   if (modelType === 'chat') return 'chat';
   if (modelType === 'llm') return 'chat';
+  if (modelType === 'analysis') return 'analysis';
   if (modelType === 'rerank') return 'rerank';
   if (modelType === 'reranker') return 'rerank';
   if (modelType === 'embedding') return 'embedding';
@@ -29,10 +30,9 @@ const modelkitModelTypeToLocal = (
 
 // 转换本地模型数据为 UI 模型数据
 const convertLocalModelToUIModel = (
-  localModel: LocalModelListItem | null,
+  localModel: GithubComChaitinPandaWikiDomainModelListItem | null,
 ): Model | null => {
   if (!localModel) return null;
-
   return {
     id: localModel.id,
     model_name: localModel.model,
@@ -42,9 +42,9 @@ const convertLocalModelToUIModel = (
     api_key: localModel.api_key,
     api_header: localModel.api_header,
     api_version: localModel.api_version,
-    is_active: true,
+    is_active: localModel.is_active,
     show_name: localModel.model,
-    param: localModel.param,
+    param: localModel.parameters,
   };
 };
 
@@ -59,7 +59,7 @@ const convertUICreateToLocalCreate = (
     base_url: uiModel.base_url || '',
     api_key: uiModel.api_key || '',
     api_header: uiModel.api_header || '',
-    param: uiModel.param,
+    parameters: uiModel.param,
   };
 };
 
@@ -76,7 +76,7 @@ const convertUIUpdateToLocalUpdate = (
     api_header: uiModel.api_header || '',
     api_version: uiModel.api_version || '',
     type: modelkitModelTypeToLocal(uiModel.model_type || ''),
-    param: uiModel.param,
+    parameters: uiModel.param,
   };
 };
 

@@ -17,7 +17,6 @@
     "*.{js,jsx,ts,tsx,css,scss,md,mdx,json,yml,yaml,mjs,cjs}": "prettier --write"
   },
   "dependencies": {
-    "@yokowu/modelkit-ui": "0.7.6",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -32,6 +31,7 @@
     "@tiptap/extension-collaboration": "^3.3.0",
     "@tiptap/extension-collaboration-caret": "^3.3.0",
     "@yu-cq/tiptap": "0.3.14",
+    "@yokowu/modelkit-ui": "1.9.3",
     "axios": "^1.7.9",
     "ct-mui": "1.0.1-beta.11",
     "dayjs": "^1.11.13",

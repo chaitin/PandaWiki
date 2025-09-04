@@ -15,11 +15,9 @@ import {
   DomainCreateModelReq,
   DomainGetProviderModelListReq,
   DomainGetProviderModelListResp,
-  DomainModelDetailResp,
   DomainPWResponse,
   DomainResponse,
   DomainUpdateModelReq,
-  GetApiV1ModelDetailParams,
   GithubComChaitinPandaWikiDomainCheckModelReq,
   GithubComChaitinPandaWikiDomainCheckModelResp,
   GithubComChaitinPandaWikiDomainModelListItem,
@@ -95,36 +93,6 @@ export const postApiV1ModelCheck = (
     path: `/api/v1/model/check`,
     method: "POST",
     body: model,
-    type: ContentType.Json,
-    format: "json",
-    ...params,
-  });
-
-/**
- * @description get model detail
- *
- * @tags model
- * @name GetApiV1ModelDetail
- * @summary get model detail
- * @request GET:/api/v1/model/detail
- * @response `200` `(DomainResponse & {
-    data?: DomainModelDetailResp,
-
-})` OK
- */
-
-export const getApiV1ModelDetail = (
-  query: GetApiV1ModelDetailParams,
-  params: RequestParams = {},
-) =>
-  httpRequest<
-    DomainResponse & {
-      data?: DomainModelDetailResp;
-    }
-  >({
-    path: `/api/v1/model/detail`,
-    method: "GET",
-    query: query,
     type: ContentType.Json,
     format: "json",
     ...params,

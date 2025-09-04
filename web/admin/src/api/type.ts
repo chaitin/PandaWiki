@@ -429,16 +429,17 @@ export type AppConfigEditData = {
 // =============================================》model
 
 export type GetModelNameData = {
-  type: 'chat' | 'embedding' | 'rerank';
+  type: 'chat' | 'embedding' | 'rerank' | 'analysis';
   provider: keyof typeof ModelProvider | '';
   api_header: string;
   api_key: string;
   base_url: string;
+  is_active?: boolean;
 };
 
 export type CreateModelData = {
   model: string;
-  param?: DomainModelParam;
+  parameters?: DomainModelParam;
 } & GetModelNameData;
 
 export type CheckModelData = {
@@ -463,11 +464,11 @@ export type ModelListItem = {
   completion_tokens: number;
   id: string;
   model: keyof typeof IconMap;
-  type: 'chat' | 'embedding' | 'rerank';
+  type: 'chat' | 'embedding' | 'rerank' | 'analysis';
   api_version: string;
   prompt_tokens: number;
   total_tokens: number;
-  param?: DomainModelParam;
+  parameters?: DomainModelParam;
 } & GetModelNameData;
 
 // =============================================》conversation

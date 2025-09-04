@@ -49,6 +49,7 @@ export enum DomainModelType {
   ModelTypeChat = "chat",
   ModelTypeEmbedding = "embedding",
   ModelTypeRerank = "rerank",
+  ModelTypeAnalysis = "analysis",
 }
 
 export enum DomainMessageFrom {
@@ -541,9 +542,9 @@ export interface DomainCreateModelReq {
   api_version?: string;
   base_url: string;
   model: string;
-  param?: DomainModelParam;
+  parameters?: DomainModelParam;
   provider: GithubComChaitinPandaWikiDomainModelProvider;
-  type: "chat" | "embedding" | "rerank";
+  type: "chat" | "embedding" | "rerank" | "analysis";
 }
 
 export interface DomainCreateNodeReq {
@@ -624,7 +625,7 @@ export interface DomainGetProviderModelListReq {
   api_key?: string;
   base_url: string;
   provider: string;
-  type: "chat" | "embedding" | "rerank";
+  type: "chat" | "embedding" | "rerank" | "analysis";
 }
 
 export interface DomainGetProviderModelListResp {
@@ -713,24 +714,6 @@ export interface DomainKnowledgeBaseListItem {
 export interface DomainLink {
   name?: string;
   url?: string;
-}
-
-export interface DomainModelDetailResp {
-  api_header?: string;
-  api_key?: string;
-  /** for azure openai */
-  api_version?: string;
-  base_url?: string;
-  completion_tokens?: number;
-  created_at?: string;
-  id?: string;
-  model?: string;
-  parameters?: DomainModelParam;
-  prompt_tokens?: number;
-  provider?: GithubComChaitinPandaWikiDomainModelProvider;
-  total_tokens?: number;
-  type?: DomainModelType;
-  updated_at?: string;
 }
 
 export interface DomainModelParam {
@@ -989,10 +972,11 @@ export interface DomainUpdateModelReq {
   api_version?: string;
   base_url: string;
   id: string;
+  is_active?: boolean;
   model: string;
-  param?: DomainModelParam;
+  parameters?: DomainModelParam;
   provider: GithubComChaitinPandaWikiDomainModelProvider;
-  type: "chat" | "embedding" | "rerank";
+  type: "chat" | "embedding" | "rerank" | "analysis";
 }
 
 export interface DomainUpdateNodeReq {
@@ -1053,7 +1037,7 @@ export interface GithubComChaitinPandaWikiDomainCheckModelReq {
   base_url: string;
   model: string;
   provider: GithubComChaitinPandaWikiDomainModelProvider;
-  type: "chat" | "embedding" | "rerank";
+  type: "chat" | "embedding" | "rerank" | "analysis";
 }
 
 export interface GithubComChaitinPandaWikiDomainCheckModelResp {
@@ -1069,6 +1053,7 @@ export interface GithubComChaitinPandaWikiDomainModelListItem {
   base_url?: string;
   completion_tokens?: number;
   id?: string;
+  is_active?: boolean;
   model?: string;
   parameters?: DomainModelParam;
   prompt_tokens?: number;
@@ -1396,11 +1381,6 @@ export interface DeleteApiV1KnowledgeBaseUserDeleteParams {
 export interface GetApiV1KnowledgeBaseUserListParams {
   /** Knowledge Base ID */
   kb_id: string;
-}
-
-export interface GetApiV1ModelDetailParams {
-  /** model id */
-  id: string;
 }
 
 export interface GetApiV1NodeDetailParams {
