@@ -1,6 +1,7 @@
 FROM node:20-alpine
 
 ENV NODE_ENV=production
+
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001
 COPY --chown=nextjs:nodejs public ./public
