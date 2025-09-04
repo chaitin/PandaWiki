@@ -1,8 +1,8 @@
-import { getApiV1UserList } from '@/request/User';
-import { ConstsUserRole, V1UserListItemResp } from '@/request/types';
 import NoData from '@/assets/images/nodata.png';
 import Card from '@/components/Card';
 import { tableSx } from '@/constant/styles';
+import { getApiV1UserList } from '@/request/User';
+import { ConstsUserRole, V1UserListItemResp } from '@/request/types';
 import { useAppSelector } from '@/store';
 import { Box, Button, Stack, Tooltip } from '@mui/material';
 import { Table } from 'ct-mui';
@@ -220,6 +220,7 @@ const Member = () => {
         rowKey='id'
         size='small'
         updateScrollTop={false}
+        height='338px'
         sx={{ overflow: 'hidden', ...tableSx }}
         pagination={false}
         renderEmpty={
