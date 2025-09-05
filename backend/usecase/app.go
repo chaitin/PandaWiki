@@ -89,6 +89,7 @@ func (u *AppUsecase) ValidateUpdateApp(ctx context.Context, id string, req *doma
 
 		if app.Settings.WatermarkContent != req.Settings.WatermarkContent ||
 			app.Settings.WatermarkSetting != req.Settings.WatermarkSetting ||
+			app.Settings.ContributeSettings != req.Settings.ContributeSettings ||
 			app.Settings.CopySetting != req.Settings.CopySetting {
 			return domain.ErrPermissionDenied
 		}
@@ -392,9 +393,10 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		// captcha settings
 		CaptchaSettings: app.Settings.CaptchaSettings,
 
-		WatermarkContent: app.Settings.WatermarkContent,
-		WatermarkSetting: app.Settings.WatermarkSetting,
-		CopySetting:      app.Settings.CopySetting,
+		WatermarkContent:   app.Settings.WatermarkContent,
+		WatermarkSetting:   app.Settings.WatermarkSetting,
+		CopySetting:        app.Settings.CopySetting,
+		ContributeSettings: app.Settings.ContributeSettings,
 	}
 	// init ai feedback string
 	if app.Settings.AIFeedbackSettings.AIFeedbackType == nil {
@@ -461,9 +463,10 @@ func (u *AppUsecase) GetWebAppInfo(ctx context.Context, kbID string) (*domain.Ap
 			// Captcha Settings
 			CaptchaSettings: app.Settings.CaptchaSettings,
 
-			WatermarkContent: app.Settings.WatermarkContent,
-			WatermarkSetting: app.Settings.WatermarkSetting,
-			CopySetting:      app.Settings.CopySetting,
+			WatermarkContent:   app.Settings.WatermarkContent,
+			WatermarkSetting:   app.Settings.WatermarkSetting,
+			CopySetting:        app.Settings.CopySetting,
+			ContributeSettings: app.Settings.ContributeSettings,
 		},
 	}
 	// init ai feedback string

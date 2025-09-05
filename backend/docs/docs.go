@@ -4272,6 +4272,9 @@ const docTemplate = `{
                         }
                     ]
                 },
+                "contribute_settings": {
+                    "$ref": "#/definitions/domain.ContributeSettings"
+                },
                 "copy_setting": {
                     "enum": [
                         "",
@@ -4498,6 +4501,9 @@ const docTemplate = `{
                             "$ref": "#/definitions/domain.CatalogSettings"
                         }
                     ]
+                },
+                "contribute_settings": {
+                    "$ref": "#/definitions/domain.ContributeSettings"
                 },
                 "copy_setting": {
                     "$ref": "#/definitions/consts.CopySetting"
@@ -4911,6 +4917,14 @@ const docTemplate = `{
                 "CommentStatusPending",
                 "CommentStatusAccepted"
             ]
+        },
+        "domain.ContributeSettings": {
+            "type": "object",
+            "properties": {
+                "is_enable": {
+                    "type": "boolean"
+                }
+            }
         },
         "domain.ConversationDetailResp": {
             "type": "object",

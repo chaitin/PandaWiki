@@ -138,9 +138,14 @@ type AppSettings struct {
 	// Captcha settings
 	CaptchaSettings consts.CaptchaSettings `json:"captcha_settings"`
 
-	WatermarkContent string                  `json:"watermark_content"`
-	WatermarkSetting consts.WatermarkSetting `json:"watermark_setting" validate:"omitempty,oneof='' hidden visible"`
-	CopySetting      consts.CopySetting      `json:"copy_setting" validate:"omitempty,oneof='' append disabled"`
+	WatermarkContent   string                  `json:"watermark_content"`
+	WatermarkSetting   consts.WatermarkSetting `json:"watermark_setting" validate:"omitempty,oneof='' hidden visible"`
+	CopySetting        consts.CopySetting      `json:"copy_setting" validate:"omitempty,oneof='' append disabled"`
+	ContributeSettings ContributeSettings      `json:"contribute_settings"`
+}
+
+type ContributeSettings struct {
+	IsEnable bool `json:"is_enable"`
 }
 
 type WebAppCustomSettings struct {
@@ -285,9 +290,10 @@ type AppSettingsResp struct {
 	// WebAppCustomStyle
 	WebAppCustomSettings WebAppCustomSettings `json:"web_app_custom_style"`
 
-	WatermarkContent string                  `json:"watermark_content"`
-	WatermarkSetting consts.WatermarkSetting `json:"watermark_setting"`
-	CopySetting      consts.CopySetting      `json:"copy_setting"`
+	WatermarkContent   string                  `json:"watermark_content"`
+	WatermarkSetting   consts.WatermarkSetting `json:"watermark_setting"`
+	CopySetting        consts.CopySetting      `json:"copy_setting"`
+	ContributeSettings ContributeSettings      `json:"contribute_settings"`
 	// Captcha Settings
 	CaptchaSettings consts.CaptchaSettings `json:"captcha_settings"`
 }

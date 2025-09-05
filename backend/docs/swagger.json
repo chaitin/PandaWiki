@@ -4265,6 +4265,9 @@
                         }
                     ]
                 },
+                "contribute_settings": {
+                    "$ref": "#/definitions/domain.ContributeSettings"
+                },
                 "copy_setting": {
                     "enum": [
                         "",
@@ -4491,6 +4494,9 @@
                             "$ref": "#/definitions/domain.CatalogSettings"
                         }
                     ]
+                },
+                "contribute_settings": {
+                    "$ref": "#/definitions/domain.ContributeSettings"
                 },
                 "copy_setting": {
                     "$ref": "#/definitions/consts.CopySetting"
@@ -4904,6 +4910,14 @@
                 "CommentStatusPending",
                 "CommentStatusAccepted"
             ]
+        },
+        "domain.ContributeSettings": {
+            "type": "object",
+            "properties": {
+                "is_enable": {
+                    "type": "boolean"
+                }
+            }
         },
         "domain.ConversationDetailResp": {
             "type": "object",
