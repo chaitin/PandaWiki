@@ -48,8 +48,8 @@ importers:
         specifier: ^3.3.0
         version: 3.3.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))(@tiptap/pm@3.3.0)(@tiptap/y-tiptap@3.0.0(prosemirror-model@1.25.3)(prosemirror-state@1.4.3)(prosemirror-view@1.40.1)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27))
       '@yokowu/modelkit-ui':
-        specifier: 0.7.6
-        version: 0.7.6(bad7b9f0227c356a7457bb7fc95752fa)
+        specifier: 0.7.7
+        version: 0.7.7(bad7b9f0227c356a7457bb7fc95752fa)
       '@yu-cq/tiptap':
         specifier: 0.3.14
         version: 0.3.14(@tiptap/extension-code-block@3.3.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))(@tiptap/pm@3.3.0))(@tiptap/extension-drag-handle@3.3.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))(@tiptap/extension-collaboration@3.3.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))(@tiptap/pm@3.3.0)(@tiptap/y-tiptap@3.0.0(prosemirror-model@1.25.3)(prosemirror-state@1.4.3)(prosemirror-view@1.40.1)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27))(yjs@13.6.27))(@tiptap/extension-node-range@3.3.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))(@tiptap/pm@3.3.0))(@tiptap/pm@3.3.0)(@tiptap/y-tiptap@3.0.0(prosemirror-model@1.25.3)(prosemirror-state@1.4.3)(prosemirror-view@1.40.1)(y-protocols@1.0.6(yjs@13.6.27))(yjs@13.6.27)))(@types/react@19.1.12)(emojibase@16.0.0)(happy-dom@18.0.1)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -1446,8 +1446,8 @@ packages:
     peerDependencies:
       vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
 
-  '@yokowu/modelkit-ui@0.7.6':
-    resolution: {integrity: sha512-wDot1xTM/wDeOua7WVw0i1BnZRwwo3sxYPE49nkjc6FFLXQc++MNeJmiX8kdbY5cPmH487nzoJQ2PStRnFaGwQ==}
+  '@yokowu/modelkit-ui@0.7.7':
+    resolution: {integrity: sha512-ix0Nm2y4XKr1+8nVul0jZ7QJ3o30iLqpD8X6+ngpt9IrB9irEW+eimj1x6G4IP+HDL+cQveHpNIhhEOYDUFfmQ==}
 
   '@yu-cq/tiptap@0.3.14':
     resolution: {integrity: sha512-gAPdCCQD+24g1eSG5sr/EGeSR7+AaDHURtALpXZKiCUkw2HAGZIcrNW87UK3WlArTmH6SxmxsUql9yrxWwYo7w==}
@@ -4656,7 +4656,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@yokowu/modelkit-ui@0.7.6(bad7b9f0227c356a7457bb7fc95752fa)':
+  '@yokowu/modelkit-ui@0.7.7(bad7b9f0227c356a7457bb7fc95752fa)':
     dependencies:
       '@c-x/ui': 1.0.9(5e1e3f3ab9499c3239e9aac5982d2f46)
       '@mui/material': 6.5.0(@emotion/react@11.14.0(@types/react@19.1.12)(react@19.1.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.1.12)(react@19.1.1))(@types/react@19.1.12)(react@19.1.1))(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
