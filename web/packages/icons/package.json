@@ -1,0 +1,21 @@
+{
+  "name": "@panda-wiki/icons",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "icon": "tsx ./scripts/generate.ts"
+  },
+  "exports": {
+    ".": "./src/index.tsx",
+    "./*": "./src/*.tsx"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.1",
+  "devDependencies": {
+    "tsx": "^4.20.5"
+  }
+}

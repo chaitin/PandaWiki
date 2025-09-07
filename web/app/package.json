@@ -9,20 +9,11 @@
     "lint": "next lint",
     "api": "cx-swagger-api",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,css,scss,md,mdx,json,yml,yaml,mjs,cjs}\"",
-    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,css,scss,md,mdx,json,yml,yaml,mjs,cjs}\"",
-    "prepare": "cd ../../ && husky web/app/.husky"
-  },
-  "lint-staged": {
-    "*.{js,jsx,ts,tsx,css,scss,md,mdx,json,yml,yaml,mjs,cjs}": "prettier --write"
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,css,scss,md,mdx,json,yml,yaml,mjs,cjs}\""
   },
   "dependencies": {
     "@cap.js/widget": "^0.1.26",
     "@emotion/cache": "^11.14.0",
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
-    "@mui/icons-material": "^7.1.0",
-    "@mui/lab": "7.0.0-beta.12",
-    "@mui/material": "^7.1.0",
     "@mui/material-nextjs": "^7.1.0",
     "@types/markdown-it": "13.0.1",
     "@vscode/markdown-it-katex": "^1.1.2",
@@ -30,7 +21,6 @@
     "ahooks": "^3.9.0",
     "axios": "^1.9.0",
     "ct-mui": "2.0.0",
-    "dayjs": "^1.11.13",
     "highlight.js": "^11.11.1",
     "html-react-parser": "^5.2.5",
     "html-to-image": "^1.11.13",
@@ -39,10 +29,7 @@
     "markdown-it-highlightjs": "^4.2.0",
     "mermaid": "^11.9.0",
     "next": "15.4.6",
-    "react": "^19.1.1",
     "react-device-detect": "^2.2.3",
-    "react-dom": "^19.1.1",
-    "react-hook-form": "^7.60.0",
     "react-markdown": "^10.1.0",
     "react-syntax-highlighter": "^15.6.1",
     "rehype-katex": "^7.0.1",
@@ -57,20 +44,10 @@
     "@c-x/cx-swagger-api": "^1.0.1",
     "@eslint/eslintrc": "^3",
     "@next/eslint-plugin-next": "^15.4.5",
-    "@types/node": "^20",
     "@types/rangy": "^1.3.0",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
     "@types/react-syntax-highlighter": "^15.5.13",
-    "dotenv": "^17.2.1",
-    "eslint": "^9",
     "eslint-config-next": "15.3.2",
-    "eslint-config-prettier": "^9.1.2",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.1.5",
-    "prettier": "^3.6.2",
-    "typescript": "^5"
+    "eslint-config-prettier": "^9.1.2"
   },
   "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac"
 }

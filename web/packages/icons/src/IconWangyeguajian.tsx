@@ -1,0 +1,16 @@
+import React from 'react';
+import SvgIcon, { SvgIconProps } from '@mui/material/SvgIcon';
+
+const IconWangyeguajian = (props: SvgIconProps) => (
+  <SvgIcon
+    xmlns='http://www.w3.org/2000/svg'
+    viewBox='0 0 1024 1024'
+    {...props}
+  >
+    <path d='M902.058667 487.594667h-73.130667V292.693333c0-53.930667-43.605333-97.536-97.536-97.536H536.405333v-73.130666a122.026667 122.026667 0 0 0-243.797333 0v73.130666H97.536c-53.930667 0-97.024 43.605333-97.024 97.536L0.256 477.866667h72.874667a131.754667 131.754667 0 0 1 0 263.338666H0.256L0 926.464C0 980.48 43.605333 1024 97.536 1024h185.258667v-73.130667a131.754667 131.754667 0 0 1 263.338666 0V1024h185.258667c53.930667 0 97.536-43.605333 97.536-97.536V731.392h73.130667a122.026667 122.026667 0 0 0 0-243.797333z'></path>
+  </SvgIcon>
+);
+
+IconWangyeguajian.displayName = 'icon-wangyeguajian';
+
+export default IconWangyeguajian;

@@ -1,0 +1,3 @@
+#!/bin/sh
+cd web
+pnpm exec lint-staged

@@ -10,4 +10,4 @@ USER nextjs
 EXPOSE 3010
 ENV PORT=3010
 ENV HOSTNAME="0.0.0.0"
-CMD ["node", "server.js"]
+CMD ["node", "./app/server.js"]
