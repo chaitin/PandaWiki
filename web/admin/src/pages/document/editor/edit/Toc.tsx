@@ -36,7 +36,7 @@ const HeadingSx = [
 const Toc = ({ headings, fixed, setFixed }: TocProps) => {
   const [open, setOpen] = useState(false);
   const levels = Array.from(
-    new Set(headings.map(it => it.level).sort((a, b) => a - b)),
+    new Set(headings.map(it => it.originalLevel).sort((a, b) => a - b)),
   ).slice(0, 3);
 
   return (
@@ -58,7 +58,7 @@ const Toc = ({ headings, fixed, setFixed }: TocProps) => {
             onMouseEnter={() => setOpen(true)}
           >
             {headings
-              .filter(it => levels.includes(it.level))
+              .filter(it => levels.includes(it.originalLevel))
               .map(it => {
                 return (
                   <Box
@@ -144,9 +144,9 @@ const Toc = ({ headings, fixed, setFixed }: TocProps) => {
           }}
         >
           {headings
-            .filter(it => levels.includes(it.level))
+            .filter(it => levels.includes(it.originalLevel))
             .map(it => {
-              const idx = levels.indexOf(it.level);
+              const idx = levels.indexOf(it.originalLevel);
               return (
                 <Stack
                   key={it.id}
@@ -159,10 +159,10 @@ const Toc = ({ headings, fixed, setFixed }: TocProps) => {
                       color: 'primary.main',
                     },
                     ml: idx * 2,
-                    ...HeadingSx[idx],
+                    ...HeadingSx[it.level - 1],
                     color: it.isActive
                       ? 'primary.main'
-                      : (HeadingSx[idx]?.color ?? 'inherit'),
+                      : (HeadingSx[it.level - 1]?.color ?? 'inherit'),
                   }}
                   onClick={() => {
                     const element = document.getElementById(it.id);
@@ -186,7 +186,7 @@ const Toc = ({ headings, fixed, setFixed }: TocProps) => {
                       lineHeight: 1,
                     }}
                   >
-                    {HeadingIcon[it.level]}
+                    {HeadingIcon[it.originalLevel - 1]}
                   </Box>
                   <Ellipsis arrow sx={{ flex: 1, width: 0 }}>
                     {it.textContent}
