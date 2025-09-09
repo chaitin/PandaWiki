@@ -309,6 +309,8 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.CatalogSettings'
         description: catalog settings
+      contribute_settings:
+        $ref: '#/definitions/domain.ContributeSettings'
       copy_setting:
         allOf:
         - $ref: '#/definitions/consts.CopySetting'
@@ -457,6 +459,8 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.CatalogSettings'
         description: catalog settings
+      contribute_settings:
+        $ref: '#/definitions/domain.ContributeSettings'
       copy_setting:
         $ref: '#/definitions/consts.CopySetting'
       desc:
@@ -739,6 +743,11 @@ definitions:
     - CommentStatusReject
     - CommentStatusPending
     - CommentStatusAccepted
+  domain.ContributeSettings:
+    properties:
+      is_enable:
+        type: boolean
+    type: object
   domain.ConversationDetailResp:
     properties:
       app_id:
