@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	gocap "github.com/ackcoder/go-cap"
+	"github.com/getsentry/sentry-go"
 	"github.com/labstack/echo/v4"
 
 	"github.com/chaitin/panda-wiki/consts"
@@ -77,6 +78,7 @@ func (h *ShareCaptchaHandler) RedeemCaptcha(c echo.Context) error {
 	}
 	data, err := h.Captcha.RedeemChallenge(c.Request().Context(), req.Token, req.Solutions)
 	if err != nil {
+		sentry.CaptureException(err)
 		return c.JSON(http.StatusInternalServerError, gocap.VerificationResult{
 			Success: false,
 			Message: err.Error(),
