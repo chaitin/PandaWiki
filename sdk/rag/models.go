@@ -274,6 +274,14 @@ type UpdateDocumentResponse struct {
 	Code int `json:"code"`
 }
 
+// DocumentMetadata 文档元信息结构
+type DocumentMetadata struct {
+	DocumentName string `json:"document_name,omitempty"` // 文档名称
+	CreatedAt    string `json:"created_at,omitempty"`    // 文档创建时间
+	UpdatedAt    string `json:"updated_at,omitempty"`    // 文档更新时间
+	FolderName   string `json:"folder_name,omitempty"`   // 文档所处的文件夹名称，如果没有则为空
+}
+
 // ChatMessage 聊天消息结构
 type ChatMessage struct {
 	Role    string `json:"role"`

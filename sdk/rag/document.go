@@ -13,9 +13,9 @@ import (
 	"strings"
 )
 
-// UploadDocuments 上传文档（支持多文件和权限设置）
-func (c *Client) UploadDocumentsAndParse(ctx context.Context, datasetID string, filePaths []string, groupIDs []int) ([]Document, error) {
-	documents, err := c.UploadDocuments(ctx, datasetID, filePaths, groupIDs)
+// UploadDocumentsAndParse 上传文档并解析（支持多文件和权限设置）
+func (c *Client) UploadDocumentsAndParse(ctx context.Context, datasetID string, filePaths []string, groupIDs []int, metadata *DocumentMetadata) ([]Document, error) {
+	documents, err := c.UploadDocuments(ctx, datasetID, filePaths, groupIDs, metadata)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (c *Client) UploadDocumentsAndParse(ctx context.Context, datasetID string, 
 }
 
 // UploadDocuments 上传文档（支持多文件和权限设置）
-func (c *Client) UploadDocuments(ctx context.Context, datasetID string, filePaths []string, groupIDs []int) ([]Document, error) {
+func (c *Client) UploadDocuments(ctx context.Context, datasetID string, filePaths []string, groupIDs []int, metadata *DocumentMetadata) ([]Document, error) {
 	var b bytes.Buffer
 	w := multipart.NewWriter(&b)
 	for _, path := range filePaths {
@@ -62,6 +62,17 @@ func (c *Client) UploadDocuments(ctx context.Context, datasetID string, filePath
 			return nil, err
 		}
 		if err := w.WriteField("group_ids", string(gids)); err != nil {
+			return nil, err
+		}
+	}
+
+	// 添加 metadata：nil 不写入
+	if metadata != nil {
+		metadataBytes, err := json.Marshal(metadata)
+		if err != nil {
+			return nil, err
+		}
+		if err := w.WriteField("metadata", string(metadataBytes)); err != nil {
 			return nil, err
 		}
 	}
@@ -196,13 +207,14 @@ func (c *Client) UpdateDocumentsGroupIDsBatch(ctx context.Context, datasetID str
 }
 
 // UploadDocumentText 上传文本内容为文档
-// jsonStr 形如 {"filename": "xxx.txt", "content": "...", "file_type": "text/plain", "group_ids": [1,2,3]}
+// jsonStr 形如 {"filename": "xxx.txt", "content": "...", "file_type": "text/plain", "group_ids": [1,2,3], "metadata": {...}}
 func (c *Client) UploadDocumentText(ctx context.Context, datasetID string, jsonStr string) ([]Document, error) {
 	type input struct {
-		Filename string `json:"filename"`
-		Content  string `json:"content"`
-		FileType string `json:"file_type"`
-		GroupIDs []int  `json:"group_ids,omitempty"`
+		Filename string            `json:"filename"`
+		Content  string            `json:"content"`
+		FileType string            `json:"file_type"`
+		GroupIDs []int             `json:"group_ids,omitempty"`
+		Metadata *DocumentMetadata `json:"metadata,omitempty"`
 	}
 	var in input
 	if err := json.Unmarshal([]byte(jsonStr), &in); err != nil {
@@ -285,6 +297,17 @@ func (c *Client) UploadDocumentText(ctx context.Context, datasetID string, jsonS
 		}
 	}
 
+	// 添加 metadata：nil 不写入
+	if in.Metadata != nil {
+		metadataBytes, err := json.Marshal(in.Metadata)
+		if err != nil {
+			return nil, err
+		}
+		if err := w.WriteField("metadata", string(metadataBytes)); err != nil {
+			return nil, err
+		}
+	}
+
 	w.Close()
 
 	// 发送请求
@@ -343,23 +366,78 @@ func (c *Client) UploadDocumentTextAndParse(ctx context.Context, datasetID strin
 }
 
 // UpdateDocumentText 更新文档内容
-// 由于后端不支持直接更新文档，此函数会先删除旧文档，然后创建新文档
-func (c *Client) UpdateDocumentText(ctx context.Context, datasetID string, documentID string, content string) (*Document, error) {
-	// 1. 删除旧文档
-	err := c.DeleteDocuments(ctx, datasetID, []string{documentID})
+// 使用新的 content 接口直接更新文档内容
+func (c *Client) UpdateDocumentText(ctx context.Context, datasetID string, documentID string, content string, filename string) (*Document, error) {
+	// 创建临时文件
+	tmpFile, err := os.CreateTemp("", "update_*")
 	if err != nil {
-		return nil, fmt.Errorf("删除旧文档失败: %w", err)
+		return nil, err
+	}
+	defer os.Remove(tmpFile.Name())
+	defer tmpFile.Close()
+
+	// 写入内容到临时文件
+	if _, err := tmpFile.WriteString(content); err != nil {
+		return nil, err
+	}
+	if err := tmpFile.Sync(); err != nil {
+		return nil, err
 	}
 
-	// 2. 上传新文档
-	docs, err := c.UploadDocumentTextAndParse(ctx, datasetID, content)
+	// 重新打开文件以确保内容被写入
+	tmpFile.Close()
+	tmpFile, err = os.Open(tmpFile.Name())
 	if err != nil {
-		return nil, fmt.Errorf("上传新文档失败: %w", err)
+		return nil, err
+	}
+	defer tmpFile.Close()
+
+	fileInfo, err := tmpFile.Stat()
+	if err != nil {
+		return nil, err
 	}
 
-	if len(docs) == 0 {
-		return nil, fmt.Errorf("上传新文档成功但返回空列表")
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	fw, err := w.CreateFormFile("file", filename)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := io.Copy(fw, tmpFile); err != nil {
+		return nil, err
 	}
 
-	return &docs[0], nil
+	w.Close()
+
+	urlPath := fmt.Sprintf("datasets/%s/documents/%s/content", datasetID, documentID)
+	req, err := http.NewRequestWithContext(ctx, "PUT", c.baseURL.JoinPath(urlPath).String(), &b)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", w.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("更新文档内容失败: %s, 状态码: %d, 响应: %s", parseErrorResponse(resp), resp.StatusCode, string(body))
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	doc, err := c.GetDocument(ctx, datasetID, documentID)
+	if err != nil {
+		return nil, fmt.Errorf("更新成功但获取文档信息失败: %w", err)
+	}
+
+	return doc, nil
 }
