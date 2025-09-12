@@ -71,6 +71,7 @@ const light = {
     chip: '#FFFFFF',
     circle: '#E6E8EC',
     hover: 'rgba(243, 244, 245, 0.5)',
+    footer: '#14141B',
   },
   shadows: 'rgba(68, 80 ,91, 0.1)',
   table: {
