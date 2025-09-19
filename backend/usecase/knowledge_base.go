@@ -43,7 +43,7 @@ func NewKnowledgeBaseUsecase(repo *pg.KnowledgeBaseRepository, nodeRepo *pg.Node
 	return u, nil
 }
 
-func (u *KnowledgeBaseUsecase) CreateKnowledgeBase(ctx context.Context, req *domain.CreateKnowledgeBaseReq, userId string) (string, error) {
+func (u *KnowledgeBaseUsecase) CreateKnowledgeBase(ctx context.Context, req *domain.CreateKnowledgeBaseReq) (string, error) {
 	// create kb in vector store
 	datasetID, err := u.rag.CreateKnowledgeBase(ctx)
 	if err != nil {
@@ -63,12 +63,7 @@ func (u *KnowledgeBaseUsecase) CreateKnowledgeBase(ctx context.Context, req *dom
 		},
 	}
 
-	user, err := u.userRepo.GetUser(ctx, userId)
-	if err != nil {
-		return "", err
-	}
-
-	if err := u.repo.CreateKnowledgeBase(ctx, req.MaxKB, kb, user); err != nil {
+	if err := u.repo.CreateKnowledgeBase(ctx, req.MaxKB, kb); err != nil {
 		return "", err
 	}
 	return kbID, nil
@@ -82,8 +77,8 @@ func (u *KnowledgeBaseUsecase) GetKnowledgeBaseList(ctx context.Context) ([]*dom
 	return knowledgeBases, nil
 }
 
-func (u *KnowledgeBaseUsecase) GetKnowledgeBaseListByUserId(ctx context.Context, userId string) ([]*domain.KnowledgeBaseListItem, error) {
-	knowledgeBases, err := u.repo.GetKnowledgeBaseListByUserId(ctx, userId)
+func (u *KnowledgeBaseUsecase) GetKnowledgeBaseListByUserId(ctx context.Context) ([]*domain.KnowledgeBaseListItem, error) {
+	knowledgeBases, err := u.repo.GetKnowledgeBaseListByUserId(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -127,9 +122,9 @@ func (u *KnowledgeBaseUsecase) GetKnowledgeBase(ctx context.Context, kbID string
 	return kb, nil
 }
 
-func (u *KnowledgeBaseUsecase) GetKnowledgeBasePerm(ctx context.Context, kbID string, userID string) (consts.UserKBPermission, error) {
+func (u *KnowledgeBaseUsecase) GetKnowledgeBasePerm(ctx context.Context, kbID string) (consts.UserKBPermission, error) {
 
-	perm, err := u.repo.GetKBPermByUserId(ctx, kbID, userID)
+	perm, err := u.repo.GetKBPermByUserId(ctx, kbID)
 	if err != nil {
 		return "", err
 	}
@@ -227,34 +222,54 @@ func (u *KnowledgeBaseUsecase) KBUserInvite(ctx context.Context, req v1.KBUserIn
 	return nil
 }
 
-func (u *KnowledgeBaseUsecase) UpdateUserKB(ctx context.Context, req v1.KBUserUpdateReq, userID string) error {
-	user, err := u.userRepo.GetUser(ctx, userID)
-	if err != nil {
-		return err
+func (u *KnowledgeBaseUsecase) UpdateUserKB(ctx context.Context, req v1.KBUserUpdateReq) error {
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return fmt.Errorf("authInfo not found in context")
 	}
 
 	kbUser, err := u.repo.GetKBUser(ctx, req.KBId, req.UserId)
 	if err != nil {
 		return err
 	}
-	if user.Role != consts.UserRoleAdmin && kbUser.Perm != consts.UserKBPermissionFullControl {
-		return fmt.Errorf("only admin can update user from knowledge base")
+	if authInfo.IsToken {
+		if authInfo.Permission != consts.UserKBPermissionFullControl {
+			return fmt.Errorf("only admin can update user from knowledge base")
+		}
+	} else {
+		user, err := u.userRepo.GetUser(ctx, authInfo.UserId)
+		if err != nil {
+			return err
+		}
+		if user.Role != consts.UserRoleAdmin && kbUser.Perm != consts.UserKBPermissionFullControl {
+			return fmt.Errorf("only admin can update user from knowledge base")
+		}
 	}
-
 	return u.repo.UpdateKBUserPerm(ctx, req.KBId, req.UserId, req.Perm)
 }
 
-func (u *KnowledgeBaseUsecase) KBUserDelete(ctx context.Context, req v1.KBUserDeleteReq, userID string) error {
-	user, err := u.userRepo.GetUser(ctx, userID)
-	if err != nil {
-		return err
+func (u *KnowledgeBaseUsecase) KBUserDelete(ctx context.Context, req v1.KBUserDeleteReq) error {
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return fmt.Errorf("authInfo not found in context")
 	}
+
 	kbUser, err := u.repo.GetKBUser(ctx, req.KBId, req.UserId)
 	if err != nil {
 		return err
 	}
-	if user.Role != consts.UserRoleAdmin && kbUser.Perm != consts.UserKBPermissionFullControl {
-		return fmt.Errorf("only admin can update user from knowledge base")
+	if authInfo.IsToken {
+		if authInfo.Permission != consts.UserKBPermissionFullControl {
+			return fmt.Errorf("only admin can delete user from knowledge base")
+		}
+	} else {
+		user, err := u.userRepo.GetUser(ctx, authInfo.UserId)
+		if err != nil {
+			return err
+		}
+		if user.Role != consts.UserRoleAdmin && kbUser.Perm != consts.UserKBPermissionFullControl {
+			return fmt.Errorf("only admin can delete user from knowledge base")
+		}
 	}
 	if err := u.repo.DeleteKBUser(ctx, req.KBId, req.UserId); err != nil {
 		return err

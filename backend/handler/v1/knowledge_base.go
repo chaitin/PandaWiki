@@ -71,6 +71,7 @@ func NewKnowledgeBaseHandler(
 //	@Success		200		{object}	domain.Response
 //	@Router			/api/v1/knowledge_base [post]
 func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c echo.Context) error {
+
 	var req domain.CreateKnowledgeBaseReq
 	if err := c.Bind(&req); err != nil {
 		return h.NewResponseWithError(c, "invalid request", err)
@@ -96,12 +97,7 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c echo.Context) error {
 		req.MaxKB = maxKB.(int)
 	}
 
-	userId, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "failed to get user", nil)
-	}
-
-	did, err := h.usecase.CreateKnowledgeBase(c.Request().Context(), &req, userId)
+	did, err := h.usecase.CreateKnowledgeBase(c.Request().Context(), &req)
 	if err != nil {
 		if errors.Is(err, domain.ErrPortHostAlreadyExists) {
 			return h.NewResponseWithError(c, "端口或域名已被其他知识库占用", nil)
@@ -128,12 +124,7 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c echo.Context) error {
 //	@Router			/api/v1/knowledge_base/list [get]
 func (h *KnowledgeBaseHandler) GetKnowledgeBaseList(c echo.Context) error {
 
-	userId, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "not found user", nil)
-	}
-
-	knowledgeBases, err := h.usecase.GetKnowledgeBaseListByUserId(c.Request().Context(), userId)
+	knowledgeBases, err := h.usecase.GetKnowledgeBaseListByUserId(c.Request().Context())
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get knowledge base list", err)
 	}
@@ -192,17 +183,12 @@ func (h *KnowledgeBaseHandler) GetKnowledgeBaseDetail(c echo.Context) error {
 		return h.NewResponseWithError(c, "kb id is required", nil)
 	}
 
-	userID, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "failed to get user", nil)
-	}
-
 	kb, err := h.usecase.GetKnowledgeBase(c.Request().Context(), kbID)
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get knowledge base detail", err)
 	}
 
-	perm, err := h.usecase.GetKnowledgeBasePerm(c.Request().Context(), kbID, userID)
+	perm, err := h.usecase.GetKnowledgeBasePerm(c.Request().Context(), kbID)
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get knowledge base permission", err)
 	}

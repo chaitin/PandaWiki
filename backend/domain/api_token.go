@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"time"
 
 	"github.com/chaitin/panda-wiki/consts"
@@ -19,4 +20,53 @@ type APIToken struct {
 
 func (APIToken) TableName() string {
 	return "api_tokens"
+}
+
+type CtxAuthInfo struct {
+	IsToken    bool
+	Permission consts.UserKBPermission
+	UserId     string
+	KBId       string
+}
+
+type contextKey string
+
+const (
+	CtxAuthInfoKey contextKey = "ctx_auth_info"
+)
+
+func GetAuthInfoFromCtx(c context.Context) *CtxAuthInfo {
+	v := c.Value(CtxAuthInfoKey)
+	if v == nil {
+		return nil
+	}
+	ctxAuthInfo, ok := v.(*CtxAuthInfo)
+	if !ok {
+		return nil
+	}
+	return ctxAuthInfo
+}
+
+func GetUserIDFromContext(ctx context.Context) (string, bool) {
+	authInfo := GetAuthInfoFromCtx(ctx)
+	if authInfo == nil || authInfo.UserId == "" {
+		return "", false
+	}
+	return authInfo.UserId, true
+}
+
+func IsTokenFromContext(ctx context.Context) bool {
+	authInfo := GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return false
+	}
+	return authInfo.IsToken
+}
+
+func GetPermissionFromContext(ctx context.Context) (consts.UserKBPermission, bool) {
+	authInfo := GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return consts.UserKBPermissionNull, false
+	}
+	return authInfo.Permission, true
 }

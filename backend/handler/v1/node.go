@@ -77,12 +77,7 @@ func (h *NodeHandler) CreateNode(c echo.Context) error {
 		req.MaxNode = maxNode.(int)
 	}
 
-	userId, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "not found user", nil)
-	}
-
-	id, err := h.usecase.Create(c.Request().Context(), req, userId)
+	id, err := h.usecase.Create(c.Request().Context(), req)
 	if err != nil {
 		return h.NewResponseWithError(c, "create node failed", err)
 	}
@@ -196,12 +191,7 @@ func (h *NodeHandler) UpdateNodeDetail(c echo.Context) error {
 	}
 	ctx := c.Request().Context()
 
-	userId, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "not found user", nil)
-	}
-
-	if err := h.usecase.Update(ctx, req, userId); err != nil {
+	if err := h.usecase.Update(ctx, req); err != nil {
 		return h.NewResponseWithError(c, "update node detail failed", err)
 	}
 	return h.NewResponseWithData(c, nil)

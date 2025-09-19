@@ -113,22 +113,40 @@ func (h *UserHandler) Login(c echo.Context) error {
 //	@Success		200	{object}	v1.UserInfoResp
 //	@Router			/api/v1/user [get]
 func (h *UserHandler) GetUserInfo(c echo.Context) error {
-	userID, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "failed to get user", nil)
+	ctx := c.Request().Context()
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return h.NewResponseWithError(c, "authInfo not found in context", nil)
 	}
+	var userInfo *v1.UserInfoResp
 
-	user, err := h.usecase.GetUser(c.Request().Context(), userID)
-	if err != nil {
-		return h.NewResponseWithError(c, "failed to get user", err)
-	}
+	if authInfo.IsToken {
+		token, err := h.usecase.GetToken(c.Request().Context(), authInfo.UserId)
+		if err != nil {
+			return h.NewResponseWithError(c, "failed to get token", err)
+		}
 
-	userInfo := &v1.UserInfoResp{
-		ID:         user.ID,
-		Account:    user.Account,
-		Role:       user.Role,
-		LastAccess: &user.LastAccess,
-		CreatedAt:  user.CreatedAt,
+		userInfo = &v1.UserInfoResp{
+			ID:        token.ID,
+			Account:   token.Name,
+			IsToken:   true,
+			Role:      consts.UserRoleUser,
+			CreatedAt: token.CreatedAt,
+		}
+	} else {
+		user, err := h.usecase.GetUser(c.Request().Context(), authInfo.UserId)
+		if err != nil {
+			return h.NewResponseWithError(c, "failed to get user", err)
+		}
+
+		userInfo = &v1.UserInfoResp{
+			ID:         user.ID,
+			Account:    user.Account,
+			Role:       user.Role,
+			IsToken:    false,
+			LastAccess: &user.LastAccess,
+			CreatedAt:  user.CreatedAt,
+		}
 	}
 
 	return h.NewResponseWithData(c, userInfo)
@@ -167,6 +185,7 @@ func (h *UserHandler) ListUsers(c echo.Context) error {
 //	@Success		200		{object}	domain.Response
 //	@Router			/api/v1/user/reset_password [put]
 func (h *UserHandler) ResetPassword(c echo.Context) error {
+	ctx := c.Request().Context()
 	var req v1.ResetPasswordReq
 	if err := c.Bind(&req); err != nil {
 		return h.NewResponseWithError(c, "invalid request", err)
@@ -176,19 +195,23 @@ func (h *UserHandler) ResetPassword(c echo.Context) error {
 		return h.NewResponseWithError(c, "invalid request", err)
 	}
 
-	userID, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "failed to get user", nil)
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return h.NewResponseWithError(c, "authInfo not found in context", nil)
 	}
 
-	user, err := h.usecase.GetUser(c.Request().Context(), userID)
+	if authInfo.IsToken {
+		return h.NewResponseWithError(c, "this api not support token call", nil)
+	}
+
+	user, err := h.usecase.GetUser(ctx, authInfo.UserId)
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get user", err)
 	}
-	if user.Account == "admin" && userID == req.ID {
+	if user.Account == "admin" && authInfo.UserId == req.ID {
 		return h.NewResponseWithError(c, "请修改安装目录下 .env 文件中的 ADMIN_PASSWORD，并重启 panda-wiki-api 容器使更改生效。", nil)
 	}
-	if user.Account != "admin" && userID != req.ID {
+	if user.Account != "admin" && authInfo.UserId != req.ID {
 		return h.NewResponseWithError(c, "只有管理员可以重置其他用户密码", nil)
 	}
 	err = h.usecase.ResetPassword(c.Request().Context(), &req)
@@ -210,28 +233,36 @@ func (h *UserHandler) ResetPassword(c echo.Context) error {
 //	@Success		200		{object}	domain.Response
 //	@Router			/api/v1/user/delete [delete]
 func (h *UserHandler) DeleteUser(c echo.Context) error {
+	ctx := c.Request().Context()
+
 	var req v1.DeleteUserReq
 	if err := c.Bind(&req); err != nil {
 		return h.NewResponseWithError(c, "invalid request", err)
 	}
 
-	userID, ok := h.auth.MustGetUserID(c)
-	if !ok {
-		return h.NewResponseWithError(c, "failed to get user", nil)
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return h.NewResponseWithError(c, "authInfo not found in context", nil)
 	}
-	if userID == req.UserID {
+
+	if authInfo.IsToken {
+		return h.NewResponseWithError(c, "this api not support token call", nil)
+	}
+
+	if authInfo.UserId == req.UserID {
 		return h.NewResponseWithError(c, "cannot delete yourself", nil)
 	}
 
-	user, err := h.usecase.GetUser(c.Request().Context(), userID)
+	user, err := h.usecase.GetUser(ctx, authInfo.UserId)
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get user", err)
 	}
+
 	if user.Role != consts.UserRoleAdmin {
 		return h.NewResponseWithError(c, "只有管理员可以删除用户", nil)
 	}
 
-	err = h.usecase.DeleteUser(c.Request().Context(), req.UserID)
+	err = h.usecase.DeleteUser(ctx, req.UserID)
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to delete user", err)
 	}

@@ -29,7 +29,12 @@ func NewNodeRepository(db *pg.DB, logger *log.Logger) *NodeRepository {
 	return &NodeRepository{db: db, logger: logger.WithModule("repo.pg.node")}
 }
 
-func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq, userId string) (string, error) {
+func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq) (string, error) {
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return "", fmt.Errorf("authInfo not found in context")
+	}
+
 	nodeID, err := uuid.NewV7()
 	if err != nil {
 		return "", err
@@ -95,8 +100,8 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq, 
 				Visitable:  consts.NodeAccessPermOpen,
 				Visible:    consts.NodeAccessPermOpen,
 			},
-			CreatorId: userId,
-			EditorId:  userId,
+			CreatorId: authInfo.UserId,
+			EditorId:  authInfo.UserId,
 			CreatedAt: now,
 			UpdatedAt: now,
 			EditTime:  now,
@@ -143,7 +148,12 @@ func (r *NodeRepository) GetLatestNodeReleaseByNodeIDs(ctx context.Context, kbID
 	return nodeReleases, nil
 }
 
-func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.UpdateNodeReq, userId string) error {
+func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.UpdateNodeReq) error {
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return fmt.Errorf("authInfo not found in context")
+	}
+
 	// Use transaction to ensure data consistency
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// Get current node data with row-level lock
@@ -160,7 +170,7 @@ func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.Upda
 		updateMap := make(map[string]any)
 		updateStatus := false
 
-		updateMap["editor_id"] = userId
+		updateMap["editor_id"] = authInfo.UserId
 
 		// Compare and update Name
 		if req.Name != nil && *req.Name != currentNode.Name {

@@ -101,6 +101,17 @@ func (r *UserRepository) GetUser(ctx context.Context, userID string) (*domain.Us
 	return &user, nil
 }
 
+func (r *UserRepository) GetToken(ctx context.Context, userID string) (*domain.APIToken, error) {
+	var user domain.APIToken
+	err := r.db.WithContext(ctx).
+		Where("id = ?", userID).
+		First(&user).Error
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (r *UserRepository) ListUsers(ctx context.Context) ([]v1.UserListItemResp, error) {
 	var users []v1.UserListItemResp
 	err := r.db.WithContext(ctx).

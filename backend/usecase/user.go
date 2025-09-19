@@ -63,6 +63,10 @@ func (u *UserUsecase) GetUser(ctx context.Context, userID string) (*domain.User,
 	return u.repo.GetUser(ctx, userID)
 }
 
+func (u *UserUsecase) GetToken(ctx context.Context, userID string) (*domain.APIToken, error) {
+	return u.repo.GetToken(ctx, userID)
+}
+
 func (u *UserUsecase) ListUsers(ctx context.Context) (*v1.UserListResp, error) {
 	// 获取所有用户列表
 	users, err := u.repo.ListUsers(ctx)

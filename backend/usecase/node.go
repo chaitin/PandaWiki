@@ -59,8 +59,8 @@ func NewNodeUsecase(
 	}
 }
 
-func (u *NodeUsecase) Create(ctx context.Context, req *domain.CreateNodeReq, userId string) (string, error) {
-	nodeID, err := u.nodeRepo.Create(ctx, req, userId)
+func (u *NodeUsecase) Create(ctx context.Context, req *domain.CreateNodeReq) (string, error) {
+	nodeID, err := u.nodeRepo.Create(ctx, req)
 	if err != nil {
 		return "", err
 	}
@@ -110,8 +110,8 @@ func (u *NodeUsecase) NodeAction(ctx context.Context, req *domain.NodeActionReq)
 	return nil
 }
 
-func (u *NodeUsecase) Update(ctx context.Context, req *domain.UpdateNodeReq, userId string) error {
-	err := u.nodeRepo.UpdateNodeContent(ctx, req, userId)
+func (u *NodeUsecase) Update(ctx context.Context, req *domain.UpdateNodeReq) error {
+	err := u.nodeRepo.UpdateNodeContent(ctx, req)
 	if err != nil {
 		return err
 	}
