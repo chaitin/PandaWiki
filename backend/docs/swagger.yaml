@@ -389,6 +389,10 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.WebAppCustomSettings'
         description: WebAppCustomStyle
+      web_app_landing_settings:
+        allOf:
+        - $ref: '#/definitions/domain.WebAppLandingSettings'
+        description: WebAppLandingSettings
       wechat_app_agent_id:
         type: string
       wechat_app_corpid:
@@ -529,6 +533,10 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.WebAppCustomSettings'
         description: WebAppCustomStyle
+      web_app_landing_settings:
+        allOf:
+        - $ref: '#/definitions/domain.WebAppLandingSettings'
+        description: WebApp Landing Settings
       wechat_app_agent_id:
         type: string
       wechat_app_corpid:
@@ -1868,6 +1876,110 @@ definitions:
         items:
           $ref: '#/definitions/domain.SocialMediaAccount'
         type: array
+    type: object
+  domain.WebAppLandingSettings:
+    properties:
+      banner_config:
+        properties:
+          bg_url:
+            type: string
+          btns:
+            items:
+              properties:
+                href:
+                  type: string
+                id:
+                  type: string
+                text:
+                  type: string
+                type:
+                  type: string
+              type: object
+            type: array
+          hot_search:
+            items:
+              type: string
+            type: array
+          placeholder:
+            type: string
+          sub_title:
+            type: string
+          subtitle_color:
+            type: string
+          subtitle_font_size:
+            type: integer
+          title:
+            type: string
+          title_color:
+            type: string
+          title_font_size:
+            type: integer
+        type: object
+      basic_doc_config:
+        properties:
+          list:
+            items:
+              type: string
+            type: array
+          title:
+            type: string
+        type: object
+      carousel_config:
+        properties:
+          list:
+            items:
+              properties:
+                desc:
+                  type: string
+                id:
+                  type: string
+                title:
+                  type: string
+                url:
+                  type: string
+              type: object
+            type: array
+          title:
+            type: string
+        type: object
+      com_config_order:
+        items:
+          type: string
+        type: array
+      dir_doc_config:
+        properties:
+          list:
+            items:
+              type: string
+            type: array
+          title:
+            type: string
+        type: object
+      faq_config:
+        properties:
+          list:
+            items:
+              properties:
+                id:
+                  type: string
+                link:
+                  type: string
+                question:
+                  type: string
+              type: object
+            type: array
+          title:
+            type: string
+        type: object
+      simple_doc_config:
+        properties:
+          list:
+            items:
+              type: string
+            type: array
+          title:
+            type: string
+        type: object
     type: object
   domain.WidgetBotSettings:
     properties:

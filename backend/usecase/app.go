@@ -394,6 +394,8 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		OpenAIAPIBotSettings: app.Settings.OpenAIAPIBotSettings,
 		// disclaimer settings
 		DisclaimerSettings: app.Settings.DisclaimerSettings,
+		// webapp landing settings
+		WebAppLandingSettings: app.Settings.WebAppLandingSettings,
 
 		WatermarkContent:   app.Settings.WatermarkContent,
 		WatermarkSetting:   app.Settings.WatermarkSetting,
@@ -456,6 +458,8 @@ func (u *AppUsecase) GetWebAppInfo(ctx context.Context, kbID string) (*domain.Ap
 			WebAppCustomSettings: app.Settings.WebAppCustomSettings,
 			// Disclaimer Settings
 			DisclaimerSettings: app.Settings.DisclaimerSettings,
+			// WebApp Landing Settings
+			WebAppLandingSettings: app.Settings.WebAppLandingSettings,
 
 			WatermarkContent:   app.Settings.WatermarkContent,
 			WatermarkSetting:   app.Settings.WatermarkSetting,
