@@ -1680,15 +1680,6 @@ definitions:
       role:
         $ref: '#/definitions/schema.RoleType'
     type: object
-  domain.SiYuanResp:
-    properties:
-      content:
-        type: string
-      id:
-        type: integer
-      title:
-        type: string
-    type: object
   domain.SimpleAuth:
     properties:
       enabled:
@@ -2346,6 +2337,42 @@ definitions:
       token:
         type: string
     type: object
+  v1.MindocParseItem:
+    properties:
+      id:
+        type: string
+      title:
+        type: string
+      url:
+        type: string
+    type: object
+  v1.MindocParseResp:
+    properties:
+      docs:
+        items:
+          $ref: '#/definitions/v1.MindocParseItem'
+        type: array
+      id:
+        type: string
+    type: object
+  v1.MindocScrapeReq:
+    properties:
+      doc_id:
+        type: string
+      id:
+        type: string
+      kb_id:
+        type: string
+    required:
+    - doc_id
+    - id
+    - kb_id
+    type: object
+  v1.MindocScrapeResp:
+    properties:
+      content:
+        type: string
+    type: object
   v1.NodeDetailResp:
     properties:
       content:
@@ -2594,6 +2621,42 @@ definitions:
     - url
     type: object
   v1.SitemapScrapeResp:
+    properties:
+      content:
+        type: string
+    type: object
+  v1.SiyuanParseItem:
+    properties:
+      id:
+        type: string
+      title:
+        type: string
+      url:
+        type: string
+    type: object
+  v1.SiyuanParseResp:
+    properties:
+      docs:
+        items:
+          $ref: '#/definitions/v1.SiyuanParseItem'
+        type: array
+      id:
+        type: string
+    type: object
+  v1.SiyuanScrapeReq:
+    properties:
+      doc_id:
+        type: string
+      id:
+        type: string
+      kb_id:
+        type: string
+    required:
+    - doc_id
+    - id
+    - kb_id
+    type: object
+  v1.SiyuanScrapeResp:
     properties:
       content:
         type: string
@@ -3270,6 +3333,64 @@ paths:
       summary: FeishuWikiSearch
       tags:
       - crawler
+  /api/v1/crawler/mindoc/parse:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Parse Mindoc Export File and return document list
+      parameters:
+      - description: file
+        in: formData
+        name: file
+        required: true
+        type: file
+      - description: kb_id
+        in: formData
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.PWResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.MindocParseResp'
+              type: object
+      summary: MindocParse
+      tags:
+      - crawler
+  /api/v1/crawler/mindoc/scrape:
+    post:
+      consumes:
+      - application/json
+      description: Scrape specific Mindoc documents by ID
+      parameters:
+      - description: Scrape Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.MindocScrapeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.PWResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.MindocScrapeResp'
+              type: object
+      summary: MindocScrape
+      tags:
+      - crawler
   /api/v1/crawler/notion/parse:
     post:
       consumes:
@@ -3461,11 +3582,11 @@ paths:
       summary: SitemapScrape
       tags:
       - crawler
-  /api/v1/crawler/siyuan/analysis_export_file:
+  /api/v1/crawler/siyuan/parse:
     post:
       consumes:
-      - application/json
-      description: Analyze SiYuan Export File
+      - multipart/form-data
+      description: Parse Siyuan Export File and return document list
       parameters:
       - description: file
         in: formData
@@ -3487,11 +3608,36 @@ paths:
             - $ref: '#/definitions/domain.PWResponse'
             - properties:
                 data:
-                  items:
-                    $ref: '#/definitions/domain.SiYuanResp'
-                  type: array
+                  $ref: '#/definitions/v1.SiyuanParseResp'
               type: object
-      summary: AnalysisSiyuanExportFile
+      summary: SiyuanParse
+      tags:
+      - crawler
+  /api/v1/crawler/siyuan/scrape:
+    post:
+      consumes:
+      - application/json
+      description: Scrape specific Siyuan documents by ID
+      parameters:
+      - description: Scrape Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.SiyuanScrapeReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.PWResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.SiyuanScrapeResp'
+              type: object
+      summary: SiyuanScrape
       tags:
       - crawler
   /api/v1/crawler/wikijs/analysis_export_file:

@@ -16,11 +16,10 @@ import (
 
 type CrawlerHandler struct {
 	*handler.BaseHandler
-	logger        *log.Logger
-	usecase       *usecase.CrawlerUsecase
-	config        *config.Config
-	siyuanUsecase *usecase.SiYuanUsecase
-	fileUsecase   *usecase.FileUsecase
+	logger      *log.Logger
+	usecase     *usecase.CrawlerUsecase
+	config      *config.Config
+	fileUsecase *usecase.FileUsecase
 }
 
 func NewCrawlerHandler(echo *echo.Echo,
@@ -29,16 +28,14 @@ func NewCrawlerHandler(echo *echo.Echo,
 	logger *log.Logger,
 	config *config.Config,
 	usecase *usecase.CrawlerUsecase,
-	siyuanusecase *usecase.SiYuanUsecase,
 	fileUsecase *usecase.FileUsecase,
 ) *CrawlerHandler {
 	h := &CrawlerHandler{
-		BaseHandler:   baseHandler,
-		logger:        logger.WithModule("handler.v1.crawler"),
-		config:        config,
-		usecase:       usecase,
-		siyuanUsecase: siyuanusecase,
-		fileUsecase:   fileUsecase,
+		BaseHandler: baseHandler,
+		logger:      logger.WithModule("handler.v1.crawler"),
+		config:      config,
+		usecase:     usecase,
+		fileUsecase: fileUsecase,
 	}
 	group := echo.Group("/api/v1/crawler", auth.Authorize)
 	group.POST("/scrape", h.Scrape)
@@ -54,8 +51,6 @@ func NewCrawlerHandler(echo *echo.Echo,
 
 	// yuque
 	group.POST("/yuque/analysis_export_file", h.AnalysisYuqueExportFile)
-	// siyuan
-	group.POST("/siyuan/analysis_export_file", h.AnalysisSiyuanExportFile)
 	// rss
 	group.POST("/rss/parse", h.RSSParse)
 	group.POST("/rss/scrape", h.RSSScrape)
@@ -68,7 +63,12 @@ func NewCrawlerHandler(echo *echo.Echo,
 	// confluence
 	group.POST("/confluence/parse", h.ConfluenceParse)
 	group.POST("/confluence/scrape", h.ConfluenceScrape)
-
+	// siyuan
+	group.POST("/siyuan/parse", h.SiyuanParse)
+	group.POST("/siyuan/scrape", h.SiyuanScrape)
+	// mindoc
+	group.POST("/mindoc/parse", h.MindocParse)
+	group.POST("/mindoc/scrape", h.MindocScrape)
 	return h
 }
 
@@ -426,34 +426,6 @@ func (h *CrawlerHandler) AnalysisYuqueExportFile(c echo.Context) error {
 	return h.NewResponseWithData(c, resp)
 }
 
-// AnalysisSiyuanExportFile
-//
-//	@Summary		AnalysisSiyuanExportFile
-//	@Description	Analyze SiYuan Export File
-//	@Tags			crawler
-//	@Accept			json
-//	@Produce		json
-//	@Param			file	formData	file	true	"file"
-//	@Param			kb_id	formData	string	true	"kb_id"
-//	@Success		200		{object}	domain.PWResponse{data=[]domain.SiYuanResp}
-//	@Router			/api/v1/crawler/siyuan/analysis_export_file [post]
-func (h *CrawlerHandler) AnalysisSiyuanExportFile(c echo.Context) error {
-	f, err := c.FormFile("file")
-	if err != nil {
-		return h.NewResponseWithError(c, "get file failed", err)
-	}
-	var req domain.SiYuanReq
-	req.KBID = c.FormValue("kb_id")
-	if err := c.Validate(req); err != nil {
-		return h.NewResponseWithError(c, "validate failed", err)
-	}
-	resp, err := h.siyuanUsecase.AnalysisExportFile(c.Request().Context(), f, req.KBID)
-	if err != nil {
-		return h.NewResponseWithError(c, fmt.Sprintf("analysis file failed%s", err.Error()), err)
-	}
-	return h.NewResponseWithData(c, resp)
-}
-
 // RSSParse
 //
 //	@Tags			crawler
@@ -554,6 +526,138 @@ func (h *CrawlerHandler) SitemapScrape(c echo.Context) error {
 	resp, err := h.usecase.SitemapGetDoc(c.Request().Context(), &req)
 	if err != nil {
 		return h.NewResponseWithError(c, "parse sitemap url failed", err)
+	}
+	return h.NewResponseWithData(c, resp)
+}
+
+// SiyuanParse
+//
+//	@Summary		SiyuanParse
+//	@Description	Parse Siyuan Export File and return document list
+//	@Tags			crawler
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			file	formData	file	true	"file"
+//	@Param			kb_id	formData	string	true	"kb_id"
+//	@Success		200		{object}	domain.PWResponse{data=v1.SiyuanParseResp}
+//	@Router			/api/v1/crawler/siyuan/parse [post]
+func (h *CrawlerHandler) SiyuanParse(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		return h.NewResponseWithError(c, "get file failed", err)
+	}
+
+	var req v1.SiyuanParseReq
+	req.KbID = c.FormValue("kb_id")
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate failed", err)
+	}
+
+	fileUrl, err := h.fileUsecase.UploadFileGetUrl(ctx, req.KbID, file)
+	if err != nil {
+		return h.NewResponseWithError(c, "upload failed", err)
+	}
+
+	h.logger.Info("SiyuanParse UploadFile successfully", "fileUrl", fileUrl)
+
+	resp, err := h.usecase.SiyuanParse(c.Request().Context(), fileUrl, file.Filename)
+	if err != nil {
+		return h.NewResponseWithError(c, "parse Siyuan export file failed", err)
+	}
+
+	return h.NewResponseWithData(c, resp)
+}
+
+// SiyuanScrape
+//
+//	@Tags			crawler
+//	@Summary		SiyuanScrape
+//	@Description	Scrape specific Siyuan documents by ID
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		v1.SiyuanScrapeReq	true	"Scrape Request"
+//	@Success		200		{object}	domain.PWResponse{data=v1.SiyuanScrapeResp}
+//	@Router			/api/v1/crawler/siyuan/scrape [post]
+func (h *CrawlerHandler) SiyuanScrape(c echo.Context) error {
+	var req v1.SiyuanScrapeReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "request body is invalid", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+
+	resp, err := h.usecase.SiyuanScrape(c.Request().Context(), &req)
+	if err != nil {
+		return h.NewResponseWithError(c, "scrape Siyuan docs failed", err)
+	}
+	return h.NewResponseWithData(c, resp)
+}
+
+// MindocParse
+//
+//	@Summary		MindocParse
+//	@Description	Parse Mindoc Export File and return document list
+//	@Tags			crawler
+//	@Accept			multipart/form-data
+//	@Produce		json
+//	@Param			file	formData	file	true	"file"
+//	@Param			kb_id	formData	string	true	"kb_id"
+//	@Success		200		{object}	domain.PWResponse{data=v1.MindocParseResp}
+//	@Router			/api/v1/crawler/mindoc/parse [post]
+func (h *CrawlerHandler) MindocParse(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	file, err := c.FormFile("file")
+	if err != nil {
+		return h.NewResponseWithError(c, "get file failed", err)
+	}
+
+	var req v1.MindocParseReq
+	req.KbID = c.FormValue("kb_id")
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate failed", err)
+	}
+
+	fileUrl, err := h.fileUsecase.UploadFileGetUrl(ctx, req.KbID, file)
+	if err != nil {
+		return h.NewResponseWithError(c, "upload failed", err)
+	}
+
+	h.logger.Info("MindocParse UploadFile successfully", "fileUrl", fileUrl)
+
+	resp, err := h.usecase.MindocParse(c.Request().Context(), fileUrl, file.Filename)
+	if err != nil {
+		return h.NewResponseWithError(c, "parse Mindoc export file failed", err)
+	}
+
+	return h.NewResponseWithData(c, resp)
+}
+
+// MindocScrape
+//
+//	@Tags			crawler
+//	@Summary		MindocScrape
+//	@Description	Scrape specific Mindoc documents by ID
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		v1.MindocScrapeReq	true	"Scrape Request"
+//	@Success		200		{object}	domain.PWResponse{data=v1.MindocScrapeResp}
+//	@Router			/api/v1/crawler/mindoc/scrape [post]
+func (h *CrawlerHandler) MindocScrape(c echo.Context) error {
+	var req v1.MindocScrapeReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "request body is invalid", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+
+	resp, err := h.usecase.MindocScrape(c.Request().Context(), &req)
+	if err != nil {
+		return h.NewResponseWithError(c, "scrape Mindoc docs failed", err)
 	}
 	return h.NewResponseWithData(c, resp)
 }

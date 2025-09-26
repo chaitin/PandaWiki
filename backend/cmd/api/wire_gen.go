@@ -125,8 +125,7 @@ func createApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
-	siYuanUsecase := usecase.NewSiYuanUsecase(logger, fileUsecase)
-	crawlerHandler := v1.NewCrawlerHandler(echo, baseHandler, authMiddleware, logger, configConfig, crawlerUsecase, siYuanUsecase, fileUsecase)
+	crawlerHandler := v1.NewCrawlerHandler(echo, baseHandler, authMiddleware, logger, configConfig, crawlerUsecase, fileUsecase)
 	creationUsecase := usecase.NewCreationUsecase(logger, llmUsecase, modelUsecase)
 	creationHandler := v1.NewCreationHandler(echo, baseHandler, logger, creationUsecase)
 	statRepository := pg2.NewStatRepository(db, cacheCache)
