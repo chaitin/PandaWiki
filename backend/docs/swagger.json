@@ -4870,6 +4870,14 @@
                         }
                     ]
                 },
+                "web_app_landing_settings": {
+                    "description": "WebAppLandingSettings",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.WebAppLandingSettings"
+                        }
+                    ]
+                },
                 "wechat_app_agent_id": {
                     "type": "string"
                 },
@@ -5087,6 +5095,14 @@
                     "allOf": [
                         {
                             "$ref": "#/definitions/domain.WebAppCustomSettings"
+                        }
+                    ]
+                },
+                "web_app_landing_settings": {
+                    "description": "WebApp Landing Settings",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.WebAppLandingSettings"
                         }
                     ]
                 },
@@ -7133,6 +7149,167 @@
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/domain.SocialMediaAccount"
+                    }
+                }
+            }
+        },
+        "domain.WebAppLandingSettings": {
+            "type": "object",
+            "properties": {
+                "banner_config": {
+                    "type": "object",
+                    "properties": {
+                        "bg_url": {
+                            "type": "string"
+                        },
+                        "btns": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "href": {
+                                        "type": "string"
+                                    },
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "text": {
+                                        "type": "string"
+                                    },
+                                    "type": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "hot_search": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "placeholder": {
+                            "type": "string"
+                        },
+                        "sub_title": {
+                            "type": "string"
+                        },
+                        "subtitle_color": {
+                            "type": "string"
+                        },
+                        "subtitle_font_size": {
+                            "type": "integer"
+                        },
+                        "title": {
+                            "type": "string"
+                        },
+                        "title_color": {
+                            "type": "string"
+                        },
+                        "title_font_size": {
+                            "type": "integer"
+                        }
+                    }
+                },
+                "basic_doc_config": {
+                    "type": "object",
+                    "properties": {
+                        "list": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "title": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "carousel_config": {
+                    "type": "object",
+                    "properties": {
+                        "list": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "desc": {
+                                        "type": "string"
+                                    },
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "title": {
+                                        "type": "string"
+                                    },
+                                    "url": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "title": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "com_config_order": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "dir_doc_config": {
+                    "type": "object",
+                    "properties": {
+                        "list": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "title": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "faq_config": {
+                    "type": "object",
+                    "properties": {
+                        "list": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {
+                                        "type": "string"
+                                    },
+                                    "link": {
+                                        "type": "string"
+                                    },
+                                    "question": {
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "title": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "simple_doc_config": {
+                    "type": "object",
+                    "properties": {
+                        "list": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "title": {
+                            "type": "string"
+                        }
                     }
                 }
             }
