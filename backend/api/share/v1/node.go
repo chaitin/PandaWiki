@@ -19,7 +19,18 @@ type ShareNodeListItemResp struct {
 	UpdatedAt time.Time       `json:"updated_at"`
 }
 
-type RecommendNodeListItem struct {
+type NodeRecommendListReq struct {
+	KbID string `json:"kb_id"`
+}
+
+type NodeRecommendListResp struct {
+	NodeRecommend []NodeItem `json:"node_recommends"`
+	BasicDocs     []NodeItem `json:"basic_docs"`
+	DirDocs       []NodeItem `json:"dir_docs"`
+	SimpleDocs    []NodeItem `json:"simple_docs"`
+}
+
+type NodeItem struct {
 	ID             string                          `json:"id"`
 	Name           string                          `json:"name"`
 	Type           domain.NodeType                 `json:"type"`

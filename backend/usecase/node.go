@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm"
 
 	v1 "github.com/chaitin/panda-wiki/api/node/v1"
+	shareV1 "github.com/chaitin/panda-wiki/api/share/v1"
 	"github.com/chaitin/panda-wiki/consts"
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
@@ -305,72 +306,128 @@ func (u *NodeUsecase) GetNodeReleaseListByKBID(ctx context.Context, kbID string,
 	return items, nil
 }
 
-func (u *NodeUsecase) GetNodeRecommendListByKBID(ctx context.Context, kbID string, authId uint) ([]*domain.RecommendNodeListResp, error) {
+func (u *NodeUsecase) GetNodeRecommendListByKBID(ctx context.Context, kbID string, authId uint) (*shareV1.NodeRecommendListResp, error) {
 
 	app, err := u.appRepo.GetOrCreateAppByKBIDAndType(ctx, kbID, domain.AppTypeWeb)
 	if err != nil {
 		return nil, err
 	}
 
+	resp := &shareV1.NodeRecommendListResp{
+		NodeRecommend: make([]shareV1.NodeItem, 0),
+		BasicDocs:     make([]shareV1.NodeItem, 0),
+		DirDocs:       make([]shareV1.NodeItem, 0),
+		SimpleDocs:    make([]shareV1.NodeItem, 0),
+	}
+
+	nodeIds := make([]string, 0)
+	nodeIds = append(nodeIds, app.Settings.RecommendNodeIDs...)
+	if app.Settings.WebAppLandingSettings != nil {
+		nodeIds = append(nodeIds, lo.Union(
+			app.Settings.WebAppLandingSettings.BasicDocConfig.List,
+			app.Settings.WebAppLandingSettings.DirDocConfig.List,
+			app.Settings.WebAppLandingSettings.SimpleDocConfig.List,
+		)...)
+	}
+
+	if len(nodeIds) == 0 {
+		return resp, nil
+	}
+
 	recommendNodes := make([]*domain.RecommendNodeListResp, 0)
+	nodes, err := u.GetRecommendNodeList(ctx, &domain.GetRecommendNodeListReq{
+		KBID:    kbID,
+		NodeIDs: nodeIds,
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	if len(app.Settings.RecommendNodeIDs) > 0 {
-		nodes, err := u.GetRecommendNodeList(ctx, &domain.GetRecommendNodeListReq{
-			KBID:    kbID,
-			NodeIDs: app.Settings.RecommendNodeIDs,
-		})
-		if err != nil {
-			return nil, err
-		}
+	nodeVisibleGroupIds, err := u.GetNodeIdsByAuthId(ctx, authId, consts.NodePermNameVisible)
+	if err != nil {
+		return nil, err
+	}
 
-		nodeVisibleGroupIds, err := u.GetNodeIdsByAuthId(ctx, authId, consts.NodePermNameVisible)
-		if err != nil {
-			return nil, err
-		}
+	nodeVisitableGroupIds, err := u.GetNodeIdsByAuthId(ctx, authId, consts.NodePermNameVisitable)
+	if err != nil {
+		return nil, err
+	}
 
-		nodeVisitableGroupIds, err := u.GetNodeIdsByAuthId(ctx, authId, consts.NodePermNameVisitable)
-		if err != nil {
-			return nil, err
-		}
-
-		for i, node := range nodes {
-			switch node.Permissions.Visitable {
-			case consts.NodeAccessPermClosed:
+	for i, node := range nodes {
+		switch node.Permissions.Visitable {
+		case consts.NodeAccessPermClosed:
+			nodes[i].Summary = ""
+		case consts.NodeAccessPermPartial:
+			if !slices.Contains(nodeVisitableGroupIds, node.ID) {
 				nodes[i].Summary = ""
-			case consts.NodeAccessPermPartial:
-				if !slices.Contains(nodeVisitableGroupIds, node.ID) {
-					nodes[i].Summary = ""
-				}
 			}
+		}
 
-			switch node.Permissions.Visible {
-			case consts.NodeAccessPermOpen:
+		switch node.Permissions.Visible {
+		case consts.NodeAccessPermOpen:
+			recommendNodes = append(recommendNodes, nodes[i])
+		case consts.NodeAccessPermPartial:
+			if slices.Contains(nodeVisibleGroupIds, node.ID) {
 				recommendNodes = append(recommendNodes, nodes[i])
-			case consts.NodeAccessPermPartial:
-				if slices.Contains(nodeVisibleGroupIds, node.ID) {
-					recommendNodes = append(recommendNodes, nodes[i])
-				}
 			}
+		}
 
-			if node.Type == domain.NodeTypeFolder {
-				newFileNodes := make([]*domain.RecommendNodeListResp, 0)
+		if node.Type == domain.NodeTypeFolder {
+			newFileNodes := make([]*domain.RecommendNodeListResp, 0)
 
-				for i2, recommendNode := range node.RecommendNodes {
-					node.RecommendNodes[i2].Summary = ""
-					switch recommendNode.Permissions.Visible {
-					case consts.NodeAccessPermOpen:
+			for i2, recommendNode := range node.RecommendNodes {
+				node.RecommendNodes[i2].Summary = ""
+				switch recommendNode.Permissions.Visible {
+				case consts.NodeAccessPermOpen:
+					newFileNodes = append(newFileNodes, node.RecommendNodes[i2])
+				case consts.NodeAccessPermPartial:
+					if slices.Contains(nodeVisibleGroupIds, node.RecommendNodes[i2].ID) {
 						newFileNodes = append(newFileNodes, node.RecommendNodes[i2])
-					case consts.NodeAccessPermPartial:
-						if slices.Contains(nodeVisibleGroupIds, node.RecommendNodes[i2].ID) {
-							newFileNodes = append(newFileNodes, node.RecommendNodes[i2])
-						}
 					}
 				}
-				node.RecommendNodes = newFileNodes
 			}
+			node.RecommendNodes = newFileNodes
 		}
 	}
-	return recommendNodes, nil
+
+	nodeMap := lo.SliceToMap(recommendNodes, func(node *domain.RecommendNodeListResp) (string, *shareV1.NodeItem) {
+		return node.ID, &shareV1.NodeItem{
+			ID:             node.ID,
+			Name:           node.Name,
+			Type:           node.Type,
+			Summary:        node.Summary,
+			ParentID:       node.Summary,
+			Position:       node.Position,
+			Emoji:          node.Emoji,
+			RecommendNodes: node.RecommendNodes,
+		}
+	})
+
+	for _, id := range app.Settings.RecommendNodeIDs {
+		if node, ok := nodeMap[id]; ok {
+			resp.NodeRecommend = append(resp.NodeRecommend, *node)
+		}
+	}
+
+	for _, id := range app.Settings.WebAppLandingSettings.BasicDocConfig.List {
+		if node, ok := nodeMap[id]; ok {
+			resp.BasicDocs = append(resp.BasicDocs, *node)
+		}
+	}
+
+	for _, id := range app.Settings.WebAppLandingSettings.DirDocConfig.List {
+		if node, ok := nodeMap[id]; ok {
+			resp.DirDocs = append(resp.DirDocs, *node)
+		}
+	}
+
+	for _, id := range app.Settings.WebAppLandingSettings.SimpleDocConfig.List {
+		if node, ok := nodeMap[id]; ok {
+			resp.SimpleDocs = append(resp.SimpleDocs, *node)
+		}
+	}
+
+	return resp, nil
 }
 
 func (u *NodeUsecase) GetNodeIdsByAuthId(ctx context.Context, authId uint, PermName consts.NodePermName) ([]string, error) {
