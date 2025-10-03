@@ -143,11 +143,63 @@ type AppSettings struct {
 	OpenAIAPIBotSettings OpenAIAPIBotSettings `json:"openai_api_bot_settings"`
 	// Disclaimer Settings
 	DisclaimerSettings DisclaimerSettings `json:"disclaimer_settings"`
+	// WebAppLandingSettings
+	WebAppLandingSettings *WebAppLandingSettings `json:"web_app_landing_settings,omitempty"`
 
 	WatermarkContent   string                  `json:"watermark_content"`
 	WatermarkSetting   consts.WatermarkSetting `json:"watermark_setting" validate:"omitempty,oneof='' hidden visible"`
 	CopySetting        consts.CopySetting      `json:"copy_setting" validate:"omitempty,oneof='' append disabled"`
 	ContributeSettings ContributeSettings      `json:"contribute_settings"`
+}
+
+type WebAppLandingSettings struct {
+	BannerConfig struct {
+		Title            string   `json:"title"`
+		TitleColor       string   `json:"title_color"`
+		TitleFontSize    int      `json:"title_font_size"`
+		Subtitle         string   `json:"sub_title"`
+		Placeholder      string   `json:"placeholder"`
+		SubtitleColor    string   `json:"subtitle_color"`
+		SubtitleFontSize int      `json:"subtitle_font_size"`
+		BgURL            string   `json:"bg_url"`
+		HotSearch        []string `json:"hot_search"`
+		Btns             []struct {
+			ID   string `json:"id"`
+			Text string `json:"text"`
+			Type string `json:"type"`
+			Href string `json:"href"`
+		} `json:"btns"`
+	} `json:"banner_config"`
+	BasicDocConfig struct {
+		Title string   `json:"title"`
+		List  []string `json:"list"`
+	} `json:"basic_doc_config"`
+	DirDocConfig struct {
+		Title string   `json:"title"`
+		List  []string `json:"list"`
+	} `json:"dir_doc_config"`
+	SimpleDocConfig struct {
+		Title string   `json:"title"`
+		List  []string `json:"list"`
+	} `json:"simple_doc_config"`
+	CarouselConfig struct {
+		Title string `json:"title"`
+		List  []struct {
+			ID    string `json:"id"`
+			Title string `json:"title"`
+			URL   string `json:"url"`
+			Desc  string `json:"desc"`
+		} `json:"list"`
+	} `json:"carousel_config"`
+	FaqConfig struct {
+		Title string `json:"title"`
+		List  []struct {
+			ID       string `json:"id"`
+			Question string `json:"question"`
+			Link     string `json:"link"`
+		} `json:"list"`
+	} `json:"faq_config"`
+	ComConfigOrder []string `json:"com_config_order"`
 }
 
 type DisclaimerSettings struct {
@@ -326,6 +378,8 @@ type AppSettingsResp struct {
 	OpenAIAPIBotSettings OpenAIAPIBotSettings `json:"openai_api_bot_settings"`
 	// Disclaimer Settings
 	DisclaimerSettings DisclaimerSettings `json:"disclaimer_settings"`
+	// WebApp Landing Settings
+	WebAppLandingSettings *WebAppLandingSettings `json:"web_app_landing_settings,omitempty"`
 }
 
 func (s *AppSettingsResp) Scan(value any) error {
