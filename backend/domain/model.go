@@ -53,13 +53,14 @@ func (m *Model) ToModelkitModel() (*modelkitDomain.ModelMetadata, error) {
 	modelType := modelkitConsts.ParseModelType(string(m.Type))
 
 	return &modelkitDomain.ModelMetadata{
-		Provider:   provider,
-		ModelName:  m.Model,
-		APIKey:     m.APIKey,
-		BaseURL:    m.BaseURL,
-		APIVersion: m.APIVersion,
-		APIHeader:  m.APIHeader,
-		ModelType:  modelType,
+		Provider:    provider,
+		ModelName:   m.Model,
+		APIKey:      m.APIKey,
+		BaseURL:     m.BaseURL,
+		APIVersion:  m.APIVersion,
+		APIHeader:   m.APIHeader,
+		ModelType:   modelType,
+		Temperature: m.Parameters.Temperature,
 	}, nil
 }
 
@@ -98,12 +99,13 @@ type CheckModelReq struct {
 }
 
 type ModelParam struct {
-	ContextWindow      int  `json:"context_window"`
-	MaxTokens          int  `json:"max_tokens"`
-	R1Enabled          bool `json:"r1_enabled"`
-	SupportComputerUse bool `json:"support_computer_use"`
-	SupportImages      bool `json:"support_images"`
-	SupportPromptCache bool `json:"support_prompt_cache"`
+	ContextWindow      int      `json:"context_window"`
+	MaxTokens          int      `json:"max_tokens"`
+	R1Enabled          bool     `json:"r1_enabled"`
+	SupportComputerUse bool     `json:"support_computer_use"`
+	SupportImages      bool     `json:"support_images"`
+	SupportPromptCache bool     `json:"support_prompt_cache"`
+	Temperature        *float32 `json:"temperature"`
 }
 
 // Value implements the driver.Valuer interface for GORM

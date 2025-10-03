@@ -125,8 +125,8 @@ github.com/certifi/gocertifi v0.0.0-20190105021004-abcd57078448/go.mod h1:GJKEex
 github.com/cespare/xxhash/v2 v2.1.2/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/chaitin/ModelKit/v2 v2.3.1 h1:AAOsmOqm3/GSteS2dJq9jkCdmZPEIy8AT8KqutGklXM=
-github.com/chaitin/ModelKit/v2 v2.3.1/go.mod h1:ArjD6QyI3u9L01mphKoO/6saIxpRJLEgQxXTK5vt57A=
+github.com/chaitin/ModelKit/v2 v2.4.0 h1:DGRUA4XUpi9C0Y7RpEiw9+h8nmlnDweuhY9PsBuQcts=
+github.com/chaitin/ModelKit/v2 v2.4.0/go.mod h1:O5jsT8XqM19FWftIjhuLYsqNNPuvHjjX9ADB3flZn7w=
 github.com/chaitin/pandawiki/sdk/rag v0.0.0-20250923030122-cfce04d5505f h1:vlYTfgfTgBzNRn34d3bFu0dkJAu3h5FNgdv1TqAoosQ=
 github.com/chaitin/pandawiki/sdk/rag v0.0.0-20250923030122-cfce04d5505f/go.mod h1:c9cq9DFEaqynk1avg8CSOhZZOClQI1LmhCo8v7NAN3w=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
