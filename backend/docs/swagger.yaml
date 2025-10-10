@@ -389,6 +389,10 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.WebAppCustomSettings'
         description: WebAppCustomStyle
+      web_app_landing_settings:
+        allOf:
+        - $ref: '#/definitions/domain.WebAppLandingSettings'
+        description: WebAppLandingSettings
       wechat_app_agent_id:
         type: string
       wechat_app_corpid:
@@ -529,6 +533,10 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.WebAppCustomSettings'
         description: WebAppCustomStyle
+      web_app_landing_settings:
+        allOf:
+        - $ref: '#/definitions/domain.WebAppLandingSettings'
+        description: WebApp Landing Settings
       wechat_app_agent_id:
         type: string
       wechat_app_corpid:
@@ -1860,6 +1868,126 @@ definitions:
           $ref: '#/definitions/domain.SocialMediaAccount'
         type: array
     type: object
+  domain.WebAppLandingSettings:
+    properties:
+      banner_config:
+        properties:
+          bg_url:
+            type: string
+          btns:
+            items:
+              properties:
+                href:
+                  type: string
+                id:
+                  type: string
+                text:
+                  type: string
+                type:
+                  type: string
+              type: object
+            type: array
+          hot_search:
+            items:
+              type: string
+            type: array
+          placeholder:
+            type: string
+          subtitle:
+            type: string
+          subtitle_color:
+            type: string
+          subtitle_font_size:
+            type: integer
+          title:
+            type: string
+          title_color:
+            type: string
+          title_font_size:
+            type: integer
+        type: object
+      basic_doc_config:
+        properties:
+          bg_color:
+            type: string
+          list:
+            items:
+              type: string
+            type: array
+          title:
+            type: string
+          title_color:
+            type: string
+        type: object
+      carousel_config:
+        properties:
+          list:
+            items:
+              properties:
+                desc:
+                  type: string
+                id:
+                  type: string
+                title:
+                  type: string
+                url:
+                  type: string
+              type: object
+            type: array
+          title:
+            type: string
+        type: object
+      com_config_order:
+        items:
+          type: string
+        type: array
+      dir_doc_config:
+        properties:
+          bg_color:
+            type: string
+          list:
+            items:
+              type: string
+            type: array
+          title:
+            type: string
+          title_color:
+            type: string
+        type: object
+      faq_config:
+        properties:
+          bg_color:
+            type: string
+          list:
+            items:
+              properties:
+                id:
+                  type: string
+                link:
+                  type: string
+                question:
+                  type: string
+              type: object
+            type: array
+          title:
+            type: string
+          title_color:
+            type: string
+        type: object
+      simple_doc_config:
+        properties:
+          bg_color:
+            type: string
+          list:
+            items:
+              type: string
+            type: array
+          title:
+            type: string
+          title_color:
+            type: string
+        type: object
+    type: object
   domain.WidgetBotSettings:
     properties:
       btn_logo:
@@ -2391,6 +2519,27 @@ definitions:
       updated_at:
         type: string
     type: object
+  v1.NodeItem:
+    properties:
+      emoji:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      parent_id:
+        type: string
+      position:
+        type: number
+      recommend_nodes:
+        items:
+          $ref: '#/definitions/domain.RecommendNodeListResp'
+        type: array
+      summary:
+        type: string
+      type:
+        $ref: '#/definitions/domain.NodeType'
+    type: object
   v1.NodePermissionEditReq:
     properties:
       answerable_groups:
@@ -2444,6 +2593,25 @@ definitions:
           $ref: '#/definitions/domain.NodeGroupDetail'
         type: array
     type: object
+  v1.NodeRecommendListResp:
+    properties:
+      basic_docs:
+        items:
+          $ref: '#/definitions/v1.NodeItem'
+        type: array
+      dir_docs:
+        items:
+          $ref: '#/definitions/v1.NodeItem'
+        type: array
+      node_recommends:
+        items:
+          $ref: '#/definitions/v1.NodeItem'
+        type: array
+      simple_docs:
+        items:
+          $ref: '#/definitions/v1.NodeItem'
+        type: array
+    type: object
   v1.NotionParseItem:
     properties:
       id:
@@ -2484,27 +2652,6 @@ definitions:
     properties:
       content:
         type: string
-    type: object
-  v1.RecommendNodeListItem:
-    properties:
-      emoji:
-        type: string
-      id:
-        type: string
-      name:
-        type: string
-      parent_id:
-        type: string
-      position:
-        type: number
-      recommend_nodes:
-        items:
-          $ref: '#/definitions/domain.RecommendNodeListResp'
-        type: array
-      summary:
-        type: string
-      type:
-        $ref: '#/definitions/domain.NodeType'
     type: object
   v1.ResetPasswordReq:
     properties:
@@ -5434,9 +5581,7 @@ paths:
             - $ref: '#/definitions/domain.Response'
             - properties:
                 data:
-                  items:
-                    $ref: '#/definitions/v1.RecommendNodeListItem'
-                  type: array
+                  $ref: '#/definitions/v1.NodeRecommendListResp'
               type: object
       summary: 推荐卡片列表
       tags:

@@ -19,6 +19,7 @@ type Contribute struct {
 	Reason      string                  `json:"reason" gorm:"type:text;not null"`
 	AuditUserID string                  `json:"audit_user_id" gorm:"type:text;not null"`
 	AuditTime   *time.Time              `json:"audit_time"`
+	RemoteIP    string                  `json:"remote_ip" gorm:"type:text;not null"`
 	CreatedAt   time.Time               `gorm:"column:created_at;not null;default:now()"`
 	UpdatedAt   time.Time               `gorm:"column:updated_at;not null;default:now()"`
 }
