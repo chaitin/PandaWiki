@@ -26,7 +26,8 @@ export async function middleware(
     //   return NextResponse.redirect(loginUrl);
     // }
     if (url.pathname === '/') {
-      return NextResponse.redirect(new URL('/welcome', request.url));
+      // return NextResponse.redirect(new URL('/welcome', request.url));
+      return NextResponse.rewrite(new URL('/welcome', request.url));
     }
 
     // 页面上报
