@@ -186,3 +186,20 @@ func (u *FileUsecase) AnyDocUploadFile(ctx context.Context, file *multipart.File
 
 	return resp.Key, nil
 }
+
+// GetFileInfo retrieves file information from Minio
+func (u *FileUsecase) GetFileInfo(ctx context.Context, key string) (minio.ObjectInfo, error) {
+	return u.s3Client.StatObject(ctx, domain.Bucket, key, minio.StatObjectOptions{})
+}
+
+// StreamFile streams a file from Minio to the provided writer
+func (u *FileUsecase) StreamFile(writer io.Writer, ctx context.Context, key string) error {
+	object, err := u.s3Client.GetObject(ctx, domain.Bucket, key, minio.GetObjectOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get object: %w", err)
+	}
+	defer object.Close()
+
+	_, err = io.Copy(writer, object)
+	return err
+}

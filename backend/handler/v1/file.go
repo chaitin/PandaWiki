@@ -3,6 +3,7 @@ package v1
 import (
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/uuid"
@@ -37,6 +38,7 @@ func NewFileHandler(echo *echo.Echo, baseHandler *handler.BaseHandler, logger *l
 	group := echo.Group("/api/v1/file")
 	group.POST("/upload", h.Upload, h.auth.Authorize)
 	group.POST("/upload/anydoc", h.UploadAnydoc)
+	group.GET("/download/:key", h.Download)
 	return h
 }
 
@@ -118,4 +120,39 @@ func (h *FileHandler) UploadAnydoc(c echo.Context) error {
 		Code: 0,
 		Data: url,
 	})
+}
+
+// Download
+//
+//	@Summary		Download File
+//	@Description	Download File with original filename
+//	@Tags			file
+//	@Param			key	path	string	true	"File Key"
+//	@Success		200
+//	@Router			/api/v1/file/download/{key} [get]
+func (h *FileHandler) Download(c echo.Context) error {
+	key := c.Param("key")
+	if key == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "key is required"})
+	}
+
+	// Get file info from Minio to retrieve original filename
+	objInfo, err := h.fileUsecase.GetFileInfo(c.Request().Context(), key)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "file not found"})
+	}
+
+	// Get original filename from metadata
+	originalName := objInfo.Metadata.Get("X-Amz-Meta-Originalname")
+	if originalName == "" {
+		// Fallback to key if original name not found
+		originalName = filepath.Base(key)
+	}
+
+	// Set headers for file download
+	c.Response().Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", originalName))
+	c.Response().Header().Set("Content-Type", objInfo.ContentType)
+
+	// Stream file from Minio
+	return h.fileUsecase.StreamFile(c.Response(), c.Request().Context(), key)
 }
