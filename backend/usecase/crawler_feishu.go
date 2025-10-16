@@ -86,7 +86,24 @@ func (u *CrawlerUsecase) FeishuGetDoc(ctx context.Context, req *v1.FeishuGetDocR
 		return nil, err
 	}
 
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	// Get document title for filename
+	feishuListResp, err := u.anydocClient.FeishuListDocs(ctx, req.ID, "", "", "", req.SpaceId)
+	var docTitle string
+	if err == nil {
+		for _, doc := range feishuListResp.Data.Docs {
+			if doc.ID == req.DocId {
+				docTitle = doc.Title
+				break
+			}
+		}
+	}
+	
+	var fileBytes []byte
+	if docTitle != "" {
+		fileBytes, err = u.anydocClient.DownloadDocWithName(ctx, taskRes.Markdown, docTitle)
+	} else {
+		fileBytes, err = u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	}
 	if err != nil {
 		u.logger.Error("download doc failed", "markdown_path", taskRes.Markdown, "error", err)
 		return nil, err

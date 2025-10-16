@@ -320,12 +320,24 @@ func (c *Client) TaskList(ctx context.Context, ids []string) (*TaskRes, error) {
 }
 
 func (c *Client) DownloadDoc(ctx context.Context, filepath string) ([]byte, error) {
+	return c.DownloadDocWithName(ctx, filepath, "")
+}
+
+func (c *Client) DownloadDocWithName(ctx context.Context, filepath, filename string) ([]byte, error) {
 	u, err := url.Parse(crawlerServiceHost)
 	if err != nil {
 		return nil, err
 	}
 	u.Path = "/api/tasks/download" + filepath
 	requestURL := u.String()
+
+	// Add filename as query parameter if provided
+	if filename != "" {
+		q := u.Query()
+		q.Set("filename", filename)
+		u.RawQuery = q.Encode()
+		requestURL = u.String()
+	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {

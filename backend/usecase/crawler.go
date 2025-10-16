@@ -81,6 +81,14 @@ func (u *CrawlerUsecase) ScrapeGetResult(ctx context.Context, taskId string) (*v
 	if err != nil {
 		return nil, err
 	}
+	
+	// Get document title for filename
+	urlList, err := u.anydocClient.GetUrlList(ctx, "", taskId)
+	var docTitle string
+	if err == nil && len(urlList.Docs) > 0 {
+		docTitle = urlList.Docs[0].Title
+	}
+	
 	switch taskRes.Data[0].Status {
 	case anydoc.StatusPending, anydoc.StatusInProgress:
 		return &v1.CrawlerResultResp{
@@ -93,7 +101,12 @@ func (u *CrawlerUsecase) ScrapeGetResult(ctx context.Context, taskId string) (*v
 		}, fmt.Errorf("file crawl failed: %s", taskRes.Data[0].Err)
 
 	case anydoc.StatusCompleted:
-		fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Data[0].Markdown)
+		var fileBytes []byte
+		if docTitle != "" {
+			fileBytes, err = u.anydocClient.DownloadDocWithName(ctx, taskRes.Data[0].Markdown, docTitle)
+		} else {
+			fileBytes, err = u.anydocClient.DownloadDoc(ctx, taskRes.Data[0].Markdown)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -115,12 +128,32 @@ func (u *CrawlerUsecase) ScrapeGetResults(ctx context.Context, taskIds []string)
 
 	list := make([]v1.CrawlerResultItem, 0)
 	status := consts.CrawlerStatusCompleted
+	
+	// Get document titles for filenames
+	urlLists := make(map[string]*anydoc.GetUrlListData)
+	for _, taskId := range taskIds {
+		if urlList, err := u.anydocClient.GetUrlList(ctx, "", taskId); err == nil {
+			urlLists[taskId] = urlList
+		}
+	}
+	
 	for i, data := range taskRes.Data {
 		if slices.Contains([]anydoc.Status{anydoc.StatusPending, anydoc.StatusInProgress}, taskRes.Data[i].Status) {
 			status = consts.CrawlerStatusPending
 		}
 
-		fileBytes, err := u.anydocClient.DownloadDoc(ctx, data.Markdown)
+		var fileBytes []byte
+		// Try to get document title for filename
+		var docTitle string
+		if urlList, exists := urlLists[data.TaskId]; exists && len(urlList.Docs) > 0 {
+			docTitle = urlList.Docs[0].Title
+		}
+		
+		if docTitle != "" {
+			fileBytes, err = u.anydocClient.DownloadDocWithName(ctx, data.Markdown, docTitle)
+		} else {
+			fileBytes, err = u.anydocClient.DownloadDoc(ctx, data.Markdown)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -180,7 +213,24 @@ func (u *CrawlerUsecase) ConfluenceScrape(ctx context.Context, req *v1.Confluenc
 		return nil, err
 	}
 
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	// Get document title for filename
+	docs, err := u.anydocClient.ConfluenceListDocs(ctx, "", "", req.ID)
+	var docTitle string
+	if err == nil {
+		for _, doc := range docs.Data.Docs {
+			if doc.ID == req.DocID {
+				docTitle = doc.Title
+				break
+			}
+		}
+	}
+	
+	var fileBytes []byte
+	if docTitle != "" {
+		fileBytes, err = u.anydocClient.DownloadDocWithName(ctx, taskRes.Markdown, docTitle)
+	} else {
+		fileBytes, err = u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	}
 	if err != nil {
 		u.logger.Error("download doc failed", "markdown_path", taskRes.Markdown, "error", err)
 		return nil, err
@@ -225,7 +275,24 @@ func (u *CrawlerUsecase) NotionGetDoc(ctx context.Context, req v1.NotionScrapeRe
 		return nil, err
 	}
 
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	// Get document title for filename
+	notionListResp, err := u.anydocClient.NotionListDocs(ctx, "", req.ID)
+	var docTitle string
+	if err == nil {
+		for _, doc := range notionListResp.Data.Docs {
+			if doc.ID == req.DocId {
+				docTitle = doc.Title
+				break
+			}
+		}
+	}
+	
+	var fileBytes []byte
+	if docTitle != "" {
+		fileBytes, err = u.anydocClient.DownloadDocWithName(ctx, taskRes.Markdown, docTitle)
+	} else {
+		fileBytes, err = u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	}
 	if err != nil {
 		u.logger.Error("download doc failed", "markdown_path", taskRes.Markdown, "error", err)
 		return nil, err
@@ -274,7 +341,25 @@ func (u *CrawlerUsecase) SitemapGetDoc(ctx context.Context, req *v1.SitemapScrap
 		return nil, err
 	}
 
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	// Get document title for filename
+	sitemapListResp, err := u.anydocClient.SitemapListDocs(ctx, req.ID, "")
+	var docTitle string
+	if err == nil && len(sitemapListResp.Data.Docs) > 0 {
+		// Find matching document by URL
+		for _, doc := range sitemapListResp.Data.Docs {
+			if doc.Id == req.URL {
+				docTitle = doc.Title
+				break
+			}
+		}
+	}
+	
+	var fileBytes []byte
+	if docTitle != "" {
+		fileBytes, err = u.anydocClient.DownloadDocWithName(ctx, taskRes.Markdown, docTitle)
+	} else {
+		fileBytes, err = u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -319,7 +404,25 @@ func (u *CrawlerUsecase) GetRssDoc(ctx context.Context, req *v1.RssScrapeReq) (*
 		return nil, err
 	}
 
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	// Get document title for filename
+	rssListResp, err := u.anydocClient.RssListDocs(ctx, req.ID, req.URL)
+	var docTitle string
+	if err == nil && len(rssListResp.Data.Docs) > 0 {
+		// Find matching document by URL
+		for _, doc := range rssListResp.Data.Docs {
+			if doc.Id == req.URL {
+				docTitle = doc.Title
+				break
+			}
+		}
+	}
+	
+	var fileBytes []byte
+	if docTitle != "" {
+		fileBytes, err = u.anydocClient.DownloadDocWithName(ctx, taskRes.Markdown, docTitle)
+	} else {
+		fileBytes, err = u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -372,7 +475,24 @@ func (u *CrawlerUsecase) SiyuanScrape(ctx context.Context, req *v1.SiyuanScrapeR
 		return nil, err
 	}
 
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	// Get document title for filename
+	docs, err := u.anydocClient.SiyuanListDocs(ctx, "", "", req.ID)
+	var docTitle string
+	if err == nil {
+		for _, doc := range docs.Data.Docs {
+			if doc.ID == req.DocID {
+				docTitle = doc.Title
+				break
+			}
+		}
+	}
+	
+	var fileBytes []byte
+	if docTitle != "" {
+		fileBytes, err = u.anydocClient.DownloadDocWithName(ctx, taskRes.Markdown, docTitle)
+	} else {
+		fileBytes, err = u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	}
 	if err != nil {
 		u.logger.Error("download doc failed", "markdown_path", taskRes.Markdown, "error", err)
 		return nil, err
@@ -424,7 +544,24 @@ func (u *CrawlerUsecase) MindocScrape(ctx context.Context, req *v1.MindocScrapeR
 		return nil, err
 	}
 
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	// Get document title for filename
+	docs, err := u.anydocClient.MindocListDocs(ctx, "", "", req.ID)
+	var docTitle string
+	if err == nil {
+		for _, doc := range docs.Data.Docs {
+			if doc.ID == req.DocID {
+				docTitle = doc.Title
+				break
+			}
+		}
+	}
+	
+	var fileBytes []byte
+	if docTitle != "" {
+		fileBytes, err = u.anydocClient.DownloadDocWithName(ctx, taskRes.Markdown, docTitle)
+	} else {
+		fileBytes, err = u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	}
 	if err != nil {
 		u.logger.Error("download doc failed", "markdown_path", taskRes.Markdown, "error", err)
 		return nil, err
@@ -474,7 +611,24 @@ func (u *CrawlerUsecase) WikijsScrape(ctx context.Context, req *v1.WikijsScrapeR
 		return nil, err
 	}
 
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	// Get document title for filename
+	docs, err := u.anydocClient.WikijsListDocs(ctx, "", "", req.ID)
+	var docTitle string
+	if err == nil {
+		for _, doc := range docs.Data.Docs {
+			if doc.ID == req.DocID {
+				docTitle = doc.Title
+				break
+			}
+		}
+	}
+	
+	var fileBytes []byte
+	if docTitle != "" {
+		fileBytes, err = u.anydocClient.DownloadDocWithName(ctx, taskRes.Markdown, docTitle)
+	} else {
+		fileBytes, err = u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
+	}
 	if err != nil {
 		u.logger.Error("download doc failed", "markdown_path", taskRes.Markdown, "error", err)
 		return nil, err
