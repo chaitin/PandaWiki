@@ -129,8 +129,54 @@ func (u *AppUsecase) UpdateApp(ctx context.Context, id string, appRequest *domai
 	return nil
 }
 
+// filterThinkBlock filters out <think> blocks from the content
+func filterThinkBlock(content string) string {
+	// Find the start and end positions of <think> block
+	start := "<think>"
+	end := "</think>"
+	
+	startIndex := 0
+	for {
+		// Find the next occurrence of <think>
+		startPos := strings.Index(content[startIndex:], start)
+		if startPos == -1 {
+			break // No more <think> blocks
+		}
+		
+		// Adjust to the actual position in the string
+		startPos += startIndex
+		
+		// Find the corresponding </think>
+		endPos := strings.Index(content[startPos+len(start):], end)
+		if endPos == -1 {
+			// If no closing tag, remove everything from <think> onwards
+			content = content[:startPos]
+			break
+		}
+		
+		// Adjust to the actual position in the string
+		endPos += startPos + len(start)
+		
+		// Remove the <think>...</think> block
+		content = content[:startPos] + content[endPos+len(end):]
+		
+		// Update startIndex to continue searching
+		startIndex = startPos
+	}
+	
+	return content
+}
+
 func (u *AppUsecase) getQAFunc(kbID string, appType domain.AppType) bot.GetQAFun {
 	return func(ctx context.Context, msg string, info domain.ConversationInfo, ConversationID string) (chan string, error) {
+		// Filter out <think> blocks for specific app types
+		if appType == domain.AppTypeWechatServiceBot || 
+		   appType == domain.AppTypeWechatBot || 
+		   appType == domain.AppTypeDingTalkBot || 
+		   appType == domain.AppTypeFeishuBot {
+			msg = filterThinkBlock(msg)
+		}
+		
 		auth, err := u.authRepo.GetAuthByKBIDAndSourceType(ctx, kbID, appType.ToSourceType())
 		if err != nil {
 			u.logger.Error("get auth failed", log.Error(err))
