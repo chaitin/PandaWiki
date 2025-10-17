@@ -182,23 +182,23 @@ const DocPropertiesModal = ({
         }
         setValue(
           'answerable_groups',
-          (res.answerable_groups || []).map(item => ({
+          (res.answerable_groups || []).map((item: any) => ({
             id: item.auth_group_id,
-            name: item.name,
+            path: item.path || item.name,
           })),
         );
         setValue(
           'visitable_groups',
-          (res.visitable_groups || []).map(item => ({
+          (res.visitable_groups || []).map((item: any) => ({
             id: item.auth_group_id,
-            name: item.name,
+            path: item.path || item.name,
           })),
         );
         setValue(
           'visible_groups',
-          (res.visible_groups || []).map(item => ({
+          (res.visible_groups || []).map((item: any) => ({
             id: item.auth_group_id,
-            name: item.name,
+            path: item.path || item.name,
           })),
         );
       });
