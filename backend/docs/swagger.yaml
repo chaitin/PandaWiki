@@ -1,5 +1,27 @@
 basePath: /
 definitions:
+  anydoc.Child:
+    properties:
+      children:
+        items:
+          $ref: '#/definitions/anydoc.Child'
+        type: array
+      value:
+        $ref: '#/definitions/anydoc.Value'
+    type: object
+  anydoc.Value:
+    properties:
+      file:
+        type: boolean
+      file_type:
+        type: string
+      id:
+        type: string
+      summary:
+        type: string
+      title:
+        type: string
+    type: object
   consts.AuthType:
     enum:
     - ""
@@ -36,6 +58,34 @@ definitions:
     - CopySettingNone
     - CopySettingAppend
     - CopySettingDisabled
+  consts.CrawlerSource:
+    enum:
+    - url
+    - rss
+    - sitemap
+    - notion
+    - feishu
+    - file
+    - epub
+    - yuque
+    - siyuan
+    - mindoc
+    - wikijs
+    - confluence
+    type: string
+    x-enum-varnames:
+    - CrawlerSourceUrl
+    - CrawlerSourceRSS
+    - CrawlerSourceSitemap
+    - CrawlerSourceNotion
+    - CrawlerSourceFeishu
+    - CrawlerSourceFile
+    - CrawlerSourceEpub
+    - CrawlerSourceYuque
+    - CrawlerSourceSiyuan
+    - CrawlerSourceMindoc
+    - CrawlerSourceWikijs
+    - CrawlerSourceConfluence
   consts.CrawlerStatus:
     enum:
     - pending
@@ -2387,25 +2437,16 @@ definitions:
       total:
         type: integer
     type: object
-  v1.ConfluenceParseItem:
+  v1.ConversationListItems:
     properties:
-      id:
-        type: string
-      title:
-        type: string
-      url:
-        type: string
-    type: object
-  v1.ConfluenceParseResp:
-    properties:
-      docs:
+      data:
         items:
-          $ref: '#/definitions/v1.ConfluenceParseItem'
+          $ref: '#/definitions/domain.ConversationListItem'
         type: array
-      id:
-        type: string
+      total:
+        type: integer
     type: object
-  v1.ConfluenceScrapeReq:
+  v1.CrawlerExportReq:
     properties:
       doc_id:
         type: string
@@ -2418,19 +2459,33 @@ definitions:
     - id
     - kb_id
     type: object
-  v1.ConfluenceScrapeResp:
+  v1.CrawlerExportResp:
     properties:
-      content:
+      task_id:
         type: string
     type: object
-  v1.ConversationListItems:
+  v1.CrawlerParseReq:
     properties:
-      data:
-        items:
-          $ref: '#/definitions/domain.ConversationListItem'
-        type: array
-      total:
-        type: integer
+      crawler_source:
+        $ref: '#/definitions/consts.CrawlerSource'
+      feishu_setting:
+        $ref: '#/definitions/v1.FeishuSetting'
+      filename:
+        type: string
+      kb_id:
+        type: string
+      key:
+        type: string
+    required:
+    - crawler_source
+    - kb_id
+    type: object
+  v1.CrawlerParseResp:
+    properties:
+      docs:
+        $ref: '#/definitions/anydoc.Child'
+      id:
+        type: string
     type: object
   v1.CrawlerResultItem:
     properties:
@@ -2440,6 +2495,13 @@ definitions:
         $ref: '#/definitions/consts.CrawlerStatus'
       task_id:
         type: string
+    type: object
+  v1.CrawlerResultReq:
+    properties:
+      task_id:
+        type: string
+    required:
+    - task_id
     type: object
   v1.CrawlerResultResp:
     properties:
@@ -2491,76 +2553,7 @@ definitions:
       id:
         type: string
     type: object
-  v1.EpubParseReq:
-    properties:
-      filename:
-        type: string
-      kb_id:
-        type: string
-      key:
-        type: string
-    required:
-    - filename
-    - kb_id
-    - key
-    type: object
-  v1.EpubParseResp:
-    properties:
-      task_id:
-        type: string
-    type: object
-  v1.FeishuGetDocReq:
-    properties:
-      doc_id:
-        type: string
-      file_type:
-        type: string
-      id:
-        type: string
-      kb_id:
-        type: string
-      space_id:
-        type: string
-    required:
-    - doc_id
-    - id
-    - kb_id
-    type: object
-  v1.FeishuGetDocResp:
-    properties:
-      content:
-        type: string
-    type: object
-  v1.FeishuListCloudDocReq:
-    properties:
-      app_id:
-        type: string
-      app_secret:
-        type: string
-      user_access_token:
-        type: string
-    required:
-    - app_id
-    - app_secret
-    - user_access_token
-    type: object
-  v1.FeishuListCloudDocResp:
-    properties:
-      doc_id:
-        type: string
-      file_type:
-        type: string
-      id:
-        type: string
-      space_id:
-        type: string
-      title:
-        type: string
-    required:
-    - doc_id
-    - id
-    type: object
-  v1.FeishuSearchWikiReq:
+  v1.FeishuSetting:
     properties:
       app_id:
         type: string
@@ -2569,46 +2562,6 @@ definitions:
       space_id:
         type: string
       user_access_token:
-        type: string
-    required:
-    - app_id
-    - app_secret
-    - user_access_token
-    type: object
-  v1.FeishuSearchWikiResp:
-    properties:
-      doc_id:
-        type: string
-      file_type:
-        type: string
-      id:
-        type: string
-      space_id:
-        type: string
-      title:
-        type: string
-    required:
-    - doc_id
-    - id
-    type: object
-  v1.FeishuSpaceListReq:
-    properties:
-      app_id:
-        type: string
-      app_secret:
-        type: string
-      user_access_token:
-        type: string
-    required:
-    - app_id
-    - app_secret
-    - user_access_token
-    type: object
-  v1.FeishuSpaceListResp:
-    properties:
-      name:
-        type: string
-      space_id:
         type: string
     type: object
   v1.FileUploadResp:
@@ -2676,42 +2629,6 @@ definitions:
   v1.LoginResp:
     properties:
       token:
-        type: string
-    type: object
-  v1.MindocParseItem:
-    properties:
-      id:
-        type: string
-      title:
-        type: string
-      url:
-        type: string
-    type: object
-  v1.MindocParseResp:
-    properties:
-      docs:
-        items:
-          $ref: '#/definitions/v1.MindocParseItem'
-        type: array
-      id:
-        type: string
-    type: object
-  v1.MindocScrapeReq:
-    properties:
-      doc_id:
-        type: string
-      id:
-        type: string
-      kb_id:
-        type: string
-    required:
-    - doc_id
-    - id
-    - kb_id
-    type: object
-  v1.MindocScrapeResp:
-    properties:
-      content:
         type: string
     type: object
   v1.NodeDetailResp:
@@ -2792,47 +2709,6 @@ definitions:
           $ref: '#/definitions/domain.NodeGroupDetail'
         type: array
     type: object
-  v1.NotionParseItem:
-    properties:
-      id:
-        type: string
-      title:
-        type: string
-    type: object
-  v1.NotionParseReq:
-    properties:
-      integration:
-        type: string
-    required:
-    - integration
-    type: object
-  v1.NotionParseResp:
-    properties:
-      docs:
-        items:
-          $ref: '#/definitions/v1.NotionParseItem'
-        type: array
-      id:
-        type: string
-    type: object
-  v1.NotionScrapeReq:
-    properties:
-      doc_id:
-        type: string
-      id:
-        type: string
-      kb_id:
-        type: string
-    required:
-    - doc_id
-    - id
-    - kb_id
-    type: object
-  v1.NotionScrapeResp:
-    properties:
-      content:
-        type: string
-    type: object
   v1.ResetPasswordReq:
     properties:
       id:
@@ -2843,143 +2719,6 @@ definitions:
     required:
     - id
     - new_password
-    type: object
-  v1.RssParseItem:
-    properties:
-      desc:
-        type: string
-      title:
-        type: string
-      url:
-        type: string
-    type: object
-  v1.RssParseReq:
-    properties:
-      url:
-        type: string
-    required:
-    - url
-    type: object
-  v1.RssParseResp:
-    properties:
-      id:
-        type: string
-      list:
-        items:
-          $ref: '#/definitions/v1.RssParseItem'
-        type: array
-    type: object
-  v1.RssScrapeReq:
-    properties:
-      id:
-        type: string
-      kb_id:
-        type: string
-      url:
-        type: string
-    required:
-    - id
-    - kb_id
-    - url
-    type: object
-  v1.RssScrapeResp:
-    properties:
-      content:
-        type: string
-    type: object
-  v1.ScrapeReq:
-    properties:
-      kb_id:
-        type: string
-      url:
-        type: string
-    required:
-    - kb_id
-    - url
-    type: object
-  v1.ScrapeResp:
-    properties:
-      task_id:
-        type: string
-      title:
-        type: string
-    type: object
-  v1.SitemapParseItem:
-    properties:
-      title:
-        type: string
-      url:
-        type: string
-    type: object
-  v1.SitemapParseReq:
-    properties:
-      url:
-        type: string
-    required:
-    - url
-    type: object
-  v1.SitemapParseResp:
-    properties:
-      id:
-        type: string
-      list:
-        items:
-          $ref: '#/definitions/v1.SitemapParseItem'
-        type: array
-    type: object
-  v1.SitemapScrapeReq:
-    properties:
-      id:
-        type: string
-      kb_id:
-        type: string
-      url:
-        type: string
-    required:
-    - id
-    - kb_id
-    - url
-    type: object
-  v1.SitemapScrapeResp:
-    properties:
-      content:
-        type: string
-    type: object
-  v1.SiyuanParseItem:
-    properties:
-      id:
-        type: string
-      title:
-        type: string
-      url:
-        type: string
-    type: object
-  v1.SiyuanParseResp:
-    properties:
-      docs:
-        items:
-          $ref: '#/definitions/v1.SiyuanParseItem'
-        type: array
-      id:
-        type: string
-    type: object
-  v1.SiyuanScrapeReq:
-    properties:
-      doc_id:
-        type: string
-      id:
-        type: string
-      kb_id:
-        type: string
-    required:
-    - doc_id
-    - id
-    - kb_id
-    type: object
-  v1.SiyuanScrapeResp:
-    properties:
-      content:
-        type: string
     type: object
   v1.StatCountResp:
     properties:
@@ -3025,67 +2764,6 @@ definitions:
       users:
         items:
           $ref: '#/definitions/v1.UserListItemResp'
-        type: array
-    type: object
-  v1.WikijsParseItem:
-    properties:
-      id:
-        type: string
-      title:
-        type: string
-    type: object
-  v1.WikijsParseResp:
-    properties:
-      docs:
-        items:
-          $ref: '#/definitions/v1.WikijsParseItem'
-        type: array
-      id:
-        type: string
-    type: object
-  v1.WikijsScrapeReq:
-    properties:
-      doc_id:
-        type: string
-      id:
-        type: string
-      kb_id:
-        type: string
-    required:
-    - doc_id
-    - id
-    - kb_id
-    type: object
-  v1.WikijsScrapeResp:
-    properties:
-      content:
-        type: string
-    type: object
-  v1.YuqueParseItem:
-    properties:
-      task_id:
-        type: string
-      title:
-        type: string
-    type: object
-  v1.YuqueParseReq:
-    properties:
-      filename:
-        type: string
-      kb_id:
-        type: string
-      key:
-        type: string
-    required:
-    - filename
-    - kb_id
-    - key
-    type: object
-  v1.YuqueParseResp:
-    properties:
-      list:
-        items:
-          $ref: '#/definitions/v1.YuqueParseItem'
         type: array
     type: object
 info:
@@ -3504,275 +3182,18 @@ paths:
       summary: GetMessageFeedBackList
       tags:
       - Message
-  /api/v1/crawler/confluence/parse:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Parse Confluence Export File and return document list
-      parameters:
-      - description: file
-        in: formData
-        name: file
-        required: true
-        type: file
-      - description: kb_id
-        in: formData
-        name: kb_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.ConfluenceParseResp'
-              type: object
-      summary: ConfluenceParse
-      tags:
-      - crawler
-  /api/v1/crawler/confluence/scrape:
+  /api/v1/crawler/export:
     post:
       consumes:
       - application/json
-      description: Scrape specific Confluence documents by ID
-      parameters:
-      - description: Scrape Request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.ConfluenceScrapeReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.ConfluenceScrapeResp'
-              type: object
-      summary: ConfluenceScrape
-      tags:
-      - crawler
-  /api/v1/crawler/epub/parse:
-    post:
-      consumes:
-      - application/json
-      description: EpubParse
-      parameters:
-      - description: Parse URL
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.EpubParseReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.EpubParseResp'
-              type: object
-      summary: EpubParse
-      tags:
-      - crawler
-  /api/v1/crawler/feishu/get_doc:
-    post:
-      consumes:
-      - application/json
-      description: Get Docx in Feishu Spaces
-      parameters:
-      - description: Get Docx
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.FeishuGetDocReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.FeishuGetDocResp'
-              type: object
-      summary: FeishuDoc
-      tags:
-      - crawler
-  /api/v1/crawler/feishu/list_doc:
-    post:
-      consumes:
-      - application/json
-      description: List Docx in Feishu Spaces
-      parameters:
-      - description: Search Docx
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.FeishuListCloudDocReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/v1.FeishuListCloudDocResp'
-                  type: array
-              type: object
-      summary: FeishuListCloudDoc
-      tags:
-      - crawler
-  /api/v1/crawler/feishu/list_spaces:
-    post:
-      consumes:
-      - application/json
-      description: List All Feishu Spaces
-      parameters:
-      - description: List Spaces
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.FeishuSpaceListReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/v1.FeishuSpaceListResp'
-                  type: array
-              type: object
-      summary: FeishuListSpaces
-      tags:
-      - crawler
-  /api/v1/crawler/feishu/search_wiki:
-    post:
-      consumes:
-      - application/json
-      description: Search Wiki in Feishu Spaces
-      parameters:
-      - description: Search Wiki
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.FeishuSearchWikiReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  items:
-                    $ref: '#/definitions/v1.FeishuSearchWikiResp'
-                  type: array
-              type: object
-      summary: FeishuWikiSearch
-      tags:
-      - crawler
-  /api/v1/crawler/mindoc/parse:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Parse Mindoc Export File and return document list
-      parameters:
-      - description: file
-        in: formData
-        name: file
-        required: true
-        type: file
-      - description: kb_id
-        in: formData
-        name: kb_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.MindocParseResp'
-              type: object
-      summary: MindocParse
-      tags:
-      - crawler
-  /api/v1/crawler/mindoc/scrape:
-    post:
-      consumes:
-      - application/json
-      description: Scrape specific Mindoc documents by ID
-      parameters:
-      - description: Scrape Request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.MindocScrapeReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.MindocScrapeResp'
-              type: object
-      summary: MindocScrape
-      tags:
-      - crawler
-  /api/v1/crawler/notion/parse:
-    post:
-      consumes:
-      - application/json
-      description: NotionParse
+      description: CrawlerExport
       parameters:
       - description: Scrape
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/v1.NotionParseReq'
+          $ref: '#/definitions/v1.CrawlerExportReq'
       produces:
       - application/json
       responses:
@@ -3783,23 +3204,23 @@ paths:
             - $ref: '#/definitions/domain.PWResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/v1.NotionParseResp'
+                  $ref: '#/definitions/v1.CrawlerExportResp'
               type: object
-      summary: NotionParse
+      summary: CrawlerExport
       tags:
       - crawler
-  /api/v1/crawler/notion/scrape:
+  /api/v1/crawler/parse:
     post:
       consumes:
       - application/json
-      description: NotionScrape
+      description: 解析文档树
       parameters:
-      - description: Get Docs
+      - description: Scrape
         in: body
         name: body
         required: true
         schema:
-          $ref: '#/definitions/v1.NotionScrapeReq'
+          $ref: '#/definitions/v1.CrawlerParseReq'
       produces:
       - application/json
       responses:
@@ -3810,9 +3231,9 @@ paths:
             - $ref: '#/definitions/domain.PWResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/v1.NotionScrapeResp'
+                  $ref: '#/definitions/v1.CrawlerParseResp'
               type: object
-      summary: NotionScrape
+      summary: 解析文档树
       tags:
       - crawler
   /api/v1/crawler/result:
@@ -3821,10 +3242,12 @@ paths:
       - application/json
       description: Retrieve the result of a previously started scraping task
       parameters:
-      - in: query
-        name: task_id
+      - description: Crawler Result Request
+        in: body
+        name: body
         required: true
-        type: string
+        schema:
+          $ref: '#/definitions/v1.CrawlerResultReq'
       produces:
       - application/json
       responses:
@@ -3865,284 +3288,6 @@ paths:
                   $ref: '#/definitions/v1.CrawlerResultsResp'
               type: object
       summary: Get Crawler Results
-      tags:
-      - crawler
-  /api/v1/crawler/rss/parse:
-    post:
-      consumes:
-      - application/json
-      description: Parse RSS
-      parameters:
-      - description: Parse URL
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.RssParseReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.RssParseResp'
-              type: object
-      summary: Parse RSS
-      tags:
-      - crawler
-  /api/v1/crawler/rss/scrape:
-    post:
-      consumes:
-      - application/json
-      description: RSSScrape
-      parameters:
-      - description: Parse URL
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.RssScrapeReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.RssScrapeResp'
-              type: object
-      summary: RSSScrape
-      tags:
-      - crawler
-  /api/v1/crawler/scrape:
-    post:
-      consumes:
-      - application/json
-      description: Scrape
-      parameters:
-      - description: Scrape
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.ScrapeReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.ScrapeResp'
-              type: object
-      summary: Scrape
-      tags:
-      - crawler
-  /api/v1/crawler/sitemap/parse:
-    post:
-      consumes:
-      - application/json
-      description: Parse Sitemap
-      parameters:
-      - description: Parse URL
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.SitemapParseReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.SitemapParseResp'
-              type: object
-      summary: Parse Sitemap
-      tags:
-      - crawler
-  /api/v1/crawler/sitemap/scrape:
-    post:
-      consumes:
-      - application/json
-      description: SitemapScrape
-      parameters:
-      - description: Parse URL
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.SitemapScrapeReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.SitemapScrapeResp'
-              type: object
-      summary: SitemapScrape
-      tags:
-      - crawler
-  /api/v1/crawler/siyuan/parse:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Parse Siyuan Export File and return document list
-      parameters:
-      - description: file
-        in: formData
-        name: file
-        required: true
-        type: file
-      - description: kb_id
-        in: formData
-        name: kb_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.SiyuanParseResp'
-              type: object
-      summary: SiyuanParse
-      tags:
-      - crawler
-  /api/v1/crawler/siyuan/scrape:
-    post:
-      consumes:
-      - application/json
-      description: Scrape specific Siyuan documents by ID
-      parameters:
-      - description: Scrape Request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.SiyuanScrapeReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.SiyuanScrapeResp'
-              type: object
-      summary: SiyuanScrape
-      tags:
-      - crawler
-  /api/v1/crawler/wikijs/parse:
-    post:
-      consumes:
-      - multipart/form-data
-      description: Parse Wikijs Export File and return document list
-      parameters:
-      - description: file
-        in: formData
-        name: file
-        required: true
-        type: file
-      - description: kb_id
-        in: formData
-        name: kb_id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.WikijsParseResp'
-              type: object
-      summary: WikijsParse
-      tags:
-      - crawler
-  /api/v1/crawler/wikijs/scrape:
-    post:
-      consumes:
-      - application/json
-      description: Scrape specific Wikijs documents by ID
-      parameters:
-      - description: Scrape Request
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.WikijsScrapeReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.WikijsScrapeResp'
-              type: object
-      summary: WikijsScrape
-      tags:
-      - crawler
-  /api/v1/crawler/yuque/parse:
-    post:
-      consumes:
-      - application/json
-      description: YuqueParse
-      parameters:
-      - description: Parse URL
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/v1.YuqueParseReq'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            allOf:
-            - $ref: '#/definitions/domain.PWResponse'
-            - properties:
-                data:
-                  $ref: '#/definitions/v1.YuqueParseResp'
-              type: object
-      summary: YuqueParse
       tags:
       - crawler
   /api/v1/creation/tab-complete:

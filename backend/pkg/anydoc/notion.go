@@ -43,7 +43,7 @@ type NotionExportDocResponse struct {
 }
 
 // NotionListDocs 获取 Notion 文档列表
-func (c *Client) NotionListDocs(ctx context.Context, secret, uuid string) (*NotionListDocsResponse, error) {
+func (c *Client) NotionListDocs(ctx context.Context, secret, uuid string) (*ListDocResponse, error) {
 	u, err := url.Parse(crawlerServiceHost)
 	if err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (c *Client) NotionListDocs(ctx context.Context, secret, uuid string) (*Noti
 
 	c.logger.Info("NotionListDocs", "requestURL:", requestURL, "resp", string(respBody))
 
-	var notionResp NotionListDocsResponse
+	var notionResp ListDocResponse
 	err = json.Unmarshal(respBody, &notionResp)
 	if err != nil {
 		return nil, err

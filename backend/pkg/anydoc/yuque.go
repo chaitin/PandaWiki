@@ -55,7 +55,7 @@ type YuqueExportDocResponse struct {
 }
 
 // YuqueListDocs 获取 Yuque 文档列表
-func (c *Client) YuqueListDocs(ctx context.Context, yuqueURL, filename, uuid string) (*YuqueListDocsResponse, error) {
+func (c *Client) YuqueListDocs(ctx context.Context, yuqueURL, filename, uuid string) (*ListDocResponse, error) {
 	u, err := url.Parse(crawlerServiceHost)
 	if err != nil {
 		return nil, err
@@ -93,7 +93,7 @@ func (c *Client) YuqueListDocs(ctx context.Context, yuqueURL, filename, uuid str
 
 	c.logger.Info("YuqueListDocs", "requestURL:", requestURL, "resp", string(respBody))
 
-	var yuqueResp YuqueListDocsResponse
+	var yuqueResp ListDocResponse
 	err = json.Unmarshal(respBody, &yuqueResp)
 	if err != nil {
 		return nil, err

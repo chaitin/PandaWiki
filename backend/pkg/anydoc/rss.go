@@ -57,7 +57,7 @@ type RssExportDocData struct {
 }
 
 // RssListDocs 获取 Rss 文档列表
-func (c *Client) RssListDocs(ctx context.Context, uuid, xmlUrl string) (*RssListDocsResponse, error) {
+func (c *Client) RssListDocs(ctx context.Context, uuid, xmlUrl string) (*ListDocResponse, error) {
 	u, err := url.Parse(crawlerServiceHost)
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func (c *Client) RssListDocs(ctx context.Context, uuid, xmlUrl string) (*RssList
 
 	c.logger.Info("RssListDocs", "requestURL:", requestURL, "resp", string(respBody))
 
-	var rssResp RssListDocsResponse
+	var rssResp ListDocResponse
 	err = json.Unmarshal(respBody, &rssResp)
 	if err != nil {
 		return nil, err

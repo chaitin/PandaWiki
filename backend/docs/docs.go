@@ -663,60 +663,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/crawler/confluence/parse": {
+        "/api/v1/crawler/export": {
             "post": {
-                "description": "Parse Confluence Export File and return document list",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "ConfluenceParse",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "file",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "kb_id",
-                        "name": "kb_id",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.ConfluenceParseResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/confluence/scrape": {
-            "post": {
-                "description": "Scrape specific Confluence documents by ID",
+                "description": "CrawlerExport",
                 "consumes": [
                     "application/json"
                 ],
@@ -726,389 +675,7 @@ const docTemplate = `{
                 "tags": [
                     "crawler"
                 ],
-                "summary": "ConfluenceScrape",
-                "parameters": [
-                    {
-                        "description": "Scrape Request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.ConfluenceScrapeReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.ConfluenceScrapeResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/epub/parse": {
-            "post": {
-                "description": "EpubParse",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "EpubParse",
-                "parameters": [
-                    {
-                        "description": "Parse URL",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.EpubParseReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.EpubParseResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/feishu/get_doc": {
-            "post": {
-                "description": "Get Docx in Feishu Spaces",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "FeishuDoc",
-                "parameters": [
-                    {
-                        "description": "Get Docx",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.FeishuGetDocReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.FeishuGetDocResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/feishu/list_doc": {
-            "post": {
-                "description": "List Docx in Feishu Spaces",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "FeishuListCloudDoc",
-                "parameters": [
-                    {
-                        "description": "Search Docx",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.FeishuListCloudDocReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/v1.FeishuListCloudDocResp"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/feishu/list_spaces": {
-            "post": {
-                "description": "List All Feishu Spaces",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "FeishuListSpaces",
-                "parameters": [
-                    {
-                        "description": "List Spaces",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.FeishuSpaceListReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/v1.FeishuSpaceListResp"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/feishu/search_wiki": {
-            "post": {
-                "description": "Search Wiki in Feishu Spaces",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "FeishuWikiSearch",
-                "parameters": [
-                    {
-                        "description": "Search Wiki",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.FeishuSearchWikiReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/v1.FeishuSearchWikiResp"
-                                            }
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/mindoc/parse": {
-            "post": {
-                "description": "Parse Mindoc Export File and return document list",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "MindocParse",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "file",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "kb_id",
-                        "name": "kb_id",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.MindocParseResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/mindoc/scrape": {
-            "post": {
-                "description": "Scrape specific Mindoc documents by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "MindocScrape",
-                "parameters": [
-                    {
-                        "description": "Scrape Request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.MindocScrapeReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.MindocScrapeResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/notion/parse": {
-            "post": {
-                "description": "NotionParse",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "NotionParse",
+                "summary": "CrawlerExport",
                 "parameters": [
                     {
                         "description": "Scrape",
@@ -1116,7 +683,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/v1.NotionParseReq"
+                            "$ref": "#/definitions/v1.CrawlerExportReq"
                         }
                     }
                 ],
@@ -1132,7 +699,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/v1.NotionParseResp"
+                                            "$ref": "#/definitions/v1.CrawlerExportResp"
                                         }
                                     }
                                 }
@@ -1142,9 +709,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/crawler/notion/scrape": {
+        "/api/v1/crawler/parse": {
             "post": {
-                "description": "NotionScrape",
+                "description": "解析文档树",
                 "consumes": [
                     "application/json"
                 ],
@@ -1154,15 +721,15 @@ const docTemplate = `{
                 "tags": [
                     "crawler"
                 ],
-                "summary": "NotionScrape",
+                "summary": "解析文档树",
                 "parameters": [
                     {
-                        "description": "Get Docs",
+                        "description": "Scrape",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/v1.NotionScrapeReq"
+                            "$ref": "#/definitions/v1.CrawlerParseReq"
                         }
                     }
                 ],
@@ -1178,7 +745,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/v1.NotionScrapeResp"
+                                            "$ref": "#/definitions/v1.CrawlerParseResp"
                                         }
                                     }
                                 }
@@ -1203,10 +770,13 @@ const docTemplate = `{
                 "summary": "Get Crawler Result",
                 "parameters": [
                     {
-                        "type": "string",
-                        "name": "task_id",
-                        "in": "query",
-                        "required": true
+                        "description": "Crawler Result Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.CrawlerResultReq"
+                        }
                     }
                 ],
                 "responses": {
@@ -1268,476 +838,6 @@ const docTemplate = `{
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/v1.CrawlerResultsResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/rss/parse": {
-            "post": {
-                "description": "Parse RSS",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "Parse RSS",
-                "parameters": [
-                    {
-                        "description": "Parse URL",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.RssParseReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.RssParseResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/rss/scrape": {
-            "post": {
-                "description": "RSSScrape",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "RSSScrape",
-                "parameters": [
-                    {
-                        "description": "Parse URL",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.RssScrapeReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.RssScrapeResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/scrape": {
-            "post": {
-                "description": "Scrape",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "Scrape",
-                "parameters": [
-                    {
-                        "description": "Scrape",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.ScrapeReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.ScrapeResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/sitemap/parse": {
-            "post": {
-                "description": "Parse Sitemap",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "Parse Sitemap",
-                "parameters": [
-                    {
-                        "description": "Parse URL",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.SitemapParseReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.SitemapParseResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/sitemap/scrape": {
-            "post": {
-                "description": "SitemapScrape",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "SitemapScrape",
-                "parameters": [
-                    {
-                        "description": "Parse URL",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.SitemapScrapeReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.SitemapScrapeResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/siyuan/parse": {
-            "post": {
-                "description": "Parse Siyuan Export File and return document list",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "SiyuanParse",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "file",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "kb_id",
-                        "name": "kb_id",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.SiyuanParseResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/siyuan/scrape": {
-            "post": {
-                "description": "Scrape specific Siyuan documents by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "SiyuanScrape",
-                "parameters": [
-                    {
-                        "description": "Scrape Request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.SiyuanScrapeReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.SiyuanScrapeResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/wikijs/parse": {
-            "post": {
-                "description": "Parse Wikijs Export File and return document list",
-                "consumes": [
-                    "multipart/form-data"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "WikijsParse",
-                "parameters": [
-                    {
-                        "type": "file",
-                        "description": "file",
-                        "name": "file",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "kb_id",
-                        "name": "kb_id",
-                        "in": "formData",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.WikijsParseResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/wikijs/scrape": {
-            "post": {
-                "description": "Scrape specific Wikijs documents by ID",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "WikijsScrape",
-                "parameters": [
-                    {
-                        "description": "Scrape Request",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.WikijsScrapeReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.WikijsScrapeResp"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/crawler/yuque/parse": {
-            "post": {
-                "description": "YuqueParse",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "crawler"
-                ],
-                "summary": "YuqueParse",
-                "parameters": [
-                    {
-                        "description": "Parse URL",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/v1.YuqueParseReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/domain.PWResponse"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "data": {
-                                            "$ref": "#/definitions/v1.YuqueParseResp"
                                         }
                                     }
                                 }
@@ -4671,6 +3771,40 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "anydoc.Child": {
+            "type": "object",
+            "properties": {
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/anydoc.Child"
+                    }
+                },
+                "value": {
+                    "$ref": "#/definitions/anydoc.Value"
+                }
+            }
+        },
+        "anydoc.Value": {
+            "type": "object",
+            "properties": {
+                "file": {
+                    "type": "boolean"
+                },
+                "file_type": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "summary": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
         "consts.AuthType": {
             "type": "string",
             "enum": [
@@ -4715,6 +3849,37 @@ const docTemplate = `{
                 "CopySettingNone",
                 "CopySettingAppend",
                 "CopySettingDisabled"
+            ]
+        },
+        "consts.CrawlerSource": {
+            "type": "string",
+            "enum": [
+                "url",
+                "rss",
+                "sitemap",
+                "notion",
+                "feishu",
+                "file",
+                "epub",
+                "yuque",
+                "siyuan",
+                "mindoc",
+                "wikijs",
+                "confluence"
+            ],
+            "x-enum-varnames": [
+                "CrawlerSourceUrl",
+                "CrawlerSourceRSS",
+                "CrawlerSourceSitemap",
+                "CrawlerSourceNotion",
+                "CrawlerSourceFeishu",
+                "CrawlerSourceFile",
+                "CrawlerSourceEpub",
+                "CrawlerSourceYuque",
+                "CrawlerSourceSiyuan",
+                "CrawlerSourceMindoc",
+                "CrawlerSourceWikijs",
+                "CrawlerSourceConfluence"
             ]
         },
         "consts.CrawlerStatus": {
@@ -8268,35 +7433,21 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.ConfluenceParseItem": {
+        "v1.ConversationListItems": {
             "type": "object",
             "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.ConfluenceParseResp": {
-            "type": "object",
-            "properties": {
-                "docs": {
+                "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/v1.ConfluenceParseItem"
+                        "$ref": "#/definitions/domain.ConversationListItem"
                     }
                 },
-                "id": {
-                    "type": "string"
+                "total": {
+                    "type": "integer"
                 }
             }
         },
-        "v1.ConfluenceScrapeReq": {
+        "v1.CrawlerExportReq": {
             "type": "object",
             "required": [
                 "doc_id",
@@ -8315,25 +7466,46 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.ConfluenceScrapeResp": {
+        "v1.CrawlerExportResp": {
             "type": "object",
             "properties": {
-                "content": {
+                "task_id": {
                     "type": "string"
                 }
             }
         },
-        "v1.ConversationListItems": {
+        "v1.CrawlerParseReq": {
+            "type": "object",
+            "required": [
+                "crawler_source",
+                "kb_id"
+            ],
+            "properties": {
+                "crawler_source": {
+                    "$ref": "#/definitions/consts.CrawlerSource"
+                },
+                "feishu_setting": {
+                    "$ref": "#/definitions/v1.FeishuSetting"
+                },
+                "filename": {
+                    "type": "string"
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "key": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.CrawlerParseResp": {
             "type": "object",
             "properties": {
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/domain.ConversationListItem"
-                    }
+                "docs": {
+                    "$ref": "#/definitions/anydoc.Child"
                 },
-                "total": {
-                    "type": "integer"
+                "id": {
+                    "type": "string"
                 }
             }
         },
@@ -8346,6 +7518,17 @@ const docTemplate = `{
                 "status": {
                     "$ref": "#/definitions/consts.CrawlerStatus"
                 },
+                "task_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.CrawlerResultReq": {
+            "type": "object",
+            "required": [
+                "task_id"
+            ],
+            "properties": {
                 "task_id": {
                     "type": "string"
                 }
@@ -8429,116 +7612,8 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.EpubParseReq": {
+        "v1.FeishuSetting": {
             "type": "object",
-            "required": [
-                "filename",
-                "kb_id",
-                "key"
-            ],
-            "properties": {
-                "filename": {
-                    "type": "string"
-                },
-                "kb_id": {
-                    "type": "string"
-                },
-                "key": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.EpubParseResp": {
-            "type": "object",
-            "properties": {
-                "task_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.FeishuGetDocReq": {
-            "type": "object",
-            "required": [
-                "doc_id",
-                "id",
-                "kb_id"
-            ],
-            "properties": {
-                "doc_id": {
-                    "type": "string"
-                },
-                "file_type": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "kb_id": {
-                    "type": "string"
-                },
-                "space_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.FeishuGetDocResp": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.FeishuListCloudDocReq": {
-            "type": "object",
-            "required": [
-                "app_id",
-                "app_secret",
-                "user_access_token"
-            ],
-            "properties": {
-                "app_id": {
-                    "type": "string"
-                },
-                "app_secret": {
-                    "type": "string"
-                },
-                "user_access_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.FeishuListCloudDocResp": {
-            "type": "object",
-            "required": [
-                "doc_id",
-                "id"
-            ],
-            "properties": {
-                "doc_id": {
-                    "type": "string"
-                },
-                "file_type": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "space_id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.FeishuSearchWikiReq": {
-            "type": "object",
-            "required": [
-                "app_id",
-                "app_secret",
-                "user_access_token"
-            ],
             "properties": {
                 "app_id": {
                     "type": "string"
@@ -8550,60 +7625,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "user_access_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.FeishuSearchWikiResp": {
-            "type": "object",
-            "required": [
-                "doc_id",
-                "id"
-            ],
-            "properties": {
-                "doc_id": {
-                    "type": "string"
-                },
-                "file_type": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "space_id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.FeishuSpaceListReq": {
-            "type": "object",
-            "required": [
-                "app_id",
-                "app_secret",
-                "user_access_token"
-            ],
-            "properties": {
-                "app_id": {
-                    "type": "string"
-                },
-                "app_secret": {
-                    "type": "string"
-                },
-                "user_access_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.FeishuSpaceListResp": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "space_id": {
                     "type": "string"
                 }
             }
@@ -8708,61 +7729,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "token": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.MindocParseItem": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.MindocParseResp": {
-            "type": "object",
-            "properties": {
-                "docs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.MindocParseItem"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.MindocScrapeReq": {
-            "type": "object",
-            "required": [
-                "doc_id",
-                "id",
-                "kb_id"
-            ],
-            "properties": {
-                "doc_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "kb_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.MindocScrapeResp": {
-            "type": "object",
-            "properties": {
-                "content": {
                     "type": "string"
                 }
             }
@@ -8882,69 +7848,6 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.NotionParseItem": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.NotionParseReq": {
-            "type": "object",
-            "required": [
-                "integration"
-            ],
-            "properties": {
-                "integration": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.NotionParseResp": {
-            "type": "object",
-            "properties": {
-                "docs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.NotionParseItem"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.NotionScrapeReq": {
-            "type": "object",
-            "required": [
-                "doc_id",
-                "id",
-                "kb_id"
-            ],
-            "properties": {
-                "doc_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "kb_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.NotionScrapeResp": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                }
-            }
-        },
         "v1.ResetPasswordReq": {
             "type": "object",
             "required": [
@@ -8958,216 +7861,6 @@ const docTemplate = `{
                 "new_password": {
                     "type": "string",
                     "minLength": 8
-                }
-            }
-        },
-        "v1.RssParseItem": {
-            "type": "object",
-            "properties": {
-                "desc": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.RssParseReq": {
-            "type": "object",
-            "required": [
-                "url"
-            ],
-            "properties": {
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.RssParseResp": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "list": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.RssParseItem"
-                    }
-                }
-            }
-        },
-        "v1.RssScrapeReq": {
-            "type": "object",
-            "required": [
-                "id",
-                "kb_id",
-                "url"
-            ],
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "kb_id": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.RssScrapeResp": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.ScrapeReq": {
-            "type": "object",
-            "required": [
-                "kb_id",
-                "url"
-            ],
-            "properties": {
-                "kb_id": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.ScrapeResp": {
-            "type": "object",
-            "properties": {
-                "task_id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.SitemapParseItem": {
-            "type": "object",
-            "properties": {
-                "title": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.SitemapParseReq": {
-            "type": "object",
-            "required": [
-                "url"
-            ],
-            "properties": {
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.SitemapParseResp": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "list": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.SitemapParseItem"
-                    }
-                }
-            }
-        },
-        "v1.SitemapScrapeReq": {
-            "type": "object",
-            "required": [
-                "id",
-                "kb_id",
-                "url"
-            ],
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "kb_id": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.SitemapScrapeResp": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.SiyuanParseItem": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.SiyuanParseResp": {
-            "type": "object",
-            "properties": {
-                "docs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.SiyuanParseItem"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.SiyuanScrapeReq": {
-            "type": "object",
-            "required": [
-                "doc_id",
-                "id",
-                "kb_id"
-            ],
-            "properties": {
-                "doc_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "kb_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.SiyuanScrapeResp": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
                 }
             }
         },
@@ -9238,99 +7931,6 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/v1.UserListItemResp"
-                    }
-                }
-            }
-        },
-        "v1.WikijsParseItem": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.WikijsParseResp": {
-            "type": "object",
-            "properties": {
-                "docs": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.WikijsParseItem"
-                    }
-                },
-                "id": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.WikijsScrapeReq": {
-            "type": "object",
-            "required": [
-                "doc_id",
-                "id",
-                "kb_id"
-            ],
-            "properties": {
-                "doc_id": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "kb_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.WikijsScrapeResp": {
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.YuqueParseItem": {
-            "type": "object",
-            "properties": {
-                "task_id": {
-                    "type": "string"
-                },
-                "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.YuqueParseReq": {
-            "type": "object",
-            "required": [
-                "filename",
-                "kb_id",
-                "key"
-            ],
-            "properties": {
-                "filename": {
-                    "type": "string"
-                },
-                "kb_id": {
-                    "type": "string"
-                },
-                "key": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.YuqueParseResp": {
-            "type": "object",
-            "properties": {
-                "list": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/v1.YuqueParseItem"
                     }
                 }
             }

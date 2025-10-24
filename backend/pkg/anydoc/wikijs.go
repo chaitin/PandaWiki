@@ -23,25 +23,6 @@ type WikijsListDocsRequest struct {
 	UUID     string `json:"uuid"`     // 必填的唯一标识符
 }
 
-// WikijsListDocsResponse Wikijs 获取文档列表响应
-type WikijsListDocsResponse struct {
-	Success bool               `json:"success"`
-	Msg     string             `json:"msg"`
-	Data    WikijsListDocsData `json:"data"`
-}
-
-// WikijsListDocsData Wikijs 文档列表数据
-type WikijsListDocsData struct {
-	Docs []WikijsDoc `json:"docs"`
-}
-
-// WikijsDoc Wikijs 文档信息
-type WikijsDoc struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
-	URL   string `json:"url"`
-}
-
 // WikijsExportDocRequest Wikijs 导出文档请求
 type WikijsExportDocRequest struct {
 	UUID  string `json:"uuid"`   // 必须与 list 接口使用的 uuid 相同
@@ -63,7 +44,7 @@ type WikijsExportDocData struct {
 }
 
 // WikijsListDocs 获取 Wikijs 文档列表
-func (c *Client) WikijsListDocs(ctx context.Context, wikijsURL, filename, uuid string) (*WikijsListDocsResponse, error) {
+func (c *Client) WikijsListDocs(ctx context.Context, wikijsURL, filename, uuid string) (*ListDocResponse, error) {
 	u, err := url.Parse(crawlerServiceHost)
 	if err != nil {
 		return nil, err
@@ -101,7 +82,7 @@ func (c *Client) WikijsListDocs(ctx context.Context, wikijsURL, filename, uuid s
 
 	c.logger.Info("WikijsListDocs", "requestURL:", requestURL, "resp", string(respBody))
 
-	var wikijsResp WikijsListDocsResponse
+	var wikijsResp ListDocResponse
 	err = json.Unmarshal(respBody, &wikijsResp)
 	if err != nil {
 		return nil, err

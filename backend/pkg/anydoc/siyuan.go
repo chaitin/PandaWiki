@@ -63,7 +63,7 @@ type SiyuanExportDocData struct {
 }
 
 // SiyuanListDocs 获取 Siyuan 文档列表
-func (c *Client) SiyuanListDocs(ctx context.Context, siyuanURL, filename, uuid string) (*SiyuanListDocsResponse, error) {
+func (c *Client) SiyuanListDocs(ctx context.Context, siyuanURL, filename, uuid string) (*ListDocResponse, error) {
 	u, err := url.Parse(crawlerServiceHost)
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (c *Client) SiyuanListDocs(ctx context.Context, siyuanURL, filename, uuid s
 
 	c.logger.Info("SiyuanListDocs", "requestURL:", requestURL, "resp", string(respBody))
 
-	var siyuanResp SiyuanListDocsResponse
+	var siyuanResp ListDocResponse
 	err = json.Unmarshal(respBody, &siyuanResp)
 	if err != nil {
 		return nil, err

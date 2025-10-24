@@ -64,7 +64,7 @@ type FeishuExportDocData struct {
 }
 
 // FeishuListDocs 获取 Feishu 文档列表
-func (c *Client) FeishuListDocs(ctx context.Context, uuid, appId, appSecret, accessToken, spaceId string) (*FeishuListDocsResponse, error) {
+func (c *Client) FeishuListDocs(ctx context.Context, uuid, appId, appSecret, accessToken, spaceId string) (*ListDocResponse, error) {
 	u, err := url.Parse(crawlerServiceHost)
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (c *Client) FeishuListDocs(ctx context.Context, uuid, appId, appSecret, acc
 
 	c.logger.Info("FeishuListDocs", "requestURL:", requestURL, "resp", string(respBody))
 
-	var feishuResp FeishuListDocsResponse
+	var feishuResp ListDocResponse
 	err = json.Unmarshal(respBody, &feishuResp)
 	if err != nil {
 		return nil, err

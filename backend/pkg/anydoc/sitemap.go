@@ -57,7 +57,7 @@ type SitemapExportDocData struct {
 }
 
 // SitemapListDocs 获取 Sitemap 文档列表
-func (c *Client) SitemapListDocs(ctx context.Context, uuid, xmlUrl string) (*SitemapListDocsResponse, error) {
+func (c *Client) SitemapListDocs(ctx context.Context, xmlUrl, uuid string) (*ListDocResponse, error) {
 	u, err := url.Parse(crawlerServiceHost)
 	if err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func (c *Client) SitemapListDocs(ctx context.Context, uuid, xmlUrl string) (*Sit
 
 	c.logger.Info("SitemapListDocs", "requestURL:", requestURL, "resp", string(respBody))
 
-	var sitemapResp SitemapListDocsResponse
+	var sitemapResp ListDocResponse
 	err = json.Unmarshal(respBody, &sitemapResp)
 	if err != nil {
 		return nil, err

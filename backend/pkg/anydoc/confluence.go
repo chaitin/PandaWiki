@@ -23,25 +23,6 @@ type ConfluenceListDocsRequest struct {
 	UUID     string `json:"uuid"`     // 必填的唯一标识符
 }
 
-// ConfluenceListDocsResponse Confluence 获取文档列表响应
-type ConfluenceListDocsResponse struct {
-	Success bool                   `json:"success"`
-	Msg     string                 `json:"msg"`
-	Data    ConfluenceListDocsData `json:"data"`
-}
-
-// ConfluenceListDocsData Confluence 文档列表数据
-type ConfluenceListDocsData struct {
-	Docs []ConfluenceDoc `json:"docs"`
-}
-
-// ConfluenceDoc Confluence 文档信息
-type ConfluenceDoc struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
-	URL   string `json:"url"`
-}
-
 // ConfluenceExportDocRequest Confluence 导出文档请求
 type ConfluenceExportDocRequest struct {
 	UUID  string `json:"uuid"`   // 必须与 list 接口使用的 uuid 相同
@@ -63,7 +44,7 @@ type ConfluenceExportDocData struct {
 }
 
 // ConfluenceListDocs 获取 Confluence 文档列表
-func (c *Client) ConfluenceListDocs(ctx context.Context, confluenceURL, filename, uuid string) (*ConfluenceListDocsResponse, error) {
+func (c *Client) ConfluenceListDocs(ctx context.Context, confluenceURL, filename, uuid string) (*ListDocResponse, error) {
 	u, err := url.Parse(crawlerServiceHost)
 	if err != nil {
 		return nil, err
@@ -101,7 +82,7 @@ func (c *Client) ConfluenceListDocs(ctx context.Context, confluenceURL, filename
 
 	c.logger.Info("ConfluenceListDocs", "requestURL:", requestURL, "resp", string(respBody))
 
-	var confluenceResp ConfluenceListDocsResponse
+	var confluenceResp ListDocResponse
 	err = json.Unmarshal(respBody, &confluenceResp)
 	if err != nil {
 		return nil, err

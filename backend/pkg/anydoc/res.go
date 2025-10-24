@@ -36,3 +36,28 @@ type TaskRes struct {
 	} `json:"data"`
 	Msg string `json:"msg"`
 }
+
+type ListDocResponse struct {
+	Success bool         `json:"success"`
+	Data    ListDocsData `json:"data"`
+	Msg     string       `json:"msg"`
+	Err     string       `json:"err"`
+	TraceID string       `json:"trace_id"`
+}
+
+type ListDocsData struct {
+	Docs Child `json:"docs"`
+}
+
+type Value struct {
+	ID       string `json:"id"`
+	File     bool   `json:"file"`
+	FileType string `json:"file_type"`
+	Title    string `json:"title"`
+	Summary  string `json:"summary"`
+}
+
+type Child struct {
+	Value    Value   `json:"value"`
+	Children []Child `json:"children"`
+}

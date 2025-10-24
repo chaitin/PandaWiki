@@ -3,11 +3,9 @@ package usecase
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"net/http"
 	"slices"
-	"strings"
 
 	"github.com/google/uuid"
 
@@ -46,33 +44,106 @@ func NewCrawlerUsecase(logger *log.Logger, mqConsumer mq.MQConsumer, cache *cach
 	}, nil
 }
 
-func (u *CrawlerUsecase) ScrapeURL(ctx context.Context, targetURL, kbID string) (*v1.ScrapeResp, error) {
-	if strings.HasPrefix(targetURL, "/static-file") {
-		targetURL = "https://panda-wiki-nginx:8080" + targetURL
-	}
-
-	id := utils.GetFileNameWithoutExt(targetURL)
+func (u *CrawlerUsecase) ParseUrl(ctx context.Context, req *v1.CrawlerParseReq) (*v1.CrawlerParseResp, error) {
+	id := utils.GetFileNameWithoutExt(req.Key)
 	if !utils.IsUUID(id) {
 		id = uuid.New().String()
 	}
 
-	getUrlRes, err := u.anydocClient.GetUrlList(ctx, targetURL, id)
+	// 文件类型的解析会先走上传接口
+	if req.CrawlerSource.Type() == consts.CrawlerSourceTypeFile {
+		req.Key = fmt.Sprintf("http://panda-wiki-minio:9000/static-file/%s", req.Key)
+	}
+
+	var (
+		docs *anydoc.ListDocResponse
+		err  error
+	)
+	switch req.CrawlerSource {
+
+	case consts.CrawlerSourceFeishu:
+		docs, err = u.anydocClient.FeishuListDocs(ctx, id, req.FeishuSetting.AppID, req.FeishuSetting.AppSecret, req.FeishuSetting.UserAccessToken, req.FeishuSetting.SpaceId)
+		if err != nil {
+			return nil, err
+		}
+
+	case consts.CrawlerSourceUrl, consts.CrawlerSourceFile:
+		docs, err = u.anydocClient.GetUrlList(ctx, req.Key, id)
+		if err != nil {
+			return nil, err
+		}
+
+	case consts.CrawlerSourceConfluence:
+		docs, err = u.anydocClient.ConfluenceListDocs(ctx, req.Key, req.Filename, id)
+		if err != nil {
+			return nil, err
+		}
+	case consts.CrawlerSourceEpub:
+		docs, err = u.anydocClient.EpubpListDocs(ctx, req.Key, req.Filename, id)
+		if err != nil {
+			return nil, err
+		}
+	case consts.CrawlerSourceMindoc:
+		docs, err = u.anydocClient.MindocListDocs(ctx, req.Key, req.Filename, id)
+		if err != nil {
+			return nil, err
+		}
+	case consts.CrawlerSourceWikijs:
+		docs, err = u.anydocClient.WikijsListDocs(ctx, req.Key, req.Filename, id)
+		if err != nil {
+			return nil, err
+		}
+
+	case consts.CrawlerSourceSiyuan:
+		docs, err = u.anydocClient.SiyuanListDocs(ctx, req.Key, req.Filename, id)
+		if err != nil {
+			return nil, err
+		}
+
+	case consts.CrawlerSourceYuque:
+		docs, err = u.anydocClient.YuqueListDocs(ctx, req.Key, req.Filename, id)
+		if err != nil {
+			return nil, err
+		}
+
+	case consts.CrawlerSourceSitemap:
+		docs, err = u.anydocClient.SitemapListDocs(ctx, req.Key, id)
+		if err != nil {
+			return nil, err
+		}
+
+	case consts.CrawlerSourceRSS:
+		docs, err = u.anydocClient.RssListDocs(ctx, req.Key, id)
+		if err != nil {
+			return nil, err
+		}
+
+	case consts.CrawlerSourceNotion:
+		docs, err = u.anydocClient.NotionListDocs(ctx, req.Key, id)
+		if err != nil {
+			return nil, err
+		}
+
+	default:
+		return nil, fmt.Errorf("parse type %s is not supported", req.CrawlerSource)
+	}
+
+	result := &v1.CrawlerParseResp{
+		ID:   id,
+		Docs: docs.Data.Docs,
+	}
+
+	return result, nil
+}
+
+func (u *CrawlerUsecase) ExportDoc(ctx context.Context, req *v1.CrawlerExportReq) (*v1.CrawlerExportResp, error) {
+	urlExportRes, err := u.anydocClient.UrlExport(ctx, req.ID, req.DocID, req.KbID)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(getUrlRes.Docs) == 0 {
-		return nil, errors.New("get getUrlRes Docs failed")
-	}
-
-	urlExportRes, err := u.anydocClient.UrlExport(ctx, id, getUrlRes.Docs[0].Id, kbID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &v1.ScrapeResp{
+	return &v1.CrawlerExportResp{
 		TaskId: urlExportRes.Data,
-		Title:  getUrlRes.Docs[0].Title,
 	}, nil
 }
 
@@ -135,408 +206,4 @@ func (u *CrawlerUsecase) ScrapeGetResults(ctx context.Context, taskIds []string)
 		Status: status,
 		List:   list,
 	}, nil
-}
-
-func (u *CrawlerUsecase) ConfluenceParse(ctx context.Context, targetURL, filename string) (*v1.ConfluenceParseResp, error) {
-	id := utils.GetFileNameWithoutExt(targetURL)
-	if !utils.IsUUID(id) {
-		id = uuid.New().String()
-	}
-
-	docs, err := u.anydocClient.ConfluenceListDocs(ctx, targetURL, filename, id)
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]v1.ConfluenceParseItem, 0, len(docs.Data.Docs))
-	for _, doc := range docs.Data.Docs {
-		items = append(items, v1.ConfluenceParseItem{
-			ID:    doc.ID,
-			Title: doc.Title,
-			URL:   doc.URL,
-		})
-	}
-
-	result := &v1.ConfluenceParseResp{
-		ID:   id,
-		Docs: items,
-	}
-
-	return result, nil
-}
-
-// ConfluenceScrape 根据文档ID列表抓取具体内容
-func (u *CrawlerUsecase) ConfluenceScrape(ctx context.Context, req *v1.ConfluenceScrapeReq) (*v1.ConfluenceScrapeResp, error) {
-
-	exportResp, err := u.anydocClient.ConfluenceExportDoc(ctx, req.ID, req.DocID, req.KbID)
-	if err != nil {
-		u.logger.Error("export confluence doc failed", "doc_id", req.DocID, "error", err)
-		return nil, err
-	}
-
-	taskRes, err := u.anydocClient.TaskWaitForCompletion(ctx, exportResp.Data)
-	if err != nil {
-		u.logger.Error("wait for task completion failed", "task_id", exportResp.Data, "error", err)
-		return nil, err
-	}
-
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
-	if err != nil {
-		u.logger.Error("download doc failed", "markdown_path", taskRes.Markdown, "error", err)
-		return nil, err
-	}
-
-	return &v1.ConfluenceScrapeResp{Content: string(fileBytes)}, nil
-}
-
-func (u *CrawlerUsecase) NotionGetDocList(ctx context.Context, integration string) (*v1.NotionParseResp, error) {
-	id := uuid.New().String()
-
-	notionListResp, err := u.anydocClient.NotionListDocs(ctx, integration, id)
-	if err != nil {
-		return nil, err
-	}
-
-	var results []v1.NotionParseItem
-
-	for _, doc := range notionListResp.Data.Docs {
-		results = append(results, v1.NotionParseItem{
-			ID:    doc.ID,
-			Title: doc.Title,
-		})
-	}
-	return &v1.NotionParseResp{
-		ID:   id,
-		Docs: results,
-	}, nil
-}
-
-func (u *CrawlerUsecase) NotionGetDoc(ctx context.Context, req v1.NotionScrapeReq) (*v1.NotionScrapeResp, error) {
-
-	exportResp, err := u.anydocClient.NotionExportDoc(ctx, req.ID, req.DocId, req.KbID)
-	if err != nil {
-		u.logger.Error("export doc failed", "doc_id", req.DocId, "error", err)
-		return nil, err
-	}
-
-	taskRes, err := u.anydocClient.TaskWaitForCompletion(ctx, exportResp.Data)
-	if err != nil {
-		u.logger.Error("wait for task completion failed", "task_id", exportResp.Data, "error", err)
-		return nil, err
-	}
-
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
-	if err != nil {
-		u.logger.Error("download doc failed", "markdown_path", taskRes.Markdown, "error", err)
-		return nil, err
-	}
-
-	u.logger.Debug("taskRes:", "id", req.DocId, "file", string(fileBytes))
-
-	return &v1.NotionScrapeResp{
-		Content: string(fileBytes),
-	}, nil
-}
-
-func (u *CrawlerUsecase) SitemapGetUrls(ctx context.Context, xmlUrl string) (*v1.SitemapParseResp, error) {
-
-	id := uuid.New().String()
-
-	res, err := u.anydocClient.SitemapListDocs(ctx, id, xmlUrl)
-	if err != nil {
-		return nil, err
-	}
-	var items []v1.SitemapParseItem
-	for _, doc := range res.Data.Docs {
-		items = append(items, v1.SitemapParseItem{
-			URL:   doc.Id,
-			Title: doc.Title,
-		})
-	}
-
-	resp := &v1.SitemapParseResp{
-		ID:   id,
-		List: items,
-	}
-
-	return resp, nil
-}
-
-func (u *CrawlerUsecase) SitemapGetDoc(ctx context.Context, req *v1.SitemapScrapeReq) (*v1.SitemapScrapeResp, error) {
-
-	urlExportRes, err := u.anydocClient.SitemapExportDoc(ctx, req.ID, req.URL, req.KbID)
-	if err != nil {
-		return nil, err
-	}
-
-	taskRes, err := u.anydocClient.TaskWaitForCompletion(ctx, urlExportRes.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
-	if err != nil {
-		return nil, err
-	}
-
-	return &v1.SitemapScrapeResp{
-		Content: string(fileBytes),
-	}, nil
-}
-
-func (u *CrawlerUsecase) GetRSSParse(ctx context.Context, req *v1.RssParseReq) (*v1.RssParseResp, error) {
-
-	id := uuid.New().String()
-
-	res, err := u.anydocClient.RssListDocs(ctx, id, req.URL)
-	if err != nil {
-		return nil, err
-	}
-	var items []v1.RssParseItem
-	for _, doc := range res.Data.Docs {
-		items = append(items, v1.RssParseItem{
-			URL:   doc.Id,
-			Title: doc.Title,
-			Desc:  doc.Summary,
-		})
-	}
-
-	return &v1.RssParseResp{
-		ID:   id,
-		List: items,
-	}, nil
-}
-
-func (u *CrawlerUsecase) GetRssDoc(ctx context.Context, req *v1.RssScrapeReq) (*v1.RssScrapeResp, error) {
-
-	urlExportRes, err := u.anydocClient.RssExportDoc(ctx, req.ID, req.URL, req.KbID)
-	if err != nil {
-		return nil, err
-	}
-
-	taskRes, err := u.anydocClient.TaskWaitForCompletion(ctx, urlExportRes.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
-	if err != nil {
-		return nil, err
-	}
-
-	return &v1.RssScrapeResp{
-		Content: string(fileBytes),
-	}, nil
-}
-
-func (u *CrawlerUsecase) SiyuanParse(ctx context.Context, targetURL, filename string) (*v1.SiyuanParseResp, error) {
-	id := utils.GetFileNameWithoutExt(targetURL)
-	if !utils.IsUUID(id) {
-		id = uuid.New().String()
-	}
-
-	docs, err := u.anydocClient.SiyuanListDocs(ctx, targetURL, filename, id)
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]v1.SiyuanParseItem, 0, len(docs.Data.Docs))
-	for _, doc := range docs.Data.Docs {
-		items = append(items, v1.SiyuanParseItem{
-			ID:    doc.ID,
-			Title: doc.Title,
-			URL:   doc.URL,
-		})
-	}
-
-	result := &v1.SiyuanParseResp{
-		ID:   id,
-		Docs: items,
-	}
-
-	return result, nil
-}
-
-// SiyuanScrape 根据文档ID列表抓取具体内容
-func (u *CrawlerUsecase) SiyuanScrape(ctx context.Context, req *v1.SiyuanScrapeReq) (*v1.SiyuanScrapeResp, error) {
-
-	exportResp, err := u.anydocClient.SiyuanExportDoc(ctx, req.ID, req.DocID, req.KbID)
-	if err != nil {
-		u.logger.Error("export Siyuan doc failed", "doc_id", req.DocID, "error", err)
-		return nil, err
-	}
-
-	taskRes, err := u.anydocClient.TaskWaitForCompletion(ctx, exportResp.Data)
-	if err != nil {
-		u.logger.Error("wait for task completion failed", "task_id", exportResp.Data, "error", err)
-		return nil, err
-	}
-
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
-	if err != nil {
-		u.logger.Error("download doc failed", "markdown_path", taskRes.Markdown, "error", err)
-		return nil, err
-	}
-
-	return &v1.SiyuanScrapeResp{Content: string(fileBytes)}, nil
-}
-
-func (u *CrawlerUsecase) MindocParse(ctx context.Context, targetURL, filename string) (*v1.MindocParseResp, error) {
-	id := utils.GetFileNameWithoutExt(targetURL)
-	if !utils.IsUUID(id) {
-		id = uuid.New().String()
-	}
-
-	docs, err := u.anydocClient.MindocListDocs(ctx, targetURL, filename, id)
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]v1.MindocParseItem, 0, len(docs.Data.Docs))
-	for _, doc := range docs.Data.Docs {
-		items = append(items, v1.MindocParseItem{
-			ID:    doc.ID,
-			Title: doc.Title,
-			URL:   doc.URL,
-		})
-	}
-
-	result := &v1.MindocParseResp{
-		ID:   id,
-		Docs: items,
-	}
-
-	return result, nil
-}
-
-// MindocScrape 根据文档ID列表抓取具体内容
-func (u *CrawlerUsecase) MindocScrape(ctx context.Context, req *v1.MindocScrapeReq) (*v1.MindocScrapeResp, error) {
-
-	exportResp, err := u.anydocClient.MindocExportDoc(ctx, req.ID, req.DocID, req.KbID)
-	if err != nil {
-		u.logger.Error("export Mindoc doc failed", "doc_id", req.DocID, "error", err)
-		return nil, err
-	}
-
-	taskRes, err := u.anydocClient.TaskWaitForCompletion(ctx, exportResp.Data)
-	if err != nil {
-		u.logger.Error("wait for task completion failed", "task_id", exportResp.Data, "error", err)
-		return nil, err
-	}
-
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
-	if err != nil {
-		u.logger.Error("download doc failed", "markdown_path", taskRes.Markdown, "error", err)
-		return nil, err
-	}
-
-	return &v1.MindocScrapeResp{Content: string(fileBytes)}, nil
-}
-
-func (u *CrawlerUsecase) WikijsParse(ctx context.Context, targetURL, filename string) (*v1.WikijsParseResp, error) {
-	id := utils.GetFileNameWithoutExt(targetURL)
-	if !utils.IsUUID(id) {
-		id = uuid.New().String()
-	}
-
-	docs, err := u.anydocClient.WikijsListDocs(ctx, targetURL, filename, id)
-	if err != nil {
-		return nil, err
-	}
-
-	items := make([]v1.WikijsParseItem, 0, len(docs.Data.Docs))
-	for _, doc := range docs.Data.Docs {
-		items = append(items, v1.WikijsParseItem{
-			ID:    doc.ID,
-			Title: doc.Title,
-		})
-	}
-
-	result := &v1.WikijsParseResp{
-		ID:   id,
-		Docs: items,
-	}
-
-	return result, nil
-}
-
-func (u *CrawlerUsecase) WikijsScrape(ctx context.Context, req *v1.WikijsScrapeReq) (*v1.WikijsScrapeResp, error) {
-
-	exportResp, err := u.anydocClient.WikijsExportDoc(ctx, req.ID, req.DocID, req.KbID)
-	if err != nil {
-		u.logger.Error("export Wikijs doc failed", "doc_id", req.DocID, "error", err)
-		return nil, err
-	}
-
-	taskRes, err := u.anydocClient.TaskWaitForCompletion(ctx, exportResp.Data)
-	if err != nil {
-		u.logger.Error("wait for task completion failed", "task_id", exportResp.Data, "error", err)
-		return nil, err
-	}
-
-	fileBytes, err := u.anydocClient.DownloadDoc(ctx, taskRes.Markdown)
-	if err != nil {
-		u.logger.Error("download doc failed", "markdown_path", taskRes.Markdown, "error", err)
-		return nil, err
-	}
-
-	return &v1.WikijsScrapeResp{Content: string(fileBytes)}, nil
-}
-
-func (u *CrawlerUsecase) EpubParse(ctx context.Context, req *v1.EpubParseReq) (*v1.EpubParseResp, error) {
-	url := fmt.Sprintf("http://panda-wiki-minio:9000/static-file/%s", req.Key)
-
-	id := utils.GetFileNameWithoutExt(url)
-	if !utils.IsUUID(id) {
-		id = uuid.New().String()
-	}
-
-	epubListResp, err := u.anydocClient.EpubpListDocs(ctx, url, req.Filename, id)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(epubListResp.Data.Docs) != 1 {
-		return nil, fmt.Errorf("get epubListResp.Data.Docs failed")
-	}
-
-	doc := epubListResp.Data.Docs[0]
-	exportResp, err := u.anydocClient.EpubpExportDoc(ctx, id, doc.ID, req.KbID)
-	if err != nil {
-		u.logger.Error("export doc failed", "doc_id", doc.ID, "error", err)
-		return nil, err
-	}
-
-	return &v1.EpubParseResp{
-		TaskID: exportResp.Data,
-	}, nil
-}
-
-func (u *CrawlerUsecase) YuqueParse(ctx context.Context, req *v1.YuqueParseReq) (*v1.YuqueParseResp, error) {
-	url := fmt.Sprintf("http://panda-wiki-minio:9000/static-file/%s", req.Key)
-
-	id := utils.GetFileNameWithoutExt(url)
-	if !utils.IsUUID(id) {
-		id = uuid.New().String()
-	}
-
-	yuqueListResp, err := u.anydocClient.YuqueListDocs(ctx, url, req.Filename, id)
-	if err != nil {
-		return nil, err
-	}
-
-	var results []v1.YuqueParseItem
-
-	for _, doc := range yuqueListResp.Data.Docs {
-		exportResp, err := u.anydocClient.YuqueExportDoc(ctx, id, doc.ID, req.KbID)
-		if err != nil {
-			u.logger.Error("export yuque doc failed", "doc_id", doc.ID, "error", err)
-			continue
-		}
-		results = append(results, v1.YuqueParseItem{
-			TaskID: exportResp.Data,
-			Title:  doc.Title,
-		})
-	}
-	return &v1.YuqueParseResp{List: results}, nil
 }

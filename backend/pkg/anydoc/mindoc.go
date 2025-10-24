@@ -63,7 +63,7 @@ type MindocExportDocData struct {
 }
 
 // MindocListDocs 获取 Mindoc 文档列表
-func (c *Client) MindocListDocs(ctx context.Context, mindocURL, filename, uuid string) (*MindocListDocsResponse, error) {
+func (c *Client) MindocListDocs(ctx context.Context, mindocURL, filename, uuid string) (*ListDocResponse, error) {
 	u, err := url.Parse(crawlerServiceHost)
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (c *Client) MindocListDocs(ctx context.Context, mindocURL, filename, uuid s
 
 	c.logger.Info("MindocListDocs", "requestURL:", requestURL, "resp", string(respBody))
 
-	var mindocResp MindocListDocsResponse
+	var mindocResp ListDocResponse
 	err = json.Unmarshal(respBody, &mindocResp)
 	if err != nil {
 		return nil, err

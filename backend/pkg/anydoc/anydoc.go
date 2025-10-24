@@ -72,7 +72,7 @@ func NewClient(logger *log.Logger, mqConsumer mq.MQConsumer) (*Client, error) {
 	return client, nil
 }
 
-func (c *Client) GetUrlList(ctx context.Context, targetURL, id string) (*GetUrlListData, error) {
+func (c *Client) GetUrlList(ctx context.Context, targetURL, id string) (*ListDocResponse, error) {
 
 	u, err := url.Parse(crawlerServiceHost)
 	if err != nil {
@@ -99,7 +99,7 @@ func (c *Client) GetUrlList(ctx context.Context, targetURL, id string) (*GetUrlL
 		return nil, err
 	}
 	c.logger.Info("scrape url", "requestURL:", requestURL, "resp", string(respBody))
-	var scrapeResp GetUrlListResponse
+	var scrapeResp ListDocResponse
 	err = json.Unmarshal(respBody, &scrapeResp)
 	if err != nil {
 		return nil, err
@@ -109,11 +109,7 @@ func (c *Client) GetUrlList(ctx context.Context, targetURL, id string) (*GetUrlL
 		return nil, errors.New(scrapeResp.Msg)
 	}
 
-	if len(scrapeResp.Data.Docs) == 0 {
-		return nil, errors.New("data list is empty")
-	}
-
-	return &scrapeResp.Data, nil
+	return &scrapeResp, nil
 }
 
 func (c *Client) UrlExport(ctx context.Context, id, docID, kbId string) (*UrlExportRes, error) {

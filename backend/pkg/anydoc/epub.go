@@ -63,7 +63,7 @@ type EpubpExportDocData struct {
 }
 
 // EpubpListDocs 获取 Epubp 文档列表
-func (c *Client) EpubpListDocs(ctx context.Context, epubpURL, filename, uuid string) (*EpubpListDocsResponse, error) {
+func (c *Client) EpubpListDocs(ctx context.Context, epubpURL, filename, uuid string) (*ListDocResponse, error) {
 	u, err := url.Parse(crawlerServiceHost)
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func (c *Client) EpubpListDocs(ctx context.Context, epubpURL, filename, uuid str
 
 	c.logger.Info("EpubpListDocs", "requestURL:", requestURL, "resp", string(respBody))
 
-	var epubpResp EpubpListDocsResponse
+	var epubpResp ListDocResponse
 	err = json.Unmarshal(respBody, &epubpResp)
 	if err != nil {
 		return nil, err

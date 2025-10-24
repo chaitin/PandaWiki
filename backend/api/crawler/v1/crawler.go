@@ -1,15 +1,38 @@
 package v1
 
-import "github.com/chaitin/panda-wiki/consts"
+import (
+	"github.com/chaitin/panda-wiki/consts"
+	"github.com/chaitin/panda-wiki/pkg/anydoc"
+)
 
-type ScrapeReq struct {
-	URL  string `json:"url" validate:"required"`
-	KbID string `json:"kb_id" validate:"required"`
+type CrawlerParseReq struct {
+	Key           string               `json:"key"`
+	KbID          string               `json:"kb_id" validate:"required"`
+	CrawlerSource consts.CrawlerSource `json:"crawler_source" validate:"required"`
+	Filename      string               `json:"filename"`
+	FeishuSetting FeishuSetting        `json:"feishu_setting" validate:"required_if=CrawlerSource feishu"`
 }
 
-type ScrapeResp struct {
+type FeishuSetting struct {
+	UserAccessToken string `json:"user_access_token"`
+	AppID           string `json:"app_id"`
+	AppSecret       string `json:"app_secret"`
+	SpaceId         string `json:"space_id"`
+}
+
+type CrawlerParseResp struct {
+	ID   string       `json:"id"`
+	Docs anydoc.Child `json:"docs"`
+}
+
+type CrawlerExportReq struct {
+	KbID  string `json:"kb_id" validate:"required"`
+	ID    string `json:"id" validate:"required"`
+	DocID string `json:"doc_id" validate:"required"`
+}
+
+type CrawlerExportResp struct {
 	TaskId string `json:"task_id"`
-	Title  string `json:"title"`
 }
 
 type CrawlerResultReq struct {
@@ -33,53 +56,4 @@ type CrawlerResultItem struct {
 	TaskId  string               `json:"task_id"`
 	Status  consts.CrawlerStatus `json:"status"`
 	Content string               `json:"content"`
-}
-
-type SitemapParseReq struct {
-	URL string `json:"url" validate:"required"`
-}
-
-type SitemapParseResp struct {
-	ID   string             `json:"id"`
-	List []SitemapParseItem `json:"list"`
-}
-
-type SitemapParseItem struct {
-	URL   string `json:"url"`
-	Title string `json:"title"`
-}
-
-type SitemapScrapeReq struct {
-	KbID string `json:"kb_id" validate:"required"`
-	ID   string `json:"id" validate:"required"`
-	URL  string `json:"url" validate:"required"`
-}
-
-type SitemapScrapeResp struct {
-	Content string `json:"content"`
-}
-
-type RssParseReq struct {
-	URL string `json:"url" validate:"required"`
-}
-
-type RssParseResp struct {
-	ID   string         `json:"id"`
-	List []RssParseItem `json:"list"`
-}
-
-type RssParseItem struct {
-	URL   string `json:"url"`
-	Title string `json:"title"`
-	Desc  string `json:"desc"`
-}
-
-type RssScrapeReq struct {
-	KbID string `json:"kb_id" validate:"required"`
-	ID   string `json:"id" validate:"required"`
-	URL  string `json:"url" validate:"required"`
-}
-
-type RssScrapeResp struct {
-	Content string `json:"content"`
 }
