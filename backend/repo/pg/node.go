@@ -87,25 +87,27 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq, 
 		}
 
 		node := &domain.Node{
-			ID:       nodeIDStr,
-			KBID:     req.KBID,
-			Name:     req.Name,
-			Content:  req.Content,
-			Meta:     meta,
-			Type:     req.Type,
-			ParentID: req.ParentID,
-			Position: newPos,
-			Status:   domain.NodeStatusDraft,
+			ID:         nodeIDStr,
+			KBID:       req.KBID,
+			Name:       req.Name,
+			Content:    req.Content,
+			Meta:       meta,
+			Type:       req.Type,
+			ParentID:   req.ParentID,
+			Position:   newPos,
+			Status:     domain.NodeStatusDraft,
+			RagStatus:  consts.NodeRagStatusBasicPending,
+			RagMessage: "",
+			CreatorId:  userId,
+			EditorId:   userId,
+			CreatedAt:  now,
+			UpdatedAt:  now,
+			EditTime:   now,
 			Permissions: domain.NodePermissions{
 				Answerable: consts.NodeAccessPermOpen,
 				Visitable:  consts.NodeAccessPermOpen,
 				Visible:    consts.NodeAccessPermOpen,
 			},
-			CreatorId: userId,
-			EditorId:  userId,
-			CreatedAt: now,
-			UpdatedAt: now,
-			EditTime:  now,
 		}
 
 		return tx.Create(node).Error
@@ -124,7 +126,7 @@ func (r *NodeRepository) GetList(ctx context.Context, req *domain.GetNodeListReq
 		Joins("LEFT JOIN users cu ON nodes.creator_id = cu.id").
 		Joins("LEFT JOIN users eu ON nodes.editor_id = eu.id").
 		Where("nodes.kb_id = ?", req.KBID).
-		Select("cu.account AS creator, eu.account AS editor, nodes.editor_id, nodes.creator_id, nodes.id, nodes.permissions, nodes.type, nodes.status, nodes.name, nodes.parent_id, nodes.position, nodes.created_at, nodes.edit_time as updated_at, nodes.meta->>'summary' as summary, nodes.meta->>'emoji' as emoji")
+		Select("cu.account AS creator, eu.account AS editor, nodes.editor_id, nodes.rag_status, nodes.rag_message, nodes.creator_id, nodes.id, nodes.permissions, nodes.type, nodes.status, nodes.name, nodes.parent_id, nodes.position, nodes.created_at, nodes.edit_time as updated_at, nodes.meta->>'summary' as summary, nodes.meta->>'emoji' as emoji")
 	if req.Search != "" {
 		searchPattern := "%" + req.Search + "%"
 		query = query.Where("name LIKE ? OR content LIKE ?", searchPattern, searchPattern)
@@ -1053,4 +1055,65 @@ func (r *NodeRepository) GetNodeGroupByNodeId(ctx context.Context, nodeId string
 		return nil, err
 	}
 	return nodeGroup, nil
+}
+
+func (r *NodeRepository) Update(ctx context.Context, id string, m map[string]interface{}) error {
+	return r.db.WithContext(ctx).Model(domain.Node{}).Where("id = ?", id).Updates(m).Error
+}
+
+func (r *NodeRepository) GetNodeIdByDocId(ctx context.Context, docId string) (string, error) {
+	nodeIds := make([]string, 0)
+	if err := r.db.WithContext(ctx).Model(domain.NodeRelease{}).
+		Where("doc_id = ?", docId).
+		Pluck("node_id", &nodeIds).Error; err != nil {
+		return "", err
+	}
+	if len(nodeIds) < 1 {
+		return "", fmt.Errorf("node not found for doc_id: %s", docId)
+	}
+	return nodeIds[0], nil
+}
+
+func (r *NodeRepository) GetNodeIdsWithoutStatusByKbId(ctx context.Context, kbId string) ([]string, error) {
+	docIds := make([]string, 0)
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Joins("left join node_releases on node_releases.node_id = nodes.id").
+		Where("nodes.rag_status = ?", "").
+		Where("nodes.kb_id = ? ", kbId).
+		Where("nodes.type = ? ", domain.NodeTypeDocument).
+		Where("node_releases.doc_id != '' ").
+		Pluck("node_releases.doc_id", &docIds).Error; err != nil {
+		return nil, err
+	}
+	return docIds, nil
+}
+
+// GetNodeIdsByDocIds 批量获取 doc_id 到 node_id 的映射
+func (r *NodeRepository) GetNodeIdsByDocIds(ctx context.Context, docIds []string) (map[string]string, error) {
+	if len(docIds) == 0 {
+		return make(map[string]string), nil
+	}
+
+	type Result struct {
+		DocID  string `gorm:"column:doc_id"`
+		NodeID string `gorm:"column:node_id"`
+	}
+
+	results := make([]Result, 0)
+	if err := r.db.WithContext(ctx).
+		Model(&domain.NodeRelease{}).
+		Select("doc_id, node_id").
+		Where("doc_id IN (?)", docIds).
+		Find(&results).Error; err != nil {
+		return nil, err
+	}
+
+	// 构建 doc_id -> node_id 的映射
+	docToNodeMap := make(map[string]string, len(results))
+	for _, result := range results {
+		docToNodeMap[result.DocID] = result.NodeID
+	}
+
+	return docToNodeMap, nil
 }

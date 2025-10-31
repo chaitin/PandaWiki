@@ -1,0 +1,2 @@
+ALTER TABLE nodes DROP COLUMN IF EXISTS rag_status;
+ALTER TABLE nodes DROP COLUMN IF EXISTS rag_message;

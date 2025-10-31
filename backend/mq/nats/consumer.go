@@ -94,6 +94,8 @@ func (c *MQConsumer) registerCoreNATSHandler(topic string, handler func(ctx cont
 
 // registerJetStreamHandler 使用 JetStream 订阅主题
 func (c *MQConsumer) registerJetStreamHandler(topic string, handler func(ctx context.Context, msg types.Message) error) error {
+	consumerName := domain.TopicConsumerName[topic]
+
 	sub, err := c.js.Subscribe(topic, func(msg *nats.Msg) {
 		c.logger.Debug("received message via JetStream",
 			log.String("topic", topic),
@@ -111,7 +113,7 @@ func (c *MQConsumer) registerJetStreamHandler(topic string, handler func(ctx con
 				log.String("topic", topic),
 				log.Error(err))
 		}
-	}, nats.DeliverNew(), nats.AckExplicit(), nats.Durable(domain.TopicConsumerName[topic]), nats.ConsumerName(domain.TopicConsumerName[topic]))
+	}, nats.DeliverAll(), nats.AckExplicit(), nats.Durable(consumerName), nats.ConsumerName(consumerName))
 	if err != nil {
 		c.logger.Error("failed to subscribe to topic via JetStream",
 			log.String("topic", topic),

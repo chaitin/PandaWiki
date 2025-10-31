@@ -3986,6 +3986,49 @@ const docTemplate = `{
                 "NodePermNameAnswerable"
             ]
         },
+        "consts.NodeRagStatus": {
+            "type": "string",
+            "enum": [
+                "BASIC_PENDING",
+                "BASIC_RUNNING",
+                "BASIC_FAILED",
+                "BASIC_SUCCEEDED",
+                "ENHANCE_PENDING",
+                "ENHANCE_RUNNING",
+                "ENHANCE_FAILED",
+                "ENHANCE_SUCCEEDED"
+            ],
+            "x-enum-comments": {
+                "NodeRagStatusBasicFailed": "基础处理失败",
+                "NodeRagStatusBasicPending": "等待基础处理",
+                "NodeRagStatusBasicRunning": "正在进行基础处理（文本分割、向量化等）",
+                "NodeRagStatusBasicSucceeded": "基础处理成功",
+                "NodeRagStatusEnhanceFailed": "增强处理失败",
+                "NodeRagStatusEnhancePending": "基础处理完成，等待增强处理",
+                "NodeRagStatusEnhanceRunning": "正在进行增强处理（关键词提取等）",
+                "NodeRagStatusEnhanceSucceeded": "增强处理成功"
+            },
+            "x-enum-descriptions": [
+                "等待基础处理",
+                "正在进行基础处理（文本分割、向量化等）",
+                "基础处理失败",
+                "基础处理成功",
+                "基础处理完成，等待增强处理",
+                "正在进行增强处理（关键词提取等）",
+                "增强处理失败",
+                "增强处理成功"
+            ],
+            "x-enum-varnames": [
+                "NodeRagStatusBasicPending",
+                "NodeRagStatusBasicRunning",
+                "NodeRagStatusBasicFailed",
+                "NodeRagStatusBasicSucceeded",
+                "NodeRagStatusEnhancePending",
+                "NodeRagStatusEnhanceRunning",
+                "NodeRagStatusEnhanceFailed",
+                "NodeRagStatusEnhanceSucceeded"
+            ]
+        },
         "consts.RedeemCaptchaReq": {
             "type": "object",
             "properties": {
@@ -6127,6 +6170,12 @@ const docTemplate = `{
                 },
                 "position": {
                     "type": "number"
+                },
+                "rag_message": {
+                    "type": "string"
+                },
+                "rag_status": {
+                    "$ref": "#/definitions/consts.NodeRagStatus"
                 },
                 "status": {
                     "$ref": "#/definitions/domain.NodeStatus"

@@ -33,30 +33,28 @@ const (
 
 // table: nodes
 type Node struct {
-	ID string `json:"id" gorm:"primaryKey"`
+	ID          string               `json:"id" gorm:"primaryKey"`
+	KBID        string               `json:"kb_id" gorm:"index"`
+	Type        NodeType             `json:"type"`
+	Status      NodeStatus           `json:"status"`
+	RagStatus   consts.NodeRagStatus `json:"rag_status"`
+	RagMessage  string               `json:"rag_message"`
+	Name        string               `json:"name"`
+	Content     string               `json:"content"`
+	Meta        NodeMeta             `json:"meta" gorm:"type:jsonb"` // summary
+	ParentID    string               `json:"parent_id"`
+	Position    float64              `json:"position"`
+	DocID       string               `json:"doc_id"` // DEPRECATED: for rag service
+	CreatorId   string               `json:"creator_id"`
+	EditorId    string               `json:"editor_id"`
+	EditTime    time.Time            `json:"edit_time"`
+	Permissions NodePermissions      `json:"permissions" gorm:"type:jsonb"`
+	CreatedAt   time.Time            `json:"created_at"`
+	UpdatedAt   time.Time            `json:"updated_at"`
+}
 
-	KBID string `json:"kb_id" gorm:"index"`
-
-	Type NodeType `json:"type"`
-
-	Status NodeStatus `json:"status"`
-
-	Name    string   `json:"name"`
-	Content string   `json:"content"`
-	Meta    NodeMeta `json:"meta" gorm:"type:jsonb"` // summary
-
-	ParentID string  `json:"parent_id"`
-	Position float64 `json:"position"`
-
-	DocID     string    `json:"doc_id"` // DEPRECATED: for rag service
-	CreatorId string    `json:"creator_id"`
-	EditorId  string    `json:"editor_id"`
-	EditTime  time.Time `json:"edit_time"`
-
-	Permissions NodePermissions `json:"permissions" gorm:"type:jsonb"`
-
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+func (Node) TableName() string {
+	return "nodes"
 }
 
 type NodePermissions struct {
@@ -137,21 +135,23 @@ type GetNodeListReq struct {
 }
 
 type NodeListItemResp struct {
-	ID          string          `json:"id"`
-	Type        NodeType        `json:"type"`
-	Status      NodeStatus      `json:"status"`
-	Name        string          `json:"name"`
-	Summary     string          `json:"summary"`
-	Emoji       string          `json:"emoji"`
-	Position    float64         `json:"position"`
-	ParentID    string          `json:"parent_id"`
-	CreatedAt   time.Time       `json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
-	CreatorId   string          `json:"creator_id"`
-	EditorId    string          `json:"editor_id"`
-	Creator     string          `json:"creator"`
-	Editor      string          `json:"editor"`
-	Permissions NodePermissions `json:"permissions" gorm:"type:jsonb"`
+	ID          string               `json:"id"`
+	Type        NodeType             `json:"type"`
+	Status      NodeStatus           `json:"status"`
+	RagStatus   consts.NodeRagStatus `json:"rag_status"`
+	RagMessage  string               `json:"rag_message"`
+	Name        string               `json:"name"`
+	Summary     string               `json:"summary"`
+	Emoji       string               `json:"emoji"`
+	Position    float64              `json:"position"`
+	ParentID    string               `json:"parent_id"`
+	CreatedAt   time.Time            `json:"created_at"`
+	UpdatedAt   time.Time            `json:"updated_at"`
+	CreatorId   string               `json:"creator_id"`
+	EditorId    string               `json:"editor_id"`
+	Creator     string               `json:"creator"`
+	Editor      string               `json:"editor"`
+	Permissions NodePermissions      `json:"permissions" gorm:"type:jsonb"`
 }
 
 type NodeContentChunk struct {
@@ -271,6 +271,10 @@ type NodeRelease struct {
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+func (NodeRelease) TableName() string {
+	return "node_releases"
 }
 
 // NodeReleaseWithDirPath extends NodeRelease with directory path information

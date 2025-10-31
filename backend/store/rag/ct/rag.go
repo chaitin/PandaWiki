@@ -228,3 +228,11 @@ func (s *CTRAG) UpdateDocumentGroupIDs(ctx context.Context, datasetID string, do
 	}
 	return nil
 }
+
+func (s *CTRAG) ListDocuments(ctx context.Context, datasetID string, params map[string]string) ([]rag.Document, error) {
+	docs, _, err := s.client.ListDocuments(ctx, datasetID, params)
+	if err != nil {
+		return nil, fmt.Errorf("update document group IDs failed: %w", err)
+	}
+	return docs, nil
+}

@@ -13,11 +13,13 @@ import (
 	"github.com/chaitin/panda-wiki/mq"
 	cache2 "github.com/chaitin/panda-wiki/repo/cache"
 	ipdb2 "github.com/chaitin/panda-wiki/repo/ipdb"
+	mq3 "github.com/chaitin/panda-wiki/repo/mq"
 	pg2 "github.com/chaitin/panda-wiki/repo/pg"
 	"github.com/chaitin/panda-wiki/store/cache"
 	"github.com/chaitin/panda-wiki/store/ipdb"
 	"github.com/chaitin/panda-wiki/store/pg"
 	"github.com/chaitin/panda-wiki/store/rag"
+	"github.com/chaitin/panda-wiki/store/s3"
 	"github.com/chaitin/panda-wiki/usecase"
 )
 
@@ -51,6 +53,10 @@ func createApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	ragDocUpdateHandler, err := mq2.NewRagDocUpdateHandler(mqConsumer, logger, nodeRepository)
+	if err != nil {
+		return nil, err
+	}
 	cacheCache, err := cache.NewCache(configConfig)
 	if err != nil {
 		return nil, err
@@ -65,19 +71,30 @@ func createApp() (*App, error) {
 	geoRepo := cache2.NewGeoCache(cacheCache, db, logger)
 	authRepo := pg2.NewAuthRepo(db, logger, cacheCache)
 	statUseCase := usecase.NewStatUseCase(statRepository, nodeRepository, conversationRepository, appRepository, ipAddressRepo, geoRepo, authRepo, knowledgeBaseRepository, logger)
-	statCronHandler, err := mq2.NewStatCronHandler(logger, statRepository, statUseCase)
+	mqProducer, err := mq.NewMQProducer(configConfig, logger)
+	if err != nil {
+		return nil, err
+	}
+	ragRepository := mq3.NewRAGRepository(mqProducer)
+	minioClient, err := s3.NewMinioClient(configConfig)
+	if err != nil {
+		return nil, err
+	}
+	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo)
+	cronHandler, err := mq2.NewStatCronHandler(logger, statRepository, statUseCase, nodeUsecase)
 	if err != nil {
 		return nil, err
 	}
 	mqHandlers := &mq2.MQHandlers{
-		RAGMQHandler:    ragmqHandler,
-		StatCronHandler: statCronHandler,
+		RAGMQHandler:        ragmqHandler,
+		RagDocUpdateHandler: ragDocUpdateHandler,
+		StatCronHandler:     cronHandler,
 	}
 	app := &App{
 		MQConsumer:      mqConsumer,
 		Config:          configConfig,
 		MQHandlers:      mqHandlers,
-		StatCronHandler: statCronHandler,
+		StatCronHandler: cronHandler,
 	}
 	return app, nil
 }
@@ -88,5 +105,5 @@ type App struct {
 	MQConsumer      mq.MQConsumer
 	Config          *config.Config
 	MQHandlers      *mq2.MQHandlers
-	StatCronHandler *mq2.StatCronHandler
+	StatCronHandler *mq2.CronHandler
 }

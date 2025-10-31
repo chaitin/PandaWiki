@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/chaitin/pandawiki/sdk/rag"
 	"github.com/cloudwego/eino/schema"
 	"github.com/google/wire"
 
@@ -20,6 +21,7 @@ type RAGService interface {
 	DeleteRecords(ctx context.Context, datasetID string, docIDs []string) error
 	DeleteKnowledgeBase(ctx context.Context, datasetID string) error
 	UpdateDocumentGroupIDs(ctx context.Context, datasetID string, docID string, groupIds []int) error
+	ListDocuments(ctx context.Context, datasetID string, params map[string]string) ([]rag.Document, error)
 
 	GetModelList(ctx context.Context) ([]*domain.Model, error)
 	AddModel(ctx context.Context, model *domain.Model) (string, error)

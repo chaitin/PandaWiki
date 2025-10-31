@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
@@ -19,6 +20,7 @@ import (
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/repo/mq"
 	"github.com/chaitin/panda-wiki/repo/pg"
+	"github.com/chaitin/panda-wiki/store/rag"
 	"github.com/chaitin/panda-wiki/store/s3"
 	"github.com/chaitin/panda-wiki/utils"
 )
@@ -33,6 +35,7 @@ type NodeUsecase struct {
 	llmUsecase *LLMUsecase
 	logger     *log.Logger
 	s3Client   *s3.MinioClient
+	rAGService rag.RAGService
 }
 
 func NewNodeUsecase(
@@ -41,6 +44,7 @@ func NewNodeUsecase(
 	ragRepo *mq.RAGRepository,
 	kbRepo *pg.KnowledgeBaseRepository,
 	llmUsecase *LLMUsecase,
+	ragService rag.RAGService,
 	logger *log.Logger,
 	s3Client *s3.MinioClient,
 	modelRepo *pg.ModelRepository,
@@ -48,6 +52,7 @@ func NewNodeUsecase(
 ) *NodeUsecase {
 	return &NodeUsecase{
 		nodeRepo:   nodeRepo,
+		rAGService: ragService,
 		appRepo:    appRepo,
 		ragRepo:    ragRepo,
 		kbRepo:     kbRepo,
@@ -58,6 +63,8 @@ func NewNodeUsecase(
 		s3Client:   s3Client,
 	}
 }
+
+const ragSyncChunkSize = 100
 
 func (u *NodeUsecase) Create(ctx context.Context, req *domain.CreateNodeReq, userId string) (string, error) {
 	nodeID, err := u.nodeRepo.Create(ctx, req, userId)
@@ -435,6 +442,95 @@ func (u *NodeUsecase) NodePermissionsEdit(ctx context.Context, req v1.NodePermis
 	if req.VisitableGroups != nil {
 		if err := u.nodeRepo.UpdateNodeGroupByKbIDAndNodeIds(ctx, req.IDs, *req.VisitableGroups, consts.NodePermNameVisitable); err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+func (u *NodeUsecase) SyncRagNodeStatus(ctx context.Context) error {
+	kbs, err := u.kbRepo.GetKnowledgeBaseList(ctx)
+	if err != nil {
+		return err
+	}
+	for _, kb := range kbs {
+		docIds, err := u.nodeRepo.GetNodeIdsWithoutStatusByKbId(ctx, kb.ID)
+		if err != nil {
+			u.logger.Error("get node ids without status failed",
+				log.String("kb_id", kb.ID),
+				log.Error(err))
+			continue
+		}
+		if len(docIds) == 0 {
+			continue
+		}
+
+		chunks := lo.Chunk(docIds, ragSyncChunkSize)
+		for _, chunk := range chunks {
+			docs, err := u.rAGService.ListDocuments(ctx, kb.DatasetID, map[string]string{
+				"ids": strings.Join(chunk, ","),
+			})
+			if err != nil {
+				u.logger.Error("list documents from RAG failed",
+					log.String("kb_id", kb.ID),
+					log.String("dataset_id", kb.DatasetID),
+					log.Error(err))
+				continue
+			}
+
+			if len(docs) == 0 {
+				continue
+			}
+
+			docToNodeMap, err := u.nodeRepo.GetNodeIdsByDocIds(ctx, chunk)
+			if err != nil {
+				u.logger.Error("get node ids by doc ids failed",
+					log.String("kb_id", kb.ID),
+					log.Error(err))
+				continue
+			}
+
+			type StatusInfo struct {
+				status  string
+				message string
+			}
+			statusGroups := make(map[StatusInfo][]string) // status+message -> []nodeIDs
+
+			for _, doc := range docs {
+				nodeID, exists := docToNodeMap[doc.ID]
+				if !exists {
+					u.logger.Warn("doc_id not found in node_releases",
+						log.String("doc_id", doc.ID))
+					continue
+				}
+
+				statusKey := StatusInfo{
+					status:  doc.Status,
+					message: doc.ProgressMsg,
+				}
+				statusGroups[statusKey] = append(statusGroups[statusKey], nodeID)
+			}
+
+			for statusInfo, nodeIDs := range statusGroups {
+				updateMap := map[string]interface{}{
+					"rag_status":  statusInfo.status,
+					"rag_message": statusInfo.message,
+				}
+
+				if err := u.nodeRepo.UpdateNodesByKbID(ctx, nodeIDs, kb.ID, updateMap); err != nil {
+					u.logger.Error("batch update node rag status failed",
+						log.String("kb_id", kb.ID),
+						log.Int("node_count", len(nodeIDs)),
+						log.String("status", statusInfo.status),
+						log.Error(err))
+					continue
+				}
+
+				u.logger.Debug("batch updated node rag status",
+					log.String("kb_id", kb.ID),
+					log.Int("node_count", len(nodeIDs)),
+					log.String("status", statusInfo.status))
+			}
 		}
 	}
 

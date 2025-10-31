@@ -24,7 +24,7 @@ func (p *MQProducer) EnsureStreams() error {
 	}{
 		{
 			name:     "task",
-			subjects: []string{"apps.panda-wiki.summary.task", "apps.panda-wiki.vector.task"},
+			subjects: []string{"apps.panda-wiki.summary.task", "apps.panda-wiki.vector.task", "rag.doc.update"},
 		},
 		{
 			name:     "scraper",
@@ -33,15 +33,7 @@ func (p *MQProducer) EnsureStreams() error {
 	}
 
 	for _, stream := range streams {
-		_, err := p.js.StreamInfo(stream.name)
-		if err == nil {
-			p.logger.Debug("stream already exists",
-				log.String("stream", stream.name))
-			continue
-		}
-
-		// Stream doesn't exist, create it
-		_, err = p.js.AddStream(&nats.StreamConfig{
+		streamConfig := &nats.StreamConfig{
 			Name:       stream.name,
 			Subjects:   stream.subjects,
 			Storage:    nats.FileStorage,
@@ -53,7 +45,29 @@ func (p *MQProducer) EnsureStreams() error {
 			MaxMsgSize: 50 * 1024 * 1024,
 			Replicas:   1,
 			Duplicates: 120 * time.Second,
-		})
+		}
+
+		// Check if stream already exists
+		_, err := p.js.StreamInfo(stream.name)
+		if err == nil {
+			// Stream exists, update it to add new subjects if needed
+			p.logger.Debug("stream already exists, updating",
+				log.String("stream", stream.name))
+			_, err = p.js.UpdateStream(streamConfig)
+			if err != nil {
+				p.logger.Warn("failed to update stream",
+					log.String("stream", stream.name),
+					log.Error(err))
+			} else {
+				p.logger.Info("updated stream",
+					log.String("stream", stream.name),
+					log.Any("subjects", stream.subjects))
+			}
+			continue
+		}
+
+		// Stream doesn't exist, create it
+		_, err = p.js.AddStream(streamConfig)
 		if err != nil {
 			return fmt.Errorf("failed to create stream %s: %w", stream.name, err)
 		}

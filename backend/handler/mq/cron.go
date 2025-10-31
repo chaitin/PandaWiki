@@ -10,17 +10,19 @@ import (
 	"github.com/chaitin/panda-wiki/usecase"
 )
 
-type StatCronHandler struct {
+type CronHandler struct {
 	logger      *log.Logger
 	statRepo    *pg.StatRepository
 	statUseCase *usecase.StatUseCase
+	nodeUseCase *usecase.NodeUsecase
 }
 
-func NewStatCronHandler(logger *log.Logger, statRepo *pg.StatRepository, statUseCase *usecase.StatUseCase) (*StatCronHandler, error) {
-	h := &StatCronHandler{
+func NewStatCronHandler(logger *log.Logger, statRepo *pg.StatRepository, statUseCase *usecase.StatUseCase, nodeUseCase *usecase.NodeUsecase) (*CronHandler, error) {
+	h := &CronHandler{
 		statRepo:    statRepo,
 		statUseCase: statUseCase,
-		logger:      logger.WithModule("handler.mq.stat"),
+		nodeUseCase: nodeUseCase,
+		logger:      logger.WithModule("handler.mq.cron"),
 	}
 	cron := cron.New()
 
@@ -45,12 +47,24 @@ func NewStatCronHandler(logger *log.Logger, statRepo *pg.StatRepository, statUse
 	}
 	h.logger.Info("add cron job", log.String("cron_id", "cleanup_old_hourly_stats"))
 
+	// 启动时先异步跑一次
+	go func() {
+		if err := h.nodeUseCase.SyncRagNodeStatus(context.Background()); err != nil {
+			h.logger.Error("initial sync rag node status failed", log.Error(err))
+		}
+	}()
+	if _, err := cron.AddFunc("26 * * * *", h.SyncRagNodeStatus); err != nil {
+		h.logger.Error("failed to sync rag node status", log.Error(err))
+		return nil, err
+	}
+	h.logger.Info("add cron job", log.String("cron_id", "sync_rag_node_status"))
+
 	cron.Start()
 	h.logger.Info("start cron jobs")
 	return h, nil
 }
 
-func (h *StatCronHandler) RemoveOldStatData() {
+func (h *CronHandler) RemoveOldStatData() {
 	h.logger.Info("remove old stat data start")
 	err := h.statRepo.RemoveOldData(context.Background())
 	if err != nil {
@@ -59,7 +73,7 @@ func (h *StatCronHandler) RemoveOldStatData() {
 	h.logger.Info("remove old stat data successful")
 }
 
-func (h *StatCronHandler) AggregateHourlyStats() {
+func (h *CronHandler) AggregateHourlyStats() {
 	h.logger.Info("aggregate hourly stats start")
 	err := h.statUseCase.AggregateHourlyStats(context.Background())
 	if err != nil {
@@ -69,7 +83,7 @@ func (h *StatCronHandler) AggregateHourlyStats() {
 	h.logger.Info("aggregate hourly stats successful")
 }
 
-func (h *StatCronHandler) CleanupOldHourlyStats() {
+func (h *CronHandler) CleanupOldHourlyStats() {
 	h.logger.Info("cleanup old hourly stats start")
 	err := h.statUseCase.CleanupOldHourlyStats(context.Background())
 	if err != nil {
@@ -77,4 +91,14 @@ func (h *StatCronHandler) CleanupOldHourlyStats() {
 		return
 	}
 	h.logger.Info("cleanup old hourly stats successful")
+}
+
+func (h *CronHandler) SyncRagNodeStatus() {
+	h.logger.Info("sync rag node status")
+	err := h.nodeUseCase.SyncRagNodeStatus(context.Background())
+	if err != nil {
+		h.logger.Error("sync rag node status failed", log.Error(err))
+		return
+	}
+	h.logger.Info("sync rag node status successful")
 }
