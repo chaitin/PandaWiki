@@ -70,7 +70,7 @@ func (h *ShareNodeHandler) GetNodeList(c echo.Context) error {
 //	@Param			X-KB-ID	header		string	true	"kb id"
 //	@Param			id		query		string	true	"node id"
 //	@Param			format	query		string	true	"format"
-//	@Success		200		{object}	domain.Response
+//	@Success		200		{object}	domain.Response{data=v1.ShareNodeDetailResp}
 //	@Router			/share/v1/node/detail [get]
 func (h *ShareNodeHandler) GetNodeDetail(c echo.Context) error {
 	kbID := c.Request().Header.Get("X-KB-ID")

@@ -279,10 +279,12 @@ type GetRecommendNodeListReq struct {
 
 // table: node_releases
 type NodeRelease struct {
-	ID     string `json:"id" gorm:"primaryKey"`
-	KBID   string `json:"kb_id" gorm:"index"`
-	NodeID string `json:"node_id" gorm:"index"`
-	DocID  string `json:"doc_id" gorm:"index"` // for rag service
+	ID          string `json:"id" gorm:"primaryKey"`
+	KBID        string `json:"kb_id" gorm:"index"`
+	PublisherId string `json:"publisher_id"`
+	EditorId    string `json:"editor_id"`
+	NodeID      string `json:"node_id" gorm:"index"`
+	DocID       string `json:"doc_id" gorm:"index"` // for rag service
 
 	Type NodeType `json:"type"`
 
@@ -311,4 +313,16 @@ type BatchMoveReq struct {
 	IDs      []string `json:"ids" validate:"required"`
 	KBID     string   `json:"kb_id" validate:"required"`
 	ParentID string   `json:"parent_id"`
+}
+
+type NodeCreateInfo struct {
+	ID        string `json:"id"`
+	Account   string `json:"account"`
+	CreatorId string `json:"creator_id"`
+}
+
+type NodeReleaseWithPublisher struct {
+	ID               string `json:"id" gorm:"primaryKey"`
+	PublisherId      string `json:"publisher_id"`
+	PublisherAccount string `json:"publisher_account"`
 }

@@ -111,6 +111,8 @@ export function convertToTree(data: DomainNodeListItemResp[]) {
       emoji: item.emoji,
       content_type: item.content_type,
       type: item.type!,
+      rag_status: item.rag_info?.status,
+      rag_message: item.rag_info?.message,
       parentId: item.parent_id,
       children: [],
       canHaveChildren: item.type === 1,

@@ -106,8 +106,15 @@ export interface DomainDocumentFeedbackListItem {
 
 export interface DomainGetNodeReleaseDetailResp {
   content?: string;
+  creator_account?: string;
+  creator_id?: string;
+  editor_account?: string;
+  editor_id?: string;
   meta?: DomainNodeMeta;
   name?: string;
+  node_id?: string;
+  publisher_account?: string;
+  publisher_id?: string;
 }
 
 export interface DomainIPAddress {
@@ -131,11 +138,16 @@ export interface DomainNodeMeta {
 }
 
 export interface DomainNodeReleaseListItem {
+  creator_account?: string;
+  creator_id?: string;
+  editor_account?: string;
+  editor_id?: string;
   id?: string;
   meta?: DomainNodeMeta;
   name?: string;
   node_id?: string;
-  /** release */
+  publisher_account?: string;
+  publisher_id?: string;
   release_id?: string;
   release_message?: string;
   release_name?: string;
@@ -632,6 +644,7 @@ export interface GetApiProV1DocumentListParams {
 
 export interface GetApiProV1NodeReleaseDetailParams {
   id: string;
+  kb_id: string;
 }
 
 export interface GetApiProV1NodeReleaseListParams {

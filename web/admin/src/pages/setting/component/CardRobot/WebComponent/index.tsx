@@ -1,6 +1,14 @@
-import { DomainKnowledgeBaseDetail } from '@/request/types';
+import { FreeSoloAutocomplete } from '@/components/FreeSoloAutocomplete';
 import ShowText from '@/components/ShowText';
 import UploadFile from '@/components/UploadFile';
+import { useCommitPendingInput } from '@/hooks';
+import { getApiV1AppDetail, putApiV1App } from '@/request/App';
+import {
+  DomainAppDetailResp,
+  DomainKnowledgeBaseDetail,
+} from '@/request/types';
+import { useAppSelector } from '@/store';
+import { Icon, message } from '@ctzhian/ui';
 import {
   Box,
   FormControlLabel,
@@ -10,13 +18,10 @@ import {
   Stack,
   TextField,
 } from '@mui/material';
-import { Icon, message } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { FormItem, SettingCardItem } from './Common';
-import { DomainAppDetailResp } from '@/request/types';
-import { getApiV1AppDetail, putApiV1App } from '@/request/App';
-import { useAppSelector } from '@/store';
+import { FormItem, SettingCardItem } from '../../Common';
+import RecommendDocDragList from './RecommendDocDragList';
 
 interface CardRobotWebComponentProps {
   kb: DomainKnowledgeBaseDetail;
@@ -31,6 +36,8 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
     control,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -38,10 +45,23 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
       theme_mode: 'light',
       btn_text: '',
       btn_logo: '',
+      recommend_questions: [] as string[],
+      recommend_node_ids: [] as string[],
     },
   });
 
   const [url, setUrl] = useState<string>('');
+
+  const recommend_questions = watch('recommend_questions') || [];
+  const recommend_node_ids = watch('recommend_node_ids') || [];
+
+  const recommendQuestionsField = useCommitPendingInput<string>({
+    value: recommend_questions,
+    setValue: value => {
+      setIsEdit(true);
+      setValue('recommend_questions', value);
+    },
+  });
 
   useEffect(() => {
     if (kb.access_settings?.base_url) {
@@ -69,6 +89,10 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
         theme_mode: res.settings?.widget_bot_settings?.theme_mode || 'light',
         btn_text: res.settings?.widget_bot_settings?.btn_text || '在线客服',
         btn_logo: res.settings?.widget_bot_settings?.btn_logo,
+        recommend_questions:
+          res.settings?.widget_bot_settings?.recommend_questions || [],
+        recommend_node_ids:
+          res.settings?.widget_bot_settings?.recommend_node_ids || [],
       });
       setIsEnabled(res.settings?.widget_bot_settings?.is_open ? true : false);
     });
@@ -86,6 +110,8 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
             theme_mode: data.theme_mode as 'light' | 'dark',
             btn_text: data.btn_text,
             btn_logo: data.btn_logo,
+            recommend_questions: data.recommend_questions || [],
+            recommend_node_ids: data.recommend_node_ids || [],
           },
         },
       },
@@ -218,6 +244,21 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
                   }}
                 />
               )}
+            />
+          </FormItem>
+          <FormItem label='推荐问题'>
+            <FreeSoloAutocomplete
+              {...recommendQuestionsField}
+              placeholder='回车确认，填写下一个推荐问题'
+            />
+          </FormItem>
+          <FormItem label='推荐文档'>
+            <RecommendDocDragList
+              ids={recommend_node_ids}
+              onChange={(value: string[]) => {
+                setIsEdit(true);
+                setValue('recommend_node_ids', value);
+              }}
             />
           </FormItem>
           <FormItem label='嵌入代码'>

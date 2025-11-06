@@ -53,7 +53,7 @@ func (m *MigrationNodeVersion) Execute(tx *gorm.DB) error {
 			Message: "release all old nodes",
 			Tag:     "init",
 			NodeIDs: nodeIDs,
-		})
+		}, "")
 		if err != nil {
 			return fmt.Errorf("create kb release failed: %w", err)
 		}

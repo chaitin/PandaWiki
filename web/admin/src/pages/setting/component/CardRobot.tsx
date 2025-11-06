@@ -1,11 +1,11 @@
 import { DomainKnowledgeBaseDetail } from '@/request/types';
 import { Box } from '@mui/material';
+import CardRobotWebComponent from './CardRobot/WebComponent';
 import CardRobotApi from './CardRobotApi';
 import CardRobotDing from './CardRobotDing';
 import CardRobotDiscord from './CardRobotDiscord';
 import CardRobotFeishu from './CardRobotFeishu';
 import CardRobotLark from './CardRobotLark';
-import CardRobotWebComponent from './CardRobotWebComponent';
 import CardRobotWechatOfficeAccount from './CardRobotWechatOfficeAccount';
 import CardRobotWecom from './CardRobotWecom';
 import CardRobotWecomAIBot from './CardRobotWecomAIBot';

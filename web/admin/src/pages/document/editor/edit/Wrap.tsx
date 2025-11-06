@@ -329,6 +329,37 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
           />
         </Stack>
         <Stack direction={'row'} alignItems={'center'} gap={2} sx={{ mb: 4 }}>
+          {nodeDetail?.editor_account && (
+            <Tooltip
+              arrow
+              title={
+                nodeDetail?.creator_account || nodeDetail?.publisher_account ? (
+                  <Stack>
+                    {nodeDetail?.creator_account && (
+                      <Box>创建：{nodeDetail?.creator_account}</Box>
+                    )}
+                    {nodeDetail?.publisher_account && (
+                      <Box>上次发布：{nodeDetail?.publisher_account}</Box>
+                    )}
+                  </Stack>
+                ) : null
+              }
+            >
+              <Stack
+                direction={'row'}
+                alignItems={'center'}
+                gap={0.5}
+                sx={{
+                  cursor: 'pointer',
+                  fontSize: 12,
+                  color: 'text.tertiary',
+                }}
+              >
+                <Icon type='icon-tianjiawendang' sx={{ fontSize: 9 }} />
+                {nodeDetail?.editor_account} 编辑
+              </Stack>
+            </Tooltip>
+          )}
           <Tooltip arrow title={isEnterprise ? '查看历史版本' : ''}>
             <Stack
               direction={'row'}

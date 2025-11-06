@@ -129,6 +129,10 @@ type KBReleaseNodeRelease struct {
 	CreatedAt     time.Time `json:"created_at"`
 }
 
+func (KBReleaseNodeRelease) TableName() string {
+	return "kb_release_node_releases"
+}
+
 type CreateKBReleaseReq struct {
 	KBID    string   `json:"kb_id" validate:"required"`
 	Message string   `json:"message" validate:"required"`

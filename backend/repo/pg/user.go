@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/samber/lo"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 
@@ -111,6 +112,22 @@ func (r *UserRepository) ListUsers(ctx context.Context) ([]v1.UserListItemResp, 
 		return nil, err
 	}
 	return users, nil
+}
+
+func (r *UserRepository) GetUsersAccountMap(ctx context.Context) (map[string]string, error) {
+	var users []v1.UserListItemResp
+	err := r.db.WithContext(ctx).
+		Model(&domain.User{}).
+		Find(&users).Error
+	if err != nil {
+		return nil, err
+	}
+
+	m := lo.SliceToMap(users, func(user v1.UserListItemResp) (string, string) {
+		return user.ID, user.Account
+	})
+
+	return m, nil
 }
 
 func (r *UserRepository) UpdateUserPassword(ctx context.Context, userID string, newPassword string) error {

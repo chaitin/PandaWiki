@@ -3616,7 +3616,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.Response"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.ShareNodeDetailResp"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -7444,6 +7456,18 @@ const docTemplate = `{
                 "is_open": {
                     "type": "boolean"
                 },
+                "recommend_node_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "recommend_questions": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "theme_mode": {
                     "type": "string"
                 }
@@ -8123,6 +8147,18 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "creator_account": {
+                    "type": "string"
+                },
+                "creator_id": {
+                    "type": "string"
+                },
+                "editor_account": {
+                    "type": "string"
+                },
+                "editor_id": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -8140,6 +8176,12 @@ const docTemplate = `{
                 },
                 "permissions": {
                     "$ref": "#/definitions/domain.NodePermissions"
+                },
+                "publisher_account": {
+                    "type": "string"
+                },
+                "publisher_id": {
+                    "type": "string"
                 },
                 "status": {
                     "$ref": "#/definitions/domain.NodeStatus"
@@ -8242,6 +8284,62 @@ const docTemplate = `{
                 "new_password": {
                     "type": "string",
                     "minLength": 8
+                }
+            }
+        },
+        "v1.ShareNodeDetailResp": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "creator_account": {
+                    "type": "string"
+                },
+                "creator_id": {
+                    "type": "string"
+                },
+                "editor_account": {
+                    "type": "string"
+                },
+                "editor_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "meta": {
+                    "$ref": "#/definitions/domain.NodeMeta"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "$ref": "#/definitions/domain.NodePermissions"
+                },
+                "publisher_account": {
+                    "type": "string"
+                },
+                "publisher_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/domain.NodeStatus"
+                },
+                "type": {
+                    "$ref": "#/definitions/domain.NodeType"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },

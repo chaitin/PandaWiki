@@ -136,6 +136,8 @@ export interface NodeDetail {
   created_at: string;
   updated_at: string;
   type: 1 | 2;
+  creator_account: string;
+  editor_account: string;
   meta: {
     doc_width: string;
     summary: string;

@@ -16,6 +16,7 @@ import (
 	"github.com/samber/lo/mutable"
 
 	v1 "github.com/chaitin/panda-wiki/api/node/v1"
+	shareV1 "github.com/chaitin/panda-wiki/api/share/v1"
 	"github.com/chaitin/panda-wiki/consts"
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
@@ -258,8 +259,11 @@ func (r *NodeRepository) GetByID(ctx context.Context, id, kbId string) (*v1.Node
 	var node *v1.NodeDetailResp
 	if err := r.db.WithContext(ctx).
 		Model(&domain.Node{}).
-		Where("id = ?", id).
-		Where("kb_id = ?", kbId).
+		Select("nodes.*, creator.id as creator_id, creator.account as creator_account, editor.id as editor_id, editor.account as editor_account").
+		Joins("left join users creator on creator.id = nodes.creator_id").
+		Joins("left join users editor on editor.id = nodes.editor_id").
+		Where("nodes.id = ?", id).
+		Where("nodes.kb_id = ?", kbId).
 		First(&node).Error; err != nil {
 		return nil, err
 	}
@@ -420,6 +424,20 @@ func (r *NodeRepository) GetLatestNodeReleaseByNodeID(ctx context.Context, nodeI
 		Where("node_id = ?", nodeID).
 		Order("updated_at DESC").
 		First(&nodeRelease).Error; err != nil {
+		return nil, err
+	}
+	return nodeRelease, nil
+}
+
+func (r *NodeRepository) GetLatestNodeReleaseWithPublishAccount(ctx context.Context, nodeID string) (*domain.NodeReleaseWithPublisher, error) {
+	var nodeRelease *domain.NodeReleaseWithPublisher
+	if err := r.db.WithContext(ctx).
+		Model(&domain.NodeRelease{}).
+		Select("node_releases.id, node_releases.publisher_id, users.account as publisher_account").
+		Joins("left join users on users.id = node_releases.publisher_id").
+		Where("node_releases.node_id = ?", nodeID).
+		Order("node_releases.updated_at DESC").
+		Find(&nodeRelease).Error; err != nil {
 		return nil, err
 	}
 	return nodeRelease, nil
@@ -672,7 +690,7 @@ func (r *NodeRepository) GetNodeReleaseListByKBID(ctx context.Context, kbID stri
 	return nodes, nil
 }
 
-func (r *NodeRepository) GetNodeReleaseDetailByKBIDAndID(ctx context.Context, kbID, id string) (*v1.NodeDetailResp, error) {
+func (r *NodeRepository) GetNodeReleaseDetailByKBIDAndID(ctx context.Context, kbID, id string) (*shareV1.ShareNodeDetailResp, error) {
 	// get kb release
 	var kbRelease *domain.KBRelease
 	if err := r.db.WithContext(ctx).
@@ -683,16 +701,16 @@ func (r *NodeRepository) GetNodeReleaseDetailByKBIDAndID(ctx context.Context, kb
 		return nil, err
 	}
 
-	var node *v1.NodeDetailResp
+	var node *shareV1.ShareNodeDetailResp
 	if err := r.db.WithContext(ctx).
 		Model(&domain.KBReleaseNodeRelease{}).
+		Select("node_releases.*, nodes.permissions, nodes.creator_id").
 		Joins("LEFT JOIN node_releases ON node_releases.id = kb_release_node_releases.node_release_id").
 		Joins("LEFT JOIN nodes ON nodes.id = kb_release_node_releases.node_id").
 		Where("kb_release_node_releases.release_id = ?", kbRelease.ID).
 		Where("node_releases.node_id = ?", id).
 		Where("node_releases.kb_id = ?", kbID).
 		Where("nodes.permissions->>'visitable' != ?", consts.NodeAccessPermClosed).
-		Select("node_releases.*, nodes.permissions").
 		First(&node).Error; err != nil {
 		return nil, err
 	}
@@ -810,7 +828,7 @@ func (r *NodeRepository) TraverseNodesByCursor(ctx context.Context, callback fun
 }
 
 // CreateNodeReleases create node releases
-func (r *NodeRepository) CreateNodeReleases(ctx context.Context, kbID string, nodeIDs []string) ([]string, error) {
+func (r *NodeRepository) CreateNodeReleases(ctx context.Context, kbID, userId string, nodeIDs []string) ([]string, error) {
 	releaseIDs := make([]string, 0)
 	if err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// update node status to published and return node ids
@@ -829,17 +847,19 @@ func (r *NodeRepository) CreateNodeReleases(ctx context.Context, kbID string, no
 		for i, updatedNode := range updatedNodes {
 			// create node release
 			nodeRelease := &domain.NodeRelease{
-				ID:        uuid.New().String(),
-				KBID:      kbID,
-				NodeID:    updatedNode.ID,
-				Type:      updatedNode.Type,
-				Name:      updatedNode.Name,
-				Meta:      updatedNode.Meta,
-				Content:   updatedNode.Content,
-				ParentID:  updatedNode.ParentID,
-				Position:  updatedNode.Position,
-				CreatedAt: updatedNode.CreatedAt,
-				UpdatedAt: time.Now(),
+				ID:          uuid.New().String(),
+				KBID:        kbID,
+				PublisherId: userId,
+				EditorId:    updatedNode.EditorId,
+				NodeID:      updatedNode.ID,
+				Type:        updatedNode.Type,
+				Name:        updatedNode.Name,
+				Meta:        updatedNode.Meta,
+				Content:     updatedNode.Content,
+				ParentID:    updatedNode.ParentID,
+				Position:    updatedNode.Position,
+				CreatedAt:   updatedNode.CreatedAt,
+				UpdatedAt:   time.Now(),
 			}
 			nodeReleases[i] = nodeRelease
 			releaseIDs = append(releaseIDs, nodeRelease.ID)

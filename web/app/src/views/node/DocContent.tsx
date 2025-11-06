@@ -1,18 +1,17 @@
 'use client';
 
 import { NodeDetail } from '@/assets/type';
-import { IconFile, IconFolder } from '@/components/icons';
 import CommentInput, {
-  ImageItem,
   CommentInputRef,
+  ImageItem,
 } from '@/components/commentInput';
+import { IconFile, IconFolder } from '@/components/icons';
 import { DocWidth } from '@/constant';
 import { useStore } from '@/provider';
 import {
   getShareV1CommentList,
   postShareV1Comment,
 } from '@/request/ShareComment';
-import { PhotoProvider, PhotoView } from 'react-photo-view';
 import { Editor, UseTiptapReturn } from '@ctzhian/tiptap';
 import { message } from '@ctzhian/ui';
 import { Box, Button, Divider, Stack, TextField, alpha } from '@mui/material';
@@ -22,6 +21,7 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import { useParams } from 'next/navigation';
 import React, { useEffect, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import { PhotoProvider, PhotoView } from 'react-photo-view';
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
@@ -207,11 +207,23 @@ const DocContent = ({
           color: 'text.tertiary',
         }}
       >
-        {info?.created_at && <Box>{dayjs(info?.created_at).fromNow()}创建</Box>}
+        {info?.created_at && (
+          <Box>
+            {info?.creator_account && info?.creator_account === 'admin'
+              ? '管理员'
+              : info?.creator_account}{' '}
+            {dayjs(info?.created_at).fromNow()}创建
+          </Box>
+        )}
         {info?.updated_at && info.updated_at.slice(0, 1) !== '0' && (
           <>
             <Box>·</Box>
-            <Box>{dayjs(info.updated_at).fromNow()}更新</Box>
+            <Box>
+              {info?.editor_account && info?.editor_account === 'admin'
+                ? '管理员'
+                : info?.editor_account}{' '}
+              {dayjs(info.updated_at).fromNow()}更新
+            </Box>
           </>
         )}
         {!!characterCount && characterCount > 0 && (

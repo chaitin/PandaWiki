@@ -15,6 +15,7 @@ import (
 	"gorm.io/gorm"
 
 	v1 "github.com/chaitin/panda-wiki/api/node/v1"
+	shareV1 "github.com/chaitin/panda-wiki/api/share/v1"
 	"github.com/chaitin/panda-wiki/consts"
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
@@ -31,6 +32,7 @@ type NodeUsecase struct {
 	ragRepo    *mq.RAGRepository
 	kbRepo     *pg.KnowledgeBaseRepository
 	modelRepo  *pg.ModelRepository
+	userRepo   *pg.UserRepository
 	authRepo   *pg.AuthRepo
 	llmUsecase *LLMUsecase
 	logger     *log.Logger
@@ -42,6 +44,7 @@ func NewNodeUsecase(
 	nodeRepo *pg.NodeRepository,
 	appRepo *pg.AppRepository,
 	ragRepo *mq.RAGRepository,
+	userRepo *pg.UserRepository,
 	kbRepo *pg.KnowledgeBaseRepository,
 	llmUsecase *LLMUsecase,
 	ragService rag.RAGService,
@@ -57,6 +60,7 @@ func NewNodeUsecase(
 		ragRepo:    ragRepo,
 		kbRepo:     kbRepo,
 		authRepo:   authRepo,
+		userRepo:   userRepo,
 		llmUsecase: llmUsecase,
 		modelRepo:  modelRepo,
 		logger:     logger.WithModule("usecase.node"),
@@ -87,6 +91,16 @@ func (u *NodeUsecase) GetNodeByKBID(ctx context.Context, id, kbId, format string
 	if err != nil {
 		return nil, err
 	}
+
+	nodeRelease, err := u.nodeRepo.GetLatestNodeReleaseWithPublishAccount(ctx, node.ID)
+	if err != nil {
+		return nil, err
+	}
+	if nodeRelease != nil {
+		node.PublisherId = nodeRelease.PublisherId
+		node.PublisherAccount = nodeRelease.PublisherAccount
+	}
+
 	if node.Meta.ContentType == domain.ContentTypeMD {
 		return node, nil
 	}
@@ -169,11 +183,26 @@ func (u *NodeUsecase) ValidateNodePerm(ctx context.Context, kbID, nodeId string,
 	return nil
 }
 
-func (u *NodeUsecase) GetNodeReleaseDetailByKBIDAndID(ctx context.Context, kbID, nodeId, format string) (*v1.NodeDetailResp, error) {
+func (u *NodeUsecase) GetNodeReleaseDetailByKBIDAndID(ctx context.Context, kbID, nodeId, format string) (*shareV1.ShareNodeDetailResp, error) {
 	node, err := u.nodeRepo.GetNodeReleaseDetailByKBIDAndID(ctx, kbID, nodeId)
 	if err != nil {
 		return nil, err
 	}
+
+	userMap, err := u.userRepo.GetUsersAccountMap(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if account, ok := userMap[node.CreatorId]; ok {
+		node.CreatorAccount = account
+	}
+	if account, ok := userMap[node.EditorId]; ok {
+		node.EditorAccount = account
+	}
+	if account, ok := userMap[node.PublisherId]; ok {
+		node.PublisherAccount = account
+	}
+
 	if node.Meta.ContentType == domain.ContentTypeMD {
 		return node, nil
 	}

@@ -399,10 +399,12 @@ type FooterSettings struct {
 }
 
 type WidgetBotSettings struct {
-	IsOpen    bool   `json:"is_open,omitempty"`
-	ThemeMode string `json:"theme_mode,omitempty"`
-	BtnText   string `json:"btn_text,omitempty"`
-	BtnLogo   string `json:"btn_logo,omitempty"`
+	IsOpen             bool     `json:"is_open,omitempty"`
+	ThemeMode          string   `json:"theme_mode,omitempty"`
+	BtnText            string   `json:"btn_text,omitempty"`
+	BtnLogo            string   `json:"btn_logo,omitempty"`
+	RecommendQuestions []string `json:"recommend_questions,omitempty"`
+	RecommendNodeIDs   []string `json:"recommend_node_ids,omitempty"`
 }
 
 type BrandGroup struct {

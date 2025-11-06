@@ -1339,6 +1339,8 @@ export interface DomainWidgetBotSettings {
   btn_logo?: string;
   btn_text?: string;
   is_open?: boolean;
+  recommend_node_ids?: string[];
+  recommend_questions?: string[];
   theme_mode?: string;
 }
 
@@ -1579,12 +1581,18 @@ export interface V1LoginResp {
 export interface V1NodeDetailResp {
   content?: string;
   created_at?: string;
+  creator_account?: string;
+  creator_id?: string;
+  editor_account?: string;
+  editor_id?: string;
   id?: string;
   kb_id?: string;
   meta?: DomainNodeMeta;
   name?: string;
   parent_id?: string;
   permissions?: DomainNodePermissions;
+  publisher_account?: string;
+  publisher_id?: string;
   status?: DomainNodeStatus;
   type?: DomainNodeType;
   updated_at?: string;

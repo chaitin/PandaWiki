@@ -76,11 +76,12 @@ func createApp() (*App, error) {
 		return nil, err
 	}
 	ragRepository := mq3.NewRAGRepository(mqProducer)
+	userRepository := pg2.NewUserRepository(db, logger)
 	minioClient, err := s3.NewMinioClient(configConfig)
 	if err != nil {
 		return nil, err
 	}
-	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo)
+	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, userRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo)
 	cronHandler, err := mq2.NewStatCronHandler(logger, statRepository, statUseCase, nodeUsecase)
 	if err != nil {
 		return nil, err

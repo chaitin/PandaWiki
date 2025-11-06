@@ -244,6 +244,12 @@ func (h *KnowledgeBaseHandler) DeleteKnowledgeBase(c echo.Context) error {
 //	@Success		200		{object}	domain.Response
 //	@Router			/api/v1/knowledge_base/release [post]
 func (h *KnowledgeBaseHandler) CreateKBRelease(c echo.Context) error {
+	ctx := c.Request().Context()
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return h.NewResponseWithError(c, "authInfo not found in context", nil)
+	}
+
 	req := &domain.CreateKBReleaseReq{}
 	if err := c.Bind(req); err != nil {
 		return h.NewResponseWithError(c, "request body is invalid", err)
@@ -252,7 +258,7 @@ func (h *KnowledgeBaseHandler) CreateKBRelease(c echo.Context) error {
 		return h.NewResponseWithError(c, "validate request body failed", err)
 	}
 
-	id, err := h.usecase.CreateKBRelease(c.Request().Context(), req)
+	id, err := h.usecase.CreateKBRelease(ctx, req, authInfo.UserId)
 	if err != nil {
 		return h.NewResponseWithError(c, "create kb release failed", err)
 	}

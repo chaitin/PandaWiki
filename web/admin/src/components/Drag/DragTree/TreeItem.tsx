@@ -4,9 +4,10 @@ import {
   TreeItemComponentProps,
   TreeItemWrapper,
 } from '@/components/TreeDragSortable';
+import RAG_SOURCES from '@/constant/rag';
 import { treeSx } from '@/constant/styles';
 import { postApiV1Node, putApiV1NodeDetail } from '@/request/Node';
-import { ConstsNodeAccessPerm } from '@/request/types';
+import { ConstsNodeAccessPerm, ConstsNodeRagInfoStatus } from '@/request/types';
 import { useAppSelector } from '@/store';
 import { AppContext, updateTree } from '@/utils/drag';
 import { handleMultiSelect, updateAllParentStatus } from '@/utils/tree';
@@ -19,6 +20,7 @@ import {
   Stack,
   TextField,
   Theme,
+  Tooltip,
   alpha,
   styled,
 } from '@mui/material';
@@ -520,6 +522,20 @@ const TreeItem = React.forwardRef<
                       gap={1}
                       sx={{ flexShrink: 0, fontSize: 12 }}
                     >
+                      {item.type === 2 &&
+                        item.rag_status &&
+                        ![
+                          ConstsNodeRagInfoStatus.NodeRagStatusBasicSucceeded,
+                          ConstsNodeRagInfoStatus.NodeRagStatusEnhanceSucceeded,
+                        ].includes(item.rag_status) && (
+                          <Tooltip title={item.rag_message}>
+                            <StyledTag
+                              color={RAG_SOURCES[item.rag_status].color as any}
+                            >
+                              {RAG_SOURCES[item.rag_status].name}
+                            </StyledTag>
+                          </Tooltip>
+                        )}
                       {item.status === 1 && (
                         <StyledTag color='error'>更新未发布</StyledTag>
                       )}

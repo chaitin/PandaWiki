@@ -41,6 +41,7 @@ func createApp() (*App, error) {
 		return nil, err
 	}
 	ragRepository := mq2.NewRAGRepository(mqProducer)
+	userRepository := pg2.NewUserRepository(db, logger)
 	ragService, err := rag.NewRAGService(configConfig, logger)
 	if err != nil {
 		return nil, err
@@ -59,8 +60,7 @@ func createApp() (*App, error) {
 		return nil, err
 	}
 	authRepo := pg2.NewAuthRepo(db, logger, cacheCache)
-	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo)
-	userRepository := pg2.NewUserRepository(db, logger)
+	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, userRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo)
 	kbRepo := cache2.NewKBRepo(cacheCache)
 	knowledgeBaseUsecase, err := usecase.NewKnowledgeBaseUsecase(knowledgeBaseRepository, nodeRepository, ragRepository, userRepository, ragService, kbRepo, logger, configConfig)
 	if err != nil {

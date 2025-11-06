@@ -1,5 +1,8 @@
 import { AppType, IconMap, ModelProvider } from '@/constant/enums';
-import { DomainNodePermissions } from '@/request/types';
+import {
+  ConstsNodeRagInfoStatus,
+  DomainNodePermissions,
+} from '@/request/types';
 
 export type Paging = {
   page?: number;
@@ -193,6 +196,8 @@ export interface ITreeItem {
   parentId?: string;
   content_type?: string;
   summary?: string;
+  rag_status?: ConstsNodeRagInfoStatus;
+  rag_message?: string;
   children?: ITreeItem[];
   type: 1 | 2;
   isEditting?: boolean;

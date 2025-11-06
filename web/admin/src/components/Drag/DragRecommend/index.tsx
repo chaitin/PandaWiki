@@ -1,3 +1,4 @@
+import { DomainRecommendNodeListResp } from '@/request/types';
 import {
   closestCenter,
   DndContext,
@@ -9,7 +10,6 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import { DomainRecommendNodeListResp } from '@/request/types';
 import {
   arrayMove,
   rectSortingStrategy,
@@ -23,7 +23,7 @@ import SortableItem from './SortableItem';
 interface DragRecommendProps {
   data: DomainRecommendNodeListResp[];
   columns?: number;
-  refresh: () => void;
+  refresh?: () => void;
   onChange: (data: DomainRecommendNodeListResp[]) => void;
 }
 

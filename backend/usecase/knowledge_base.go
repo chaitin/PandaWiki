@@ -146,10 +146,10 @@ func (u *KnowledgeBaseUsecase) DeleteKnowledgeBase(ctx context.Context, kbID str
 	return nil
 }
 
-func (u *KnowledgeBaseUsecase) CreateKBRelease(ctx context.Context, req *domain.CreateKBReleaseReq) (string, error) {
+func (u *KnowledgeBaseUsecase) CreateKBRelease(ctx context.Context, req *domain.CreateKBReleaseReq, userId string) (string, error) {
 	if len(req.NodeIDs) > 0 {
 		// create published nodes
-		releaseIDs, err := u.nodeRepo.CreateNodeReleases(ctx, req.KBID, req.NodeIDs)
+		releaseIDs, err := u.nodeRepo.CreateNodeReleases(ctx, req.KBID, userId, req.NodeIDs)
 		if err != nil {
 			return "", fmt.Errorf("failed to create published nodes: %w", err)
 		}

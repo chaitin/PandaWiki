@@ -4,7 +4,7 @@ import { FC } from 'react';
 import Item, { ItemProps } from './Item';
 
 type SortableItemProps = ItemProps & {
-  refresh: () => void;
+  refresh?: () => void;
 };
 
 const SortableItem: FC<SortableItemProps> = ({ item, refresh, ...rest }) => {

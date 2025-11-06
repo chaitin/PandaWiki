@@ -646,14 +646,14 @@ func (u *AppUsecase) GetWidgetAppInfo(ctx context.Context, kbID string) (*domain
 			Icon:               webApp.Settings.Icon,
 			WelcomeStr:         webApp.Settings.WelcomeStr,
 			SearchPlaceholder:  webApp.Settings.SearchPlaceholder,
-			RecommendQuestions: webApp.Settings.RecommendQuestions,
+			RecommendQuestions: widgetApp.Settings.WidgetBotSettings.RecommendQuestions,
 			WidgetBotSettings:  widgetApp.Settings.WidgetBotSettings,
 		},
 	}
-	if len(webApp.Settings.RecommendNodeIDs) > 0 {
+	if len(widgetApp.Settings.WidgetBotSettings.RecommendNodeIDs) > 0 {
 		nodes, err := u.nodeUsecase.GetRecommendNodeList(ctx, &domain.GetRecommendNodeListReq{
 			KBID:    kbID,
-			NodeIDs: webApp.Settings.RecommendNodeIDs,
+			NodeIDs: widgetApp.Settings.WidgetBotSettings.RecommendNodeIDs,
 		})
 		if err != nil {
 			return nil, err

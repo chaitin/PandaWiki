@@ -1,9 +1,8 @@
-import { postApiV1NodeSummary } from '@/request/Node';
 import { DomainRecommendNodeListResp } from '@/request/types';
 import { useAppSelector } from '@/store';
+import { Ellipsis, Icon } from '@ctzhian/ui';
 import { Box, IconButton, Stack } from '@mui/material';
-import { Ellipsis, Icon, message } from '@ctzhian/ui';
-import { CSSProperties, forwardRef, HTMLAttributes, useState } from 'react';
+import { CSSProperties, forwardRef, HTMLAttributes } from 'react';
 
 export type ItemProps = HTMLAttributes<HTMLDivElement> & {
   item: DomainRecommendNodeListResp;
@@ -37,19 +36,6 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
       width: '100%',
       minWidth: '0px',
       ...style,
-    };
-    const [loading, setLoading] = useState(false);
-
-    const handleCreateSummary = () => {
-      setLoading(true);
-      postApiV1NodeSummary({ ids: [item.id!], kb_id })
-        .then(() => {
-          message.success('生成摘要成功');
-          refresh?.();
-        })
-        .finally(() => {
-          setLoading(false);
-        });
     };
 
     return (
@@ -102,11 +88,6 @@ const Item = forwardRef<HTMLDivElement, ItemProps>(
                 暂无摘要，可前往文档页生成并发布
               </Box>
             ) : null}
-            {/* : item.type === 2 ? <Button size='small' loading={loading} sx={{
-            height: '21px',
-            px: 0,
-            ml: '18px',
-          }} onClick={handleCreateSummary}>生成摘要</Button> : null} */}
             {item.recommend_nodes && item.recommend_nodes.length > 0 && (
               <Stack sx={{ fontSize: 14, color: 'text.tertiary', pl: '20px' }}>
                 {item.recommend_nodes
