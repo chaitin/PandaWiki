@@ -702,7 +702,7 @@ const AiQaContent: React.FC<{
         >
           {/* Logo区域 */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, my: 8 }}>
-            <Image
+            <img
               src={kbDetail?.settings?.icon || Logo.src}
               alt='logo'
               width={46}

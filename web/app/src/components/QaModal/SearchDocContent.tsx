@@ -204,7 +204,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
         gap={2}
         sx={{ mb: 3, mt: 1 }}
       >
-        <Image
+        <img
           src={kbDetail?.settings?.icon || Logo.src}
           alt='logo'
           width={46}
