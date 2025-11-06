@@ -384,28 +384,7 @@ const Widget = () => {
           },
         }}
       >
-        本插件由
-        <Link
-          href={'https://pandawiki.docs.baizhi.cloud/'}
-          target='_blank'
-          prefetch={false}
-        >
-          <Stack
-            direction={'row'}
-            alignItems={'center'}
-            gap={0.5}
-            sx={{
-              cursor: 'pointer',
-              '&:hover': {
-                color: 'primary.main',
-              },
-            }}
-          >
-            <IconLogo sx={{ fontSize: 16 }} />
-            <Box sx={{ fontWeight: 'bold' }}>PandaWiki</Box>
-          </Stack>
-        </Link>
-        提供技术支持
+        算启智能
       </Stack>
     </WaterMarkProvider>
   );
