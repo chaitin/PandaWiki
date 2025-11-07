@@ -1,0 +1,188 @@
+services:
+  caddy:
+    container_name: panda-wiki-caddy
+    restart: always
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-caddy:2.10-alpine
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - ./data/caddy/caddy_config:/config
+      - ./data/caddy/caddy_data:/data
+      - ./data/caddy/run:/var/run/caddy
+    environment:
+      - CADDY_ADMIN=unix//var/run/caddy/caddy-admin.sock
+    network_mode: host
+  nginx:
+    container_name: panda-wiki-nginx
+    depends_on:
+      - api
+    restart: always
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-nginx:v3.34.2
+    ports:
+      - ${ADMIN_PORT}:8080
+    volumes:
+      - ./data/nginx/ssl:/etc/nginx/ssl
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.111"
+  app:
+    container_name: panda-wiki-app
+    restart: always
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-app:v3.34.2
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.112"
+  api:
+    container_name: panda-wiki-api
+    depends_on:
+      - postgres
+      - nats
+      - caddy
+      - raglite
+    restart: always
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:latest
+    volumes:
+      - ./data/caddy/run:/app/run
+      - ./data/nginx/ssl:/app/etc/nginx/ssl
+      - ./data/conf/api:/data
+    environment:
+      - NATS_PASSWORD=${NATS_PASSWORD}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - SUBNET_PREFIX=${SUBNET_PREFIX}
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.2"
+  consumer:
+    container_name: panda-wiki-consumer
+    depends_on:
+      - nats
+      - api
+      - raglite
+    restart: always
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-consumer:v3.34.2
+    environment:
+      - NATS_PASSWORD=${NATS_PASSWORD}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.3"
+  postgres:
+    container_name: panda-wiki-postgres
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-postgres:17.5
+    restart: always
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "panda-wiki", "-d", "panda-wiki"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    environment:
+      - POSTGRES_USER=panda-wiki
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=panda-wiki
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.10"
+  redis:
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-redis:7.4.2-alpine
+    container_name: panda-wiki-redis
+    restart: always
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes", "--appendfilename", "appendonly.aof", "--save", "900 1", "--save", "300 10", "--save", "60 10000"]
+    volumes:
+      - ./data/redis:/data
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.11"
+  minio:
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-minio:RELEASE.2025-04-22T22-12-26Z-cpuv1
+    container_name: panda-wiki-minio
+    restart: always
+    command: ["minio", "server", "/data", "--console-address", ":9001"]
+    volumes:
+      - ./data/minio:/data
+    environment:
+      - MINIO_ACCESS_KEY=s3panda-wiki
+      - MINIO_SECRET_KEY=${S3_SECRET_KEY}
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.12"
+  nats:
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-nats:2.11.3-alpine
+    container_name: panda-wiki-nats
+    restart: always
+    command: ["nats-server", "-c", "/etc/nats/nats.conf", "--user", "panda-wiki", "--pass", "${NATS_PASSWORD}"]
+    volumes:
+      - ./data/nats:/data
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.13"
+  qdrant:
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-qdrant:v1.14.1
+    container_name: panda-wiki-qdrant
+    restart: always
+    volumes:
+      - ./data/qdrant:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__API_KEY=${QDRANT_API_KEY}
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.14"
+  crawler:
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/anydoc:v0.6.11
+    container_name: panda-wiki-crawler
+    restart: always
+    init: true
+    environment:
+      - GLOG_GLOBAL_LEVEL=info
+      - NAMESPACE=anydoc
+      - MQ_NATS_URL=nats://panda-wiki-nats:4222
+      - MQ_NATS_USER=panda-wiki
+      - MQ_NATS_PASSWORD=${NATS_PASSWORD}
+      - OSS_MINIO_ACCESS_KEY=s3panda-wiki
+      - OSS_MINIO_SECRET_KEY=${S3_SECRET_KEY}
+      - OSS_MINIO_ENDPOINT=panda-wiki-minio:9000
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.17"
+  raglite:
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-raglite:1-4-1
+    container_name: panda-wiki-raglite
+    restart: always
+    volumes:
+      - ./data/raglite:/data
+    environment:
+      - GIN_MODE=release
+      - DATABASE_HOST=panda-wiki-postgres
+      - DATABASE_USER=panda-wiki
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - MINIO_HOST=panda-wiki-minio:9000
+      - MINIO_USER=s3panda-wiki
+      - MINIO_PASSWORD=${S3_SECRET_KEY}
+      - QDRANT_HOST=panda-wiki-qdrant
+      - QDRANT_API_KEY=${QDRANT_API_KEY}
+      - MQ_NATS_URL=nats://panda-wiki-nats:4222
+      - MQ_NATS_USER=panda-wiki
+      - MQ_NATS_PASSWORD=${NATS_PASSWORD}
+    depends_on:
+      - postgres
+      - minio
+      - qdrant
+    networks:
+      panda-wiki:
+        ipv4_address: "${SUBNET_PREFIX:-169.254.15}.18"
+
+networks:
+  panda-wiki:
+    ipam:
+      driver: default
+      config:
+        - subnet: "${SUBNET_PREFIX:-169.254.15}.0/24"

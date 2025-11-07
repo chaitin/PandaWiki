@@ -1,0 +1,44 @@
+log:
+  level: 0
+
+http:
+  port: 8000
+
+admin_password: "admin123"
+
+pg:
+  dsn: "host=localhost user=panda-wiki password=admin123 dbname=panda-wiki port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+
+mq:
+  type: "nats"
+  nats:
+    server: "nats://localhost:4222"
+    user: "panda-wiki"
+    password: "admin123"
+
+rag:
+  provider: "ct"
+  ct_rag:
+    base_url: "http://localhost:8080/api/v1"
+    api_key: "sk-1234567890"
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+
+auth:
+  type: "jwt"
+  jwt:
+    secret: "admin123"
+
+s3:
+  endpoint: "localhost:9000"
+  access_key: "s3panda-wiki"
+  secret_key: "admin123"
+
+sentry:
+  enabled: false
+  dsn: ""
+
+caddy_api: "/app/run/caddy-admin.sock"
+subnet_prefix: "169.254.15"
