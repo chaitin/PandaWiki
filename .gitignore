@@ -32,3 +32,5 @@ deploy
 local
 
 .idea
+
+data/*
