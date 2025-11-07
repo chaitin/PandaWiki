@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { TextField, Chip, Autocomplete, Box } from '@mui/material';
+import { TextField, Chip, Autocomplete, Box, IconButton } from '@mui/material';
+import { KeyboardArrowUp, KeyboardArrowDown } from '@mui/icons-material';
 import { CommonItem, StyledCommonWrapper } from '../../components/StyledCommon';
 import type { ConfigProps } from '../type';
 import { useForm, Controller } from 'react-hook-form';
@@ -139,6 +140,15 @@ const Config: React.FC<ConfigProps> = ({ setIsEdit, id }) => {
           render={({ field }) => (
             <Autocomplete
               {...field}
+              sx={{
+                '& .MuiInputBase-root': {
+                  flexDirection: 'column',
+                },
+                '& input': {
+                  width: '100% !important',
+                  alignSelf: 'start !important',
+                },
+              }}
               value={field.value || []}
               multiple
               freeSolo
@@ -159,20 +169,72 @@ const Config: React.FC<ConfigProps> = ({ setIsEdit, id }) => {
                 }
                 setInputValue('');
               }}
-              renderValue={(value, getTagProps) => {
+              renderTags={(value, getTagProps) => {
+                const moveHotSearch = (from: number, to: number) => {
+                  const currentValue = field.value || [];
+                  if (to < 0 || to >= currentValue.length) return;
+                  const updatedValue = [...currentValue];
+                  const [moved] = updatedValue.splice(from, 1);
+                  updatedValue.splice(to, 0, moved);
+                  field.onChange(updatedValue);
+                  setIsEdit(true);
+                };
+
                 return value.map((option, index: number) => {
+                  const tagProps = getTagProps({ index });
+                  const { key, ...chipProps } = tagProps;
                   return (
-                    <Chip
-                      variant='outlined'
-                      size='small'
-                      label={
-                        <Box sx={{ fontSize: '12px' }}>
-                          {option as React.ReactNode}
-                        </Box>
-                      }
-                      {...getTagProps({ index })}
-                      key={index}
-                    />
+                    <Box
+                      key={key}
+                      sx={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        gap: 0.5,
+                        alignItems: 'center',
+                        alignSelf: 'start',
+                      }}
+                    >
+                      <Chip
+                        variant='outlined'
+                        size='small'
+                        label={
+                          <Box sx={{ fontSize: '12px' }}>
+                            {option as React.ReactNode}
+                          </Box>
+                        }
+                        {...chipProps}
+                      />
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: 'row',
+                          gap: 0.25,
+                        }}
+                      >
+                        <IconButton
+                          size='small'
+                          onClick={event => {
+                            event.stopPropagation();
+                            moveHotSearch(index, index - 1);
+                          }}
+                          disabled={index === 0}
+                          aria-label='向上移动'
+                        >
+                          <KeyboardArrowUp fontSize='small' />
+                        </IconButton>
+                        <IconButton
+                          size='small'
+                          onClick={event => {
+                            event.stopPropagation();
+                            moveHotSearch(index, index + 1);
+                          }}
+                          disabled={index === value.length - 1}
+                          aria-label='向下移动'
+                        >
+                          <KeyboardArrowDown fontSize='small' />
+                        </IconButton>
+                      </Box>
+                    </Box>
                   );
                 });
               }}
