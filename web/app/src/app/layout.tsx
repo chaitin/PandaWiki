@@ -70,7 +70,6 @@ const Layout = async ({
 
   const [kbDetailResolve, authInfoResolve] = await Promise.allSettled([
     getShareV1AppWebInfo(),
-    // @ts-ignore
     getShareProV1AuthInfo({}),
   ]);
 

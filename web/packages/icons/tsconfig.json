@@ -1,12 +1,12 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    /* UI 组件库特有配置 */
+    /* Icons 图标库特有配置 */
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
     },
-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tsbuildinfo",
     "target": "ES2020",
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
@@ -15,13 +15,8 @@
     "jsx": "react-jsx",
     "allowJs": true,
     "esModuleInterop": true,
-    "resolveJsonModule": true,
-
-    /* Linting */
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "resolveJsonModule": true
   },
-  "include": ["src", "env.d.ts"]
+  "include": ["src", "scripts"],
+  "exclude": ["node_modules", "dist"]
 }

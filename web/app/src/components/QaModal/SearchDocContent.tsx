@@ -8,7 +8,11 @@ import {
   Typography,
   Stack,
   CircularProgress,
+  alpha,
+  Skeleton,
+  styled,
 } from '@mui/material';
+import Logo from '@/assets/images/logo.png';
 import noDocImage from '@/assets/images/no-doc.png';
 import Image from 'next/image';
 import { IconJinsousuo, IconFasong, IconMianbaoxie } from '@panda-wiki/icons';
@@ -16,7 +20,51 @@ import { postShareV1ChatSearch } from '@/request/ShareChatSearch';
 import { DomainNodeContentChunkSSE } from '@/request/types';
 import { message } from '@ctzhian/ui';
 import { IconWenjian } from '@panda-wiki/icons';
+import { useStore } from '@/provider';
 
+const StyledSearchResultItem = styled(Stack)(({ theme }) => ({
+  position: 'relative',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    borderBottom: '1px dashed',
+    borderColor: alpha(theme.palette.text.primary, 0.1),
+  },
+  '&::after': {
+    content: '""',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    width: '100%',
+    borderBottom: '1px dashed',
+    borderColor: alpha(theme.palette.text.primary, 0.1),
+  },
+  padding: theme.spacing(2),
+  borderRadius: '8px',
+  cursor: 'pointer',
+  transition: 'all 0.2s ease-in-out',
+  '&:hover': {
+    backgroundColor: alpha(theme.palette.text.primary, 0.02),
+    '.hover-primary': {
+      color: 'primary.main',
+    },
+  },
+}));
+
+const SearchDocSkeleton = () => {
+  return (
+    <StyledSearchResultItem>
+      <Stack gap={1}>
+        <Skeleton variant='rounded' height={16} width={200} />
+        <Skeleton variant='rounded' height={22} width={400} />
+        <Skeleton variant='rounded' height={16} width={500} />
+      </Stack>
+    </StyledSearchResultItem>
+  );
+};
 interface SearchDocContentProps {
   inputRef: React.RefObject<HTMLInputElement | null>;
   placeholder: string;
@@ -26,6 +74,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
   inputRef,
   placeholder,
 }) => {
+  const { kbDetail } = useStore();
   // 模糊搜索相关状态
   const [fuzzySuggestions, setFuzzySuggestions] = useState<string[]>([]);
   const [showFuzzySuggestions, setShowFuzzySuggestions] = useState(false);
@@ -148,6 +197,30 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
 
   return (
     <Box>
+      <Stack
+        direction='row'
+        alignItems='center'
+        justifyContent='center'
+        gap={2}
+        sx={{ mb: 3, mt: 1 }}
+      >
+        <Image
+          src={kbDetail?.settings?.icon || Logo.src}
+          alt='logo'
+          width={46}
+          height={46}
+          unoptimized
+          style={{
+            objectFit: 'contain',
+          }}
+        />
+        <Typography
+          variant='h6'
+          sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700 }}
+        >
+          {kbDetail?.settings?.title}
+        </Typography>
+      </Stack>
       {/* 搜索输入框 */}
       <TextField
         ref={inputRef}
@@ -157,26 +230,27 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
         onKeyDown={handleKeyDown}
         fullWidth
         autoFocus
-        sx={{
+        sx={theme => ({
+          boxShadow: `0px 20px 40px 0px ${alpha(theme.palette.text.primary, 0.06)}`,
           borderRadius: 2,
           '& .MuiInputBase-root': {
             fontSize: 16,
-            bgcolor: 'background.paper3',
+            backgroundColor: theme.palette.background.default,
             '& fieldset': {
-              borderColor: 'background.paper3',
+              borderColor: alpha(theme.palette.text.primary, 0.1),
             },
             '&:hover fieldset': {
               borderColor: 'primary.main',
             },
             '&.Mui-focused fieldset': {
-              borderColor: 'primary.main',
+              borderColor: `${theme.palette.primary.main} !important`,
               borderWidth: 1,
             },
           },
           '& .MuiInputBase-input': {
             py: 1.5,
           },
-        }}
+        })}
         slotProps={{
           input: {
             startAdornment: (
@@ -264,31 +338,15 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
           </Typography>
 
           {/* 搜索结果列表 */}
-          <Stack sx={{ overflow: 'auto', maxHeight: 'calc(100vh - 284px)' }}>
+          <Stack sx={{ overflow: 'auto', maxHeight: 'calc(100vh - 334px)' }}>
             {searchResults.map((result, index) => (
-              <Stack
+              <StyledSearchResultItem
                 direction='row'
                 justifyContent='space-between'
                 alignItems='center'
                 key={result.node_id}
                 gap={2}
                 onClick={() => handleSearchResultClick(result)}
-                sx={{
-                  p: 2,
-                  borderRadius: '8px',
-                  borderBottom:
-                    index !== searchResults.length - 1 ? 'none' : '1px dashed',
-                  borderTop: '1px dashed',
-                  borderColor: 'divider',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease-in-out',
-                  '&:hover': {
-                    bgcolor: 'background.paper3',
-                    '.hover-primary': {
-                      color: 'primary.main',
-                    },
-                  },
-                }}
               >
                 <Stack sx={{ flex: 1, width: 0 }} gap={0.5}>
                   {/* 路径 */}
@@ -342,7 +400,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
                   </Typography>
                 </Stack>
                 <IconMianbaoxie sx={{ fontSize: 12 }} />
-              </Stack>
+              </StyledSearchResultItem>
             ))}
           </Stack>
         </Box>
@@ -359,11 +417,11 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
 
       {/* 搜索中状态 */}
       {isSearching && (
-        <Box sx={{ mt: 2, textAlign: 'center' }}>
-          <Typography variant='body2' sx={{ color: 'text.tertiary' }}>
-            搜索中...
-          </Typography>
-        </Box>
+        <Stack sx={{ mt: 2 }}>
+          {[...Array(3)].map((_, index) => (
+            <SearchDocSkeleton key={index} />
+          ))}
+        </Stack>
       )}
     </Box>
   );

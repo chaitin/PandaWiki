@@ -1,4 +1,3 @@
-/// <reference path="../theme.d.ts" />
 import { PaletteOptions } from '@mui/material';
 
 const orangePalette: PaletteOptions = {

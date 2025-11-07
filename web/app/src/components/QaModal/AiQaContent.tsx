@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dayjs from 'dayjs';
 import { ChunkResultItem } from '@/assets/type';
+import Logo from '@/assets/images/logo.png';
 import aiLoading from '@/assets/images/ai-loading.gif';
 import { getShareV1ConversationDetail } from '@/request/ShareConversation';
 import { message } from '@ctzhian/ui';
@@ -25,21 +26,33 @@ import MarkDown2 from '@/components/markdown2';
 import { postShareV1ChatFeedback } from '@/request/ShareChat';
 import { copyText } from '@/utils';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { Box, IconButton, Stack, Typography, Tooltip } from '@mui/material';
+import {
+  Box,
+  Button,
+  IconButton,
+  Stack,
+  Typography,
+  Tooltip,
+  alpha,
+} from '@mui/material';
 import 'dayjs/locale/zh-cn';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import ChatLoading from '../../views/chat/ChatLoading';
-import { IconTupian, IconFasong } from '@panda-wiki/icons';
+import {
+  IconTupian,
+  IconFasong,
+  IconXingxing,
+  IconXinduihua,
+} from '@panda-wiki/icons';
 import CloseIcon from '@mui/icons-material/Close';
 import Image from 'next/image';
 import {
   StyledMainContainer,
   StyledConversationContainer,
   StyledConversationItem,
-  StyledAccordion,
-  StyledAccordionSummary,
-  StyledAccordionDetails,
-  StyledQuestionText,
+  StyledUserBubble,
+  StyledAiBubble,
+  StyledAiBubbleContent,
   StyledChunkAccordion,
   StyledChunkAccordionSummary,
   StyledChunkAccordionDetails,
@@ -57,8 +70,9 @@ import {
   StyledActionButtonStack,
   StyledFuzzySuggestionsStack,
   StyledFuzzySuggestionItem,
-  StyledHotSearchStack,
-  StyledHotSearchItem,
+  StyledHotSearchContainer,
+  StyledHotSearchColumn,
+  StyledHotSearchColumnItem,
 } from './StyledComponents';
 
 export interface ConversationItem {
@@ -91,7 +105,13 @@ const LoadingContent = ({
   return (
     <Stack direction='row' alignItems='center' gap={1} sx={{ pb: 1 }}>
       <Image src={aiLoading} alt='ai-loading' width={20} height={20} />
-      <Typography variant='body2' sx={{ fontSize: 12, color: 'text.tertiary' }}>
+      <Typography
+        variant='body2'
+        sx={theme => ({
+          fontSize: 12,
+          color: alpha(theme.palette.text.primary, 0.5),
+        })}
+      >
         {AnswerStatus[thinking]}
       </Typography>
     </Stack>
@@ -141,6 +161,10 @@ const AiQaContent: React.FC<{
   });
 
   const onReset = () => {
+    if (loading) {
+      handleSearchAbort();
+    }
+    handleSearch(true);
     setConversationId('');
     setConversation([]);
     setFullAnswer('');
@@ -156,9 +180,9 @@ const AiQaContent: React.FC<{
     setNonce('');
   };
 
-  const handleSearch = () => {
+  const handleSearch = (reset: boolean = false) => {
     if (input.length > 0) {
-      onSearch(input);
+      onSearch(input, reset);
       setInput('');
       // 清理图片URL
       uploadedImages.forEach(img => {
@@ -663,156 +687,296 @@ const AiQaContent: React.FC<{
 
   return (
     <StyledMainContainer className={palette.mode === 'dark' ? 'md-dark' : ''}>
+      {/* 无对话时显示欢迎界面 */}
+      {conversation.length === 0 && (
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
+            pb: 5,
+          }}
+        >
+          {/* Logo区域 */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, my: 8 }}>
+            <Image
+              src={kbDetail?.settings?.icon || Logo.src}
+              alt='logo'
+              width={46}
+              height={46}
+              unoptimized
+              style={{
+                objectFit: 'contain',
+              }}
+            />
+            <Typography
+              variant='h6'
+              sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700 }}
+            >
+              {kbDetail?.settings?.title}
+            </Typography>
+          </Box>
+
+          {/* 热门搜索区域 */}
+          {hotSearch.length > 0 && (
+            <Box sx={{ width: '100%' }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: 'primary.main',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
+                  }}
+                >
+                  <IconXingxing sx={{ fontSize: 14 }} />
+                  大家都在搜什么?
+                </Typography>
+              </Box>
+
+              {/* 热门搜索列表 - 两列布局 */}
+              <StyledHotSearchContainer>
+                {/* 左列 */}
+                <StyledHotSearchColumn>
+                  {hotSearch
+                    .filter((_, index) => index % 2 === 0)
+                    .map((suggestion, index) => (
+                      <StyledHotSearchColumnItem
+                        key={index * 2}
+                        onClick={() => onSuggestionClick(suggestion)}
+                      >
+                        • {suggestion}
+                      </StyledHotSearchColumnItem>
+                    ))}
+                </StyledHotSearchColumn>
+
+                {/* 右列 */}
+                <StyledHotSearchColumn>
+                  {hotSearch
+                    .filter((_, index) => index % 2 === 1)
+                    .map((suggestion, index) => (
+                      <StyledHotSearchColumnItem
+                        key={index * 2 + 1}
+                        onClick={() => onSuggestionClick(suggestion)}
+                      >
+                        • {suggestion}
+                      </StyledHotSearchColumnItem>
+                    ))}
+                </StyledHotSearchColumn>
+              </StyledHotSearchContainer>
+            </Box>
+          )}
+        </Box>
+      )}
+
+      {/* 有对话时显示对话历史 */}
       <StyledConversationContainer
         direction='column'
         gap={2}
         className='conversation-container'
         sx={{
           mb: conversation?.length > 0 ? 2 : 0,
+          display: conversation.length > 0 ? 'flex' : 'none',
         }}
       >
         {conversation.map((item, index) => (
           <StyledConversationItem key={index}>
-            <StyledAccordion key={index} defaultExpanded={true}>
-              <StyledAccordionSummary
-                expandIcon={<ExpandMoreIcon sx={{ fontSize: 18 }} />}
-              >
-                <StyledQuestionText>{item.q}</StyledQuestionText>
-              </StyledAccordionSummary>
-              <StyledAccordionDetails>
-                {item.chunk_result.length > 0 && (
-                  <StyledChunkAccordion defaultExpanded>
-                    <StyledChunkAccordionSummary
-                      expandIcon={<ExpandMoreIcon sx={{ fontSize: 16 }} />}
+            {/* 用户问题气泡 - 右对齐 */}
+            <StyledUserBubble>{item.q}</StyledUserBubble>
+
+            {/* AI回答气泡 - 左对齐 */}
+            <StyledAiBubble>
+              {/* 搜索结果 */}
+              {item.chunk_result.length > 0 && (
+                <StyledChunkAccordion defaultExpanded>
+                  <StyledChunkAccordionSummary
+                    expandIcon={<ExpandMoreIcon sx={{ fontSize: 16 }} />}
+                  >
+                    <Typography
+                      variant='body2'
+                      sx={theme => ({
+                        fontSize: 12,
+                        color: alpha(theme.palette.text.primary, 0.5),
+                      })}
                     >
+                      共找到 {item.chunk_result.length} 个结果
+                    </Typography>
+                  </StyledChunkAccordionSummary>
+
+                  <StyledChunkAccordionDetails>
+                    <Stack gap={1}>
+                      {item.chunk_result.map((chunk, chunkIndex) => (
+                        <StyledChunkItem key={chunkIndex}>
+                          <Typography
+                            variant='body2'
+                            className='hover-primary'
+                            sx={theme => ({
+                              fontSize: 12,
+                              color: alpha(theme.palette.text.primary, 0.5),
+                            })}
+                            onClick={() => {
+                              window.open(`/node/${chunk.node_id}`, '_blank');
+                            }}
+                          >
+                            {chunk.name}
+                          </Typography>
+                        </StyledChunkItem>
+                      ))}
+                    </Stack>
+                  </StyledChunkAccordionDetails>
+                </StyledChunkAccordion>
+              )}
+
+              {/* 加载状态 */}
+              {index === conversation.length - 1 && loading && (
+                <LoadingContent thinking={thinking} />
+              )}
+
+              {/* 思考过程 */}
+              {!!item.thinking_content && (
+                <StyledThinkingAccordion defaultExpanded>
+                  <StyledThinkingAccordionSummary
+                    expandIcon={<ExpandMoreIcon sx={{ fontSize: 16 }} />}
+                  >
+                    <Stack direction='row' alignItems='center' gap={1}>
+                      {thinking === 2 && index === conversation.length - 1 && (
+                        <Image
+                          src={aiLoading}
+                          alt='ai-loading'
+                          width={20}
+                          height={20}
+                        />
+                      )}
+
                       <Typography
                         variant='body2'
-                        sx={{ fontSize: 12, color: 'text.tertiary' }}
+                        sx={theme => ({
+                          fontSize: 12,
+                          color: alpha(theme.palette.text.primary, 0.5),
+                        })}
                       >
-                        共找到 {item.chunk_result.length} 个结果
+                        {thinking === 2 && index === conversation.length - 1
+                          ? '思考中...'
+                          : '已思考'}
                       </Typography>
-                    </StyledChunkAccordionSummary>
+                    </Stack>
+                  </StyledThinkingAccordionSummary>
 
-                    <StyledChunkAccordionDetails>
-                      <Stack gap={1}>
-                        {item.chunk_result.map((chunk, index) => (
-                          <StyledChunkItem key={index}>
-                            <Typography
-                              variant='body2'
-                              className='hover-primary'
-                              sx={{ fontSize: 12, color: 'text.tertiary' }}
-                              onClick={() => {
-                                window.open(`/node/${chunk.node_id}`, '_blank');
-                              }}
-                            >
-                              {chunk.name}
-                            </Typography>
-                          </StyledChunkItem>
-                        ))}
-                      </Stack>
-                    </StyledChunkAccordionDetails>
-                  </StyledChunkAccordion>
-                )}
+                  <StyledThinkingAccordionDetails>
+                    <MarkDown2
+                      content={item.thinking_content || ''}
+                      autoScroll={false}
+                    />
+                  </StyledThinkingAccordionDetails>
+                </StyledThinkingAccordion>
+              )}
 
-                {index === conversation.length - 1 && loading && (
-                  <>
-                    <LoadingContent thinking={thinking} />
-                  </>
-                )}
-
-                {!!item.thinking_content && (
-                  <StyledThinkingAccordion defaultExpanded>
-                    <StyledThinkingAccordionSummary
-                      expandIcon={<ExpandMoreIcon sx={{ fontSize: 16 }} />}
-                    >
-                      <Stack direction='row' alignItems='center' gap={1}>
-                        {thinking === 2 && (
-                          <Image
-                            src={aiLoading}
-                            alt='ai-loading'
-                            width={20}
-                            height={20}
-                          />
-                        )}
-
-                        <Typography
-                          variant='body2'
-                          sx={{ fontSize: 12, color: 'text.tertiary' }}
-                        >
-                          {thinking === 2 ? '思考中...' : '已思考'}
-                        </Typography>
-                      </Stack>
-                    </StyledThinkingAccordionSummary>
-
-                    <StyledThinkingAccordionDetails>
-                      <MarkDown2
-                        content={item.thinking_content || ''}
-                        autoScroll={false}
-                      />
-                    </StyledThinkingAccordionDetails>
-                  </StyledThinkingAccordion>
-                )}
-
+              {/* AI回答内容 */}
+              <StyledAiBubbleContent>
                 {item.source === 'history' ? (
                   <MarkDown content={item.a} />
                 ) : (
                   <MarkDown2 content={item.a} autoScroll={false} />
                 )}
-              </StyledAccordionDetails>
-            </StyledAccordion>
-            {(index !== conversation.length - 1 || !loading) && (
-              <StyledActionStack
-                direction={mobile ? 'column' : 'row'}
-                alignItems={mobile ? 'flex-start' : 'center'}
-                justifyContent='space-between'
-                gap={mobile ? 1 : 3}
-              >
-                <Stack direction='row' gap={3} alignItems='center'>
-                  <span>生成于 {dayjs(item.update_time).fromNow()}</span>
+              </StyledAiBubbleContent>
 
-                  <IconCopy
-                    sx={{ cursor: 'pointer' }}
-                    onClick={() => {
-                      copyText(item.a);
-                    }}
-                  />
+              {/* 操作按钮 */}
+              {(index !== conversation.length - 1 || !loading) && (
+                <StyledActionStack
+                  direction={mobile ? 'column' : 'row'}
+                  alignItems={mobile ? 'flex-start' : 'center'}
+                  justifyContent='space-between'
+                  gap={mobile ? 1 : 3}
+                >
+                  <Stack direction='row' gap={3} alignItems='center'>
+                    <span>生成于 {dayjs(item.update_time).fromNow()}</span>
 
-                  {isFeedbackEnabled && item.source === 'chat' && (
-                    <>
-                      {item.score === 1 && (
-                        <IconZaned sx={{ cursor: 'pointer' }} />
-                      )}
-                      {item.score !== 1 && (
-                        <IconZan
-                          sx={{ cursor: 'pointer' }}
-                          onClick={() => {
-                            if (item.score === 0)
-                              handleScore(item.message_id, 1);
-                          }}
-                        />
-                      )}
-                      {item.score !== -1 && (
-                        <IconCai
-                          sx={{ cursor: 'pointer' }}
-                          onClick={() => {
-                            if (item.score === 0) {
-                              setConversationItem(item);
-                              setOpen(true);
-                            }
-                          }}
-                        />
-                      )}
-                      {item.score === -1 && (
-                        <IconCaied sx={{ cursor: 'pointer' }} />
-                      )}
-                    </>
-                  )}
-                </Stack>
-              </StyledActionStack>
-            )}
+                    <IconCopy
+                      sx={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        copyText(item.a);
+                      }}
+                    />
+
+                    {isFeedbackEnabled && item.source === 'chat' && (
+                      <>
+                        {item.score === 1 && (
+                          <IconZaned sx={{ cursor: 'pointer' }} />
+                        )}
+                        {item.score !== 1 && (
+                          <IconZan
+                            sx={{ cursor: 'pointer' }}
+                            onClick={() => {
+                              if (item.score === 0)
+                                handleScore(item.message_id, 1);
+                            }}
+                          />
+                        )}
+                        {item.score !== -1 && (
+                          <IconCai
+                            sx={{ cursor: 'pointer' }}
+                            onClick={() => {
+                              if (item.score === 0) {
+                                setConversationItem(item);
+                                setOpen(true);
+                              }
+                            }}
+                          />
+                        )}
+                        {item.score === -1 && (
+                          <IconCaied sx={{ cursor: 'pointer' }} />
+                        )}
+                      </>
+                    )}
+                  </Stack>
+                </StyledActionStack>
+              )}
+            </StyledAiBubble>
           </StyledConversationItem>
         ))}
       </StyledConversationContainer>
+      {conversation.length > 0 && (
+        <Button
+          variant='contained'
+          sx={theme => ({
+            textTransform: 'none',
+            minWidth: 'auto',
+            px: 3.5,
+            py: '2px',
+            gap: 0.5,
+            fontSize: 12,
+            backgroundColor: 'background.default',
+            color: 'text.primary',
+            boxShadow: `0px 1px 2px 0px ${alpha(theme.palette.text.primary, 0.06)}`,
+            border: '1px solid',
+            borderColor: alpha(theme.palette.text.primary, 0.1),
+            cursor: 'pointer',
+            '&:hover': {
+              boxShadow: `0px 1px 2px 0px ${alpha(theme.palette.text.primary, 0.06)}`,
+              borderColor: 'primary.main',
+              color: 'primary.main',
+            },
+            mb: 2,
+          })}
+          onClick={onReset}
+        >
+          <IconXinduihua sx={{ fontSize: 14 }} />
+          新会话
+        </Button>
+      )}
+
       <StyledInputContainer>
         <StyledInputWrapper>
           {/* 多张图片预览 */}
@@ -932,12 +1096,6 @@ const AiQaContent: React.FC<{
           </StyledActionButtonStack>
         </StyledInputWrapper>
       </StyledInputContainer>
-      <Feedback
-        open={open}
-        onClose={() => setOpen(false)}
-        onSubmit={handleScore}
-        data={conversationItem}
-      />
       {/* 模糊搜索建议列表 */}
       {showFuzzySuggestions &&
         fuzzySuggestions.length > 0 &&
@@ -954,29 +1112,12 @@ const AiQaContent: React.FC<{
           </StyledFuzzySuggestionsStack>
         )}
 
-      {/* 原始搜索建议列表 - 只在没有模糊搜索建议时显示 */}
-      {!showFuzzySuggestions &&
-        hotSearch.length > 0 &&
-        conversation.length === 0 && (
-          <StyledHotSearchStack gap={1}>
-            {hotSearch.map((suggestion, index) => (
-              <StyledHotSearchItem
-                key={index}
-                onClick={() => onSuggestionClick(suggestion)}
-              >
-                <Typography
-                  variant='body2'
-                  sx={{
-                    fontSize: 14,
-                    flex: 1,
-                  }}
-                >
-                  {suggestion} →
-                </Typography>
-              </StyledHotSearchItem>
-            ))}
-          </StyledHotSearchStack>
-        )}
+      <Feedback
+        open={open}
+        onClose={() => setOpen(false)}
+        onSubmit={handleScore}
+        data={conversationItem}
+      />
     </StyledMainContainer>
   );
 };

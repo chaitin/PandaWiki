@@ -125,7 +125,6 @@ const DocContent = ({
   );
 
   useEffect(() => {
-    // @ts-ignore
     window.CAP_CUSTOM_WASM_URL =
       window.location.origin + '/cap@0.0.6/cap_wasm.min.js';
   }, []);

@@ -1,3 +1,5 @@
+/// <reference types="@panda-wiki/themes/types" />
+
 declare module '*.png' {
   const value: string;
   export default value;

@@ -25,6 +25,7 @@ const StyledButton = styled(Button)(({ theme }) => ({
   borderRadius: '6px',
   boxShadow: '0px 1px 2px 0px rgba(145,158,171,0.16)',
   backgroundColor: theme.palette.background.default,
+  color: theme.palette.text.primary,
 }));
 
 // 检测平台类型
@@ -246,12 +247,7 @@ const Header = React.memo(
                         >
                           {ctrlKShortcut}
                         </Box>
-                        <StyledButton
-                          variant='contained'
-                          // @ts-ignore
-                          color='light'
-                          sx={{}}
-                        >
+                        <StyledButton variant='contained'>
                           智能问答
                         </StyledButton>
                       </Stack>

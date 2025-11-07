@@ -18,7 +18,7 @@ export const StyledMainContainer = styled(Box)(() => ({
 }));
 
 export const StyledConversationContainer = styled(Stack)(() => ({
-  maxHeight: 'calc(100vh - 334px)',
+  maxHeight: 'calc(100vh - 332px)',
   overflow: 'auto',
   scrollbarWidth: 'none',
   msOverflowStyle: 'none',
@@ -27,10 +27,38 @@ export const StyledConversationContainer = styled(Stack)(() => ({
   },
 }));
 
-export const StyledConversationItem = styled(Box)(() => ({}));
+export const StyledConversationItem = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(2),
+}));
+
+// 聊天气泡相关组件
+export const StyledUserBubble = styled(Box)(({ theme }) => ({
+  alignSelf: 'flex-end',
+  maxWidth: '75%',
+  padding: theme.spacing(1, 2),
+  borderRadius: '10px 10px 0px 10px',
+  backgroundColor: theme.palette.primary.main,
+  color: theme.palette.primary.contrastText,
+  fontSize: 14,
+  wordBreak: 'break-word',
+}));
+
+export const StyledAiBubble = styled(Box)(({ theme }) => ({
+  alignSelf: 'flex-start',
+  maxWidth: '85%',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(3),
+}));
+
+export const StyledAiBubbleContent = styled(Box)(() => ({
+  wordBreak: 'break-word',
+}));
 
 // 对话相关组件
-export const StyledAccordion = styled(Accordion)(({ theme }) => ({
+export const StyledAccordion = styled(Accordion)(() => ({
   padding: 0,
   border: 'none',
   '&:before': {
@@ -71,7 +99,6 @@ export const StyledChunkAccordion = styled(Accordion)(({ theme }) => ({
   background: 'transparent',
   border: 'none',
   padding: 0,
-  paddingBottom: theme.spacing(2),
 }));
 
 export const StyledChunkAccordionSummary = styled(AccordionSummary)(
@@ -142,8 +169,7 @@ export const StyledThinkingAccordionDetails = styled(AccordionDetails)(
 // 操作区域组件
 export const StyledActionStack = styled(Stack)(({ theme }) => ({
   fontSize: 12,
-  color: alpha(theme.palette.text.primary, 0.75),
-  marginTop: theme.spacing(2),
+  color: alpha(theme.palette.text.primary, 0.35),
 }));
 
 // 输入区域组件
@@ -165,6 +191,7 @@ export const StyledInputWrapper = styled(Stack)(({ theme }) => ({
   alignItems: 'flex-end',
   gap: theme.spacing(2),
   backgroundColor: theme.palette.background.default,
+  boxShadow: `0px 20px 40px 0px ${alpha(theme.palette.text.primary, 0.06)}`,
   transition: 'border-color 0.2s ease-in-out',
   '&:hover': {
     borderColor: theme.palette.primary.main,
@@ -281,4 +308,37 @@ export const StyledHotSearchItem = styled(Box)(({ theme }) => ({
   display: 'inline-flex',
   alignItems: 'center',
   width: 'auto',
+}));
+
+// 热门搜索容器
+export const StyledHotSearchContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  gap: theme.spacing(2),
+}));
+
+// 热门搜索列
+export const StyledHotSearchColumn = styled(Box)(({ theme }) => ({
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(1),
+  paddingLeft: theme.spacing(2),
+  borderLeft: `1px solid ${alpha(theme.palette.text.primary, 0.06)}`,
+}));
+
+// 热门搜索列项目
+export const StyledHotSearchColumnItem = styled(Box)(({ theme }) => ({
+  paddingRight: theme.spacing(2),
+  borderRadius: '10px',
+  cursor: 'pointer',
+  transition: 'all 0.2s',
+  backgroundColor: 'transparent',
+  color: theme.palette.text.secondary,
+  fontSize: 12,
+  fontWeight: 400,
+  display: 'flex',
+  alignItems: 'center',
+  '&:hover': {
+    color: theme.palette.primary.main,
+  },
 }));

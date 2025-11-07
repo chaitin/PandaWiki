@@ -1,6 +1,5 @@
 'use client';
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import Logo from '@/assets/images/logo.png';
 import { IconZhinengwenda, IconJinsousuo } from '@panda-wiki/icons';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -11,8 +10,10 @@ import {
   Stack,
   lighten,
   alpha,
+  styled,
+  Tabs,
+  Tab,
 } from '@mui/material';
-import { CusTabs } from '@ctzhian/ui';
 import AiQaContent from './AiQaContent';
 import SearchDocContent from './SearchDocContent';
 import { useStore } from '@/provider';
@@ -31,6 +32,48 @@ interface QaModalProps {
   onSearchSuggestions?: (query: string) => Promise<SearchSuggestion[]>;
   defaultSuggestions?: SearchSuggestion[];
 }
+
+const StyledTabs = styled(Tabs)(({ theme }) => ({
+  minHeight: 'auto',
+  position: 'relative',
+  borderRadius: '10px',
+  padding: theme.spacing(0.5),
+  border: `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
+  '& .MuiTabs-indicator': {
+    height: '100%',
+    borderRadius: '8px',
+    backgroundColor: theme.palette.primary.main,
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    zIndex: 0,
+  },
+  '& .MuiTabs-flexContainer': {
+    gap: theme.spacing(0.5),
+    position: 'relative',
+    zIndex: 1,
+  },
+}));
+
+// 样式化的 Tab 组件 - 白色背景，圆角，深灰色文字
+const StyledTab = styled(Tab)(({ theme }) => ({
+  minHeight: 'auto',
+  padding: theme.spacing(0.75, 2),
+  borderRadius: '6px',
+  backgroundColor: 'transparent',
+  fontSize: 12,
+  fontWeight: 400,
+  textTransform: 'none',
+  transition: 'color 0.3s ease-in-out',
+  position: 'relative',
+  zIndex: 1,
+  lineHeight: 1,
+  '&:hover': {
+    color: theme.palette.text.primary,
+  },
+  '&.Mui-selected': {
+    color: theme.palette.primary.contrastText,
+    fontWeight: 500,
+  },
+}));
 
 const QaModal: React.FC<QaModalProps> = () => {
   const { qaModalOpen, setQaModalOpen, kbDetail, mobile } = useStore();
@@ -70,6 +113,14 @@ const QaModal: React.FC<QaModalProps> = () => {
   }, [qaModalOpen, searchMode]);
 
   useEffect(() => {
+    if (!qaModalOpen) {
+      setTimeout(() => {
+        setSearchMode('chat');
+      }, 300);
+    }
+  }, [qaModalOpen]);
+
+  useEffect(() => {
     const cid = searchParams.get('cid');
     const ask = searchParams.get('ask');
     if (cid || ask) {
@@ -92,7 +143,6 @@ const QaModal: React.FC<QaModalProps> = () => {
         sx={theme => ({
           display: 'flex',
           flexDirection: 'column',
-          gap: 2,
           flex: 1,
           maxWidth: 800,
           maxHeight: '100%',
@@ -101,87 +151,81 @@ const QaModal: React.FC<QaModalProps> = () => {
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
           overflow: 'hidden',
           outline: 'none',
-          '& .Mui-selected': {
-            color: `${theme.palette.background.default} !important`,
-          },
+          pb: 2,
         })}
         onClick={e => e.stopPropagation()}
       >
-        {/* 头部区域 */}
+        {/* 顶部标签栏 */}
         <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            mx: 2,
-            py: 1.5,
-            borderBottom: '1px solid',
-            borderColor: 'divider',
+            px: 2,
+            pt: 2,
+            pb: 2.5,
           }}
         >
-          {/* Logo */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <img
-              src={kbDetail?.settings?.icon || Logo.src}
-              style={{
-                width: 24,
-                height: 24,
-              }}
-            />
-            <Typography
-              variant='h6'
-              sx={{ fontSize: 16, color: 'text.primary' }}
-            >
-              {kbDetail?.settings?.title}
-            </Typography>
-          </Box>
-
-          <CusTabs
-            size='small'
-            list={[
-              {
-                label: (
-                  <Stack direction='row' gap={1} alignItems='center'>
-                    <IconZhinengwenda sx={{ fontSize: 16 }} />
-                    {!mobile && <span>智能问答</span>}
-                  </Stack>
-                ),
-                value: 'chat',
-              },
-              {
-                label: (
-                  <Stack direction='row' gap={1} alignItems='center'>
-                    <IconJinsousuo sx={{ fontSize: 16 }} />
-                    {!mobile && <span>仅搜索文档</span>}
-                  </Stack>
-                ),
-                value: 'search',
-              },
-            ]}
+          <StyledTabs
             value={searchMode}
-            onChange={value => setSearchMode(value as 'chat' | 'search')}
-          />
+            onChange={(_, value) => {
+              setSearchMode(value as 'chat' | 'search');
+            }}
+            variant='scrollable'
+            scrollButtons={false}
+          >
+            <StyledTab
+              label={
+                <Stack direction='row' gap={0.5} alignItems='center'>
+                  <IconZhinengwenda sx={{ fontSize: 16 }} />
+                  {!mobile && <span>智能问答</span>}
+                </Stack>
+              }
+              value='chat'
+            />
+            <StyledTab
+              label={
+                <Stack direction='row' gap={0.5} alignItems='center'>
+                  <IconJinsousuo sx={{ fontSize: 16 }} />
+                  {!mobile && <span>仅搜索文档</span>}
+                </Stack>
+              }
+              value='search'
+            />
+          </StyledTabs>
 
           {/* Esc按钮 */}
           {!mobile && (
             <Button
+              variant='outlined'
+              color='primary'
               onClick={onClose}
               size='small'
               sx={theme => ({
                 minWidth: 'auto',
-                px: 1.5,
-                py: 0.5,
+                px: 1,
+                py: '1px',
                 fontSize: 12,
                 fontWeight: 500,
                 textTransform: 'none',
+                color: 'text.secondary',
+                borderColor: alpha(theme.palette.text.primary, 0.1),
               })}
             >
               Esc
             </Button>
           )}
         </Box>
+
         {/* 主内容区域 - 根据模式切换 */}
-        <Box sx={{ px: 2, display: searchMode === 'chat' ? 'block' : 'none' }}>
+        <Box
+          sx={{
+            px: 3,
+            flex: 1,
+            display: searchMode === 'chat' ? 'flex' : 'none',
+            flexDirection: 'column',
+          }}
+        >
           <AiQaContent
             hotSearch={hotSearch}
             placeholder={placeholder}
@@ -189,15 +233,21 @@ const QaModal: React.FC<QaModalProps> = () => {
           />
         </Box>
         <Box
-          sx={{ px: 2, display: searchMode === 'search' ? 'block' : 'none' }}
+          sx={{
+            px: 3,
+            flex: 1,
+            display: searchMode === 'search' ? 'flex' : 'none',
+            flexDirection: 'column',
+          }}
         >
           <SearchDocContent inputRef={inputRef} placeholder={placeholder} />
         </Box>
+
         {/* 底部AI生成提示 */}
         <Box
           sx={{
             px: 3,
-            py: kbDetail?.settings?.disclaimer_settings?.content ? 2 : 1,
+            pt: kbDetail?.settings?.disclaimer_settings?.content ? 2 : 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
