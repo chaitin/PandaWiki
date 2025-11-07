@@ -2881,6 +2881,17 @@ definitions:
     - perm
     - user_id
     type: object
+  v1.LicenseResp:
+    properties:
+      edition:
+        $ref: '#/definitions/consts.LicenseEdition'
+      expired_at:
+        type: integer
+      started_at:
+        type: integer
+      state:
+        type: integer
+    type: object
   v1.LoginReq:
     properties:
       account:
@@ -3044,6 +3055,17 @@ definitions:
         type: integer
       session_count:
         type: integer
+    type: object
+  v1.UploadLicenseReq:
+    properties:
+      license_code:
+        type: string
+      license_edition:
+        $ref: '#/definitions/consts.LicenseEdition'
+      license_file:
+        type: string
+      license_type:
+        type: string
     type: object
   v1.UserInfoResp:
     properties:
@@ -3961,6 +3983,75 @@ paths:
       summary: KBUserUpdate
       tags:
       - knowledge_base
+  /api/v1/license:
+    delete:
+      consumes:
+      - application/json
+      description: Unbind license and delete license record
+      operationId: v1-UnbindLicense
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: Unbind license
+      tags:
+      - license
+    get:
+      consumes:
+      - application/json
+      description: Get license
+      operationId: v1-GetLicense
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.PWResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.LicenseResp'
+              type: object
+      security:
+      - bearerAuth: []
+      summary: Get license
+      tags:
+      - license
+    post:
+      consumes:
+      - application/json
+      description: Upload license
+      operationId: v1-UploadLicense
+      parameters:
+      - description: Upload License Request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.UploadLicenseReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.PWResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.LicenseResp'
+              type: object
+      security:
+      - bearerAuth: []
+      summary: Upload license
+      tags:
+      - license
   /api/v1/model:
     post:
       consumes:

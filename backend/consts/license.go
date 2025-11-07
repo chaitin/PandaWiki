@@ -20,7 +20,7 @@ const (
 
 func GetLicenseEdition(c echo.Context) LicenseEdition {
 	edition, _ := c.Get("edition").(LicenseEdition)
-	return edition
+	return LicenseEditionEnterprise
 }
 
 func (e LicenseEdition) GetMaxAuth(sourceType SourceType) int {

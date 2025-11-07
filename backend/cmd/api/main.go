@@ -6,6 +6,10 @@ import (
 	"github.com/chaitin/panda-wiki/setup"
 )
 
+//go:generate go run -mod=mod github.com/google/wire/cmd/wire
+//go:build !wireinject
+// +build !wireinject
+
 // @title panda-wiki API
 // @version 1.0
 // @description panda-wiki API documentation
@@ -14,6 +18,7 @@ import (
 // @in	header
 // @name	Authorization
 // @description	Type "Bearer" + a space + your token to authorize
+
 func main() {
 	app, err := createApp()
 	if err != nil {

@@ -1419,6 +1419,124 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/license": {
+            "get": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Get license",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "license"
+                ],
+                "summary": "Get license",
+                "operationId": "v1-GetLicense",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.PWResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.LicenseResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Upload license",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "license"
+                ],
+                "summary": "Upload license",
+                "operationId": "v1-UploadLicense",
+                "parameters": [
+                    {
+                        "description": "Upload License Request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.UploadLicenseReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.PWResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.LicenseResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Unbind license and delete license record",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "license"
+                ],
+                "summary": "Unbind license",
+                "operationId": "v1-UnbindLicense",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PWResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/model": {
             "put": {
                 "description": "update model",
@@ -8115,6 +8233,23 @@ const docTemplate = `{
                 }
             }
         },
+        "v1.LicenseResp": {
+            "type": "object",
+            "properties": {
+                "edition": {
+                    "$ref": "#/definitions/consts.LicenseEdition"
+                },
+                "expired_at": {
+                    "type": "integer"
+                },
+                "started_at": {
+                    "type": "integer"
+                },
+                "state": {
+                    "type": "integer"
+                }
+            }
+        },
         "v1.LoginReq": {
             "type": "object",
             "required": [
@@ -8357,6 +8492,23 @@ const docTemplate = `{
                 },
                 "session_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "v1.UploadLicenseReq": {
+            "type": "object",
+            "properties": {
+                "license_code": {
+                    "type": "string"
+                },
+                "license_edition": {
+                    "$ref": "#/definitions/consts.LicenseEdition"
+                },
+                "license_file": {
+                    "type": "string"
+                },
+                "license_type": {
+                    "type": "string"
                 }
             }
         },

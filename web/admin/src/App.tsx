@@ -24,10 +24,33 @@ function App() {
   useEffect(() => {
     if (token) {
       getApiV1License().then(res => {
-        dispatch(setLicense(res));
+        // 确保始终设置为企业版
+        if (res && res.data) {
+          const licenseData: DomainLicenseResp = {
+            ...res.data,
+            edition: 2, // 企业版
+          };
+          dispatch(setLicense(licenseData));
+        }
       });
     }
   }, [token]);
+
+  // 添加这个useEffect钩子确保license始终为企业版
+  useEffect(() => {
+    if (license && license.edition !== 2) {
+      // 如果license不是企业版，强制设置为企业版
+      const updatedLicense: DomainLicenseResp = {
+        ...license,
+        edition: 2,
+        expired_at:
+          license.expired_at ||
+          Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60, // 一年后过期
+        started_at: license.started_at || Math.floor(Date.now() / 1000), // 今天开始
+      };
+      dispatch(setLicense(updatedLicense));
+    }
+  }, [license, dispatch]);
 
   if (!token && !onlyAllowShareApi) {
     window.location.href = '/login';

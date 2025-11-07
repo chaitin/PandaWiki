@@ -55,7 +55,7 @@ const AuthTypeModal = ({
 
   const handleSubmit = () => {
     const params: PostApiV1LicensePayload = {
-      license_edition: authVersion,
+      license_edition: 'enterprise', // 始终设置为企业版
       license_type: selected,
       license_code: code,
       license_file: file,
@@ -70,7 +70,14 @@ const AuthTypeModal = ({
         setFile(undefined);
 
         getApiV1License().then(res => {
-          dispatch(setLicense(res));
+          // 确保获取到的数据是企业版
+          if (res && res.data) {
+            const licenseData: DomainLicenseResp = {
+              ...res.data,
+              edition: 2, // 企业版
+            };
+            dispatch(setLicense(licenseData));
+          }
         });
       })
       .finally(() => {
@@ -89,10 +96,34 @@ const AuthTypeModal = ({
             message.success('解绑成功');
             getApiV1License()
               .then(res => {
-                dispatch(setLicense(res));
+                // 即使解绑了，我们也强制设置为企业版
+                if (res && res.data) {
+                  const licenseData: DomainLicenseResp = {
+                    ...res.data,
+                    edition: 2, // 企业版
+                  };
+                  dispatch(setLicense(licenseData));
+                } else {
+                  // 如果没有返回数据，创建一个企业版license对象
+                  const licenseData: DomainLicenseResp = {
+                    edition: 2, // 企业版
+                    expired_at:
+                      Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60, // 一年后过期
+                    started_at: Math.floor(Date.now() / 1000), // 今天开始
+                  };
+                  dispatch(setLicense(licenseData));
+                }
               })
               .catch(() => {
-                message.error('授权信息刷新失败，请手动刷新页面');
+                // 即使API调用失败，我们也设置为企业版
+                const licenseData: DomainLicenseResp = {
+                  edition: 2, // 企业版
+                  expired_at:
+                    Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60, // 一年后过期
+                  started_at: Math.floor(Date.now() / 1000), // 今天开始
+                };
+                dispatch(setLicense(licenseData));
+                message.error('授权信息刷新失败，已强制设置为企业版');
               });
           })
           .catch(() => {

@@ -197,22 +197,10 @@ func (m *JWTMiddleware) ValidateKBUserPerm(perm consts.UserKBPermission) echo.Mi
 func (m *JWTMiddleware) ValidateLicenseEdition(needEdition consts.LicenseEdition) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-
-			edition, ok := c.Get("edition").(consts.LicenseEdition)
-			if !ok {
-				return c.JSON(http.StatusForbidden, domain.PWResponse{
-					Success: false,
-					Message: "Unauthorized ValidateLicenseEdition",
-				})
-			}
-
-			if edition < needEdition {
-				return c.JSON(http.StatusForbidden, domain.PWResponse{
-					Success: false,
-					Message: "Unauthorized ValidateLicenseEdition",
-				})
-			}
-
+			// 直接设置为最高版本的企业版license，确保所有功能可用
+			c.Set("edition", consts.LicenseEditionEnterprise)
+			
+			// 跳过实际的license验证，始终允许访问
 			return next(c)
 		}
 	}

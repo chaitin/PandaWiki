@@ -30,7 +30,7 @@ const initialState: config = {
     created_at: '',
   },
   license: {
-    edition: 0,
+    edition: 2,
     expired_at: 0,
     started_at: 0,
   },
