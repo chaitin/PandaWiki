@@ -24,6 +24,7 @@ import { CusTabs, Icon, message, Modal } from '@ctzhian/ui';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import LottieIcon from '../LottieIcon';
+import { DomainLicenseResp } from '@/request/pro/types';
 
 interface AuthTypeModalProps {
   open: boolean;
@@ -71,9 +72,9 @@ const AuthTypeModal = ({
 
         getApiV1License().then(res => {
           // 确保获取到的数据是企业版
-          if (res && res.data) {
+          if (res) {
             const licenseData: DomainLicenseResp = {
-              ...res.data,
+              ...res,
               edition: 2, // 企业版
             };
             dispatch(setLicense(licenseData));
@@ -97,9 +98,9 @@ const AuthTypeModal = ({
             getApiV1License()
               .then(res => {
                 // 即使解绑了，我们也强制设置为企业版
-                if (res && res.data) {
+                if (res) {
                   const licenseData: DomainLicenseResp = {
-                    ...res.data,
+                    ...res,
                     edition: 2, // 企业版
                   };
                   dispatch(setLicense(licenseData));

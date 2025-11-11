@@ -1,5 +1,5 @@
 import router from '@/router';
-import { useAppDispatch } from '@/store';
+import { useAppDispatch, useAppSelector } from '@/store';
 import { theme } from '@/themes';
 import { ThemeProvider } from '@ctzhian/ui';
 import { useEffect } from 'react';
@@ -10,11 +10,13 @@ import { getApiV1License } from './request/pro/License';
 import { setLicense } from './store/slices/config';
 
 import '@ctzhian/tiptap/dist/index.css';
+import { DomainLicenseResp } from './request/pro/types';
 
 function App() {
   const location = useLocation();
   const { pathname } = location;
   const dispatch = useAppDispatch();
+  const { license } = useAppSelector(state => state.config);
   const routerView = useRoutes(router);
   const loginPage = pathname.includes('/login');
   const onlyAllowShareApi = loginPage;
@@ -25,9 +27,9 @@ function App() {
     if (token) {
       getApiV1License().then(res => {
         // 确保始终设置为企业版
-        if (res && res.data) {
+        if (res) {
           const licenseData: DomainLicenseResp = {
-            ...res.data,
+            ...res,
             edition: 2, // 企业版
           };
           dispatch(setLicense(licenseData));
