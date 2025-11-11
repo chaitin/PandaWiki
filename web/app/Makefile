@@ -18,4 +18,3 @@ image: build
 
 save: image
 	docker save -o /tmp/panda-wiki-app_frontend.tar panda-wiki-app/frontend:main
-		

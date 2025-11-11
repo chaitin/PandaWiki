@@ -8,12 +8,14 @@
 2. [remote-deploy.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/remote-deploy.sh) - 服务端运行脚本（用于部署后端API服务）
 3. [local-deploy-admin.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/local-deploy-admin.sh) - 本地运行脚本（用于部署前端管理界面）
 4. [remote-deploy-admin.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/remote-deploy-admin.sh) - 服务端运行脚本（用于部署前端管理界面）
+5. [local-deploy-app.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/local-deploy-app.sh) - 本地运行脚本（用于部署前端应用界面）
+6. [remote-deploy-app.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/remote-deploy-app.sh) - 服务端运行脚本（用于部署前端应用界面）
 
 ## 使用步骤
 
 ### 1. 配置本地脚本
 
-编辑 [local-deploy.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/local-deploy.sh) 或 [local-deploy-admin.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/local-deploy-admin.sh) 文件，设置以下变量：
+编辑 [local-deploy.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/local-deploy.sh)、[local-deploy-admin.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/local-deploy-admin.sh) 或 [local-deploy-app.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/local-deploy-app.sh) 文件，设置以下变量：
 
 ```bash
 SERVER_IP=""  # 目标服务器IP地址
@@ -36,6 +38,12 @@ cd /Users/aaronzheng/Projects/PandaWiki/deploy
 ./local-deploy-admin.sh
 ```
 
+对于前端应用界面：
+```bash
+cd /Users/aaronzheng/Projects/PandaWiki/deploy
+./local-deploy-app.sh
+```
+
 此脚本将执行以下操作：
 - 使用 `make build` 或 `make image` 构建最新的 Docker镜像
 - 将镜像保存为 tar 文件
@@ -44,7 +52,7 @@ cd /Users/aaronzheng/Projects/PandaWiki/deploy
 
 ### 3. 配置远程脚本
 
-编辑 [remote-deploy.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/remote-deploy.sh) 或 [remote-deploy-admin.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/remote-deploy-admin.sh) 文件，设置以下变量：
+编辑 [remote-deploy.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/remote-deploy.sh)、[remote-deploy-admin.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/remote-deploy-admin.sh) 或 [remote-deploy-app.sh](file:///Users/aaronzheng/Projects/PandaWiki/deploy/remote-deploy-app.sh) 文件，设置以下变量：
 
 ```bash
 PROJECT_PATH=""  # PandaWiki项目在服务器上的路径，例如: /opt/pandawiki
@@ -65,6 +73,11 @@ ssh $SERVER_USER@$SERVER_IP 'bash -s' < deploy/remote-deploy.sh
 ssh $SERVER_USER@$SERVER_IP 'bash -s' < deploy/remote-deploy-admin.sh
 ```
 
+对于前端应用界面：
+```bash
+ssh $SERVER_USER@$SERVER_IP 'bash -s' < deploy/remote-deploy-app.sh
+```
+
 #### 方式二：将脚本复制到服务器并执行
 对于后端API服务：
 ```bash
@@ -76,6 +89,12 @@ ssh $SERVER_USER@$SERVER_IP "chmod +x /tmp/remote-deploy.sh && /tmp/remote-deplo
 ```bash
 scp deploy/remote-deploy-admin.sh $SERVER_USER@$SERVER_IP:/tmp/
 ssh $SERVER_USER@$SERVER_IP "chmod +x /tmp/remote-deploy-admin.sh && /tmp/remote-deploy-admin.sh"
+```
+
+对于前端应用界面：
+```bash
+scp deploy/remote-deploy-app.sh $SERVER_USER@$SERVER_IP:/tmp/
+ssh $SERVER_USER@$SERVER_IP "chmod +x /tmp/remote-deploy-app.sh && /tmp/remote-deploy-app.sh"
 ```
 
 ## 脚本功能详解
@@ -101,6 +120,20 @@ ssh $SERVER_USER@$SERVER_IP "chmod +x /tmp/remote-deploy-admin.sh && /tmp/remote
 4. 清理本地临时文件
 
 ### remote-deploy-admin.sh
+1. 加载传输过来的Docker镜像
+2. 停止指定的服务
+3. 删除旧的容器
+4. 使用新镜像启动服务（通过 `--no-deps`、`--no-recreate` 和 `--pull never` 参数确保使用本地镜像）
+5. 检查容器运行状态
+6. 清理临时文件
+
+### local-deploy-app.sh
+1. 使用项目的 Makefile 构建前端代码和Docker镜像
+2. 将镜像保存为tar文件
+3. 通过SCP传输到服务器
+4. 清理本地临时文件
+
+### remote-deploy-app.sh
 1. 加载传输过来的Docker镜像
 2. 停止指定的服务
 3. 删除旧的容器
