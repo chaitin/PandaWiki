@@ -138,12 +138,7 @@ const AuthTypeModal = ({
 
   return (
     <>
-      <Modal
-        open={open}
-        footer={null}
-        title='关于 PandaWiki'
-        onCancel={onClose}
-      >
+      <Modal open={open} footer={null} title='关于 LiteWiki' onCancel={onClose}>
         <Stack gap={1} sx={{ fontSize: 14, lineHeight: '32px' }}>
           <Stack direction={'row'} alignItems={'center'}>
             <Box sx={{ width: 120, flexShrink: 0 }}>当前版本</Box>
@@ -167,7 +162,7 @@ const AuthTypeModal = ({
                   }
                   onClick={() => {
                     window.open(
-                      'https://pandawiki.docs.baizhi.cloud/node/01971615-05b8-7924-9af7-15f73784f893',
+                      'https://LiteWiki.docs.baizhi.cloud/node/01971615-05b8-7924-9af7-15f73784f893',
                     );
                   }}
                 >

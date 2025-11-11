@@ -77,7 +77,7 @@ const Login = () => {
                 mb: 4,
               }}
             >
-              PandaWiki
+              LiteWiki
             </Stack>
             <TextField
               value={account}

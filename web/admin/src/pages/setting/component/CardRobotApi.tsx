@@ -97,7 +97,7 @@ const CardRobotApi = ({
       more={
         <Link
           component='a'
-          href='https://pandawiki.docs.baizhi.cloud/node/01971b60-100e-7b23-9385-e36763df5c0a'
+          href='https://wiki.webinfra.cloud/node/01971b60-100e-7b23-9385-e36763df5c0a'
           target='_blank'
           sx={{
             fontSize: 14,

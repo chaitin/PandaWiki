@@ -98,7 +98,7 @@ const CardRobotWechatOfficeAccount = ({
       onSubmit={onSubmit}
       more={{
         type: 'link',
-        href: 'https://pandawiki.docs.baizhi.cloud/node/01983a6a-62f2-7ecf-b7c9-606d88683f9e',
+        href: 'https://wiki.webinfra.cloud/node/01983a6a-62f2-7ecf-b7c9-606d88683f9e',
         target: '_blank',
         text: '使用方法',
       }}

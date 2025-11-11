@@ -527,7 +527,7 @@ const FooterConfig = ({ data, setIsEdit, isEdit }: FooterConfigProps) => {
                 },
               }}
             >
-              PandaWiki 版权信息
+              LiteWiki 版权信息
             </Box>
             <Controller
               control={control}
@@ -543,7 +543,7 @@ const FooterConfig = ({ data, setIsEdit, isEdit }: FooterConfigProps) => {
                       alignItems: 'center',
                     }}
                   >
-                    展示 PandaWiki 版权信息
+                    展示 LiteWiki 版权信息
                   </Box>
                   <Switch
                     sx={{ marginLeft: 'auto' }}

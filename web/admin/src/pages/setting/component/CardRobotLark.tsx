@@ -93,7 +93,7 @@ const CardRobotLark = ({
       onSubmit={onSubmit}
       more={{
         type: 'link',
-        href: 'https://pandawiki.docs.baizhi.cloud/node/019a0131-8ad5-7653-89aa-60f75da44d14',
+        href: 'https://wiki.webinfra.cloud/node/019a0131-8ad5-7653-89aa-60f75da44d14',
         target: '_blank',
         text: '使用方法',
       }}

@@ -142,7 +142,7 @@ const Sidebar = () => {
           borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
-        PandaWiki
+        LiteWiki
       </Box>
       <Stack sx={{ pt: 2, flexGrow: 1 }} gap={1}>
         {menus.map(it => {
@@ -219,7 +219,7 @@ const Sidebar = () => {
             <Icon type='icon-bangzhuwendang1' sx={{ width: 14, height: 14 }} />
           }
           onClick={() =>
-            window.open('https://pandawiki.docs.baizhi.cloud/', '_blank')
+            window.open('https://LiteWiki.docs.baizhi.cloud/', '_blank')
           }
         >
           帮助文档
@@ -246,7 +246,7 @@ const Sidebar = () => {
           }}
           startIcon={<Icon type='icon-GitHub' sx={{ width: 14, height: 14 }} />}
           onClick={() =>
-            window.open('https://github.com/chaitin/PandaWiki', '_blank')
+            window.open('https://github.com/chaitin/LiteWiki', '_blank')
           }
         >
           GitHub
@@ -377,7 +377,7 @@ const Sidebar = () => {
                     variant='contained'
                     onClick={() =>
                       window.open(
-                        'https://bbs.baizhi.cloud?ref=PandaWiki',
+                        'https://bbs.baizhi.cloud?ref=LiteWiki',
                         '_blank',
                       )
                     }

@@ -375,7 +375,7 @@ const System = () => {
                         <Box
                           component={'a'}
                           sx={{ color: 'primary.main', cursor: 'pointer' }}
-                          href='https://pandawiki.docs.baizhi.cloud/node/01973ffe-e1bc-7165-9a71-e7aa461c05ea'
+                          href='https://LiteWiki.docs.baizhi.cloud/node/01973ffe-e1bc-7165-9a71-e7aa461c05ea'
                           target='_blank'
                         >
                           文档
@@ -596,7 +596,7 @@ const System = () => {
                         <Box
                           component={'a'}
                           sx={{ color: 'primary.main', cursor: 'pointer' }}
-                          href='https://pandawiki.docs.baizhi.cloud/node/01973ffe-e1bc-7165-9a71-e7aa461c05ea'
+                          href='https://LiteWiki.docs.baizhi.cloud/node/01973ffe-e1bc-7165-9a71-e7aa461c05ea'
                           target='_blank'
                         >
                           文档
@@ -812,7 +812,7 @@ const System = () => {
                         <Box
                           component={'a'}
                           sx={{ color: 'primary.main', cursor: 'pointer' }}
-                          href='https://pandawiki.docs.baizhi.cloud/node/01973ffe-e1bc-7165-9a71-e7aa461c05ea'
+                          href='https://LiteWiki.docs.baizhi.cloud/node/01973ffe-e1bc-7165-9a71-e7aa461c05ea'
                           target='_blank'
                         >
                           文档
@@ -1256,7 +1256,7 @@ const System = () => {
             language='zh-CN'
             messageComponent={message}
             is_close_model_remark={true}
-            addingModelTutorialURL='https://pandawiki.docs.baizhi.cloud/node/019a160d-0528-736a-b88e-32a2d1207f3e'
+            addingModelTutorialURL='https://LiteWiki.docs.baizhi.cloud/node/019a160d-0528-736a-b88e-32a2d1207f3e'
           />
         </Suspense>
       )}

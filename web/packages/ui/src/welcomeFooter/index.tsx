@@ -110,7 +110,7 @@ const Footer = React.memo(
                       {footerSetting?.brand_logo && (
                         <img
                           src={footerSetting.brand_logo}
-                          alt='PandaWiki'
+                          alt='LiteWiki'
                           height={24}
                         />
                       )}
@@ -332,10 +332,7 @@ const Footer = React.memo(
                   color: alpha(theme.palette.text.primary, 0.3),
                 })}
               >
-                <Link
-                  href={'https://pandawiki.docs.baizhi.cloud/'}
-                  target='_blank'
-                >
+                <Link href={'https://wiki.webinfra.cloud/'} target='_blank'>
                   <Stack
                     direction={'row'}
                     alignItems={'center'}
@@ -345,7 +342,7 @@ const Footer = React.memo(
                     }}
                   >
                     <Box>{decodeBase64(PROJECT_NAME)}</Box>
-                    <img src={logo} alt='PandaWiki' width={0} height={0} />
+                    <img src={logo} alt='LiteWiki' width={0} height={0} />
                   </Stack>
                 </Link>
               </Stack>
@@ -485,7 +482,7 @@ const Footer = React.memo(
                       {footerSetting?.brand_logo && (
                         <img
                           src={footerSetting.brand_logo}
-                          alt='PandaWiki'
+                          alt='LiteWiki'
                           height={36}
                         />
                       )}
@@ -760,7 +757,7 @@ const Footer = React.memo(
                       })}
                     >
                       <Link
-                        href={'https://pandawiki.docs.baizhi.cloud/'}
+                        href={'https://wiki.webinfra.cloud/'}
                         target='_blank'
                       >
                         <Stack
@@ -775,7 +772,7 @@ const Footer = React.memo(
                           }}
                         >
                           <Box>{decodeBase64(PROJECT_NAME)}</Box>
-                          <img src={logo} alt='PandaWiki' width={0} />
+                          <img src={logo} alt='LiteWiki' width={0} />
                         </Stack>
                       </Link>
                     </Stack>

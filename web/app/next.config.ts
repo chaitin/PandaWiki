@@ -48,7 +48,8 @@ const nextConfig: NextConfig = {
 };
 
 // 在开发环境下跳过 Sentry 配置
-const isDevelopment = process.env.NODE_ENV === 'development';
+// const isDevelopment = process.env.NODE_ENV === 'development';
+const isDevelopment = true;
 
 export default isDevelopment
   ? nextConfig

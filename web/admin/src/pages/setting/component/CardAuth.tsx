@@ -823,7 +823,7 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
         onSubmit={onSubmit}
         more={{
           type: 'link',
-          href: 'https://pandawiki.docs.baizhi.cloud/node/01986040-602c-736c-b99f-0b3cb9bb89e5',
+          href: 'https://wiki.webinfra.cloud/node/01986040-602c-736c-b99f-0b3cb9bb89e5',
           target: '_blank',
           text: '使用方法',
         }}
