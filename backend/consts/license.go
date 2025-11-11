@@ -19,7 +19,8 @@ const (
 )
 
 func GetLicenseEdition(c echo.Context) LicenseEdition {
-	edition, _ := c.Get("edition").(LicenseEdition)
+	// 修复：移除未使用的变量edition
+	// edition, _ := c.Get("edition").(LicenseEdition)
 	return LicenseEditionEnterprise
 }
 
