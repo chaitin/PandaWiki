@@ -3,7 +3,6 @@ package usecase
 import (
 	"github.com/chaitin/panda-wiki/api/license/v1"
 	"github.com/chaitin/panda-wiki/consts"
-	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 )
 

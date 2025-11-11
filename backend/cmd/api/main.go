@@ -1,3 +1,6 @@
+//go:generate go run -mod=mod github.com/google/wire/cmd/wire
+//go:build !wireinject
+
 package main
 
 import (
@@ -5,10 +8,6 @@ import (
 
 	"github.com/chaitin/panda-wiki/setup"
 )
-
-//go:generate go run -mod=mod github.com/google/wire/cmd/wire
-//go:build !wireinject
-// +build !wireinject
 
 // @title panda-wiki API
 // @version 1.0

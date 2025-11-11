@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"time"
 
+	"strconv"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/uuid"
 	"github.com/samber/lo"
@@ -316,7 +318,7 @@ func (r *KnowledgeBaseRepository) CreateKnowledgeBase(ctx context.Context, maxKB
 			return err
 		}
 		if len(kbs) > maxKB {
-			return errors.New("kb is too many")
+			return errors.New("kb is too many, maxKB: " + strconv.Itoa(maxKB))
 		}
 
 		if err := r.checkUniquePortHost(kbs); err != nil {

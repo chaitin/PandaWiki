@@ -91,7 +91,7 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c echo.Context) error {
 		return h.NewResponseWithError(c, "ports is required", nil)
 	}
 
-	req.MaxKB = 1
+	req.MaxKB = 8
 	maxKB := c.Get("max_kb")
 	if maxKB != nil {
 		req.MaxKB = maxKB.(int)

@@ -199,7 +199,8 @@ func (m *JWTMiddleware) ValidateLicenseEdition(needEdition consts.LicenseEdition
 		return func(c echo.Context) error {
 			// 直接设置为最高版本的企业版license，确保所有功能可用
 			c.Set("edition", consts.LicenseEditionEnterprise)
-			
+			c.Set("max_kb", 1000) // 增加知识库数量限制
+	
 			// 跳过实际的license验证，始终允许访问
 			return next(c)
 		}

@@ -2,12 +2,16 @@ FROM --platform=$BUILDPLATFORM golang:1.24.3-alpine AS builder
 
 WORKDIR /src
 ENV CGO_ENABLED=0
+ENV GOPROXY=https://goproxy.cn,direct
 
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
     go mod download
 
 COPY . .
+
+# 添加go mod tidy命令
+# RUN go mod tidy
 
 ARG TARGETOS TARGETARCH
 RUN --mount=type=cache,target=/root/.cache/go-build \

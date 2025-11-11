@@ -1,11 +1,11 @@
 generate:
-	swag fmt --dir handler && swag init --exclude pro -g cmd/api/main.go --pd \
+	PATH=$$PATH:`go env GOPATH`/bin && swag fmt --dir handler && swag init --exclude pro -g cmd/api/main.go --pd \
 	&& wire cmd/api/wire.go \
 	&& wire cmd/consumer/wire.go \
 	&& wire cmd/migrate/wire.go
 
 generate_pro:
-	wire cmd/migrate/wire.go \
+	PATH=$$PATH:`go env GOPATH`/bin && wire cmd/migrate/wire.go \
 	&& cd pro \
 	&& swag fmt --dir handler && swag init --instanceName pro -g cmd/api_pro/main.go --pd \
 	&& wire cmd/api_pro/wire.go \
@@ -39,7 +39,7 @@ LOCAL_PLATFORM=linux/$(shell uname -m)
 dev:generate
 	make image PLATFORM=${LOCAL_PLATFORM} DOCKERFILE=Dockerfile.api IMAGE_NAME=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:latest OUTPUT=type=docker VERSION=${COMMIT_HASH} \
 	&& make image PLATFORM=${LOCAL_PLATFORM} DOCKERFILE=Dockerfile.consumer IMAGE_NAME=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-consumer:latest OUTPUT=type=docker VERSION=${COMMIT_HASH} \
-	&& cd deploy && docker compose up -d
+	&& cd .. && docker compose -f docker-compose.dev.yml down && docker compose -f docker-compose.dev.yml up -d
 
 pro:generate_pro
 	make image PLATFORM=${LOCAL_PLATFORM} DOCKERFILE=Dockerfile.api.pro IMAGE_NAME=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:latest OUTPUT=type=docker VERSION=${COMMIT_HASH} \

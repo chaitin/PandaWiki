@@ -34,3 +34,5 @@ local
 .idea
 
 data/*
+
+backend/panda-wiki-api
