@@ -212,7 +212,7 @@ func (cfg *WechatServiceConfig) SendResponseToKfUrl(userId, openkfId, conversati
 		Msgtype:  "link",
 		Link: Link{
 			Url:          fmt.Sprintf("%s/h5-chat?id=%s", baseUrl, conversationID),
-			Desc:         "本回答由 PandaWiki 基于 AI 生成，仅供参考。",
+			Desc:         "本回答由 LiteWiki 基于 AI 生成，仅供参考。",
 			Title:        question,
 			ThumbMediaID: imageId,
 		},

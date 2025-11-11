@@ -194,7 +194,7 @@ func (u *WecomUsecase) HandleMsg(ctx context.Context, kbID, signature, timestamp
 
 		if state.IsDone {
 			domain.ConversationManager.Delete(conversationId)
-			content += "\n\n---  \n\n本回答由 [PandaWiki](https://pandawiki.docs.baizhi.cloud/) 基于 AI 生成，仅供参考。"
+			content += "\n\n---  \n\n本回答由 [LiteWiki](https://wiki.webinfra.cloud/) 基于 AI 生成，仅供参考。"
 		}
 
 		resp, err := wecomAIBotClient.MakeStreamResp(nonce, req.Stream.Id, content, state.IsDone)
