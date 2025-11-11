@@ -13,7 +13,7 @@ const OtherBread = {
   feedback: { title: '反馈', to: '/feedback' },
   application: { title: '设置', to: '/setting' },
   release: { title: '发布', to: '/release' },
-  contribution: { title: '贡献', to: '/contribution' },
+  // contribution: { title: '贡献', to: '/contribution' },
 };
 
 const Bread = () => {
