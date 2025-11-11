@@ -36,10 +36,13 @@ push-prod-images:
 COMMIT_HASH=$(shell git rev-parse --short HEAD)
 LOCAL_PLATFORM=linux/$(shell uname -m)
 #LOCAL_PLATFORM=linux/amd64
-dev:generate
+
+build:generate
 	make image PLATFORM=${LOCAL_PLATFORM} DOCKERFILE=Dockerfile.api IMAGE_NAME=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:latest OUTPUT=type=docker VERSION=${COMMIT_HASH} \
-	&& make image PLATFORM=${LOCAL_PLATFORM} DOCKERFILE=Dockerfile.consumer IMAGE_NAME=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-consumer:latest OUTPUT=type=docker VERSION=${COMMIT_HASH} \
-	&& cd .. && docker compose -f docker-compose.dev.yml down && docker compose -f docker-compose.dev.yml up -d
+	&& make image PLATFORM=${LOCAL_PLATFORM} DOCKERFILE=Dockerfile.consumer IMAGE_NAME=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-consumer:latest OUTPUT=type=docker VERSION=${COMMIT_HASH}
+
+dev:build
+	cd .. && docker compose -f docker-compose.dev.yml down && docker compose -f docker-compose.dev.yml up -d
 
 pro:generate_pro
 	make image PLATFORM=${LOCAL_PLATFORM} DOCKERFILE=Dockerfile.api.pro IMAGE_NAME=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:latest OUTPUT=type=docker VERSION=${COMMIT_HASH} \
