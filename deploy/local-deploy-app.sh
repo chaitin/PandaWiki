@@ -62,4 +62,4 @@ echo -e "${GREEN}本地临时文件已清理${NC}"
 echo -e "${YELLOW}步骤5: 本地部署完成! 正在执行远程部署...${NC}"
 echo -e "${GREEN}ssh $SERVER_USER@$SERVER_IP 'bash -s' < deploy/remote-deploy-app.sh${NC}"
 #5. 直接执行远程部署命令
-ssh $SERVER_USER@$SERVER_IP 'bash -s' < ../deploy/remote-deploy-app.sh
+ssh $SERVER_USER@$SERVER_IP 'bash -s' < ../../deploy/remote-deploy-app.sh
