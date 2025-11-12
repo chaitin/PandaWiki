@@ -56,6 +56,8 @@ docker compose rm -f $SERVICE_NAME
 # 5. 启动服务（会使用新加载的镜像）
 echo -e "${YELLOW}步骤5: 启动 $SERVICE_NAME 服务...${NC}"
 docker compose up -d $SERVICE_NAME
+# 重启Caddy
+docker compose restart caddy
 
 # 6. 检查容器状态
 echo -e "${YELLOW}步骤6: 检查容器状态...${NC}"
