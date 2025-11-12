@@ -27,7 +27,7 @@ fi
 
 # 1. 构建前端代码和Docker镜像
 echo -e "${YELLOW}步骤1: 构建前端代码和Docker镜像...${NC}"
-cd /Users/aaronzheng/Projects/PandaWiki/web/admin
+cd web/admin
 # make image
 
 # 2. 保存镜像为tar文件
