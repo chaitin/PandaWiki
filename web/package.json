@@ -18,7 +18,7 @@
   "license": "ISC",
   "packageManager": "pnpm@10.12.1",
   "dependencies": {
-    "@ctzhian/tiptap": "^1.12.21",
+    "@ctzhian/tiptap": "^1.12.24",
     "@ctzhian/ui": "^7.0.5",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
