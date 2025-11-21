@@ -301,6 +301,156 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 	return eventCh, nil
 }
 
+func (u *ChatUsecase) ChatRagOnly(ctx context.Context, req *domain.ChatRequest) (<-chan domain.SSEEvent, error) {
+	eventCh := make(chan domain.SSEEvent, 100)
+	go func() {
+		defer close(eventCh)
+		// get app detail and validate app
+		app, err := u.appRepo.GetOrCreateAppByKBIDAndType(ctx, req.KBID, req.AppType)
+		if err != nil {
+			eventCh <- domain.SSEEvent{Type: "error", Content: "app not found"}
+			return
+		}
+		req.KBID = app.KBID
+		req.AppID = app.ID
+		req.AppType = app.Type
+
+		// conversation management
+		if req.ConversationID == "" {
+			id, err := uuid.NewV7()
+			if err != nil {
+				u.logger.Error("failed to generate conversation uuid", log.Error(err))
+				id = uuid.New()
+			}
+			conversationID := id.String()
+			req.ConversationID = conversationID
+			nonce := uuid.New().String()
+			eventCh <- domain.SSEEvent{Type: "conversation_id", Content: conversationID}
+			eventCh <- domain.SSEEvent{Type: "nonce", Content: nonce}
+			err = u.conversationUsecase.CreateConversation(ctx, &domain.Conversation{
+				ID:        conversationID,
+				Nonce:     nonce,
+				AppID:     req.AppID,
+				KBID:      req.KBID,
+				Subject:   req.Message,
+				RemoteIP:  req.RemoteIP,
+				Info:      req.Info,
+				CreatedAt: time.Now(),
+			})
+			if err != nil {
+				u.logger.Error("failed to create chat conversation", log.Error(err))
+				eventCh <- domain.SSEEvent{Type: "error", Content: "failed to create chat conversation"}
+				return
+			}
+		} else {
+			if req.Nonce == "" {
+				eventCh <- domain.SSEEvent{Type: "error", Content: "nonce is required"}
+				return
+			}
+			err := u.conversationUsecase.ValidateConversationNonce(ctx, req.ConversationID, req.Nonce)
+			if err != nil {
+				u.logger.Error("failed to validate chat conversation nonce", log.Error(err))
+				eventCh <- domain.SSEEvent{Type: "error", Content: "validate chat conversation nonce failed"}
+				return
+			}
+		}
+
+		messageId := uuid.New().String()
+		eventCh <- domain.SSEEvent{Type: "message_id", Content: messageId}
+		userMessageId := uuid.New().String()
+		// save user question to conversation message
+		if err := u.conversationUsecase.CreateChatConversationMessage(ctx, req.KBID, &domain.ConversationMessage{
+			ID:             userMessageId,
+			ConversationID: req.ConversationID,
+			KBID:           req.KBID,
+			AppID:          req.AppID,
+			Role:           schema.User,
+			Content:        req.Message,
+			RemoteIP:       req.RemoteIP,
+		}); err != nil {
+			u.logger.Error("failed to save user question to conversation message", log.Error(err))
+			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to save user question to conversation message"}
+			return
+		}
+		// extra1. if user set question block words then check it
+		blockWords, err := u.blockWordRepo.GetBlockWords(ctx, req.KBID)
+		if err != nil {
+			u.logger.Error("failed to get question block words", log.Error(err))
+			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to get question block words"}
+			return
+		}
+		if len(blockWords) > 0 { // check --> filter
+			questionFilter := utils.GetDFA(req.KBID)
+			if err := questionFilter.DFA.Check(req.Message); err != nil { // exist then return err
+				answer := "**您的问题包含敏感词, AI 无法回答您的问题。**"
+				eventCh <- domain.SSEEvent{Type: "error", Content: answer}
+				// save ai answer and set it err
+				if err := u.conversationUsecase.CreateChatConversationMessage(context.Background(), req.KBID, &domain.ConversationMessage{
+					ID:             messageId,
+					ConversationID: req.ConversationID,
+					KBID:           req.KBID,
+					AppID:          req.AppID,
+					Role:           schema.Assistant,
+					Content:        answer,
+					Provider:       req.ModelInfo.Provider,
+					Model:          string(req.ModelInfo.Model),
+					RemoteIP:       req.RemoteIP,
+					ParentID:       userMessageId,
+				}); err != nil {
+					u.logger.Error("failed to save assistant answer to conversation message", log.Error(err))
+					eventCh <- domain.SSEEvent{Type: "error", Content: "failed to save assistant answer to conversation message"}
+					return
+				}
+				return
+			}
+		}
+
+		if req.Info.UserInfo.AuthUserID == 0 {
+			auth, _ := u.AuthRepo.GetAuthBySourceType(ctx, req.AppType.ToSourceType())
+			if auth != nil {
+				req.Info.UserInfo.AuthUserID = auth.ID
+			}
+		}
+
+		groupIds, err := u.AuthRepo.GetAuthGroupIdsWithParentsByAuthId(ctx, req.Info.UserInfo.AuthUserID)
+		if err != nil {
+			u.logger.Error("failed to get auth groupIds", log.Error(err))
+			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to get auth groupIds"}
+			return
+		}
+
+		// retrieve documents
+		messages, _, err := u.llmUsecase.FormatConversationMessages(ctx, req.ConversationID, req.KBID, groupIds)
+		if err != nil {
+			u.logger.Error("failed to format chat messages", log.Error(err))
+			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to format chat messages"}
+			return
+		}
+		u.logger.Info("message:", log.Any("schema", messages))
+
+		// extract <documents>...</documents> block from the formatted USER message
+		var documentsContent string
+		//  find the last occurrence in any message (avoid picking system prompt placeholders)
+		for i := len(messages) - 1; i >= 0; i-- {
+			content := messages[i].Content
+			if strings.Contains(content, "<documents>") {
+				start := strings.Index(content, "<documents>")
+				end := strings.Index(content, "</documents>")
+				if start != -1 && end != -1 && end > start {
+					documentsContent = strings.TrimSpace(content[start+len("<documents>") : end])
+					break
+				}
+			}
+		}
+
+		// send only the documents part
+		eventCh <- domain.SSEEvent{Type: "data", Content: documentsContent}
+
+		eventCh <- domain.SSEEvent{Type: "done"}
+	}()
+	return eventCh, nil
+}
+
 func (u *ChatUsecase) CreateAcOnChunk(ctx context.Context, kbID string, answer *string, eventCh chan<- domain.SSEEvent, blockWords []string) (func(ctx context.Context, dataType, chunk string) error,
 	func(ctx context.Context, dataType string)) {
 	var buffer strings.Builder

@@ -24,6 +24,7 @@ const (
 	AppTypeOpenAIAPI
 	AppTypeWecomAIBot
 	AppTypeLarkBot
+	AppTypeMcpServer
 )
 
 var AppTypes = []AppType{
@@ -38,6 +39,7 @@ var AppTypes = []AppType{
 	AppTypeOpenAIAPI,
 	AppTypeWecomAIBot,
 	AppTypeLarkBot,
+	AppTypeMcpServer,
 }
 
 func (t AppType) ToSourceType() consts.SourceType {
@@ -64,6 +66,8 @@ func (t AppType) ToSourceType() consts.SourceType {
 		return consts.SourceTypeOpenAIAPI
 	case AppTypeLarkBot:
 		return consts.SourceTypeLarkBot
+	case AppTypeMcpServer:
+		return consts.SourceTypeMcpServer
 	default:
 		return ""
 	}
@@ -167,6 +171,8 @@ type AppSettings struct {
 	ContributeSettings  ContributeSettings      `json:"contribute_settings"`
 	HomePageSetting     consts.HomePageSetting  `json:"home_page_setting"`
 	ConversationSetting ConversationSetting     `json:"conversation_setting"`
+	// MCP Server Settings
+	MCPServerSettings MCPServerSettings `json:"mcp_server_settings,omitempty"`
 }
 
 type ConversationSetting struct {
@@ -176,6 +182,17 @@ type ConversationSetting struct {
 
 type WebAppLandingTheme struct {
 	Name string `json:"name"`
+}
+
+type MCPServerSettings struct {
+	IsEnabled           bool            `json:"is_enabled"`
+	GetDocsToolSettings MCPToolSettings `json:"get_docs_tool_settings"`
+	SampleAuth          SimpleAuth      `json:"sample_auth"`
+}
+
+type MCPToolSettings struct {
+	Name string `json:"name"`
+	Desc string `json:"desc"`
 }
 
 type LarkBotSettings struct {
@@ -544,6 +561,8 @@ type AppSettingsResp struct {
 	WebAppLandingTheme   WebAppLandingTheme        `json:"web_app_landing_theme"`
 	HomePageSetting      consts.HomePageSetting    `json:"home_page_setting"`
 	ConversationSetting  ConversationSetting       `json:"conversation_setting"`
+	// MCP Server Settings
+	MCPServerSettings MCPServerSettings `json:"mcp_server_settings,omitempty"`
 }
 
 type WebAppLandingConfigResp struct {

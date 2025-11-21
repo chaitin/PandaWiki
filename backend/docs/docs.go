@@ -240,7 +240,8 @@ const docTemplate = `{
                             "wechat_service_bot",
                             "discord_bot",
                             "wechat_official_account",
-                            "openai_api"
+                            "openai_api",
+                            "mcp_server"
                         ],
                         "type": "string",
                         "x-enum-varnames": [
@@ -260,7 +261,8 @@ const docTemplate = `{
                             "SourceTypeWechatServiceBot",
                             "SourceTypeDiscordBot",
                             "SourceTypeWechatOfficialAccount",
-                            "SourceTypeOpenAIAPI"
+                            "SourceTypeOpenAIAPI",
+                            "SourceTypeMcpServer"
                         ],
                         "name": "source_type",
                         "in": "query",
@@ -4268,7 +4270,8 @@ const docTemplate = `{
                 "wechat_service_bot",
                 "discord_bot",
                 "wechat_official_account",
-                "openai_api"
+                "openai_api",
+                "mcp_server"
             ],
             "x-enum-varnames": [
                 "SourceTypeDingTalk",
@@ -4287,7 +4290,8 @@ const docTemplate = `{
                 "SourceTypeWechatServiceBot",
                 "SourceTypeDiscordBot",
                 "SourceTypeWechatOfficialAccount",
-                "SourceTypeOpenAIAPI"
+                "SourceTypeOpenAIAPI",
+                "SourceTypeMcpServer"
             ]
         },
         "consts.StatDay": {
@@ -4623,6 +4627,14 @@ const docTemplate = `{
                         }
                     ]
                 },
+                "mcp_server_settings": {
+                    "description": "MCP Server Settings",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.MCPServerSettings"
+                        }
+                    ]
+                },
                 "openai_api_bot_settings": {
                     "description": "OpenAI API Bot settings",
                     "allOf": [
@@ -4896,6 +4908,14 @@ const docTemplate = `{
                         }
                     ]
                 },
+                "mcp_server_settings": {
+                    "description": "MCP Server Settings",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.MCPServerSettings"
+                        }
+                    ]
+                },
                 "openai_api_bot_settings": {
                     "description": "OpenAI API settings",
                     "allOf": [
@@ -5056,7 +5076,8 @@ const docTemplate = `{
                 8,
                 9,
                 10,
-                11
+                11,
+                12
             ],
             "x-enum-varnames": [
                 "AppTypeWeb",
@@ -5069,7 +5090,8 @@ const docTemplate = `{
                 "AppTypeWechatOfficialAccount",
                 "AppTypeOpenAIAPI",
                 "AppTypeWecomAIBot",
-                "AppTypeLarkBot"
+                "AppTypeLarkBot",
+                "AppTypeMcpServer"
             ]
         },
         "domain.AuthUserInfo": {
@@ -6374,6 +6396,31 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.MCPServerSettings": {
+            "type": "object",
+            "properties": {
+                "get_docs_tool_settings": {
+                    "$ref": "#/definitions/domain.MCPToolSettings"
+                },
+                "is_enabled": {
+                    "type": "boolean"
+                },
+                "sample_auth": {
+                    "$ref": "#/definitions/domain.SimpleAuth"
+                }
+            }
+        },
+        "domain.MCPToolSettings": {
+            "type": "object",
+            "properties": {
+                "desc": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }
