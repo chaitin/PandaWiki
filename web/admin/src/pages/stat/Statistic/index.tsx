@@ -36,9 +36,17 @@ const Statistic = () => {
       { label: '近 24 小时', value: 1, disabled: false },
       {
         label: (
-          <Stack direction={'row'} alignItems={'center'} gap={0.5}>
+          <Stack
+            direction={'row'}
+            alignItems={'center'}
+            gap={0.5}
+            sx={{ lineHeight: 1 }}
+          >
             <span>近 7 天</span>
-            <VersionCanUse permission={PROFESSION_VERSION_PERMISSION} />
+            <VersionCanUse
+              permission={PROFESSION_VERSION_PERMISSION}
+              mode='icon'
+            />
           </Stack>
         ),
         value: 7,
@@ -46,9 +54,17 @@ const Statistic = () => {
       },
       {
         label: (
-          <Stack direction={'row'} alignItems={'center'} gap={0.5}>
+          <Stack
+            direction={'row'}
+            alignItems={'center'}
+            gap={0.5}
+            sx={{ lineHeight: 1 }}
+          >
             <span>近 30 天</span>
-            <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+            <VersionCanUse
+              permission={BUSINESS_VERSION_PERMISSION}
+              mode='icon'
+            />
           </Stack>
         ),
         value: 30,
@@ -56,9 +72,17 @@ const Statistic = () => {
       },
       {
         label: (
-          <Stack direction={'row'} alignItems={'center'} gap={0.5}>
+          <Stack
+            direction={'row'}
+            alignItems={'center'}
+            gap={0.5}
+            sx={{ lineHeight: 1 }}
+          >
             <span>近 90 天</span>
-            <VersionCanUse permission={BUSINESS_VERSION_PERMISSION} />
+            <VersionCanUse
+              permission={BUSINESS_VERSION_PERMISSION}
+              mode='icon'
+            />
           </Stack>
         ),
         value: 90,

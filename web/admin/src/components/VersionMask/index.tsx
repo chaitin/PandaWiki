@@ -1,7 +1,7 @@
 import { VersionInfoMap } from '@/constant/version';
 import { useVersionInfo } from '@/hooks';
 import { ConstsLicenseEdition } from '@/request/types';
-import { styled, SxProps } from '@mui/material';
+import { styled, SxProps, Tooltip } from '@mui/material';
 import React from 'react';
 
 const StyledMaskWrapper = styled('div')(({ theme }) => ({
@@ -95,24 +95,48 @@ export const VersionCanUse = ({
     ConstsLicenseEdition.LicenseEditionEnterprise,
   ],
   sx,
+  mode = 'text',
 }: {
   permission?: ConstsLicenseEdition[];
   sx?: SxProps;
+  mode?: 'icon' | 'text';
 }) => {
   const versionInfo = useVersionInfo();
   const hasPermission = permission.includes(versionInfo.permission);
   if (hasPermission) return null;
   const nextVersionInfo = VersionInfoMap[permission[0]];
   return (
-    <StyledMaskContent sx={{ width: 'auto', ml: 1, ...sx }}>
-      <StyledMaskVersion sx={{ backgroundColor: nextVersionInfo.bgColor }}>
-        <img
-          src={nextVersionInfo.image}
-          style={{ width: 12, objectFit: 'contain', marginTop: 1 }}
-          alt={nextVersionInfo.label}
-        />
-        {nextVersionInfo?.label}可用
-      </StyledMaskVersion>
+    <StyledMaskContent
+      sx={{
+        width: 'auto',
+        ml: mode === 'icon' ? 0.5 : 1,
+        // 允许 Tooltip 在 disabled 的父元素中正常工作
+        pointerEvents: 'auto',
+        ...sx,
+      }}
+      onClick={e => {
+        e.stopPropagation();
+        e.preventDefault();
+      }}
+    >
+      {mode === 'icon' ? (
+        <Tooltip title={nextVersionInfo.label + '可用'} placement='top' arrow>
+          <img
+            src={nextVersionInfo.image}
+            style={{ width: 14, objectFit: 'contain' }}
+            alt={nextVersionInfo.label}
+          />
+        </Tooltip>
+      ) : (
+        <StyledMaskVersion sx={{ backgroundColor: nextVersionInfo.bgColor }}>
+          <img
+            src={nextVersionInfo.image}
+            style={{ width: 12, objectFit: 'contain', marginTop: 1 }}
+            alt={nextVersionInfo.label}
+          />
+          {nextVersionInfo?.label}可用
+        </StyledMaskVersion>
+      )}
     </StyledMaskContent>
   );
 };
