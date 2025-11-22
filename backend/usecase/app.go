@@ -527,6 +527,8 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		ConversationSetting: app.Settings.ConversationSetting,
 
 		WecomAIBotSettings: app.Settings.WecomAIBotSettings,
+
+		MCPServerSettings: app.Settings.MCPServerSettings,
 	}
 
 	if !domain.GetBaseEditionLimitation(ctx).AllowCustomCopyright {
@@ -554,6 +556,19 @@ func (u *AppUsecase) GetAppDetailByKBIDAndAppType(ctx context.Context, kbID stri
 		appDetailResp.RecommendNodes = nodes
 	}
 	return appDetailResp, nil
+}
+
+func (u *AppUsecase) GetMCPServerAppInfo(ctx context.Context, kbID string) (*domain.AppInfoResp, error) {
+	apiApp, err := u.repo.GetOrCreateAppByKBIDAndType(ctx, kbID, domain.AppTypeMcpServer)
+	if err != nil {
+		return nil, err
+	}
+	appInfo := &domain.AppInfoResp{
+		Settings: domain.AppSettingsResp{
+			MCPServerSettings: apiApp.Settings.MCPServerSettings,
+		},
+	}
+	return appInfo, nil
 }
 
 func (u *AppUsecase) ShareGetWebAppInfo(ctx context.Context, kbID string, authId uint) (*domain.AppInfoResp, error) {

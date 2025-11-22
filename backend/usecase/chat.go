@@ -301,6 +301,64 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 	return eventCh, nil
 }
 
+func (u *ChatUsecase) ChatRagOnly(ctx context.Context, req *domain.ChatRagOnlyRequset) (<-chan domain.SSEEvent, error) {
+	eventCh := make(chan domain.SSEEvent, 100)
+	go func() {
+		defer close(eventCh)
+
+		// extra1. if user set question block words then check it
+		blockWords, err := u.blockWordRepo.GetBlockWords(ctx, req.KBID)
+		if err != nil {
+			u.logger.Error("failed to get question block words", log.Error(err))
+			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to get question block words"}
+			return
+		}
+		if len(blockWords) > 0 { // check --> filter
+			questionFilter := utils.GetDFA(req.KBID)
+			if err := questionFilter.DFA.Check(req.Message); err != nil { // exist then return err
+				answer := "**您的问题包含敏感词, AI 无法回答您的问题。**"
+				eventCh <- domain.SSEEvent{Type: "error", Content: answer}
+				return
+			}
+		}
+
+		if req.UserInfo.AuthUserID == 0 {
+			auth, _ := u.AuthRepo.GetAuthBySourceType(ctx, req.AppType.ToSourceType())
+			if auth != nil {
+				req.UserInfo.AuthUserID = auth.ID
+			}
+		}
+
+		groupIds, err := u.AuthRepo.GetAuthGroupIdsWithParentsByAuthId(ctx, req.UserInfo.AuthUserID)
+		if err != nil {
+			u.logger.Error("failed to get auth groupIds", log.Error(err))
+			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to get auth groupIds"}
+			return
+		}
+
+		// retrieve documents
+		kb, err := u.kbRepo.GetKnowledgeBaseByID(ctx, req.KBID)
+		if err != nil {
+			u.logger.Error("failed to get kb", log.Error(err))
+			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to get kb"}
+			return
+		}
+		rankedNodes, err := u.llmUsecase.GetRankNodes(ctx, []string{kb.DatasetID}, req.Message, groupIds, 0, nil)
+		if err != nil {
+			u.logger.Error("failed to get rank nodes", log.Error(err))
+			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to get rank nodes"}
+			return
+		}
+		documents := domain.FormatNodeChunks(rankedNodes, kb.AccessSettings.BaseURL)
+		u.logger.Debug("documents", log.String("documents", documents))
+
+		// send only the documents part
+		eventCh <- domain.SSEEvent{Type: "data", Content: documents}
+		eventCh <- domain.SSEEvent{Type: "done"}
+	}()
+	return eventCh, nil
+}
+
 func (u *ChatUsecase) CreateAcOnChunk(ctx context.Context, kbID string, answer *string, eventCh chan<- domain.SSEEvent, blockWords []string) (func(ctx context.Context, dataType, chunk string) error,
 	func(ctx context.Context, dataType string)) {
 	var buffer strings.Builder

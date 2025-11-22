@@ -24,6 +24,7 @@ const (
 	SourceTypeDiscordBot            SourceType = "discord_bot"
 	SourceTypeWechatOfficialAccount SourceType = "wechat_official_account"
 	SourceTypeOpenAIAPI             SourceType = "openai_api"
+	SourceTypeMcpServer             SourceType = "mcp_server"
 )
 
 func (s SourceType) Name() string {
@@ -46,6 +47,8 @@ func (s SourceType) Name() string {
 		return "Discord 机器人"
 	case SourceTypeWechatOfficialAccount:
 		return "微信公众号"
+	case SourceTypeMcpServer:
+		return "MCP 服务器"
 	default:
 		return ""
 	}

@@ -245,6 +245,7 @@ definitions:
     - discord_bot
     - wechat_official_account
     - openai_api
+    - mcp_server
     type: string
     x-enum-varnames:
     - SourceTypeDingTalk
@@ -264,6 +265,7 @@ definitions:
     - SourceTypeDiscordBot
     - SourceTypeWechatOfficialAccount
     - SourceTypeOpenAIAPI
+    - SourceTypeMcpServer
   consts.StatDay:
     enum:
     - 1
@@ -488,6 +490,10 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.LarkBotSettings'
         description: LarkBot
+      mcp_server_settings:
+        allOf:
+        - $ref: '#/definitions/domain.MCPServerSettings'
+        description: MCP Server Settings
       openai_api_bot_settings:
         allOf:
         - $ref: '#/definitions/domain.OpenAIAPIBotSettings'
@@ -660,6 +666,10 @@ definitions:
         allOf:
         - $ref: '#/definitions/domain.LarkBotSettings'
         description: LarkBot
+      mcp_server_settings:
+        allOf:
+        - $ref: '#/definitions/domain.MCPServerSettings'
+        description: MCP Server Settings
       openai_api_bot_settings:
         allOf:
         - $ref: '#/definitions/domain.OpenAIAPIBotSettings'
@@ -767,6 +777,7 @@ definitions:
     - 9
     - 10
     - 11
+    - 12
     format: int32
     type: integer
     x-enum-varnames:
@@ -781,6 +792,7 @@ definitions:
     - AppTypeOpenAIAPI
     - AppTypeWecomAIBot
     - AppTypeLarkBot
+    - AppTypeMcpServer
   domain.AuthUserInfo:
     properties:
       avatar_url:
@@ -1623,6 +1635,22 @@ definitions:
       name:
         type: string
       url:
+        type: string
+    type: object
+  domain.MCPServerSettings:
+    properties:
+      get_docs_tool_settings:
+        $ref: '#/definitions/domain.MCPToolSettings'
+      is_enabled:
+        type: boolean
+      sample_auth:
+        $ref: '#/definitions/domain.SimpleAuth'
+    type: object
+  domain.MCPToolSettings:
+    properties:
+      desc:
+        type: string
+      name:
         type: string
     type: object
   domain.MessageContent:
@@ -3359,6 +3387,7 @@ paths:
         - discord_bot
         - wechat_official_account
         - openai_api
+        - mcp_server
         in: query
         name: source_type
         required: true
@@ -3381,6 +3410,7 @@ paths:
         - SourceTypeDiscordBot
         - SourceTypeWechatOfficialAccount
         - SourceTypeOpenAIAPI
+        - SourceTypeMcpServer
       produces:
       - application/json
       responses:

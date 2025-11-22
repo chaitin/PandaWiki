@@ -140,6 +140,29 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 							{
 								"match": []map[string]any{
 									{
+										"path": []string{"/mcp"},
+									},
+								},
+								"handle": []map[string]any{
+									{
+										"handler": "headers",
+										"request": map[string]any{
+											"set": map[string][]any{
+												"X-KB-ID": {kb.ID},
+											},
+										},
+									},
+									{
+										"handler": "reverse_proxy",
+										"upstreams": []map[string]any{
+											{"dial": api},
+										},
+									},
+								},
+							},
+							{
+								"match": []map[string]any{
+									{
 										"path": []string{"/share/v1/chat/message"},
 									},
 								},
