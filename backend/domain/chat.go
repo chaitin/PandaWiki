@@ -23,6 +23,16 @@ type ChatRequest struct {
 	Info     ConversationInfo `json:"-"`
 }
 
+type ChatRagOnlyRequset struct {
+	Message      string `json:"message" validate:"required"`
+	CaptchaToken string `json:"captcha_token"`
+
+	KBID string `json:"-" validate:"required"`
+
+	UserInfo UserInfo `json:"user_info"`
+	AppType  AppType  `json:"app_type" validate:"required,oneof=1 2"`
+}
+
 type ConversationInfo struct {
 	UserInfo UserInfo `json:"user_info"`
 }
