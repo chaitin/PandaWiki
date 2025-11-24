@@ -39,16 +39,6 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq, 
 	}
 	nodeIDStr := nodeID.String()
 	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// check count
-		var count int64
-		if err := tx.Model(&domain.Node{}).
-			Where("kb_id = ?", req.KBID).
-			Count(&count).Error; err != nil {
-			return err
-		}
-		if count >= int64(req.MaxNode) {
-			return domain.ErrMaxNodeLimitReached
-		}
 		var maxPos float64
 		query := tx.WithContext(ctx).
 			Model(&domain.Node{}).
