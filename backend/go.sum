@@ -129,6 +129,8 @@ github.com/chaitin/ModelKit/v2 v2.8.1 h1:7A1eDV6yw/FCceJWk5USSfOX4JvBdsw/ALwA4sZ
 github.com/chaitin/ModelKit/v2 v2.8.1/go.mod h1:O5jsT8XqM19FWftIjhuLYsqNNPuvHjjX9ADB3flZn7w=
 github.com/chaitin/pandawiki/sdk/rag v0.0.0-20250923030122-cfce04d5505f h1:vlYTfgfTgBzNRn34d3bFu0dkJAu3h5FNgdv1TqAoosQ=
 github.com/chaitin/pandawiki/sdk/rag v0.0.0-20250923030122-cfce04d5505f/go.mod h1:c9cq9DFEaqynk1avg8CSOhZZOClQI1LmhCo8v7NAN3w=
+github.com/chaitin/raglite-go-sdk v0.1.0 h1:CtMgwdkpL0oLajUk0mhrrI0sNfwNq5X9mAHMDPtV6EY=
+github.com/chaitin/raglite-go-sdk v0.1.0/go.mod h1:1klR7WqfFijmd4msUvhRHoGstteUfBsRuRdX4CIJ/so=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=
 github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e/go.mod h1:nSuG5e5PlCu98SY8svDHJxuZscDgtXS6KTTbou5AhLI=
 github.com/chzyer/test v0.0.0-20180213035817-a1ea475d72b1/go.mod h1:Q3SI9o4m/ZMnBNeIyt5eFwwo7qiLfzFZmjNmxjkiQlU=

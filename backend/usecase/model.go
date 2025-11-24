@@ -318,7 +318,7 @@ func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoMode
 		// 更新RAG存储中的模型
 		if model != nil {
 			// rag store中更新失败不影响其他模型更新
-			if err := u.ragStore.UpdateModel(ctx, model); err != nil {
+			if err := u.ragStore.UpsertModel(ctx, model); err != nil {
 				u.logger.Error("failed to update model in RAG store", log.String("model_id", model.ID), log.String("type", string(modelType)), log.Any("error", err))
 				continue
 			}

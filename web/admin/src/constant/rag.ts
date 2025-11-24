@@ -1,36 +1,20 @@
 import { ConstsNodeRagInfoStatus } from '@/request';
 
 const RAG_SOURCES = {
-  [ConstsNodeRagInfoStatus.NodeRagStatusBasicPending]: {
+  [ConstsNodeRagInfoStatus.NodeRagStatusPending]: {
     name: '待学习',
     color: 'warning',
   },
-  [ConstsNodeRagInfoStatus.NodeRagStatusBasicRunning]: {
+  [ConstsNodeRagInfoStatus.NodeRagStatusRunning]: {
     name: '正在学习',
     color: 'warning',
   },
-  [ConstsNodeRagInfoStatus.NodeRagStatusBasicFailed]: {
+  [ConstsNodeRagInfoStatus.NodeRagStatusFailed]: {
     name: '学习失败',
     color: 'error',
   },
-  [ConstsNodeRagInfoStatus.NodeRagStatusBasicSucceeded]: {
+  [ConstsNodeRagInfoStatus.NodeRagStatusSucceeded]: {
     name: '学习成功',
-    color: 'success',
-  },
-  [ConstsNodeRagInfoStatus.NodeRagStatusEnhancePending]: {
-    name: '等待增强学习',
-    color: 'warning',
-  },
-  [ConstsNodeRagInfoStatus.NodeRagStatusEnhanceRunning]: {
-    name: '正在增强学习',
-    color: 'warning',
-  },
-  [ConstsNodeRagInfoStatus.NodeRagStatusEnhanceFailed]: {
-    name: '增强学习失败',
-    color: 'error',
-  },
-  [ConstsNodeRagInfoStatus.NodeRagStatusEnhanceSucceeded]: {
-    name: '增强学习成功',
     color: 'success',
   },
 };

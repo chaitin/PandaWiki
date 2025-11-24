@@ -137,22 +137,14 @@ export enum ConstsSourceType {
 }
 
 export enum ConstsNodeRagInfoStatus {
-  /** 等待基础处理 */
-  NodeRagStatusBasicPending = "BASIC_PENDING",
-  /** 正在进行基础处理（文本分割、向量化等） */
-  NodeRagStatusBasicRunning = "BASIC_RUNNING",
-  /** 基础处理失败 */
-  NodeRagStatusBasicFailed = "BASIC_FAILED",
-  /** 基础处理成功 */
-  NodeRagStatusBasicSucceeded = "BASIC_SUCCEEDED",
-  /** 基础处理完成，等待增强处理 */
-  NodeRagStatusEnhancePending = "ENHANCE_PENDING",
-  /** 正在进行增强处理（关键词提取等） */
-  NodeRagStatusEnhanceRunning = "ENHANCE_RUNNING",
-  /** 增强处理失败 */
-  NodeRagStatusEnhanceFailed = "ENHANCE_FAILED",
-  /** 增强处理成功 */
-  NodeRagStatusEnhanceSucceeded = "ENHANCE_SUCCEEDED",
+  /** 等待处理 */
+  NodeRagStatusPending = "PENDING",
+  /** 正在进行处理（文本分割、向量化等） */
+  NodeRagStatusRunning = "RUNNING",
+  /** 处理失败 */
+  NodeRagStatusFailed = "FAILED",
+  /** 处理成功 */
+  NodeRagStatusSucceeded = "SUCCEEDED",
 }
 
 export enum ConstsNodePermName {
@@ -1819,24 +1811,24 @@ export interface DeleteApiV1AuthDeleteParams {
 export interface GetApiV1AuthGetParams {
   kb_id?: string;
   source_type:
-    | "dingtalk"
-    | "feishu"
-    | "wecom"
-    | "oauth"
-    | "github"
-    | "cas"
-    | "ldap"
-    | "widget"
-    | "dingtalk_bot"
-    | "feishu_bot"
-    | "lark_bot"
-    | "wechat_bot"
-    | "wecom_ai_bot"
-    | "wechat_service_bot"
-    | "discord_bot"
-    | "wechat_official_account"
-    | "openai_api"
-    | "mcp_server";
+  | "dingtalk"
+  | "feishu"
+  | "wecom"
+  | "oauth"
+  | "github"
+  | "cas"
+  | "ldap"
+  | "widget"
+  | "dingtalk_bot"
+  | "feishu_bot"
+  | "lark_bot"
+  | "wechat_bot"
+  | "wecom_ai_bot"
+  | "wechat_service_bot"
+  | "discord_bot"
+  | "wechat_official_account"
+  | "openai_api"
+  | "mcp_server";
 }
 
 export interface GetApiV1CommentParams {

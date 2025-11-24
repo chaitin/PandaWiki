@@ -208,6 +208,10 @@ func overrideWithEnv(c *Config) {
 	if env := os.Getenv("SENTRY_DSN"); env != "" {
 		c.Sentry.DSN = env
 	}
+	// caddy api
+	if env := os.Getenv("CADDY_API"); env != "" {
+		c.CaddyAPI = env
+	}
 	// log level
 	if env := os.Getenv("LOG_LEVEL"); env != "" {
 		if i, err := strconv.Atoi(env); err == nil {

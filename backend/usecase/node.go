@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
@@ -610,9 +609,7 @@ func (u *NodeUsecase) SyncRagNodeStatus(ctx context.Context) error {
 
 		chunks := lo.Chunk(docIds, ragSyncChunkSize)
 		for _, chunk := range chunks {
-			docs, err := u.rAGService.ListDocuments(ctx, kb.DatasetID, map[string]string{
-				"ids": strings.Join(chunk, ","),
-			})
+			docs, err := u.rAGService.ListDocuments(ctx, kb.DatasetID, chunk)
 			if err != nil {
 				u.logger.Error("list documents from RAG failed",
 					log.String("kb_id", kb.ID),

@@ -15,6 +15,7 @@ require (
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/chaitin/ModelKit/v2 v2.8.1
 	github.com/chaitin/pandawiki/sdk/rag v0.0.0-20250923030122-cfce04d5505f
+	github.com/chaitin/raglite-go-sdk v0.1.0
 	github.com/cloudwego/eino v0.4.7
 	github.com/cloudwego/eino-ext/components/model/deepseek v0.0.0-20250522060253-ddb617598b09
 	github.com/getsentry/sentry-go v0.35.1

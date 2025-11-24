@@ -3,13 +3,13 @@ package domain
 const (
 	VectorTaskTopic       = "apps.panda-wiki.vector.task"
 	AnydocTaskExportTopic = "anydoc.persistence.doc.task.export"
-	RagDocUpdateTopic     = "rag.doc.update"
+	RagDocUpdateTopic     = "raglite.events.doc.update"
 )
 
 var TopicConsumerName = map[string]string{
 	VectorTaskTopic:       "panda-wiki-vector-consumer",
 	AnydocTaskExportTopic: "anydoc-task-export-consumer",
-	RagDocUpdateTopic:     "rag-doc-update-consumer",
+	RagDocUpdateTopic:     "raglite-doc-update-consumer",
 }
 
 type NodeReleaseVectorRequest struct {
