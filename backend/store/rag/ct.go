@@ -215,13 +215,15 @@ func (s *CTRAG) GetModelList(ctx context.Context) ([]*domain.Model, error) {
 }
 
 func (s *CTRAG) UpdateDocumentGroupIDs(ctx context.Context, datasetID string, docID string, groupIds []int) error {
-	_, err := s.client.Documents.Update(ctx, &raglite.UpdateDocumentRequest{
+	req := &raglite.UpdateDocumentRequest{
 		DatasetID:  datasetID,
 		DocumentID: docID,
-		Metadata: map[string]any{
-			"group_ids": groupIds,
-		},
-	})
+		Metadata:   map[string]interface{}{},
+	}
+	if groupIds != nil {
+		req.Metadata["group_ids"] = groupIds
+	}
+	_, err := s.client.Documents.Update(ctx, req)
 	if err != nil {
 		return fmt.Errorf("update document group IDs failed: %w", err)
 	}
