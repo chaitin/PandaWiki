@@ -145,6 +145,8 @@ export enum ConstsNodeRagInfoStatus {
   NodeRagStatusFailed = "FAILED",
   /** 处理成功 */
   NodeRagStatusSucceeded = "SUCCEEDED",
+  /** 重新索引中 */
+  NodeRagStatusReindexing = "REINDEX",
 }
 
 export enum ConstsNodePermName {

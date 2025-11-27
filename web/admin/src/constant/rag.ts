@@ -1,6 +1,10 @@
 import { ConstsNodeRagInfoStatus } from '@/request';
 
 const RAG_SOURCES = {
+  [ConstsNodeRagInfoStatus.NodeRagStatusReindexing]: {
+    name: '重新索引中',
+    color: 'warning',
+  },
   [ConstsNodeRagInfoStatus.NodeRagStatusPending]: {
     name: '待学习',
     color: 'warning',
