@@ -7,6 +7,7 @@ import (
 type MigrationFuncs struct {
 	NodeMigration    *fns.MigrationNodeVersion
 	BotAuthMigration *fns.MigrationCreateBotAuth
+	RagDocMigration  *fns.MigrationRagDoc
 }
 
 func (mf *MigrationFuncs) GetMigrationFuncs() []MigrationFunc {
@@ -18,6 +19,10 @@ func (mf *MigrationFuncs) GetMigrationFuncs() []MigrationFunc {
 	funcs = append(funcs, MigrationFunc{
 		Name: mf.BotAuthMigration.Name,
 		Fn:   mf.BotAuthMigration.Execute,
+	})
+	funcs = append(funcs, MigrationFunc{
+		Name: mf.RagDocMigration.Name,
+		Fn:   mf.RagDocMigration.Execute,
 	})
 	return funcs
 }

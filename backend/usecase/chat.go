@@ -343,7 +343,7 @@ func (u *ChatUsecase) ChatRagOnly(ctx context.Context, req *domain.ChatRagOnlyRe
 			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to get kb"}
 			return
 		}
-		rankedNodes, err := u.llmUsecase.GetRankNodes(ctx, []string{kb.DatasetID}, req.Message, groupIds, 0, nil)
+		rankedNodes, err := u.llmUsecase.GetRankNodes(ctx, kb.DatasetID, req.Message, groupIds, 0, nil)
 		if err != nil {
 			u.logger.Error("failed to get rank nodes", log.Error(err))
 			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to get rank nodes"}

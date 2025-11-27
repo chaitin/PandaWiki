@@ -113,6 +113,7 @@ func (s *CTRAG) UpsertRecords(ctx context.Context, req *UpsertRecordsRequest) (s
 		DocumentID: req.DocID,
 		File:       strings.NewReader(markdown),
 		Filename:   fmt.Sprintf("%s.md", req.ID),
+		Metadata:   make(map[string]interface{}),
 	}
 	if len(req.GroupIDs) > 0 {
 		data.Metadata["group_ids"] = req.GroupIDs
