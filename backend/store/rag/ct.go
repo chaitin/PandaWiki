@@ -180,7 +180,7 @@ func (s *CTRAG) UpsertModel(ctx context.Context, model *domain.Model) error {
 			MaxTokens:       raglite.Ptr(maxTokens),
 			ExtraParameters: model.Parameters.Map(),
 		},
-		IsDefault: true,
+		IsDefault: model.IsActive,
 	}
 	_, err := s.client.Models.Upsert(ctx, &data)
 	if err != nil {
