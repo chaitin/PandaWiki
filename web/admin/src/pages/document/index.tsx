@@ -282,15 +282,13 @@ const Content = () => {
       ...(item.type === 2 &&
       item.rag_status &&
       [
-        ConstsNodeRagInfoStatus.NodeRagStatusBasicFailed,
-        ConstsNodeRagInfoStatus.NodeRagStatusEnhanceFailed,
-        ConstsNodeRagInfoStatus.NodeRagStatusBasicPending,
+        ConstsNodeRagInfoStatus.NodeRagStatusFailed,
+        ConstsNodeRagInfoStatus.NodeRagStatusPending,
       ].includes(item.rag_status)
         ? [
             {
               label:
-                item.rag_status ===
-                ConstsNodeRagInfoStatus.NodeRagStatusBasicPending
+                item.rag_status === ConstsNodeRagInfoStatus.NodeRagStatusPending
                   ? '学习文档'
                   : '重新学习',
               key: 'restudy',
@@ -366,9 +364,8 @@ const Content = () => {
             it.type === 2 &&
             it.rag_info?.status &&
             [
-              ConstsNodeRagInfoStatus.NodeRagStatusBasicFailed,
-              ConstsNodeRagInfoStatus.NodeRagStatusEnhanceFailed,
-              ConstsNodeRagInfoStatus.NodeRagStatusBasicPending,
+              ConstsNodeRagInfoStatus.NodeRagStatusFailed,
+              ConstsNodeRagInfoStatus.NodeRagStatusPending,
             ].includes(it.rag_info.status),
         ).length,
       );

@@ -109,7 +109,7 @@ func NewConfig() (*Config, error) {
 		RAG: RAGConfig{
 			Provider: "ct",
 			CTRAG: CTRAGConfig{
-				BaseURL: fmt.Sprintf("http://%s.18:8080/api/v1", SUBNET_PREFIX),
+				BaseURL: fmt.Sprintf("http://%s.18:5050", SUBNET_PREFIX),
 				APIKey:  "sk-1234567890",
 			},
 		},
@@ -207,6 +207,10 @@ func overrideWithEnv(c *Config) {
 	}
 	if env := os.Getenv("SENTRY_DSN"); env != "" {
 		c.Sentry.DSN = env
+	}
+	// caddy api
+	if env := os.Getenv("CADDY_API"); env != "" {
+		c.CaddyAPI = env
 	}
 	// log level
 	if env := os.Getenv("LOG_LEVEL"); env != "" {
