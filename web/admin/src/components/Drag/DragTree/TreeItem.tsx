@@ -525,9 +525,12 @@ const TreeItem = React.forwardRef<
                       {item.type === 2 && item.rag_status && (
                         <Tooltip title={item.rag_message}>
                           <StyledTag
-                            color={RAG_SOURCES[item.rag_status].color as any}
+                            color={
+                              RAG_SOURCES[item.rag_status]?.color ||
+                              ('warning' as any)
+                            }
                           >
-                            {RAG_SOURCES[item.rag_status].name}
+                            {RAG_SOURCES[item.rag_status]?.name || '处理中'}
                           </StyledTag>
                         </Tooltip>
                       )}

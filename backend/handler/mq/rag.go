@@ -85,7 +85,13 @@ func (h *RAGMQHandler) HandleNodeContentVectorRequest(ctx context.Context, msg t
 		}
 
 		// upsert node content chunks
-		docID, err := h.rag.UpsertRecords(ctx, kb.DatasetID, nodeRelease, groupIds)
+		docID, err := h.rag.UpsertRecords(ctx, &rag.UpsertRecordsRequest{
+			ID:        nodeRelease.ID,
+			DatasetID: kb.DatasetID,
+			DocID:     nodeRelease.DocID,
+			Content:   nodeRelease.Content,
+			GroupIDs:  groupIds,
+		})
 		if err != nil {
 			h.logger.Error("upsert node content vector failed", log.Error(err))
 			return nil

@@ -110,6 +110,18 @@ type ModelParam struct {
 	Temperature        *float32 `json:"temperature"`
 }
 
+func (p ModelParam) Map() map[string]any {
+	return map[string]any{
+		"context_window":       p.ContextWindow,
+		"max_tokens":           p.MaxTokens,
+		"r1_enabled":           p.R1Enabled,
+		"support_computer_use": p.SupportComputerUse,
+		"support_images":       p.SupportImages,
+		"support_prompt_cache": p.SupportPromptCache,
+		"temperature":          p.Temperature,
+	}
+}
+
 // Value implements the driver.Valuer interface for GORM
 func (p ModelParam) Value() (driver.Value, error) {
 	return json.Marshal(p)

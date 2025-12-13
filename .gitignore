@@ -32,3 +32,4 @@ deploy
 local
 
 .idea
+__debug*

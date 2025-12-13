@@ -343,7 +343,14 @@ func (u *ChatUsecase) ChatRagOnly(ctx context.Context, req *domain.ChatRagOnlyRe
 			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to get kb"}
 			return
 		}
-		rankedNodes, err := u.llmUsecase.GetRankNodes(ctx, []string{kb.DatasetID}, req.Message, groupIds, 0, nil)
+		_, rankedNodes, err := u.llmUsecase.GetRankNodes(ctx, GetRankNodesRequest{
+			DatasetID:           kb.DatasetID,
+			Question:            req.Message,
+			GroupIDs:            groupIds,
+			HistoryMessages:     nil,
+			SimilarityThreshold: 0,
+			MaxChunksPerDoc:     1,
+		})
 		if err != nil {
 			u.logger.Error("failed to get rank nodes", log.Error(err))
 			eventCh <- domain.SSEEvent{Type: "error", Content: "failed to get rank nodes"}
@@ -430,7 +437,13 @@ func (u *ChatUsecase) Search(ctx context.Context, req *domain.ChatSearchReq) (*d
 	if err != nil {
 		return nil, err
 	}
-	rankedNodes, err := u.llmUsecase.GetRankNodes(ctx, []string{kb.DatasetID}, req.Message, groupIds, 0.2, nil)
+	_, rankedNodes, err := u.llmUsecase.GetRankNodes(ctx, GetRankNodesRequest{
+		DatasetID:           kb.DatasetID,
+		Question:            req.Message,
+		GroupIDs:            groupIds,
+		SimilarityThreshold: 0.1,
+		HistoryMessages:     nil,
+	})
 	if err != nil {
 		return nil, err
 	}
