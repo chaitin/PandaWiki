@@ -230,12 +230,16 @@ func (u *ModelUsecase) SwitchMode(ctx context.Context, req *domain.SwitchModeReq
 		isResetEmbeddingUpdateFlag = false
 	}
 
-	modelModeSetting, err := u.updateModeSettingConfig(ctx, req.Mode, req.AutoModeAPIKey, req.ChatModel, isResetEmbeddingUpdateFlag)
+	if err := u.updateRAGModelsByMode(ctx, req.Mode, string(oldModelModeSetting.Mode), req.AutoModeAPIKey, oldModelModeSetting.IsManualEmbeddingUpdated); err != nil {
+		return err
+	}
+
+	_, err = u.updateModeSettingConfig(ctx, req.Mode, req.AutoModeAPIKey, req.ChatModel, isResetEmbeddingUpdateFlag)
 	if err != nil {
 		return err
 	}
 
-	return u.updateRAGModelsByMode(ctx, req.Mode, modelModeSetting.AutoModeAPIKey, oldModelModeSetting)
+	return nil
 }
 
 // updateModeSettingConfig 读取当前设置并更新，然后持久化
@@ -292,12 +296,12 @@ func (u *ModelUsecase) GetModelModeSetting(ctx context.Context) (domain.ModelMod
 }
 
 // updateRAGModelsByMode 根据模式更新 RAG 模型（embedding、rerank、analysis、analysisVL）
-func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoModeAPIKey string, oldModelModeSetting domain.ModelModeSetting) error {
+func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, newMode, oldMode, autoModeAPIKey string, isManualEmbeddingUpdated bool) error {
 	var isTriggerUpsertRecords = true
 
-	// 手动切换到手动模式, 根据IsManualEmbeddingUpdated字段决定
-	if oldModelModeSetting.Mode == consts.ModelSettingModeManual && mode == string(consts.ModelSettingModeManual) {
-		isTriggerUpsertRecords = oldModelModeSetting.IsManualEmbeddingUpdated
+	// 手动切换到手动模式, 当IsManualEmbeddingUpdated为true时触发记录更新
+	if oldMode == string(consts.ModelSettingModeManual) && newMode == string(consts.ModelSettingModeManual) {
+		isTriggerUpsertRecords = isManualEmbeddingUpdated
 	}
 
 	ragModelTypes := []domain.ModelType{
@@ -310,7 +314,7 @@ func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoMode
 	for _, modelType := range ragModelTypes {
 		var model *domain.Model
 
-		if mode == string(consts.ModelSettingModeManual) {
+		if newMode == string(consts.ModelSettingModeManual) {
 			// 获取该类型的活跃模型
 			m, err := u.modelRepo.GetModelByType(ctx, modelType)
 			if err != nil {
