@@ -26,6 +26,13 @@ const (
 	ModelTypeAnalysisVL ModelType = "analysis-vl"
 )
 
+func (m ModelType) IsRequired() bool {
+	if m == ModelTypeChat || m == ModelTypeEmbedding || m == ModelTypeRerank || m == ModelTypeAnalysis {
+		return true
+	}
+	return false
+}
+
 type Model struct {
 	ID         string        `json:"id"`
 	Provider   ModelProvider `json:"provider"`

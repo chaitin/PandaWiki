@@ -323,6 +323,9 @@ func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, newMode, oldMo
 			}
 			if m == nil || !m.IsActive {
 				u.logger.Warn("no active model found for type", log.String("type", string(modelType)))
+				if modelType.IsRequired() {
+					return fmt.Errorf("%s model is required", modelType)
+				}
 				continue
 			}
 			model = m
