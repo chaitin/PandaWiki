@@ -475,13 +475,17 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
                         lineHeight: '20px',
                         borderRadius: '10px',
                         bgcolor: addOpacityToColor(
-                          theme.palette.success.main,
+                          chatModelData.is_active
+                            ? theme.palette.success.main
+                            : theme.palette.error.main,
                           0.1,
                         ),
-                        color: 'success.main',
+                        color: chatModelData.is_active
+                          ? 'success.main'
+                          : 'error.main',
                       }}
                     >
-                      状态正常
+                      {chatModelData.is_active ? '状态正常' : '未启用'}
                     </Box>
                   ) : (
                     <Stack direction={'row'} alignItems={'center'} gap={1}>
@@ -685,13 +689,17 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
                         lineHeight: '20px',
                         borderRadius: '10px',
                         bgcolor: addOpacityToColor(
-                          theme.palette.success.main,
+                          embeddingModelData.is_active
+                            ? theme.palette.success.main
+                            : theme.palette.error.main,
                           0.1,
                         ),
-                        color: 'success.main',
+                        color: embeddingModelData.is_active
+                          ? 'success.main'
+                          : 'error.main',
                       }}
                     >
-                      状态正常
+                      {embeddingModelData.is_active ? '状态正常' : '未启用'}
                     </Box>
                   ) : (
                     <Stack direction={'row'} alignItems={'center'} gap={1}>
@@ -890,13 +898,17 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
                         lineHeight: '20px',
                         borderRadius: '10px',
                         bgcolor: addOpacityToColor(
-                          theme.palette.success.main,
+                          rerankModelData.is_active
+                            ? theme.palette.success.main
+                            : theme.palette.error.main,
                           0.1,
                         ),
-                        color: 'success.main',
+                        color: rerankModelData.is_active
+                          ? 'success.main'
+                          : 'error.main',
                       }}
                     >
-                      状态正常
+                      {rerankModelData.is_active ? '状态正常' : '未启用'}
                     </Box>
                   ) : (
                     <Stack direction={'row'} alignItems={'center'} gap={1}>
@@ -1095,13 +1107,17 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
                         lineHeight: '20px',
                         borderRadius: '10px',
                         bgcolor: addOpacityToColor(
-                          theme.palette.success.main,
+                          analysisModelData.is_active
+                            ? theme.palette.success.main
+                            : theme.palette.error.main,
                           0.1,
                         ),
-                        color: 'success.main',
+                        color: analysisModelData.is_active
+                          ? 'success.main'
+                          : 'error.main',
                       }}
                     >
-                      状态正常
+                      {analysisModelData.is_active ? '状态正常' : '未启用'}
                     </Box>
                   ) : (
                     <Stack direction={'row'} alignItems={'center'} gap={1}>
@@ -1312,13 +1328,17 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
                         lineHeight: '20px',
                         borderRadius: '10px',
                         bgcolor: addOpacityToColor(
-                          theme.palette.success.main,
+                          analysisVLModelData.is_active
+                            ? theme.palette.success.main
+                            : theme.palette.error.main,
                           0.1,
                         ),
-                        color: 'success.main',
+                        color: analysisVLModelData.is_active
+                          ? 'success.main'
+                          : 'error.main',
                       }}
                     >
-                      状态正常
+                      {analysisVLModelData.is_active ? '状态正常' : '未启用'}
                     </Box>
                   ) : (
                     <Box
