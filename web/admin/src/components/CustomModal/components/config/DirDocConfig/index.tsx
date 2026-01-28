@@ -6,6 +6,7 @@ import DragList from '../../components/DragList';
 import SortableItem from '../../components/SortableItem';
 import Item from './Item';
 import { Empty } from '@ctzhian/ui';
+import { DomainNodeType } from '@/request/types';
 import type { ConfigProps } from '../type';
 import { useAppSelector } from '@/store';
 import AddRecommendContent from '@/pages/setting/component/AddRecommendContent';
@@ -142,7 +143,8 @@ const DirDocConfig = ({ setIsEdit, id }: ConfigProps) => {
         selected={nodes.map(item => item.id!)}
         onChange={handleListChange}
         onClose={() => setOpen(false)}
-        disabled={item => item.type === 2}
+        disabled={item => item.type === DomainNodeType.NodeTypeDocument}
+        nodeType={DomainNodeType.NodeTypeFolder}
       />
     </StyledCommonWrapper>
   );

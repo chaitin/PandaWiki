@@ -2,6 +2,7 @@ import { ITreeItem, NodeListFilterData } from '@/api';
 import Nodata from '@/assets/images/nodata.png';
 import DragTree from '@/components/Drag/DragTree';
 import { getApiV1NodeList } from '@/request/Node';
+import { DomainNodeType } from '@/request/types';
 import { useAppSelector } from '@/store';
 import { convertToTree } from '@/utils/drag';
 import { filterEmptyFolders } from '@/utils/tree';
@@ -15,6 +16,8 @@ interface AddRecommendContentProps {
   onChange: (value: string[]) => void;
   onClose: () => void;
   disabled?: (value: ITreeItem) => boolean;
+  readOnly?: boolean;
+  nodeType?: DomainNodeType;
 }
 
 const AddRecommendContent = ({
@@ -23,6 +26,8 @@ const AddRecommendContent = ({
   onChange,
   onClose,
   disabled,
+  readOnly = true,
+  nodeType = DomainNodeType.NodeTypeDocument,
 }: AddRecommendContentProps) => {
   const [list, setList] = useState<ITreeItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -38,7 +43,11 @@ const AddRecommendContent = ({
           res?.filter(item => item.type === 1 || item.status === 2) || [];
         const filterTreeData = convertToTree(filterData);
         const showTreeData = filterEmptyFolders(filterTreeData);
-        setList(showTreeData);
+        setList(
+          nodeType == DomainNodeType.NodeTypeDocument
+            ? showTreeData
+            : showTreeData.filter(item => item.type === nodeType),
+        );
       })
       .finally(() => {
         setLoading(false);
@@ -79,6 +88,7 @@ const AddRecommendContent = ({
             setSelectedIds(value);
           }}
           disabled={disabled}
+          readOnly={readOnly}
           relativeSelect={false}
         />
       ) : (
