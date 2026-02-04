@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 
 	modelkitDomain "github.com/chaitin/ModelKit/v2/domain"
@@ -36,10 +35,8 @@ func NewModelHandler(echo *echo.Echo, baseHandler *handler.BaseHandler, logger *
 	}
 	group := echo.Group("/api/v1/model", handler.auth.Authorize, handler.auth.ValidateUserRole(consts.UserRoleAdmin))
 	group.GET("/list", handler.GetModelList)
-	group.POST("", handler.CreateModel)
 	group.POST("/check", handler.CheckModel)
 	group.POST("/provider/supported", handler.GetProviderSupportedModelList)
-	group.PUT("", handler.UpdateModel)
 	group.POST("/switch-mode", handler.SwitchMode)
 	group.GET("/mode-setting", handler.GetModelModeSetting)
 
@@ -64,79 +61,6 @@ func (h *ModelHandler) GetModelList(c echo.Context) error {
 	}
 
 	return h.NewResponseWithData(c, models)
-}
-
-// CreateModel
-//
-//	@Summary		create model
-//	@Description	create model
-//	@Tags			model
-//	@Accept			json
-//	@Produce		json
-//	@Param			model	body		domain.CreateModelReq	true	"create model request"
-//	@Success		200		{object}	domain.Response
-//	@Router			/api/v1/model [post]
-func (h *ModelHandler) CreateModel(c echo.Context) error {
-	var req domain.CreateModelReq
-	if err := c.Bind(&req); err != nil {
-		return h.NewResponseWithError(c, "invalid request", err)
-	}
-	if err := c.Validate(&req); err != nil {
-		return h.NewResponseWithError(c, "invalid request", err)
-	}
-
-	ctx := c.Request().Context()
-
-	param := domain.ModelParam{}
-	if req.Parameters != nil {
-		param = *req.Parameters
-	}
-	model := &domain.Model{
-		ID:         uuid.New().String(),
-		Provider:   req.Provider,
-		Model:      req.Model,
-		APIKey:     req.APIKey,
-		APIHeader:  req.APIHeader,
-		BaseURL:    req.BaseURL,
-		APIVersion: req.APIVersion,
-		Type:       req.Type,
-		IsActive:   true,
-		Parameters: param,
-	}
-	if err := h.usecase.Create(ctx, model); err != nil {
-		return h.NewResponseWithError(c, "create model failed", err)
-	}
-	return h.NewResponseWithData(c, model)
-}
-
-// UpdateModel
-//
-//	@Description	update model
-//	@Tags			model
-//	@Accept			json
-//	@Produce		json
-//	@Param			model	body		domain.UpdateModelReq	true	"update model request"
-//	@Success		200		{object}	domain.Response
-//	@Router			/api/v1/model [put]
-func (h *ModelHandler) UpdateModel(c echo.Context) error {
-	var req domain.UpdateModelReq
-	if err := c.Bind(&req); err != nil {
-		return h.NewResponseWithError(c, "invalid request", err)
-	}
-	if err := c.Validate(&req); err != nil {
-		return h.NewResponseWithError(c, "invalid request", err)
-	}
-
-	// 不支持修改非视觉模型的启用状态
-	if req.IsActive != nil && req.Type != domain.ModelTypeAnalysisVL {
-		return h.NewResponseWithError(c, "仅支持修改视觉模型的启用状态", nil)
-	}
-
-	ctx := c.Request().Context()
-	if err := h.usecase.Update(ctx, &req); err != nil {
-		return h.NewResponseWithError(c, "update model failed", err)
-	}
-	return h.NewResponseWithData(c, nil)
 }
 
 // CheckModel

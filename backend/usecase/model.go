@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"github.com/cloudwego/eino/schema"
+	"github.com/google/uuid"
+	"github.com/samber/lo"
 
 	modelkitDomain "github.com/chaitin/ModelKit/v2/domain"
 	modelkit "github.com/chaitin/ModelKit/v2/usecase"
@@ -45,23 +47,6 @@ func NewModelUsecase(modelRepo *pg.ModelRepository, nodeRepo *pg.NodeRepository,
 		modelkit:          modelkit,
 	}
 	return u
-}
-
-func (u *ModelUsecase) Create(ctx context.Context, model *domain.Model) error {
-	var updatedEmbeddingModel bool
-	if model.Type == domain.ModelTypeEmbedding {
-		updatedEmbeddingModel = true
-	}
-	if err := u.modelRepo.Create(ctx, model); err != nil {
-		return err
-	}
-	// 模型更新成功后，如果更新嵌入模型，则触发记录更新
-	if updatedEmbeddingModel {
-		if _, err := u.updateModeSettingConfig(ctx, "", "", "", true); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (u *ModelUsecase) GetList(ctx context.Context) ([]*domain.ModelListItem, error) {
@@ -108,41 +93,6 @@ func (u *ModelUsecase) TriggerUpsertRecords(ctx context.Context) error {
 	return nil
 }
 
-func (u *ModelUsecase) Update(ctx context.Context, req *domain.UpdateModelReq) error {
-	var updatedEmbeddingModel bool
-	if req.Type == domain.ModelTypeEmbedding {
-		updatedEmbeddingModel = true
-	}
-	if err := u.modelRepo.Update(ctx, req); err != nil {
-		return err
-	}
-	data := &domain.Model{
-		Provider:   req.Provider,
-		Model:      req.Model,
-		Type:       req.Type,
-		APIKey:     req.APIKey,
-		BaseURL:    req.BaseURL,
-		APIHeader:  req.APIHeader,
-		APIVersion: req.APIVersion,
-	}
-	if req.IsActive != nil {
-		data.IsActive = *req.IsActive
-	}
-	if req.Parameters != nil {
-		data.Parameters = *req.Parameters
-	}
-	if err := u.ragStore.UpsertModel(ctx, data); err != nil {
-		return err
-	}
-	// 模型更新成功后，如果更新嵌入模型，则触发记录更新
-	if updatedEmbeddingModel {
-		if _, err := u.updateModeSettingConfig(ctx, "", "", "", true); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (u *ModelUsecase) GetChatModel(ctx context.Context) (*domain.Model, error) {
 	var model *domain.Model
 	modelModeSetting, err := u.GetModelModeSetting(ctx)
@@ -182,6 +132,14 @@ func (u *ModelUsecase) UpdateUsage(ctx context.Context, modelID string, usage *s
 }
 
 func (u *ModelUsecase) SwitchMode(ctx context.Context, req *domain.SwitchModeReq) error {
+	shouldTriggerUpsert := true
+	if req.Mode == string(consts.ModelSettingModeManual) {
+		// 手动模式下，只有当 embedding 模型发生变更（创建或更新）时，才需要触发向量数据的重新处理
+		shouldTriggerUpsert = lo.ContainsBy(req.ManualModels, func(op domain.ManualModelOperation) bool {
+			return op.Type == domain.ModelTypeEmbedding
+		})
+	}
+
 	switch consts.ModelSettingMode(req.Mode) {
 	case consts.ModelSettingModeAuto:
 		if req.AutoModeAPIKey == "" {
@@ -206,55 +164,70 @@ func (u *ModelUsecase) SwitchMode(ctx context.Context, req *domain.SwitchModeReq
 			return fmt.Errorf("百智云模型 API Key 检查失败: %s", check.Error)
 		}
 	case consts.ModelSettingModeManual:
-		needModelTypes := []domain.ModelType{
-			domain.ModelTypeChat,
-			domain.ModelTypeEmbedding,
-			domain.ModelTypeRerank,
-			domain.ModelTypeAnalysis,
+		if err := req.ValidateManualModelOperations(); err != nil {
+			return err
 		}
-		for _, modelType := range needModelTypes {
-			model, err := u.modelRepo.GetModelByType(ctx, modelType)
-			if err != nil {
-				return fmt.Errorf("需要配置 %s 模型", modelType)
-			}
-
-			if !model.IsActive {
-				if err := u.modelRepo.Updates(ctx, model.ID, map[string]any{
-					"is_active": true,
-				}); err != nil {
-					return err
-				}
-			}
+		if err := u.handleManualModelOperations(ctx, req.ManualModels); err != nil {
+			return err
 		}
 	default:
 		return fmt.Errorf("invalid req mode: %s", req.Mode)
 	}
 
-	oldModelModeSetting, err := u.GetModelModeSetting(ctx)
+	modelModeSetting, err := u.updateModeSettingConfig(ctx, req.Mode, req.AutoModeAPIKey, req.ChatModel)
 	if err != nil {
 		return err
 	}
 
-	var isResetEmbeddingUpdateFlag = true
-	// 只有切换手动模式时，重置isManualEmbeddingUpdated为false
-	if req.Mode == string(consts.ModelSettingModeManual) {
-		isResetEmbeddingUpdateFlag = false
-	}
-
-	modelModeSetting, err := u.updateModeSettingConfig(ctx, req.Mode, req.AutoModeAPIKey, req.ChatModel, isResetEmbeddingUpdateFlag)
-	if err != nil {
-		return err
-	}
-
-	if err := u.updateRAGModelsByMode(ctx, req.Mode, modelModeSetting.AutoModeAPIKey, oldModelModeSetting); err != nil {
+	if err := u.updateRAGModelsByMode(ctx, req.Mode, modelModeSetting.AutoModeAPIKey, shouldTriggerUpsert); err != nil {
 		return err
 	}
 
 	return nil
 }
 
+func (u *ModelUsecase) handleManualModelOperations(ctx context.Context, operations []domain.ManualModelOperation) error {
+	for _, op := range operations {
+		switch op.Operation {
+		case domain.ManualModelOperationTypeCreate:
+			param := domain.ModelParam{}
+			if op.Parameters != nil {
+				param = *op.Parameters
+			}
+			model := &domain.Model{
+				ID:         uuid.New().String(),
+				Provider:   op.Provider,
+				Model:      op.Model,
+				APIKey:     op.APIKey,
+				APIHeader:  op.APIHeader,
+				BaseURL:    op.BaseURL,
+				APIVersion: op.APIVersion,
+				Type:       op.Type,
+				IsActive:   true,
+				Parameters: param,
+			}
+			if err := u.modelRepo.Create(ctx, model); err != nil {
+				return err
+			}
+		case domain.ManualModelOperationTypeUpdate:
+			updateReq := &domain.UpdateModelReq{
+				ID:            op.ID,
+				BaseModelInfo: op.BaseModelInfo,
+				Parameters:    op.Parameters,
+				IsActive:      op.IsActive,
+			}
+			if err := u.modelRepo.Update(ctx, updateReq); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unsupported manual model operation: %s", op.Operation)
+		}
+	}
+	return nil
+}
+
 // updateModeSettingConfig 读取当前设置并更新，然后持久化
-func (u *ModelUsecase) updateModeSettingConfig(ctx context.Context, mode, apiKey, chatModel string, isManualEmbeddingUpdated bool) (*domain.ModelModeSetting, error) {
+func (u *ModelUsecase) updateModeSettingConfig(ctx context.Context, mode, apiKey, chatModel string) (*domain.ModelModeSetting, error) {
 	// 读取当前设置
 	setting, err := u.systemSettingRepo.GetSystemSetting(ctx, consts.SystemSettingModelMode)
 	if err != nil {
@@ -276,8 +249,6 @@ func (u *ModelUsecase) updateModeSettingConfig(ctx context.Context, mode, apiKey
 	if mode != "" {
 		config.Mode = consts.ModelSettingMode(mode)
 	}
-
-	config.IsManualEmbeddingUpdated = isManualEmbeddingUpdated
 
 	// 持久化设置
 	updatedValue, err := json.Marshal(config)
@@ -307,13 +278,7 @@ func (u *ModelUsecase) GetModelModeSetting(ctx context.Context) (domain.ModelMod
 }
 
 // updateRAGModelsByMode 根据模式更新 RAG 模型
-func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoModeAPIKey string, oldModelModeSetting domain.ModelModeSetting) error {
-	var isTriggerUpsertRecords = true
-
-	// 手动切换到手动模式, 根据IsManualEmbeddingUpdated字段决定
-	if oldModelModeSetting.Mode == consts.ModelSettingModeManual && mode == string(consts.ModelSettingModeManual) {
-		isTriggerUpsertRecords = oldModelModeSetting.IsManualEmbeddingUpdated
-	}
+func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoModeAPIKey string, triggerUpsert bool) error {
 
 	ragModelTypes := []domain.ModelType{
 		domain.ModelTypeEmbedding,
@@ -362,8 +327,8 @@ func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoMode
 	}
 
 	// 触发记录更新
-	if isTriggerUpsertRecords {
-		u.logger.Info("embedding model updated, triggering upsert records")
+	if triggerUpsert {
+		u.logger.Info("trigger upsert records for embedding model changes")
 		return u.TriggerUpsertRecords(ctx)
 	}
 	return nil
