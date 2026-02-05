@@ -418,6 +418,10 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
     ]);
 
     const handleSave = async () => {
+      if (!showSaveBtn) {
+        return await performSave();
+      }
+
       if (tempMode !== savedMode || hasConfigChanged) {
         // 检测是否切换了模式
         const isModeChanged = tempMode !== savedMode;
@@ -582,27 +586,29 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
                   label='手动配置'
                 />
               </RadioGroup>
-              <Box
-                sx={{
-                  fontSize: 12,
-                  color: 'text.tertiary',
-                  ml: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                }}
-              >
+              {showSaveBtn && (
                 <Box
-                  component='span'
                   sx={{
-                    color: 'warning.main',
-                    fontWeight: 'bold',
+                    fontSize: 12,
+                    color: 'text.tertiary',
+                    ml: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.5,
                   }}
                 >
-                  提示：
+                  <Box
+                    component='span'
+                    sx={{
+                      color: 'warning.main',
+                      fontWeight: 'bold',
+                    }}
+                  >
+                    提示：
+                  </Box>
+                  切换配置模式或修改向量模型会触发重新学习
                 </Box>
-                切换配置模式或修改向量模型会触发重新学习
-              </Box>
+              )}
             </Stack>
           </Box>
           {(tempMode !== savedMode || hasConfigChanged) && showSaveBtn && (
