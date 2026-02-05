@@ -21,6 +21,10 @@ func NewModelRepository(db *pg.DB, logger *log.Logger) *ModelRepository {
 }
 
 func (r *ModelRepository) Create(ctx context.Context, model *domain.Model) error {
+	// 容错：必需模型不允许显式关闭
+	if model.Type.IsRequired() {
+		model.IsActive = true
+	}
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		if err := tx.Create(model).Error; err != nil {
 			return err
@@ -56,7 +60,10 @@ func (r *ModelRepository) Update(ctx context.Context, req *domain.UpdateModelReq
 		"parameters":  param,
 	}
 	if req.IsActive != nil {
-		updateMap["is_active"] = *req.IsActive
+		// 容错：必需模型不允许显式关闭，传了 false 则忽略该字段
+		if !req.Type.IsRequired() {
+			updateMap["is_active"] = *req.IsActive
+		}
 	}
 	return r.db.WithContext(ctx).
 		Model(&domain.Model{}).

@@ -132,13 +132,7 @@ func (u *ModelUsecase) UpdateUsage(ctx context.Context, modelID string, usage *s
 }
 
 func (u *ModelUsecase) SwitchMode(ctx context.Context, req *domain.SwitchModeReq) error {
-	shouldTriggerUpsert := true
-	if req.Mode == string(consts.ModelSettingModeManual) {
-		// 手动模式下，只有当 embedding 模型发生变更（创建或更新）时，才需要触发向量数据的重新处理
-		shouldTriggerUpsert = lo.ContainsBy(req.ManualModels, func(op domain.ManualModelOperation) bool {
-			return op.Type == domain.ModelTypeEmbedding
-		})
-	}
+	shouldTriggerUpsert := u.checkShouldTriggerUpsert(ctx, req)
 
 	switch consts.ModelSettingMode(req.Mode) {
 	case consts.ModelSettingModeAuto:
@@ -174,16 +168,39 @@ func (u *ModelUsecase) SwitchMode(ctx context.Context, req *domain.SwitchModeReq
 		return fmt.Errorf("invalid req mode: %s", req.Mode)
 	}
 
-	modelModeSetting, err := u.updateModeSettingConfig(ctx, req.Mode, req.AutoModeAPIKey, req.ChatModel)
-	if err != nil {
+	if err := u.updateModeSettingConfig(ctx, req.Mode, req.AutoModeAPIKey, req.ChatModel); err != nil {
 		return err
 	}
 
-	if err := u.updateRAGModelsByMode(ctx, req.Mode, modelModeSetting.AutoModeAPIKey, shouldTriggerUpsert); err != nil {
+	if err := u.updateRAGModelsByMode(ctx, req.Mode, req.AutoModeAPIKey, shouldTriggerUpsert); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (u *ModelUsecase) checkShouldTriggerUpsert(ctx context.Context, req *domain.SwitchModeReq) bool {
+	currentSetting, err := u.GetModelModeSetting(ctx)
+	if err != nil {
+		return true
+	}
+
+	currentMode := currentSetting.Mode
+	newMode := consts.ModelSettingMode(req.Mode)
+
+	if currentMode != newMode {
+		// 手动模式转自动模式
+		// 自动模式转手动模式
+		return true
+	} else if newMode == consts.ModelSettingModeManual {
+		// 手动模式下修改嵌入模型
+		// 手动模式更改非嵌入模型 (false)
+		return lo.ContainsBy(req.ManualModels, func(op domain.ManualModelOperation) bool {
+			return op.Type == domain.ModelTypeEmbedding
+		})
+	}
+	// 自动模式更改模型 (false)
+	return false
 }
 
 func (u *ModelUsecase) handleManualModelOperations(ctx context.Context, operations []domain.ManualModelOperation) error {
@@ -223,20 +240,40 @@ func (u *ModelUsecase) handleManualModelOperations(ctx context.Context, operatio
 			return fmt.Errorf("unsupported manual model operation: %s", op.Operation)
 		}
 	}
+	needModelTypes := []domain.ModelType{
+		domain.ModelTypeChat,
+		domain.ModelTypeEmbedding,
+		domain.ModelTypeRerank,
+		domain.ModelTypeAnalysis,
+	}
+	for _, modelType := range needModelTypes {
+		model, err := u.modelRepo.GetModelByType(ctx, modelType)
+		if err != nil {
+			return fmt.Errorf("需要配置 %s 模型", modelType)
+		}
+
+		if !model.IsActive {
+			if err := u.modelRepo.Updates(ctx, model.ID, map[string]any{
+				"is_active": true,
+			}); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
 // updateModeSettingConfig 读取当前设置并更新，然后持久化
-func (u *ModelUsecase) updateModeSettingConfig(ctx context.Context, mode, apiKey, chatModel string) (*domain.ModelModeSetting, error) {
+func (u *ModelUsecase) updateModeSettingConfig(ctx context.Context, mode, apiKey, chatModel string) error {
 	// 读取当前设置
 	setting, err := u.systemSettingRepo.GetSystemSetting(ctx, consts.SystemSettingModelMode)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get current model setting: %w", err)
+		return fmt.Errorf("failed to get current model setting: %w", err)
 	}
 
 	var config domain.ModelModeSetting
 	if err := json.Unmarshal(setting.Value, &config); err != nil {
-		return nil, fmt.Errorf("failed to parse current model setting: %w", err)
+		return fmt.Errorf("failed to parse current model setting: %w", err)
 	}
 
 	// 更新设置
@@ -253,12 +290,12 @@ func (u *ModelUsecase) updateModeSettingConfig(ctx context.Context, mode, apiKey
 	// 持久化设置
 	updatedValue, err := json.Marshal(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal updated model setting: %w", err)
+		return fmt.Errorf("failed to marshal updated model setting: %w", err)
 	}
 	if err := u.systemSettingRepo.UpdateSystemSetting(ctx, string(consts.SystemSettingModelMode), string(updatedValue)); err != nil {
-		return nil, fmt.Errorf("failed to update model setting: %w", err)
+		return fmt.Errorf("failed to update model setting: %w", err)
 	}
-	return &config, nil
+	return nil
 }
 
 func (u *ModelUsecase) GetModelModeSetting(ctx context.Context) (domain.ModelModeSetting, error) {
@@ -317,7 +354,6 @@ func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoMode
 
 		// 更新RAG存储中的模型
 		if model != nil {
-			// rag store中更新失败不影响其他模型更新
 			if err := u.ragStore.UpsertModel(ctx, model); err != nil {
 				u.logger.Error("failed to update model in RAG store", log.String("model_id", model.ID), log.String("type", string(modelType)), log.Any("error", err))
 				return fmt.Errorf("failed to update model in RAG store: %s", model.Type)

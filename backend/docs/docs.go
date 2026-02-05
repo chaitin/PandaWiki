@@ -1421,71 +1421,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/model": {
-            "put": {
-                "description": "update model",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "model"
-                ],
-                "parameters": [
-                    {
-                        "description": "update model request",
-                        "name": "model",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.UpdateModelReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/domain.Response"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "create model",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "model"
-                ],
-                "summary": "create model",
-                "parameters": [
-                    {
-                        "description": "create model request",
-                        "name": "model",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/domain.CreateModelReq"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/domain.Response"
-                        }
-                    }
-                }
-            }
-        },
         "/api/v1/model/check": {
             "post": {
                 "description": "check model",
@@ -5934,53 +5869,6 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.CreateModelReq": {
-            "type": "object",
-            "required": [
-                "base_url",
-                "model",
-                "provider",
-                "type"
-            ],
-            "properties": {
-                "api_header": {
-                    "type": "string"
-                },
-                "api_key": {
-                    "type": "string"
-                },
-                "api_version": {
-                    "description": "for azure openai",
-                    "type": "string"
-                },
-                "base_url": {
-                    "type": "string"
-                },
-                "model": {
-                    "type": "string"
-                },
-                "parameters": {
-                    "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelParam"
-                },
-                "provider": {
-                    "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelProvider"
-                },
-                "type": {
-                    "enum": [
-                        "chat",
-                        "embedding",
-                        "rerank",
-                        "analysis",
-                        "analysis-vl"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/domain.ModelType"
-                        }
-                    ]
-                }
-            }
-        },
         "domain.CreateNodeReq": {
             "type": "object",
             "required": [
@@ -6510,6 +6398,82 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.ManualModelOperation": {
+            "type": "object",
+            "required": [
+                "base_url",
+                "model",
+                "operation",
+                "provider",
+                "type"
+            ],
+            "properties": {
+                "api_header": {
+                    "type": "string"
+                },
+                "api_key": {
+                    "type": "string"
+                },
+                "api_version": {
+                    "description": "for azure openai",
+                    "type": "string"
+                },
+                "base_url": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "model": {
+                    "type": "string"
+                },
+                "operation": {
+                    "enum": [
+                        "create",
+                        "update"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.ManualModelOperationType"
+                        }
+                    ]
+                },
+                "parameters": {
+                    "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelParam"
+                },
+                "provider": {
+                    "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelProvider"
+                },
+                "type": {
+                    "enum": [
+                        "chat",
+                        "embedding",
+                        "rerank",
+                        "analysis",
+                        "analysis-vl"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/domain.ModelType"
+                        }
+                    ]
+                }
+            }
+        },
+        "domain.ManualModelOperationType": {
+            "type": "string",
+            "enum": [
+                "create",
+                "update"
+            ],
+            "x-enum-varnames": [
+                "ManualModelOperationTypeCreate",
+                "ManualModelOperationTypeUpdate"
+            ]
+        },
         "domain.MessageContent": {
             "type": "object"
         },
@@ -6564,7 +6528,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "is_manual_embedding_updated": {
-                    "description": "手动模式下嵌入模型是否更新",
+                    "description": "已废弃, 手动模式下嵌入模型是否更新",
                     "type": "boolean"
                 },
                 "mode": {
@@ -7511,6 +7475,12 @@ const docTemplate = `{
                     "description": "自定义对话模型名称",
                     "type": "string"
                 },
+                "manual_models": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.ManualModelOperation"
+                    }
+                },
                 "mode": {
                     "type": "string",
                     "enum": [
@@ -7618,60 +7588,6 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
-                }
-            }
-        },
-        "domain.UpdateModelReq": {
-            "type": "object",
-            "required": [
-                "base_url",
-                "id",
-                "model",
-                "provider",
-                "type"
-            ],
-            "properties": {
-                "api_header": {
-                    "type": "string"
-                },
-                "api_key": {
-                    "type": "string"
-                },
-                "api_version": {
-                    "description": "for azure openai",
-                    "type": "string"
-                },
-                "base_url": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_active": {
-                    "type": "boolean"
-                },
-                "model": {
-                    "type": "string"
-                },
-                "parameters": {
-                    "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelParam"
-                },
-                "provider": {
-                    "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.ModelProvider"
-                },
-                "type": {
-                    "enum": [
-                        "chat",
-                        "embedding",
-                        "rerank",
-                        "analysis",
-                        "analysis-vl"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/domain.ModelType"
-                        }
-                    ]
                 }
             }
         },

@@ -212,42 +212,18 @@ func (req *SwitchModeReq) ValidateManualModelOperations() error {
 
 	// 基础约束：每种模型类型只能出现一次
 	typeSeen := make(map[ModelType]struct{})
-	// 当存在 create 操作时，需要校验是否补齐所有必需模型
-	hasCreateOperation := false
-	requiredTypes := []ModelType{ModelTypeChat, ModelTypeEmbedding, ModelTypeRerank, ModelTypeAnalysis}
 
 	for idx := range req.ManualModels {
 		op := req.ManualModels[idx]
-		if op.Operation != ManualModelOperationTypeCreate && op.Operation != ManualModelOperationTypeUpdate {
-			return fmt.Errorf("manual_models[%d] 不支持的操作类型: %s", idx, op.Operation)
-		}
+
 		if _, duplicated := typeSeen[op.Type]; duplicated {
 			return fmt.Errorf("manual_models[%d] 模型类型 %s 只能配置一个", idx, op.Type)
 		}
 		typeSeen[op.Type] = struct{}{}
 
-		// 容错：必需模型不允许显式关闭，传了 false 则忽略该字段
-		if op.Type.IsRequired() && op.IsActive != nil && !*op.IsActive {
-			req.ManualModels[idx].IsActive = nil
-		}
-
-		switch op.Operation {
-		case ManualModelOperationTypeCreate:
-			hasCreateOperation = true
-			if op.Provider == "" || op.Model == "" || op.BaseURL == "" || op.Type == "" {
-				return fmt.Errorf("manual_models[%d] create 操作缺少必要的模型信息", idx)
-			}
-		case ManualModelOperationTypeUpdate:
+		if op.Operation == ManualModelOperationTypeUpdate {
 			if op.ID == "" {
 				return fmt.Errorf("manual_models[%d] update 操作需要提供 id", idx)
-			}
-		}
-	}
-
-	if hasCreateOperation {
-		for _, modelType := range requiredTypes {
-			if _, ok := typeSeen[modelType]; !ok {
-				return fmt.Errorf("create 操作需要包含 %s 模型", modelType)
 			}
 		}
 	}
