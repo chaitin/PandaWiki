@@ -1,5 +1,6 @@
 import { AuthSetting } from '@/api/type';
-import { ConstsSourceType } from '@/request/pro/types';
+import { ConstsSourceType as ConstsSourceTypePro } from '@/request/pro/types';
+import { ConstsSourceType } from '@/request/types';
 import dayjs from 'dayjs';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import {
@@ -18,7 +19,10 @@ import Avatar from '@/components/Avatar';
 import NoData from '@/assets/images/nodata.png';
 import { putApiV1KnowledgeBaseDetail } from '@/request/KnowledgeBase';
 import { DomainKnowledgeBaseDetail } from '@/request/types';
-import { GithubComChaitinPandaWikiProApiAuthV1AuthItem } from '@/request/pro/types';
+import {
+  GithubComChaitinPandaWikiProApiAuthV1AuthItem,
+  GetApiProV1AuthGetParams,
+} from '@/request/pro/types';
 import UserGroup from './UserGroup';
 import { getApiProV1AuthGet, postApiProV1AuthSet } from '@/request/pro/Auth';
 
@@ -120,7 +124,7 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
         ? isBusiness
           ? postApiProV1AuthSet({
               kb_id,
-              source_type: value.source_type as ConstsSourceType,
+              source_type: value.source_type as unknown as ConstsSourceTypePro,
               client_id: value.client_id,
               client_secret: value.client_secret,
               agent_id: value.agent_id,
@@ -169,8 +173,8 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
       ? kb.access_settings?.source_type ||
         EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword
       : EXTEND_CONSTS_SOURCE_TYPE.SourceTypePassword;
-    setValue('source_type', source_type);
-    sourceTypeRef.current = source_type;
+    setValue('source_type', source_type as unknown as ExtendConstsSourceType);
+    sourceTypeRef.current = source_type as unknown as ExtendConstsSourceType;
   }, [kb, isBusiness]);
 
   useEffect(() => {
@@ -190,10 +194,13 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
     if (isBusiness) {
       getApiProV1AuthGet({
         kb_id,
-        source_type: source_type as ConstsSourceType,
+        source_type:
+          source_type as unknown as GetApiProV1AuthGetParams['source_type'],
       }).then(res => {
         if (!res) return;
-        setMemberList(res.auths || []);
+        setMemberList(
+          (res.auths || []) as GithubComChaitinPandaWikiProApiAuthV1AuthItem[],
+        );
         setValue('client_id', res.client_id!);
         setValue('client_secret', res.client_secret!);
         setValue('agent_id', res.agent_id!);
@@ -221,7 +228,9 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
         source_type: source_type as ConstsSourceType,
       }).then(res => {
         if (!res) return;
-        setMemberList(res.auths || []);
+        setMemberList(
+          (res.auths || []) as GithubComChaitinPandaWikiProApiAuthV1AuthItem[],
+        );
         setValue('client_id', res.client_id!);
         setValue('client_secret', res.client_secret!);
         setValue('proxy', res.proxy!);
@@ -884,7 +893,7 @@ const CardAuth = ({ kb, refresh }: CardAuthProps) => {
             <UserGroup
               memberList={memberList}
               enabled={enabled}
-              sourceType={source_type}
+              sourceType={source_type as unknown as ConstsSourceTypePro}
               getAuth={getAuth}
             />
             <SettingCardItem title='成员'>

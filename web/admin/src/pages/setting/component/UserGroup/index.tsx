@@ -107,7 +107,7 @@ const UserGroup = ({
         setSyncLoading(true);
         await postApiProV1AuthGroupSync({
           kb_id,
-          source_type: sourceType as 'dingtalk',
+          source_type: sourceType as unknown as 'dingtalk' | 'wecom',
         })
           .then(() => {
             message.success('同步成功');

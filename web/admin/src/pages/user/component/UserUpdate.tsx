@@ -141,12 +141,11 @@ const UserUpdate = ({ user, refresh, onClose }: UserUpdateProps) => {
       promises.push(
         putApiV1UserGuestId({
           id: user.id,
-          // @ts-expect-error - guest role is valid but not in type definition
           body: {
             account: user.account || '',
             password: data.password,
             role: 'guest',
-          },
+          } as unknown as import('@/request/types').V1CreateUserReq,
         }),
       );
     }
