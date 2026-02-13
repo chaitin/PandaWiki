@@ -97,7 +97,7 @@ func NewConfig() (*Config, error) {
 		MQ: MQConfig{
 			Type: "nats",
 			NATS: NATSConfig{
-				Server:   "panda-wiki-nats:4222",
+				Server:   "nats://panda-wiki-nats:4222",
 				User:     "panda-wiki",
 				Password: "",
 			},
@@ -105,7 +105,7 @@ func NewConfig() (*Config, error) {
 		RAG: RAGConfig{
 			Provider: "ct",
 			CTRAG: CTRAGConfig{
-				BaseURL: "panda-wiki-raglite:5050",
+				BaseURL: "http://panda-wiki-raglite:5050",
 				APIKey:  "sk-1234567890",
 			},
 		},
