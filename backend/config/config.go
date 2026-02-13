@@ -83,10 +83,6 @@ type SentryConfig struct {
 
 func NewConfig() (*Config, error) {
 	// set default config
-	SUBNET_PREFIX := os.Getenv("SUBNET_PREFIX")
-	if SUBNET_PREFIX == "" {
-		SUBNET_PREFIX = "169.254.15"
-	}
 	defaultConfig := &Config{
 		Log: LogConfig{
 			Level: 0,
@@ -101,7 +97,7 @@ func NewConfig() (*Config, error) {
 		MQ: MQConfig{
 			Type: "nats",
 			NATS: NATSConfig{
-				Server:   fmt.Sprintf("nats://%s.13:4222", SUBNET_PREFIX),
+				Server:   "nats://panda-wiki-nats:4222",
 				User:     "panda-wiki",
 				Password: "",
 			},
@@ -109,7 +105,7 @@ func NewConfig() (*Config, error) {
 		RAG: RAGConfig{
 			Provider: "ct",
 			CTRAG: CTRAGConfig{
-				BaseURL: fmt.Sprintf("http://%s.18:5050", SUBNET_PREFIX),
+				BaseURL: "http://panda-wiki-raglite:5050",
 				APIKey:  "sk-1234567890",
 			},
 		},
