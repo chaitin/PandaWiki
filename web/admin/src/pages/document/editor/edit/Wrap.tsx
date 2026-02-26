@@ -1,7 +1,11 @@
 import { uploadFile } from '@/api';
 import Emoji from '@/components/Emoji';
 import { BUSINESS_VERSION_PERMISSION } from '@/constant/version';
-import { postApiV1CreationTabComplete, putApiV1NodeDetail } from '@/request';
+import {
+  postApiV1CreationTabComplete,
+  postApiV1FileUploadUrl,
+  putApiV1NodeDetail,
+} from '@/request';
 import { V1NodeDetailResp } from '@/request/types';
 import { useAppSelector } from '@/store';
 import { completeIncompleteLinks } from '@/utils';
@@ -144,6 +148,22 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     return Promise.resolve('/static-file/' + key);
   };
 
+  const handleUploadByImgUrl = async (
+    url: string,
+    abortSignal?: AbortSignal,
+  ) => {
+    const { key } = await postApiV1FileUploadUrl(
+      {
+        kb_id: defaultDetail.kb_id!,
+        url,
+      },
+      {
+        signal: abortSignal,
+      },
+    );
+    return Promise.resolve('/static-file/' + key);
+  };
+
   const handleTocUpdate = (toc: TocList) => {
     setHeadings(toc);
   };
@@ -201,6 +221,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     },
     onError: handleError,
     onUpload: handleUpload,
+    onUploadImgUrl: handleUploadByImgUrl,
     onUpdate: handleUpdate,
     onTocUpdate: handleTocUpdate,
     onAiWritingGetSuggestion: handleAiWritingGetSuggestion,
