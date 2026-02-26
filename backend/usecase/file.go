@@ -3,12 +3,14 @@ package usecase
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"mime"
 	"mime/multipart"
+	"net/http"
 	"path/filepath"
 	"strings"
 
@@ -22,6 +24,7 @@ import (
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/repo/pg"
 	"github.com/chaitin/panda-wiki/store/s3"
+	"github.com/chaitin/panda-wiki/utils"
 )
 
 type FileUsecase struct {
@@ -29,6 +32,7 @@ type FileUsecase struct {
 	s3Client          *s3.MinioClient
 	config            *config.Config
 	systemSettingRepo *pg.SystemSettingRepo
+	httpClient        *http.Client
 }
 
 func NewFileUsecase(logger *log.Logger, s3Client *s3.MinioClient, config *config.Config, systemSettingRepo *pg.SystemSettingRepo) *FileUsecase {
@@ -37,6 +41,17 @@ func NewFileUsecase(logger *log.Logger, s3Client *s3.MinioClient, config *config
 		logger:            logger.WithModule("usecase.file"),
 		config:            config,
 		systemSettingRepo: systemSettingRepo,
+		httpClient: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			},
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				// Prevent redirects to bypass SSRF checks
+				return http.ErrUseLastResponse
+			},
+		},
 	}
 }
 
@@ -215,6 +230,81 @@ func (u *FileUsecase) AnyDocUploadFile(ctx context.Context, file *multipart.File
 	}
 
 	return resp.Key, nil
+}
+
+func (u *FileUsecase) UploadFileByUrl(ctx context.Context, kbID string, fileURL string) (string, error) {
+	// Validate URL to prevent SSRF attacks
+	if err := utils.ValidateURLForSSRF(fileURL); err != nil {
+		return "", err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fileURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := u.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to download file: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Handle redirects manually to re-validate each redirect target
+	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+		return "", fmt.Errorf("redirects are not allowed for security reasons")
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("failed to download file, status: %d", resp.StatusCode)
+	}
+
+	const maxRemoteFileSize = 50 * 1024 * 1024 // 50MB
+	lr := io.LimitReader(resp.Body, maxRemoteFileSize+1)
+	data, err := io.ReadAll(lr)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+	if len(data) > maxRemoteFileSize {
+		return "", fmt.Errorf("failed to read response body: file size exceeds limit of %d bytes", maxRemoteFileSize)
+	}
+
+	urlPath := fileURL
+	if idx := strings.Index(urlPath, "?"); idx != -1 {
+		urlPath = urlPath[:idx]
+	}
+	ext := strings.ToLower(filepath.Ext(urlPath))
+
+	if err := u.checkDeniedExtension(ctx, ext); err != nil {
+		return "", err
+	}
+
+	s3Filename := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), ext)
+
+	// Derive content type from the actual data instead of trusting the remote header
+	contentType := http.DetectContentType(data)
+	if contentType == "" || contentType == "application/octet-stream" {
+		if extType := mime.TypeByExtension(ext); extType != "" {
+			contentType = extType
+		} else {
+			contentType = "application/octet-stream"
+		}
+	}
+
+	putResp, err := u.s3Client.PutObject(
+		ctx,
+		domain.Bucket,
+		s3Filename,
+		bytes.NewReader(data),
+		int64(len(data)),
+		minio.PutObjectOptions{
+			ContentType: contentType,
+		},
+	)
+	if err != nil {
+		return "", fmt.Errorf("upload failed: %w", err)
+	}
+
+	return putResp.Key, nil
 }
 
 // checkDeniedExtension checks if the file extension is in the denied list

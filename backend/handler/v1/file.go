@@ -36,6 +36,7 @@ func NewFileHandler(echo *echo.Echo, baseHandler *handler.BaseHandler, logger *l
 	}
 	group := echo.Group("/api/v1/file")
 	group.POST("/upload", h.Upload, h.auth.Authorize)
+	group.POST("/upload/url", h.UploadByUrl, h.auth.Authorize)
 	group.POST("/upload/anydoc", h.UploadAnydoc)
 	return h
 }
@@ -68,6 +69,43 @@ func (h *FileHandler) Upload(c echo.Context) error {
 	return h.NewResponseWithData(c, domain.ObjectUploadResp{
 		Key:      key,
 		Filename: file.Filename,
+	})
+}
+
+// UploadByUrl
+//
+//	@Summary		Upload File By Url
+//	@Description	Upload File By Url
+//	@Tags			file
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		domain.UploadByUrlReq	true	"Request Body"
+//	@Success		200		{object}	domain.Response{data=domain.ObjectUploadResp}
+//	@Router			/api/v1/file/upload/url [post]
+func (h *FileHandler) UploadByUrl(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var req domain.UploadByUrlReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "invalid request parameters", err)
+	}
+
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+
+	kbID := req.KbId
+	if kbID == "" {
+		kbID = uuid.New().String()
+	}
+
+	key, err := h.fileUsecase.UploadFileByUrl(ctx, kbID, req.Url)
+	if err != nil {
+		return h.NewResponseWithError(c, "upload failed", err)
+	}
+
+	return h.NewResponseWithData(c, domain.ObjectUploadResp{
+		Key: key,
 	})
 }
 
