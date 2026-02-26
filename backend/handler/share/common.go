@@ -3,6 +3,7 @@ package share
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/labstack/echo/v4"
 
@@ -44,6 +45,7 @@ func NewShareCommonHandler(
 			}
 		})
 	share.POST("/file/upload", h.FileUpload, h.ShareAuthMiddleware.Authorize)
+	share.POST("/file/upload/url", h.FileUploadByUrl, h.ShareAuthMiddleware.Authorize)
 	return h
 }
 
@@ -98,6 +100,58 @@ func (h *ShareCommonHandler) FileUpload(c echo.Context) error {
 	}
 
 	return h.NewResponseWithData(c, v1.FileUploadResp{
+		Key: key,
+	})
+}
+
+// FileUploadByUrl 通过url上传文件
+//
+//	@Tags			ShareFile
+//	@Summary		文件上传
+//	@Description	前台用户上传文件,目前只支持图片文件上传
+//	@ID				share-FileUploadByUrl
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		v1.ShareFileUploadUrlReq	true	"body"
+//	@Success		200		{object}	domain.Response{data=v1.ShareFileUploadUrlResp}
+//	@Router			/share/v1/common/file/upload/url [post]
+func (h *ShareCommonHandler) FileUploadByUrl(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	var req v1.ShareFileUploadUrlReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "invalid request parameters", err)
+	}
+
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+
+	kbID := c.Request().Header.Get("X-KB-ID")
+	if kbID == "" {
+		return h.NewResponseWithError(c, "kb_id is required", nil)
+	}
+	req.KbId = kbID
+
+	parsedURL, err := url.Parse(req.Url)
+	if err != nil {
+		return h.NewResponseWithError(c, "invalid URL format", err)
+	}
+	if !utils.IsImageFile(parsedURL.Path) {
+		return h.NewResponseWithError(c, "只支持图片文件上传", fmt.Errorf("unsupported file type: %s", req.Url))
+	}
+
+	// validate captcha token
+	if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
+		return h.NewResponseWithError(c, "failed to validate captcha token", nil)
+	}
+
+	key, err := h.fileUsecase.UploadFileByUrl(ctx, req.KbId, req.Url)
+	if err != nil {
+		return h.NewResponseWithError(c, "upload failed", err)
+	}
+
+	return h.NewResponseWithData(c, v1.ShareFileUploadUrlResp{
 		Key: key,
 	})
 }

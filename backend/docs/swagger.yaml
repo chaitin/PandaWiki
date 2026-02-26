@@ -2467,6 +2467,15 @@ definitions:
     - id
     - kb_id
     type: object
+  domain.UploadByUrlReq:
+    properties:
+      kb_id:
+        type: string
+      url:
+        type: string
+    required:
+    - url
+    type: object
   domain.UserInfo:
     properties:
       auth_user_id:
@@ -3208,6 +3217,21 @@ definitions:
     - id
     - new_password
     type: object
+  v1.ShareFileUploadUrlReq:
+    properties:
+      captcha_token:
+        type: string
+      url:
+        type: string
+    required:
+    - captcha_token
+    - url
+    type: object
+  v1.ShareFileUploadUrlResp:
+    properties:
+      key:
+        type: string
+    type: object
   v1.ShareNodeDetailResp:
     properties:
       content:
@@ -3933,6 +3957,33 @@ paths:
           schema:
             $ref: '#/definitions/domain.AnydocUploadResp'
       summary: Upload Anydoc File
+      tags:
+      - file
+  /api/v1/file/upload/url:
+    post:
+      consumes:
+      - application/json
+      description: Upload File By Url
+      parameters:
+      - description: Request Body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/domain.UploadByUrlReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/domain.ObjectUploadResp'
+              type: object
+      summary: Upload File By Url
       tags:
       - file
   /api/v1/knowledge_base:
@@ -5615,6 +5666,34 @@ paths:
             - properties:
                 data:
                   $ref: '#/definitions/v1.FileUploadResp'
+              type: object
+      summary: 文件上传
+      tags:
+      - ShareFile
+  /share/v1/common/file/upload/url:
+    post:
+      consumes:
+      - application/json
+      description: 前台用户上传文件,目前只支持图片文件上传
+      operationId: share-FileUploadByUrl
+      parameters:
+      - description: body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.ShareFileUploadUrlReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.ShareFileUploadUrlResp'
               type: object
       summary: 文件上传
       tags:

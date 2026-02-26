@@ -981,6 +981,52 @@
                 }
             }
         },
+        "/api/v1/file/upload/url": {
+            "post": {
+                "description": "Upload File By Url",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "file"
+                ],
+                "summary": "Upload File By Url",
+                "parameters": [
+                    {
+                        "description": "Request Body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.UploadByUrlReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/domain.ObjectUploadResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/knowledge_base": {
             "post": {
                 "description": "CreateKnowledgeBase",
@@ -3734,6 +3780,53 @@
                                     "properties": {
                                         "data": {
                                             "$ref": "#/definitions/v1.FileUploadResp"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/share/v1/common/file/upload/url": {
+            "post": {
+                "description": "前台用户上传文件,目前只支持图片文件上传",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ShareFile"
+                ],
+                "summary": "文件上传",
+                "operationId": "share-FileUploadByUrl",
+                "parameters": [
+                    {
+                        "description": "body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.ShareFileUploadUrlReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.Response"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/definitions/v1.ShareFileUploadUrlResp"
                                         }
                                     }
                                 }
@@ -7701,6 +7794,20 @@
                 }
             }
         },
+        "domain.UploadByUrlReq": {
+            "type": "object",
+            "required": [
+                "url"
+            ],
+            "properties": {
+                "kb_id": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.UserInfo": {
             "type": "object",
             "properties": {
@@ -8821,6 +8928,29 @@
                 "new_password": {
                     "type": "string",
                     "minLength": 8
+                }
+            }
+        },
+        "v1.ShareFileUploadUrlReq": {
+            "type": "object",
+            "required": [
+                "captcha_token",
+                "url"
+            ],
+            "properties": {
+                "captcha_token": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.ShareFileUploadUrlResp": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
                 }
             }
         },
