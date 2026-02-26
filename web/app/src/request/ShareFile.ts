@@ -15,6 +15,8 @@ import {
   DomainResponse,
   PostShareV1CommonFileUploadPayload,
   V1FileUploadResp,
+  V1ShareFileUploadUrlReq,
+  V1ShareFileUploadUrlResp,
 } from "./types";
 
 /**
@@ -43,6 +45,36 @@ export const postShareV1CommonFileUpload = (
     method: "POST",
     body: data,
     type: ContentType.FormData,
+    format: "json",
+    ...params,
+  });
+
+/**
+ * @description 前台用户上传文件,目前只支持图片文件上传
+ *
+ * @tags ShareFile
+ * @name PostShareV1CommonFileUploadUrl
+ * @summary 文件上传
+ * @request POST:/share/v1/common/file/upload/url
+ * @response `200` `(DomainResponse & {
+    data?: V1ShareFileUploadUrlResp,
+
+})` OK
+ */
+
+export const postShareV1CommonFileUploadUrl = (
+  body: V1ShareFileUploadUrlReq,
+  params: RequestParams = {},
+) =>
+  httpRequest<
+    DomainResponse & {
+      data?: V1ShareFileUploadUrlResp;
+    }
+  >({
+    path: `/share/v1/common/file/upload/url`,
+    method: "POST",
+    body: body,
+    type: ContentType.Json,
     format: "json",
     ...params,
   });

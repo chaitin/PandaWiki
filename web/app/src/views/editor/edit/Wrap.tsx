@@ -1,5 +1,7 @@
 'use client';
 import Emoji from '@/components/emoji';
+import { useBasePath } from '@/hooks/useBasePath';
+import { postShareV1CommonFileUploadUrl } from '@/request';
 import { postShareProV1FileUploadWithProgress } from '@/request/pro/otherCustomer';
 import { V1NodeDetailResp } from '@/request/types';
 import {
@@ -13,6 +15,7 @@ import {
 import { message } from '@ctzhian/ui';
 import { Box, Stack, TextField } from '@mui/material';
 import { IconAShijian2, IconZiti } from '@panda-wiki/icons';
+import IconPageview1 from '@panda-wiki/icons/IconPageview1';
 import dayjs from 'dayjs';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -22,8 +25,6 @@ import ConfirmModal from './ConfirmModal';
 import Header from './Header';
 import Toc from './Toc';
 import Toolbar from './Toolbar';
-import IconPageview1 from '@panda-wiki/icons/IconPageview1';
-import { useBasePath } from '@/hooks/useBasePath';
 
 interface WrapProps {
   detail: V1NodeDetailResp;
@@ -77,6 +78,31 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
     return Promise.resolve('/static-file/' + key);
   };
 
+  const handleUploadByImgUrl = async (
+    url: string,
+    abortSignal?: AbortSignal,
+  ) => {
+    let token = '';
+    try {
+      const Cap = (await import('@cap.js/widget')).default;
+      const cap = new Cap({
+        apiEndpoint: `${baseUrl}/share/v1/captcha/`,
+      });
+      const solution = await cap.solve();
+      token = solution.token;
+      const { key } = await postShareV1CommonFileUploadUrl(
+        { url, captcha_token: token },
+        {
+          signal: abortSignal,
+        },
+      );
+      return Promise.resolve('/static-file/' + key);
+    } catch (error) {
+      message.error('验证失败');
+      return Promise.reject(error);
+    }
+  };
+
   const handleTocUpdate = (toc: TocList) => {
     setHeadings(toc);
   };
@@ -106,6 +132,7 @@ const Wrap = ({ detail: defaultDetail = {} }: WrapProps) => {
     },
     onError: handleError,
     onUpload: handleUpload,
+    onUploadImgUrl: handleUploadByImgUrl,
     onUpdate: handleUpdate,
     onTocUpdate: handleTocUpdate,
   });

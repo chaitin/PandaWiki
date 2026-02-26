@@ -20,6 +20,8 @@ export enum DomainCommentStatus {
 export enum ConstsUserKBPermission {
   /** 无权限 */
   UserKBPermissionNull = "",
+  /** 有权限 */
+  UserKBPermissionNotNull = "not null",
   /** 完全控制 */
   UserKBPermissionFullControl = "full_control",
   /** 文档管理 */
@@ -80,6 +82,7 @@ export interface DomainCommentModerateListReq {
 export interface DomainCreatePromptReq {
   content?: string;
   kb_id: string;
+  summary_content?: string;
 }
 
 export interface DomainDocumentFeedbackInfo {
@@ -166,6 +169,7 @@ export interface DomainPWResponse {
 
 export interface DomainPrompt {
   content?: string;
+  summary_content?: string;
 }
 
 export interface DomainResponse {
