@@ -93,6 +93,7 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq, 
 		node := &domain.Node{
 			ID:        nodeIDStr,
 			KBID:      req.KBID,
+			NavId:     req.NavId,
 			Name:      req.Name,
 			Content:   req.Content,
 			Meta:      meta,
@@ -132,10 +133,13 @@ func (r *NodeRepository) GetList(ctx context.Context, req *domain.GetNodeListReq
 		Joins("LEFT JOIN users cu ON nodes.creator_id = cu.id").
 		Joins("LEFT JOIN users eu ON nodes.editor_id = eu.id").
 		Where("nodes.kb_id = ?", req.KBID).
-		Select("cu.account AS creator, eu.account AS editor, nodes.editor_id, nodes.rag_info, nodes.creator_id, nodes.id, nodes.permissions, nodes.type, nodes.status, nodes.name, nodes.parent_id, nodes.position, nodes.created_at, nodes.edit_time as updated_at, nodes.meta->>'summary' as summary, nodes.meta->>'emoji' as emoji, nodes.meta->>'content_type' as content_type")
+		Select("cu.account AS creator, eu.account AS editor, nodes.editor_id, nodes.nav_id, nodes.rag_info, nodes.creator_id, nodes.id, nodes.permissions, nodes.type, nodes.status, nodes.name, nodes.parent_id, nodes.position, nodes.created_at, nodes.edit_time as updated_at, nodes.meta->>'summary' as summary, nodes.meta->>'emoji' as emoji, nodes.meta->>'content_type' as content_type")
 	if req.Search != "" {
 		searchPattern := "%" + req.Search + "%"
 		query = query.Where("name LIKE ? OR content LIKE ?", searchPattern, searchPattern)
+	}
+	if req.NavId != "" {
+		query = query.Where("nodes.nav_id = ?", req.NavId)
 	}
 	if err := query.Find(&nodes).Error; err != nil {
 		return nil, err
@@ -211,6 +215,11 @@ func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.Upda
 		// Compare and update Content
 		if req.Content != nil && *req.Content != currentNode.Content {
 			updateMap["content"] = *req.Content
+			updateStatus = true
+		}
+
+		if req.NavId != nil && *req.NavId != currentNode.NavId {
+			updateMap["nav_id"] = *req.NavId
 			updateStatus = true
 		}
 
@@ -706,7 +715,7 @@ func (r *NodeRepository) GetRecommendNodeListByParentIDs(ctx context.Context, kb
 }
 
 // GetNodeReleaseListByKBID get node list by kb id
-func (r *NodeRepository) GetNodeReleaseListByKBID(ctx context.Context, kbID string) ([]*domain.ShareNodeListItemResp, error) {
+func (r *NodeRepository) GetNodeReleaseListByKBID(ctx context.Context, kbID, navId string) ([]*domain.ShareNodeListItemResp, error) {
 	// get kb release
 	var kbRelease *domain.KBRelease
 	if err := r.db.WithContext(ctx).
@@ -721,15 +730,20 @@ func (r *NodeRepository) GetNodeReleaseListByKBID(ctx context.Context, kbID stri
 	}
 
 	var nodes []*domain.ShareNodeListItemResp
-	if err := r.db.WithContext(ctx).
+	qs := r.db.WithContext(ctx).
 		Model(&domain.KBReleaseNodeRelease{}).
 		Joins("LEFT JOIN node_releases ON node_releases.id = kb_release_node_releases.node_release_id").
 		Joins("LEFT JOIN nodes ON nodes.id = kb_release_node_releases.node_id").
 		Where("kb_release_node_releases.kb_id = ?", kbID).
 		Where("kb_release_node_releases.release_id = ?", kbRelease.ID).
 		Where("nodes.permissions->>'visible' != ?", consts.NodeAccessPermClosed).
-		Select("node_releases.node_id as id, node_releases.name, node_releases.type, node_releases.parent_id, nodes.position, node_releases.meta->>'emoji' as emoji, node_releases.updated_at, nodes.permissions, nodes.meta").
-		Find(&nodes).Error; err != nil {
+		Select("node_releases.node_id as id, node_releases.name, node_releases.type, node_releases.parent_id, nodes.position, node_releases.meta->>'emoji' as emoji, node_releases.updated_at, nodes.permissions, nodes.meta, nodes.nav_id")
+
+	if navId != "" {
+		qs = qs.Where("nodes.nav_id = ?", navId)
+	}
+
+	if err := qs.Find(&nodes).Error; err != nil {
 		return nil, err
 	}
 	return nodes, nil
@@ -1222,4 +1236,27 @@ func (r *NodeRepository) GetNodeCount(ctx context.Context) (int, error) {
 		return 0, err
 	}
 	return int(count), nil
+}
+
+func (r *NodeRepository) CountNodeByNavId(ctx context.Context, kbId, navId string) (int64, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Where("kb_id = ?", kbId).
+		Where("nav_id = ?", navId).
+		Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+func (r *NodeRepository) GetNodeIDsByNavId(ctx context.Context, kbId, navId string) ([]string, error) {
+	var ids []string
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Where("kb_id = ? AND nav_id = ?", kbId, navId).
+		Pluck("id", &ids).Error; err != nil {
+		return nil, err
+	}
+	return ids, nil
 }

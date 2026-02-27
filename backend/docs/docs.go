@@ -1740,6 +1740,216 @@ const docTemplate = `{
                 }
             }
         },
+        "/api/v1/nav/add": {
+            "post": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Add Nav",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Nav"
+                ],
+                "summary": "添加分栏",
+                "parameters": [
+                    {
+                        "description": "Params",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.NavAddReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PWResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/nav/delete": {
+            "delete": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "DeleteNav Nav",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Nav"
+                ],
+                "summary": "删除栏目",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "id",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "kb_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PWResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/nav/list": {
+            "get": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Get Nav List",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Nav"
+                ],
+                "summary": "获取分栏列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "kb_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/domain.PWResponse"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/v1.NavListResp"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/nav/move": {
+            "post": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Move Nav",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Nav"
+                ],
+                "summary": "移动栏目",
+                "parameters": [
+                    {
+                        "description": "Params",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.NavMoveReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PWResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/nav/update": {
+            "patch": {
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "description": "Update Nav",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Nav"
+                ],
+                "summary": "更新栏目信息",
+                "parameters": [
+                    {
+                        "description": "Params",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/v1.NavUpdateReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.PWResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/node": {
             "post": {
                 "security": [
@@ -2007,6 +2217,11 @@ const docTemplate = `{
                         "name": "kb_id",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "nav_id",
+                        "in": "query"
                     },
                     {
                         "type": "string",
@@ -3894,6 +4109,37 @@ const docTemplate = `{
                 }
             }
         },
+        "/share/v1/nav/list": {
+            "get": {
+                "description": "ShareNavList",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "share_nav"
+                ],
+                "summary": "前台获取栏目列表",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "name": "kb_id",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Response"
+                        }
+                    }
+                }
+            }
+        },
         "/share/v1/node/detail": {
             "get": {
                 "description": "GetNodeDetail",
@@ -3968,10 +4214,14 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "kb id",
-                        "name": "X-KB-ID",
-                        "in": "header",
+                        "name": "kb_id",
+                        "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "string",
+                        "name": "nav_id",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -6079,6 +6329,7 @@ const docTemplate = `{
             "required": [
                 "kb_id",
                 "name",
+                "nav_id",
                 "type"
             ],
             "properties": {
@@ -6095,6 +6346,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "nav_id": {
                     "type": "string"
                 },
                 "parent_id": {
@@ -6813,6 +7067,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "nav_id": {
                     "type": "string"
                 },
                 "parent_id": {
@@ -7793,6 +8050,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "nav_id": {
+                    "type": "string"
+                },
                 "position": {
                     "type": "number"
                 },
@@ -8764,6 +9024,84 @@ const docTemplate = `{
                 }
             }
         },
+        "v1.NavAddReq": {
+            "type": "object",
+            "required": [
+                "kb_id",
+                "name"
+            ],
+            "properties": {
+                "kb_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "number"
+                }
+            }
+        },
+        "v1.NavListResp": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "number"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.NavMoveReq": {
+            "type": "object",
+            "required": [
+                "id",
+                "kb_id"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "next_id": {
+                    "type": "string"
+                },
+                "prev_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "v1.NavUpdateReq": {
+            "type": "object",
+            "required": [
+                "id",
+                "kb_id",
+                "name"
+            ],
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "v1.NodeDetailResp": {
             "type": "object",
             "properties": {
@@ -8795,6 +9133,9 @@ const docTemplate = `{
                     "$ref": "#/definitions/domain.NodeMeta"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "nav_id": {
                     "type": "string"
                 },
                 "parent_id": {

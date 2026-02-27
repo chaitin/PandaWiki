@@ -27,6 +27,7 @@ import (
 
 type NodeUsecase struct {
 	nodeRepo     *pg.NodeRepository
+	navRepo      *pg.NavRepository
 	appRepo      *pg.AppRepository
 	ragRepo      *mq.RAGRepository
 	kbRepo       *pg.KnowledgeBaseRepository
@@ -42,6 +43,7 @@ type NodeUsecase struct {
 
 func NewNodeUsecase(
 	nodeRepo *pg.NodeRepository,
+	navRepo *pg.NavRepository,
 	appRepo *pg.AppRepository,
 	ragRepo *mq.RAGRepository,
 	userRepo *pg.UserRepository,
@@ -56,6 +58,7 @@ func NewNodeUsecase(
 ) *NodeUsecase {
 	return &NodeUsecase{
 		nodeRepo:     nodeRepo,
+		navRepo:      navRepo,
 		rAGService:   ragService,
 		appRepo:      appRepo,
 		ragRepo:      ragRepo,
@@ -158,6 +161,12 @@ func (u *NodeUsecase) NodeAction(ctx context.Context, req *domain.NodeActionReq)
 }
 
 func (u *NodeUsecase) Update(ctx context.Context, req *domain.UpdateNodeReq, userId string) error {
+	if req.NavId != nil {
+		_, err := u.navRepo.GetById(ctx, *req.NavId)
+		if err != nil {
+			return errors.New("invalid nav_id")
+		}
+	}
 	err := u.nodeRepo.UpdateNodeContent(ctx, req, userId)
 	if err != nil {
 		return err
@@ -357,9 +366,9 @@ func (u *NodeUsecase) convertMDToHTML(mdStr string) string {
 	return string(html)
 }
 
-func (u *NodeUsecase) GetNodeReleaseListByKBID(ctx context.Context, kbID string, authId uint) ([]*domain.ShareNodeListItemResp, error) {
+func (u *NodeUsecase) GetNodeReleaseListByKBID(ctx context.Context, kbID, navId string, authId uint) ([]*domain.ShareNodeListItemResp, error) {
 
-	nodes, err := u.nodeRepo.GetNodeReleaseListByKBID(ctx, kbID)
+	nodes, err := u.nodeRepo.GetNodeReleaseListByKBID(ctx, kbID, navId)
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +396,7 @@ func (u *NodeUsecase) GetNodeReleaseListByKBID(ctx context.Context, kbID string,
 
 func (u *NodeUsecase) GetNodeReleaseListByParentID(ctx context.Context, kbID, parentID string, authId uint) ([]*domain.ShareNodeDetailItem, error) {
 	// 一次性查询所有节点
-	allNodes, err := u.nodeRepo.GetNodeReleaseListByKBID(ctx, kbID)
+	allNodes, err := u.nodeRepo.GetNodeReleaseListByKBID(ctx, kbID, "")
 	if err != nil {
 		return nil, err
 	}

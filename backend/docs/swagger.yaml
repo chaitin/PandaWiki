@@ -1349,6 +1349,8 @@ definitions:
         type: string
       name:
         type: string
+      nav_id:
+        type: string
       parent_id:
         type: string
       position:
@@ -1364,6 +1366,7 @@ definitions:
     required:
     - kb_id
     - name
+    - nav_id
     - type
     type: object
   domain.DirDocConfig:
@@ -1820,6 +1823,8 @@ definitions:
       id:
         type: string
       name:
+        type: string
+      nav_id:
         type: string
       parent_id:
         type: string
@@ -2458,6 +2463,8 @@ definitions:
       kb_id:
         type: string
       name:
+        type: string
+      nav_id:
         type: string
       position:
         type: number
@@ -3099,6 +3106,58 @@ definitions:
       token:
         type: string
     type: object
+  v1.NavAddReq:
+    properties:
+      kb_id:
+        type: string
+      name:
+        type: string
+      position:
+        type: number
+    required:
+    - kb_id
+    - name
+    type: object
+  v1.NavListResp:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      position:
+        type: number
+      updated_at:
+        type: string
+    type: object
+  v1.NavMoveReq:
+    properties:
+      id:
+        type: string
+      kb_id:
+        type: string
+      next_id:
+        type: string
+      prev_id:
+        type: string
+    required:
+    - id
+    - kb_id
+    type: object
+  v1.NavUpdateReq:
+    properties:
+      id:
+        type: string
+      kb_id:
+        type: string
+      name:
+        type: string
+    required:
+    - id
+    - kb_id
+    - name
+    type: object
   v1.NodeDetailResp:
     properties:
       content:
@@ -3120,6 +3179,8 @@ definitions:
       meta:
         $ref: '#/definitions/domain.NodeMeta'
       name:
+        type: string
+      nav_id:
         type: string
       parent_id:
         type: string
@@ -4415,6 +4476,133 @@ paths:
       summary: switch mode
       tags:
       - model
+  /api/v1/nav/add:
+    post:
+      consumes:
+      - application/json
+      description: Add Nav
+      parameters:
+      - description: Params
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NavAddReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: 添加分栏
+      tags:
+      - Nav
+  /api/v1/nav/delete:
+    delete:
+      consumes:
+      - application/json
+      description: DeleteNav Nav
+      parameters:
+      - in: query
+        name: id
+        required: true
+        type: string
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: 删除栏目
+      tags:
+      - Nav
+  /api/v1/nav/list:
+    get:
+      consumes:
+      - application/json
+      description: Get Nav List
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.PWResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/v1.NavListResp'
+                  type: array
+              type: object
+      security:
+      - bearerAuth: []
+      summary: 获取分栏列表
+      tags:
+      - Nav
+  /api/v1/nav/move:
+    post:
+      consumes:
+      - application/json
+      description: Move Nav
+      parameters:
+      - description: Params
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NavMoveReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: 移动栏目
+      tags:
+      - Nav
+  /api/v1/nav/update:
+    patch:
+      consumes:
+      - application/json
+      description: Update Nav
+      parameters:
+      - description: Params
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NavUpdateReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: 更新栏目信息
+      tags:
+      - Nav
   /api/v1/node:
     post:
       consumes:
@@ -4567,6 +4755,9 @@ paths:
       - in: query
         name: kb_id
         required: true
+        type: string
+      - in: query
+        name: nav_id
         type: string
       - in: query
         name: search
@@ -5729,6 +5920,26 @@ paths:
       summary: GetConversationDetail
       tags:
       - share_conversation
+  /share/v1/nav/list:
+    get:
+      consumes:
+      - application/json
+      description: ShareNavList
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+      summary: 前台获取栏目列表
+      tags:
+      - share_nav
   /share/v1/node/detail:
     get:
       consumes:
@@ -5771,10 +5982,12 @@ paths:
       - application/json
       description: GetNodeList
       parameters:
-      - description: kb id
-        in: header
-        name: X-KB-ID
+      - in: query
+        name: kb_id
         required: true
+        type: string
+      - in: query
+        name: nav_id
         type: string
       produces:
       - application/json

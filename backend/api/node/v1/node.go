@@ -6,6 +6,11 @@ import (
 	"github.com/chaitin/panda-wiki/domain"
 )
 
+type NodeListReq struct {
+	KbId  string `query:"kb_id" json:"kb_id" validate:"required"`
+	NavId string `query:"nav_id" json:"nav_id"`
+}
+
 type GetNodeDetailReq struct {
 	KbId   string `query:"kb_id" json:"kb_id" validate:"required"`
 	ID     string `query:"id" json:"id" validate:"required"`
@@ -15,6 +20,7 @@ type GetNodeDetailReq struct {
 type NodeDetailResp struct {
 	ID               string                 `json:"id"`
 	KbID             string                 `json:"kb_id"`
+	NavId            string                 `json:"nav_id"`
 	Type             domain.NodeType        `json:"type"`
 	Status           domain.NodeStatus      `json:"status"`
 	Name             string                 `json:"name"`

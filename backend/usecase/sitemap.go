@@ -22,7 +22,7 @@ func NewSitemapUsecase(nodeUsecase *pg.NodeRepository, appUsecase *pg.KnowledgeB
 }
 
 func (u *SitemapUsecase) GetSitemap(ctx context.Context, kbID string) (string, error) {
-	nodes, err := u.nodeUsecase.GetNodeReleaseListByKBID(ctx, kbID)
+	nodes, err := u.nodeUsecase.GetNodeReleaseListByKBID(ctx, kbID, "")
 	if err != nil {
 		return "", fmt.Errorf("failed to get node release list: %w", err)
 	}
