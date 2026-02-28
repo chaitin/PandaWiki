@@ -13,7 +13,7 @@ require (
 	github.com/alibabacloud-go/tea-utils/v2 v2.0.7
 	github.com/boj/redistore v1.4.1
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/chaitin/ModelKit/v2 v2.12.4
+	github.com/chaitin/ModelKit/v2 v2.13.2
 	github.com/chaitin/raglite-go-sdk v0.2.1
 	github.com/cloudwego/eino v0.7.3
 	github.com/cloudwego/eino-ext/components/model/deepseek v0.1.0
