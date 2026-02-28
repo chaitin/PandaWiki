@@ -128,8 +128,8 @@ github.com/certifi/gocertifi v0.0.0-20190105021004-abcd57078448/go.mod h1:GJKEex
 github.com/cespare/xxhash/v2 v2.1.2/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/chaitin/ModelKit/v2 v2.12.4 h1:GiDrwNCOCGkKPpJ2McHKYXbdZvDFtocv+5GDbVB3DKw=
-github.com/chaitin/ModelKit/v2 v2.12.4/go.mod h1:JgCZZlTCwNL+9aGbUFU9gkPYAEp32IJnTWEo+iIM/wk=
+github.com/chaitin/ModelKit/v2 v2.13.2 h1:HNauOeMQHLYY3J3mp7huYsWU9Si/Fh7tSZ5uWs2NP5Q=
+github.com/chaitin/ModelKit/v2 v2.13.2/go.mod h1:JgCZZlTCwNL+9aGbUFU9gkPYAEp32IJnTWEo+iIM/wk=
 github.com/chaitin/raglite-go-sdk v0.2.1 h1:iginJquZb9fy3Z2sK4g7uSdra73twK7oVVOeHKB5WUU=
 github.com/chaitin/raglite-go-sdk v0.2.1/go.mod h1:1klR7WqfFijmd4msUvhRHoGstteUfBsRuRdX4CIJ/so=
 github.com/chzyer/logex v1.1.10/go.mod h1:+Ywpsq7O8HXn0nuIou7OrIPyXbp3wmkHB+jjWRnGsAI=

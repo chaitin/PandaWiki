@@ -475,6 +475,7 @@ export interface DomainModelParam {
   support_computer_use?: boolean;
   support_images?: boolean;
   support_prompt_cache?: boolean;
+  temperature?: number | null;
 }
 
 export type ModelListItem = {
