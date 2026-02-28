@@ -3,6 +3,7 @@ package share
 import (
 	"github.com/labstack/echo/v4"
 
+	v1 "github.com/chaitin/panda-wiki/api/node/v1"
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/handler"
 	"github.com/chaitin/panda-wiki/log"
@@ -43,16 +44,22 @@ func NewShareNodeHandler(
 //	@Tags			share_node
 //	@Accept			json
 //	@Produce		json
-//	@Param			X-KB-ID	header		string	true	"kb id"
+//	@Param			param	query		v1.NodeListReq	true	"para"
 //	@Success		200		{object}	domain.Response
 //	@Router			/share/v1/node/list [get]
 func (h *ShareNodeHandler) GetNodeList(c echo.Context) error {
-	kbID := c.Request().Header.Get("X-KB-ID")
-	if kbID == "" {
-		return h.NewResponseWithError(c, "kb_id is required", nil)
+
+	var req v1.NodeListReq
+	if err := c.Bind(&req); err != nil {
+		h.logger.Error("parse request failed", log.Error(err))
+		return h.NewResponseWithError(c, "parse request failed", err)
+	}
+	if err := c.Validate(&req); err != nil {
+		h.logger.Error("validate request failed", log.Error(err))
+		return h.NewResponseWithError(c, "validate request failed", err)
 	}
 
-	nodes, err := h.usecase.GetNodeReleaseListByKBID(c.Request().Context(), kbID, domain.GetAuthID(c))
+	nodes, err := h.usecase.GetNodeReleaseListByKBID(c.Request().Context(), req.KbId, req.NavId, domain.GetAuthID(c))
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get node list", err)
 	}

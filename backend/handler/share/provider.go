@@ -8,6 +8,7 @@ import (
 
 type ShareHandler struct {
 	ShareNodeHandler         *ShareNodeHandler
+	ShareNavHandler          *ShareNavHandler
 	ShareAppHandler          *ShareAppHandler
 	ShareChatHandler         *ShareChatHandler
 	ShareSitemapHandler      *ShareSitemapHandler
@@ -25,6 +26,7 @@ var ProviderSet = wire.NewSet(
 	captcha.NewCaptcha,
 
 	NewShareNodeHandler,
+	NewShareNavHandler,
 	NewShareAppHandler,
 	NewShareChatHandler,
 	NewShareSitemapHandler,

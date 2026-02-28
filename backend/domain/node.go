@@ -41,6 +41,7 @@ const (
 type Node struct {
 	ID          string          `json:"id" gorm:"primaryKey"`
 	KBID        string          `json:"kb_id" gorm:"index"`
+	NavId       string          `json:"nav_id"`
 	Type        NodeType        `json:"type"`
 	Status      NodeStatus      `json:"status"`
 	RagInfo     RagInfo         `json:"rag_info" gorm:"type:jsonb"`
@@ -138,29 +139,28 @@ func (d *NodeMeta) Scan(value any) error {
 }
 
 type CreateNodeReq struct {
-	KBID     string   `json:"kb_id" validate:"required"`
-	ParentID string   `json:"parent_id"`
-	Type     NodeType `json:"type" validate:"required,oneof=1 2"`
-
-	Name    string `json:"name" validate:"required"`
-	Content string `json:"content"`
-
-	Emoji       string  `json:"emoji"`
-	Summary     *string `json:"summary"`
-	ContentType *string `json:"content_type"`
-
-	MaxNode int `json:"-"`
-
-	Position *float64 `json:"position"`
+	KBID        string   `json:"kb_id" validate:"required"`
+	NavId       string   `json:"nav_id" validate:"required"`
+	ParentID    string   `json:"parent_id"`
+	Type        NodeType `json:"type" validate:"required,oneof=1 2"`
+	Name        string   `json:"name" validate:"required"`
+	Content     string   `json:"content"`
+	Emoji       string   `json:"emoji"`
+	Summary     *string  `json:"summary"`
+	ContentType *string  `json:"content_type"`
+	MaxNode     int      `json:"-"`
+	Position    *float64 `json:"position"`
 }
 
 type GetNodeListReq struct {
 	KBID   string `json:"kb_id" query:"kb_id" validate:"required"`
+	NavId  string `query:"nav_id" json:"nav_id"`
 	Search string `json:"search" query:"search"`
 }
 
 type NodeListItemResp struct {
 	ID          string          `json:"id"`
+	NavId       string          `json:"nav_id"`
 	Type        NodeType        `json:"type"`
 	Status      NodeStatus      `json:"status"`
 	RagInfo     RagInfo         `json:"rag_info"`
@@ -245,6 +245,7 @@ type UpdateNodeReq struct {
 	Summary     *string  `json:"summary"`
 	Position    *float64 `json:"position"`
 	ContentType *string  `json:"content_type"`
+	NavId       *string  `json:"nav_id"`
 }
 
 type ShareNodeListItemResp struct {
@@ -252,6 +253,7 @@ type ShareNodeListItemResp struct {
 	Name        string          `json:"name"`
 	Type        NodeType        `json:"type"`
 	ParentID    string          `json:"parent_id"`
+	NavId       string          `json:"nav_id"`
 	Position    float64         `json:"position"`
 	Emoji       string          `json:"emoji"`
 	Meta        NodeMeta        `json:"meta"`
