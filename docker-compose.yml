@@ -46,7 +46,7 @@ services:
       - caddy
       - raglite
     restart: always
-    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:v3.46.1
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:latest
     volumes:
       - ./data/caddy/run:/app/run
       - ./data/nginx/ssl:/app/etc/nginx/ssl
@@ -71,7 +71,7 @@ services:
       - api
       - raglite
     restart: always
-    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-consumer:v3.46.1
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-consumer:latest
     environment:
       - NATS_PASSWORD=${NATS_PASSWORD}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
