@@ -2,8 +2,10 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"strings"
 	"time"
 
@@ -45,6 +47,34 @@ func NewKnowledgeBaseUsecase(repo *pg.KnowledgeBaseRepository, nodeRepo *pg.Node
 	return u, nil
 }
 
+// isRAGConnectionError reports whether err is a connection failure to the RAG service
+// (e.g. connection refused, timeout, unreachable). It unwraps the error chain so
+// wrapped errors from the RAG SDK are still detected.
+func isRAGConnectionError(err error) bool {
+	for e := err; e != nil; e = errors.Unwrap(e) {
+		if _, ok := e.(net.Error); ok {
+			return true
+		}
+		if _, ok := e.(*net.OpError); ok {
+			return true
+		}
+		if urlErr, ok := e.(*url.Error); ok && urlErr.Err != nil {
+			if _, ok := urlErr.Err.(net.Error); ok {
+				return true
+			}
+		}
+		msg := e.Error()
+		if strings.Contains(msg, "connection refused") ||
+			strings.Contains(msg, "no such host") ||
+			strings.Contains(msg, "timeout") ||
+			strings.Contains(msg, "dial tcp") ||
+			strings.Contains(msg, "connection reset") {
+			return true
+		}
+	}
+	return false
+}
+
 func (u *KnowledgeBaseUsecase) CreateKnowledgeBase(ctx context.Context, req *domain.CreateKnowledgeBaseReq) (string, error) {
 	// create kb in vector store
 	datasetID, err := u.rag.CreateKnowledgeBase(ctx)
@@ -52,20 +82,7 @@ func (u *KnowledgeBaseUsecase) CreateKnowledgeBase(ctx context.Context, req *dom
 		// 检查是否是连接错误（RAG 服务不可用）
 		// 在开发环境中，如果 RAG 服务不可用，使用占位符 datasetID
 		// 这样可以在没有 RAG 服务的情况下创建知识库（RAG 功能将不可用）
-		isConnectionError := false
-		if netErr, ok := err.(net.Error); ok {
-			isConnectionError = true
-			_ = netErr
-		} else if opErr, ok := err.(*net.OpError); ok {
-			isConnectionError = true
-			_ = opErr
-		} else if strings.Contains(err.Error(), "connection refused") ||
-			strings.Contains(err.Error(), "no such host") ||
-			strings.Contains(err.Error(), "timeout") ||
-			strings.Contains(err.Error(), "dial tcp") {
-			isConnectionError = true
-		}
-		
+		isConnectionError := isRAGConnectionError(err)
 		if isConnectionError {
 			u.logger.Warn("RAG service unavailable, using placeholder dataset ID", "error", err)
 			datasetID = "placeholder-dataset-id-" + uuid.New().String()

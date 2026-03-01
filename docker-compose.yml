@@ -22,6 +22,7 @@ services:
       - ${ADMIN_PORT}:8080
     volumes:
       - ./data/nginx/ssl:/etc/nginx/ssl
+      - ./web/admin/dist:/opt/frontend/dist
     networks:
       panda-wiki:
         ipv4_address: "${SUBNET_PREFIX:-169.254.15}.111"
@@ -29,6 +30,11 @@ services:
     container_name: panda-wiki-app
     restart: always
     image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-app:v3.46.1
+    volumes:
+      - ./web/app/dist:/app/app/dist
+      - ./web/app/public:/app/app/public
+      - ./web/app/node_modules:/app/app/node_modules
+      - ./web/app/package.json:/app/app/package.json
     networks:
       panda-wiki:
         ipv4_address: "${SUBNET_PREFIX:-169.254.15}.112"
@@ -53,6 +59,8 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - SUBNET_PREFIX=${SUBNET_PREFIX}
+      # RAG (raglite): use service name for DNS. Default port in this project is 5050 (see backend config.go and docker-compose.services.yml).
+      - RAG_CT_RAG_BASE_URL=http://panda-wiki-raglite:5050
     networks:
       panda-wiki:
         ipv4_address: "${SUBNET_PREFIX:-169.254.15}.2"

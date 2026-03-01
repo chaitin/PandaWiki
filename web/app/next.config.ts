@@ -7,12 +7,6 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: ['10.10.18.71'],
   output: 'standalone',
   assetPrefix: '/panda-wiki-app-assets',
-  // 指定 Turbopack 的根目录，避免检测到多个 lockfiles 的警告
-  experimental: {
-    turbo: {
-      root: process.cwd(),
-    },
-  },
   logging: {
     fetches: {
       fullUrl: true,
