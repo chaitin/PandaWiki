@@ -22,8 +22,12 @@ RUN apk update \
     && update-ca-certificates 2>/dev/null || true \
     && rm -rf /var/cache/apk/*
 
+# runtime 中 pg.go 使用编译时源码路径 /src/store/pg/migration，需在镜像中保留该路径
+RUN mkdir -p /src/store/pg/migration
+
 WORKDIR /app
 COPY --from=builder /build/panda-wiki-consumer /app/panda-wiki-consumer
 COPY --from=builder /src/store/pg/migration /app/migration
+COPY --from=builder /src/store/pg/migration /src/store/pg/migration
 
 CMD ["./panda-wiki-consumer"]

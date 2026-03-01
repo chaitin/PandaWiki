@@ -28,10 +28,25 @@ image:
 	  --file ${DOCKERFILE} \
 	  .
 
+# Single-arch build when buildx is not available (no --platform, use plain docker build).
+# Usage: make image-single DOCKERFILE=Dockerfile.api IMAGE_NAME=your-registry/panda-wiki-api:tag VERSION=tag
+image-single:
+	docker build \
+	  --tag ${IMAGE_NAME} \
+	  --build-arg VERSION=${VERSION} \
+	  --file ${DOCKERFILE} \
+	  .
+
 TAG=$(shell git describe --tags 2>/dev/null || echo "latest")
 push-prod-images:
 	make image PLATFORM=linux/amd64,linux/arm64 DOCKERFILE=Dockerfile.api IMAGE_NAME=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:${TAG} OUTPUT=type=registry VERSION=${TAG} \
 	&& make image PLATFORM=linux/amd64,linux/arm64 DOCKERFILE=Dockerfile.consumer IMAGE_NAME=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-consumer:${TAG} OUTPUT=type=registry VERSION=${TAG}
+
+# Push single-arch images when buildx is not available (e.g. "unknown flag: --platform").
+# Builds for current machine arch only; then run: docker push <image> for each.
+push-prod-images-single:
+	make image-single DOCKERFILE=Dockerfile.api IMAGE_NAME=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:${TAG} VERSION=${TAG} \
+	&& make image-single DOCKERFILE=Dockerfile.consumer IMAGE_NAME=chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-consumer:${TAG} VERSION=${TAG}
 
 COMMIT_HASH=$(shell git rev-parse --short HEAD)
 LOCAL_PLATFORM=linux/$(shell uname -m)
