@@ -12,6 +12,7 @@ import { headers, cookies } from 'next/headers';
 import { getSelectorsByUserAgent } from 'react-device-detect';
 import { getBasePath, getImagePath } from '@/utils';
 import './globals.css';
+import { GithubComChaitinPandaWikiProApiShareV1AuthInfoResp } from '@/request/pro';
 
 const gilory = localFont({
   variable: '--font-gilory',
@@ -77,8 +78,14 @@ const Layout = async ({
     getShareProV1AuthInfo({}),
   ]);
 
-  const authInfo: any =
-    authInfoResolve.status === 'fulfilled' ? authInfoResolve.value : undefined;
+  // const authInfo: any =
+  //   authInfoResolve.status === 'fulfilled' ? authInfoResolve.value : undefined;
+  const authInfo: GithubComChaitinPandaWikiProApiShareV1AuthInfoResp = {
+    id: 1,
+    username: 'admin',
+    email: 'admin@admin.com',
+    avatar_url: 'https://test.com/avatar.png',
+  };
   const kbDetail: any =
     kbDetailResolve.status === 'fulfilled' ? kbDetailResolve.value : undefined;
 
