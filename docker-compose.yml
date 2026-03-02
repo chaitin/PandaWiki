@@ -34,6 +34,7 @@ services:
       - ./web/app/dist:/app/app/dist
       - ./web/app/public:/app/app/public
       - ./web/app/node_modules:/app/app/node_modules
+      - ./web/node_modules/.pnpm:/ROOT/projects/PandaWiki/web/node_modules/.pnpm
       - ./web/app/package.json:/app/app/package.json
     networks:
       panda-wiki:
