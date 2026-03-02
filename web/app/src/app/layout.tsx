@@ -2,7 +2,6 @@ import ErrorComponent from '@/components/error';
 import StoreProvider from '@/provider';
 import { ThemeStoreProvider } from '@/provider/themeStore';
 import { getShareV1AppWebInfo } from '@/request/ShareApp';
-import { getShareProV1AuthInfo } from '@/request/pro/ShareAuth';
 import Script from 'next/script';
 import { Box } from '@mui/material';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v16-appRouter';
@@ -73,9 +72,9 @@ const Layout = async ({
 
   let error: any = null;
 
-  const [kbDetailResolve, authInfoResolve] = await Promise.allSettled([
+  const [kbDetailResolve] = await Promise.allSettled([
     getShareV1AppWebInfo(),
-    getShareProV1AuthInfo({}),
+    // getShareProV1AuthInfo({}),
   ]);
 
   // const authInfo: any =
@@ -89,12 +88,12 @@ const Layout = async ({
   const kbDetail: any =
     kbDetailResolve.status === 'fulfilled' ? kbDetailResolve.value : undefined;
 
-  if (
-    authInfoResolve.status === 'rejected' &&
-    authInfoResolve.reason.code === 403
-  ) {
-    error = authInfoResolve.reason;
-  }
+  // if (
+  //   authInfoResolve.status === 'rejected' &&
+  //   authInfoResolve.reason.code === 403
+  // ) {
+  //   error = authInfoResolve.reason;
+  // }
 
   const { isMobile } = getSelectorsByUserAgent(userAgent || '') || {
     isMobile: false,
