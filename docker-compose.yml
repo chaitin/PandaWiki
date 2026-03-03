@@ -96,6 +96,8 @@ services:
       - POSTGRES_USER=panda-wiki
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=panda-wiki
+    ports:
+      - "5434:5432"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     networks:
