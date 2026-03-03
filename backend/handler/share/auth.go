@@ -240,7 +240,7 @@ func (h *ShareAuthHandler) AuthLoginUserPassword(c echo.Context) error {
 
 	// 检查是否开启了企业认证
 	if !kb.AccessSettings.EnterpriseAuth.Enabled {
-		return h.NewResponseWithError(c, "企业认证未开启", nil)
+		// return h.NewResponseWithError(c, "企业认证未开启", nil)
 	}
 
 	// 创建或获取 Auth 记录

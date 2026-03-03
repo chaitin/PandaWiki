@@ -37,26 +37,7 @@ export const INIT_LADING_DATA = {
   home_page_setting:
     ConstsHomePageSetting.HomePageSettingCustom as ConstsHomePageSetting,
   icon: '/images/init/icon.png',
-  btns: [
-    {
-      icon: '/images/init/github_icon.png',
-      id: '1748421035847',
-      showIcon: true,
-      target: '_blank',
-      text: 'GitHub',
-      url: 'https://ly.safepoint.cloud/XEyeWqL',
-      variant: 'contained',
-    },
-    {
-      icon: '',
-      id: '1749634844746',
-      showIcon: false,
-      target: '_blank',
-      text: '微信交流群',
-      url: 'https://pandawiki.docs.baizhi.cloud/node/01971640-3937-7664-851d-a7f426d59764',
-      variant: 'outlined',
-    },
-  ],
+  btns: [],
   web_app_custom_style: {
     allow_theme_switching: false,
     header_search_placeholder: '问问AI吧',

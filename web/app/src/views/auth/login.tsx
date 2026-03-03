@@ -68,6 +68,11 @@ export default function Login() {
   const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [authInfo, setAuthInfo] = useState<{
+    username: string;
+    email: string;
+    avatar_url: string;
+  }>({ username: '', email: '', avatar_url: '' });
   const [loading, setLoading] = useState(false);
   const [authType, setAuthType] = useState<ConstsAuthType>();
   const [licenseEdition, setLicenseEdition] = useState<ConstsLicenseEdition>();
@@ -187,12 +192,13 @@ export default function Login() {
       message.error('请输入用户名和密码');
       return;
     }
+    console.log('kbDetail', kbDetail, searchParams, process.env);
     const kbId =
       searchParams.get('kb_id') ||
       (kbDetail as any)?.id ||
       (kbDetail as any)?.kb_id ||
       (typeof window !== 'undefined' ? (window as any).__KB_ID__ : '') ||
-      (process.env.NEXT_PUBLIC_DEV_KB_ID ?? '');
+      (process.env.DEV_KB_ID ?? '1bb45cda-6e76-4e47-a4a0-1611ef224645');
     if (!kbId) {
       message.error('知识库ID未找到，请刷新页面重试');
       return;
@@ -212,8 +218,7 @@ export default function Login() {
           },
         },
       );
-
-      // 登录成功，获取节点列表并跳转
+      setAuthInfo({ username, email: '', avatar_url: '' });
       getShareV1NodeList().then(res => {
         setNodeList?.((res as any) ?? []);
         message.success('认证成功');
@@ -230,12 +235,13 @@ export default function Login() {
 
   useEffect(() => {
     getShareV1AuthGet({}).then(res => {
-      setAuthType(res?.auth_type);
-      setSourceType(res?.source_type);
+      console.log('getShareV1AuthGet', res);
+      setAuthType('enterprise' as ConstsAuthType);
+      setSourceType('user_password' as ConstsSourceType);
       setLicenseEdition(res?.license_edition);
-      if (res?.auth_type === ConstsAuthType.AuthTypeNull) {
-        window.open(redirectUrl, '_self');
-      }
+      // if (res?.auth_type === ConstsAuthType.AuthTypeNull) {
+      //   window.open(redirectUrl, '_self');
+      // }
     });
   }, []);
 

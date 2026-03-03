@@ -77,14 +77,13 @@ const Layout = async ({
     // getShareProV1AuthInfo({}),
   ]);
 
-  // const authInfo: any =
-  //   authInfoResolve.status === 'fulfilled' ? authInfoResolve.value : undefined;
-  const authInfo: GithubComChaitinPandaWikiProApiShareV1AuthInfoResp = {
-    id: 1,
-    username: 'admin',
-    email: 'admin@admin.com',
-    avatar_url: 'https://test.com/avatar.png',
-  };
+  const authInfo: any = undefined;
+  // const authInfo: GithubComChaitinPandaWikiProApiShareV1AuthInfoResp = {
+  //   id: 1,
+  //   username: 'admin',
+  //   email: 'admin@admin.com',
+  //   avatar_url: 'https://test.com/avatar.png',
+  // };
   const kbDetail: any =
     kbDetailResolve.status === 'fulfilled' ? kbDetailResolve.value : undefined;
 

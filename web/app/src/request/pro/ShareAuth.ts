@@ -164,18 +164,18 @@ export const postShareProV1AuthGithub = (
 })` OK
  */
 
-export const getShareProV1AuthInfo = (params: RequestParams = {}) =>
-  httpRequest<
-    DomainPWResponse & {
-      data?: GithubComChaitinPandaWikiProApiShareV1AuthInfoResp;
-    }
-  >({
-    path: `/share/pro/v1/auth/info`,
-    method: "GET",
-    type: ContentType.Json,
-    format: "json",
-    ...params,
-  });
+// export const getShareProV1AuthInfo = (params: RequestParams = {}) =>
+//   httpRequest<
+//     DomainPWResponse & {
+//       data?: GithubComChaitinPandaWikiProApiShareV1AuthInfoResp;
+//     }
+//   >({
+//     path: `/share/pro/v1/auth/info`,
+//     method: "GET",
+//     type: ContentType.Json,
+//     format: "json",
+//     ...params,
+//   });
 
 /**
  * @description LDAP登录

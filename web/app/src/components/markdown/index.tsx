@@ -182,16 +182,27 @@ const MarkDown = ({ loading = false, content }: MarkDownProps) => {
               {children}
             </a>
           ),
-          img: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
+          img: (
+            props: Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
+              src?: string | Blob;
+            },
+          ) => {
             const { style, alt, src, width, height, ...rest } = props;
+            const srcStr = typeof src === 'string' ? src : '';
             const handleClick = () => {
-              setPreviewImgSrc(src as string);
+              setPreviewImgSrc(
+                typeof src === 'string'
+                  ? src
+                  : src instanceof Blob
+                    ? URL.createObjectURL(src)
+                    : '',
+              );
               setPreviewOpen(true);
             };
             return (
               <img
                 alt={alt || 'markdown-img'}
-                src={src || ''}
+                src={srcStr}
                 {...rest}
                 style={{
                   width: width || 'auto',

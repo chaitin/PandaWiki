@@ -57,6 +57,8 @@ export interface ThemeAndStyleSetting {
 }
 
 export interface KBDetail {
+  id: string;
+  kb_id: string;
   name: string;
   base_url?: string;
   settings: {
