@@ -108,6 +108,8 @@ services:
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}", "--appendonly", "yes", "--appendfilename", "appendonly.aof", "--save", "900 1", "--save", "300 10", "--save", "60 10000"]
     volumes:
       - ./data/redis:/data
+    ports:
+      - "6379:6379"
     networks:
       panda-wiki:
         ipv4_address: "${SUBNET_PREFIX:-169.254.15}.11"
@@ -131,6 +133,9 @@ services:
     command: ["nats-server", "-c", "/etc/nats/nats.conf", "--user", "panda-wiki", "--pass", "${NATS_PASSWORD}"]
     volumes:
       - ./data/nats:/data
+    ports:
+      - "4222:4222"
+      - "8222:8222"
     networks:
       panda-wiki:
         ipv4_address: "${SUBNET_PREFIX:-169.254.15}.13"

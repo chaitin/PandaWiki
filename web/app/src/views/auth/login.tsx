@@ -108,9 +108,9 @@ export default function Login() {
     if (e.key === 'Enter') {
       if (
         authType === ConstsAuthType.AuthTypeEnterprise &&
-        sourceType === ConstsSourceType.SourceTypeLDAP
+        (sourceType === ConstsSourceType.SourceTypeLDAP ||
+          sourceType === ConstsSourceType.SourceTypeUserPassword)
       ) {
-        // For LDAP auth, check if both username and password are filled before submitting
         if (username.trim() && password.trim()) {
           handleLDAPLogin();
         }
@@ -187,21 +187,20 @@ export default function Login() {
       message.error('请输入用户名和密码');
       return;
     }
-    // 从 URL 参数获取 kb_id，或者从 kbDetail 中获取（如果后端返回了 id 字段）
-    // 注意：kbDetail 的类型定义可能不完整，实际返回的数据可能包含 id 或 kb_id 字段
-    // const kbId = searchParams.get('kb_id') ||
-    //              (kbDetail as any)?.id ||
-    //              (kbDetail as any)?.kb_id ||
-    //              (typeof window !== 'undefined' ? (window as any).__KB_ID__ : null);
-    // if (!kbId) {
-    //   message.error('知识库ID未找到，请刷新页面重试');
-    //   return;
-    // }
+    const kbId =
+      searchParams.get('kb_id') ||
+      (kbDetail as any)?.id ||
+      (kbDetail as any)?.kb_id ||
+      (typeof window !== 'undefined' ? (window as any).__KB_ID__ : '') ||
+      (process.env.NEXT_PUBLIC_DEV_KB_ID ?? '');
+    if (!kbId) {
+      message.error('知识库ID未找到，请刷新页面重试');
+      return;
+    }
     setLoading(true);
     try {
       clearCookie();
 
-      // 调用 share auth 接口进行用户名密码登录，这会创建 session
       await postShareV1AuthLoginUserPassword(
         {
           username,
@@ -209,7 +208,7 @@ export default function Login() {
         },
         {
           headers: {
-            // 'X-KB-ID': kbId,
+            'X-KB-ID': kbId,
           },
         },
       );
