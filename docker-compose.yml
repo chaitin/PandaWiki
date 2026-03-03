@@ -5,6 +5,8 @@ services:
     image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-caddy:2.10-alpine
     cap_add:
       - NET_ADMIN
+    ports:
+      - "9000:9000"
     volumes:
       - ./data/caddy/caddy_config:/config
       - ./data/caddy/caddy_data:/data
