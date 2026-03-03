@@ -21,4 +21,5 @@ EXPOSE 3010
 ENV PORT=3010
 ENV HOSTNAME="0.0.0.0"
 
-CMD ["node", "app/server.js"]
+# 与 dev 一致：启动时打印日志，便于 docker logs 查看
+CMD ["sh", "-c", "echo '🚀 panda-wiki-app container starting' && echo '🎯 Starting Next.js server (port 3010)...' && echo '   访问地址: http://0.0.0.0:3010' && echo '' && exec node app/server.js"]
