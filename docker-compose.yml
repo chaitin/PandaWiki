@@ -135,7 +135,6 @@ services:
       - ./data/nats:/data
     ports:
       - "4222:4222"
-      - "8222:8222"
     networks:
       panda-wiki:
         ipv4_address: "${SUBNET_PREFIX:-169.254.15}.13"
