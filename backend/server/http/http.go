@@ -106,6 +106,7 @@ func NewEcho(
 					slog.String("uri", uri),
 					slog.Int("status", status),
 					slog.Int("latency", int(latency)),
+					slog.String("kb_id", c.Request().Header.Get("X-KB-ID")),
 				)
 			} else {
 				logger.LogAttrs(context.Background(), slog.LevelError, "REQUEST_ERROR",
@@ -115,6 +116,7 @@ func NewEcho(
 					slog.Int("status", status),
 					slog.Int("latency", int(latency)),
 					slog.String("err", v.Error.Error()),
+					slog.String("kb_id", c.Request().Header.Get("X-KB-ID")),
 				)
 			}
 			return nil

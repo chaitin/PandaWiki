@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gorilla/sessions"
+	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/v4"
 
 	v1 "github.com/chaitin/panda-wiki/api/share/v1"
@@ -47,6 +48,13 @@ func NewShareAuthHandler(
 	share.POST("/login/simple", h.AuthLoginSimple)
 	share.POST("/login/user_password", h.AuthLoginUserPassword)
 	share.POST("/github", h.AuthGitHub)
+
+	// PRO 前端使用的路由前缀：/share/pro/v1/auth/...
+	// 为了兼容，注册一份 pro 路由，并同时为 v1/pro 路径提供 logout 接口。
+	proShare := e.Group("share/pro/v1/auth", shareAuthMiddleware.CheckForbidden)
+	proShare.POST("/logout", h.AuthLogout)
+	share.POST("/logout", h.AuthLogout)
+
 	return h
 }
 
@@ -261,4 +269,38 @@ func (h *ShareAuthHandler) AuthLoginUserPassword(c echo.Context) error {
 	}
 
 	return h.NewResponseWithData(c, v1.AuthLoginUserPasswordResp{})
+}
+
+// AuthLogout 退出登录（清除 share 会话）
+//
+//	@Tags			share_auth
+//	@Summary		用户登出
+//	@Description	清除 share 会话 cookie，前端通常调用 /share/pro/v1/auth/logout
+//	@ID				v1-AuthLogout
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	domain.Response
+//	@Router			/share/pro/v1/auth/logout [post]
+func (h *ShareAuthHandler) AuthLogout(c echo.Context) error {
+	// 使用 echo-contrib/session 获取当前会话
+	sess, err := session.Get(domain.SessionName, c)
+	if err != nil {
+		h.logger.Error("session get failed on logout", log.Error(err))
+		// 即便获取失败，也返回 200，前端只关心本地 cookie 状态
+		return h.NewResponseWithData(c, nil)
+	}
+
+	// 通过设置 MaxAge<0 来让浏览器删除 cookie
+	sess.Options = &sessions.Options{
+		Path:   "/",
+		MaxAge: -1,
+	}
+	sess.Values = map[interface{}]interface{}{}
+
+	if err := sess.Save(c.Request(), c.Response()); err != nil {
+		h.logger.Error("session save failed on logout", log.Error(err))
+		// 不抛给前端错误，避免卡在登出界面
+	}
+
+	return h.NewResponseWithData(c, nil)
 }
