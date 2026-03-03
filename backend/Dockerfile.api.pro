@@ -33,4 +33,4 @@ COPY --from=builder /build/panda-wiki-migrate /app/panda-wiki-migrate
 COPY --from=builder /src/store/pg/migration /app/migration
 COPY --from=builder /src/store/pg/migration /src/store/pg/migration
 
-CMD ["sh", "-c", "/app/panda-wiki-migrate && /app/panda-wiki-api"]
+CMD ["sh", "-c", "echo '🚀 panda-wiki-api (pro) container starting' && echo '📦 Running DB migration...' && /app/panda-wiki-migrate && echo '✅ Migration done' && echo '🎯 Starting API server (port 8000)...' && echo '' && exec /app/panda-wiki-api"]
