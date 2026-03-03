@@ -383,7 +383,7 @@ export default function Login() {
                   </IconButton>
                 )}
 
-                {sourceType === ConstsSourceType.SourceTypeUserPassword && (
+                {
                   <Stack spacing={2} width='100%'>
                     {(() => {
                       const textFieldSx = {
@@ -494,7 +494,7 @@ export default function Login() {
                       );
                     })()}
                   </Stack>
-                )}
+                }
               </>
             )}
 
