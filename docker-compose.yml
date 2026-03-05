@@ -30,6 +30,10 @@ services:
     container_name: panda-wiki-app
     restart: always
     image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-app:v3.46.1
+    environment:
+      # 容器内必须用服务名访问 API，不能用 localhost
+      - TARGET=http://panda-wiki-api:8000
+      - DEV_KB_ID=1bb45cda-6e76-4e47-a4a0-1611ef224645
     volumes:
       - ./web/app/dist:/app/app/dist
       - ./web/app/public:/app/app/public
