@@ -34,12 +34,6 @@ services:
       # 容器内必须用服务名访问 API，不能用 localhost
       - TARGET=http://panda-wiki-api:8000
       - DEV_KB_ID=1bb45cda-6e76-4e47-a4a0-1611ef224645
-    volumes:
-      - ./web/app/dist:/app/app/dist
-      - ./web/app/public:/app/app/public
-      - ./web/app/node_modules:/app/app/node_modules
-      - ./web/node_modules/.pnpm:/ROOT/projects/PandaWiki/web/node_modules/.pnpm
-      - ./web/app/package.json:/app/app/package.json
     networks:
       panda-wiki:
         ipv4_address: "${SUBNET_PREFIX:-169.254.15}.112"
