@@ -54,9 +54,25 @@ export default function StoreProvider({
     themeMode = context.themeMode,
     nodeList: initialNodeList = context.nodeList || [],
     mobile = context.mobile,
-    authInfo = context.authInfo,
+    authInfo: authInfoProp = context.authInfo,
     tree: initialTree = context.tree || [],
   } = props;
+
+  const [localAuthInfo, setLocalAuthInfo] = useState<
+    GithubComChaitinPandaWikiProApiShareV1AuthInfoResp | undefined
+  >(undefined);
+
+  useEffect(() => {
+    try {
+      const raw =
+        typeof window !== 'undefined'
+          ? window.localStorage.getItem('authInfo')
+          : null;
+      if (raw) setLocalAuthInfo(JSON.parse(raw));
+    } catch (_) {}
+  }, []);
+
+  const authInfo = authInfoProp ?? localAuthInfo;
 
   const catalogSettings = kbDetail?.settings?.catalog_settings;
 

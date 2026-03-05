@@ -1,4 +1,5 @@
 import ErrorComponent from '@/components/error';
+import AuthGuard from '@/components/AuthGuard';
 import StoreProvider from '@/provider';
 import { ThemeStoreProvider } from '@/provider/themeStore';
 import { getShareV1AppWebInfo } from '@/request/ShareApp';
@@ -119,15 +120,17 @@ const Layout = async ({
               mobile={isMobile}
               authInfo={authInfo}
             >
-              <Box
-                sx={{
-                  bgcolor: 'background.paper',
-                  height: error ? '100vh' : 'auto',
-                }}
-                id='app-theme-root'
-              >
-                {error ? <ErrorComponent error={error} /> : children}
-              </Box>
+              <AuthGuard>
+                <Box
+                  sx={{
+                    bgcolor: 'background.paper',
+                    height: error ? '100vh' : 'auto',
+                  }}
+                  id='app-theme-root'
+                >
+                  {error ? <ErrorComponent error={error} /> : children}
+                </Box>
+              </AuthGuard>
             </StoreProvider>
           </ThemeStoreProvider>
         </AppRouterCacheProvider>
