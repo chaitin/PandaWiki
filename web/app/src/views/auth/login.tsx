@@ -219,6 +219,8 @@ export default function Login() {
         },
       );
       setAuthInfo({ username, email: '', avatar_url: '' });
+      // 登录成功，并保存到localStorage
+      localStorage.setItem('authInfo', JSON.stringify(authInfo));
       getShareV1NodeList().then(res => {
         setNodeList?.((res as any) ?? []);
         message.success('认证成功');
