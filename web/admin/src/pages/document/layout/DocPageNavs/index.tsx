@@ -3,22 +3,13 @@ import Cascader from '@/components/Cascader';
 import EmptyState from '@/components/EmptyState';
 import Loading from '@/components/Loading';
 import { useURLSearchParams } from '@/hooks';
-import { deleteApiV1NavDelete, postApiV1NavMove } from '@/request/Nav';
+import { deleteApiV1NavDelete } from '@/request/Nav';
 import type { V1NavListResp } from '@/request/types';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setIsRefreshDocList, setNavId } from '@/store/slices/config';
 import { addOpacityToColor } from '@/utils';
 import { Ellipsis, message, Modal } from '@ctzhian/ui';
 import {
-  closestCenter,
-  DndContext,
-  DragEndEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
@@ -65,6 +56,7 @@ const SortableNavItem = ({
     transform,
     transition,
     isDragging,
+    isOver,
   } = useSortable({ id });
 
   const setRef = useCallback(
@@ -160,6 +152,10 @@ const SortableNavItem = ({
           color: 'primary.main',
         },
         opacity: isDragging ? 0.5 : 1,
+        ...(isOver && {
+          bgcolor: addOpacityToColor(theme.palette.primary.main, 0.12),
+          borderRadius: 1,
+        }),
       }}
       onClick={onSelect}
     >
@@ -245,7 +241,6 @@ const DocPageNavs = ({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingNav, setDeletingNav] = useState<V1NavListResp | null>(null);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
-  const dataRef = useRef<V1NavListResp[]>([]);
   const selectedItemRef = useRef<HTMLDivElement | null>(null);
   const hasScrolledToSelectedRef = useRef(false);
 
@@ -253,16 +248,6 @@ const DocPageNavs = ({
   const sortedNavs = [...navs].sort(
     (a, b) => (a.position ?? 0) - (b.position ?? 0),
   );
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 3 },
-    }),
-  );
-
-  useEffect(() => {
-    dataRef.current = sortedNavs;
-  }, [sortedNavs]);
 
   // navList 变化后同步 selectedId，优先级：localStorage(nav_id_${kb_id}) > 第一个
   // 注意：sortedNavs 为空时不能调用 setNavId('')，因为初始加载时 navList 也为 []，会误删 localStorage
@@ -322,35 +307,6 @@ const DocPageNavs = ({
       dispatch(setNavId(id));
     },
     [dispatch],
-  );
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-      const current = dataRef.current;
-      const oldIndex = current.findIndex(n => (n.id || '') === active.id);
-      const newIndex = current.findIndex(n => (n.id || '') === over.id);
-      if (oldIndex === -1 || newIndex === -1) return;
-      const reordered = arrayMove(current, oldIndex, newIndex);
-      const next = reordered.map((item, index) => ({
-        ...item,
-        position: index,
-      }));
-      onNavListChange(next);
-      const prevId = next[newIndex - 1]?.id;
-      const nextId = next[newIndex + 1]?.id;
-      postApiV1NavMove({
-        id: active.id as string,
-        kb_id,
-        prev_id: prevId,
-        next_id: nextId,
-      }).then(() => {
-        message.success('顺序已更新');
-        refresh?.();
-      });
-    },
-    [kb_id, onNavListChange, refresh],
   );
 
   const handleEdit = useCallback((nav: V1NavListResp) => {
@@ -447,34 +403,26 @@ const DocPageNavs = ({
           <EmptyState text='无搜索结果' sx={{ p: 4 }} />
         ) : (
           <>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
+            <SortableContext
+              items={sortedNavs.map(n => n.id || '')}
+              strategy={verticalListSortingStrategy}
             >
-              <SortableContext
-                items={sortedNavs.map(n => n.id || '')}
-                strategy={verticalListSortingStrategy}
-              >
-                <Stack
-                  sx={{ height: 'calc(100vh - 216px)', overflowY: 'auto' }}
-                >
-                  {sortedNavs.map((nav, i) => (
-                    <SortableNavItem
-                      key={nav.id}
-                      nav={nav}
-                      selected={selectedId === nav.id}
-                      onSelect={() => handleSelect(nav.id!)}
-                      onEdit={() => handleEdit(nav)}
-                      onDelete={() => handleDeleteClick(nav)}
-                      showDelete={sortedNavs.length > 1}
-                      isLast={i === sortedNavs.length - 1}
-                      selectedItemRef={selectedItemRef}
-                    />
-                  ))}
-                </Stack>
-              </SortableContext>
-            </DndContext>
+              <Stack sx={{ height: 'calc(100vh - 216px)', overflowY: 'auto' }}>
+                {sortedNavs.map((nav, i) => (
+                  <SortableNavItem
+                    key={nav.id}
+                    nav={nav}
+                    selected={selectedId === nav.id}
+                    onSelect={() => handleSelect(nav.id!)}
+                    onEdit={() => handleEdit(nav)}
+                    onDelete={() => handleDeleteClick(nav)}
+                    showDelete={sortedNavs.length > 1}
+                    isLast={i === sortedNavs.length - 1}
+                    selectedItemRef={selectedItemRef}
+                  />
+                ))}
+              </Stack>
+            </SortableContext>
             {!isSearching && (
               <Box sx={{ px: 2, py: 1, borderTop: 1, borderColor: 'divider' }}>
                 <Button

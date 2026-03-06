@@ -3,6 +3,7 @@ import {
   TreeMenuItem,
   TreeMenuOptions,
 } from '@/components/Drag/DragTree/TreeMenu';
+import type { TreeDragHandlers } from '@/utils/drag';
 import {
   ConstsCrawlerSource,
   GithubComChaitinPandaWikiApiNodeV1NodeListGroupNavResp,
@@ -17,6 +18,8 @@ export interface DocPageListContainerProps {
   loading?: boolean;
   onPublishOpen: (ids?: string[]) => void;
   onRagOpen: (ids?: string[]) => void;
+  /** 由 layout 传入，用于注册文档树拖拽回调（拖到目录时由 layout 统一 onDragEnd） */
+  registerTreeDragHandlers?: (handlers: TreeDragHandlers | null) => void;
 }
 
 export interface DocTreeMenuHandlers {

@@ -48,6 +48,9 @@ export interface DocPageListContentProps {
     content_type?: string;
   }) => void;
   scrollTo: (id: string) => void;
+  registerTreeDragHandlers?: (
+    handlers: import('@/utils/drag').TreeDragHandlers | null,
+  ) => void;
 }
 
 const DocPageListContent = ({
@@ -71,6 +74,7 @@ const DocPageListContent = ({
   refresh,
   createLocal,
   scrollTo,
+  registerTreeDragHandlers,
 }: DocPageListContentProps) => {
   const theme = useTheme();
   const showEmpty = list.length === 0;
@@ -255,6 +259,7 @@ const DocPageListContent = ({
             onSelectChange={onSelectChange}
             supportSelect={supportSelect}
             virtualized={true}
+            registerDragHandlers={registerTreeDragHandlers}
           />
         )}
       </Stack>

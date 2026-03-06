@@ -31,6 +31,7 @@ const DragTree = forwardRef<DragTreeHandle, DragTreeProps>(
       disabled,
       virtualized = false,
       virtualizedHeight,
+      registerDragHandlers,
     },
     ref,
   ) => {
@@ -66,6 +67,7 @@ const DragTree = forwardRef<DragTreeHandle, DragTreeProps>(
         <SortableTree
           ref={sortableTreeRef}
           disableSorting={readOnly}
+          registerDragHandlers={registerDragHandlers}
           items={data.map(it => ({ ...it }))}
           onItemsChanged={(
             newItems: TreeItems<ITreeItem>,

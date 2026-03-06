@@ -417,7 +417,6 @@ const TreeItem = React.forwardRef<
                     variant='outlined'
                     size='small'
                     onClick={e => {
-                      console.log('cancel');
                       e.stopPropagation();
                       if (!item.name) {
                         removeItem(item.id);

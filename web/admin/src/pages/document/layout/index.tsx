@@ -1,14 +1,29 @@
 import { useURLSearchParams } from '@/hooks';
 import VersionPublish from '@/pages/release/components/VersionPublish';
-import { getApiV1NodeListGroupNav } from '@/request/Node';
+import { getApiV1NodeListGroupNav, postApiV1NodeMoveNav } from '@/request/Node';
+import { postApiV1NavMove } from '@/request/Nav';
 import {
   GithubComChaitinPandaWikiApiNodeV1NodeListGroupNavResp,
   V1NavListResp,
 } from '@/request/types';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setIsRefreshDocList, setNavId } from '@/store/slices/config';
+import type { TreeDragHandlers } from '@/utils/drag';
+import { message } from '@ctzhian/ui';
+import {
+  DndContext,
+  DragEndEvent,
+  DragMoveEvent,
+  DragOverEvent,
+  DragStartEvent,
+  pointerWithin,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import { arrayMove } from '@dnd-kit/sortable';
 import { Stack } from '@mui/material';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import RagErrorReStart from '../component/RagErrorReStart';
 import DocPageHeader from './DocPageHeader';
 import DocPageList from './DocPageList';
@@ -83,6 +98,93 @@ const Content = () => {
   }, [kbList, kb_id]);
 
   const [wikiUrl, setWikiUrl] = useState<string>('');
+  const treeDragHandlersRef = useRef<TreeDragHandlers | null>(null);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 3 } }),
+  );
+
+  const handleLayoutDragStart = useCallback((e: DragStartEvent) => {
+    treeDragHandlersRef.current?.onDragStart?.(e);
+  }, []);
+  const handleLayoutDragMove = useCallback((e: DragMoveEvent) => {
+    treeDragHandlersRef.current?.onDragMove?.(e);
+  }, []);
+  const handleLayoutDragOver = useCallback((e: DragOverEvent) => {
+    treeDragHandlersRef.current?.onDragOver?.(e);
+  }, []);
+  const handleLayoutDragEnd = useCallback(
+    (e: DragEndEvent) => {
+      const { active, over } = e;
+      if (!over) {
+        treeDragHandlersRef.current?.onDragEnd?.(e);
+        return;
+      }
+      const navIds = (navList || [])
+        .map(n => n.id)
+        .filter((id): id is string => !!id);
+      const overIsNav = navIds.includes(over.id as string);
+      const activeIsNav = navIds.includes(active.id as string);
+
+      if (overIsNav && activeIsNav) {
+        // 目录之间拖拽排序
+        const sorted = [...(navList || [])].sort(
+          (a, b) => (a.position ?? 0) - (b.position ?? 0),
+        );
+        const oldIndex = sorted.findIndex(n => (n.id || '') === active.id);
+        const newIndex = sorted.findIndex(n => (n.id || '') === over.id);
+        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+          const reordered = arrayMove(sorted, oldIndex, newIndex);
+          const next = reordered.map((item, index) => ({
+            ...item,
+            position: index,
+          }));
+          setNavList(next);
+          const prevId = next[newIndex - 1]?.id;
+          const nextId = next[newIndex + 1]?.id;
+          postApiV1NavMove({
+            id: active.id as string,
+            kb_id: kb_id!,
+            prev_id: prevId,
+            next_id: nextId,
+          }).then(() => {
+            message.success('顺序已更新');
+            refresh();
+          });
+        }
+        return;
+      }
+      if (overIsNav && !activeIsNav) {
+        // 如果文档/文件夹本来就在该目录中，则不调用移动接口
+        const targetNavId = over.id as string;
+        const isAlreadyInTargetNav = groups.some(
+          g =>
+            g.nav_id === targetNavId &&
+            (g.list || []).some(item => item.id === active.id),
+        );
+        if (isAlreadyInTargetNav) {
+          treeDragHandlersRef.current?.onDragCancel?.();
+          return;
+        }
+
+        // 文档树节点拖到目录
+        treeDragHandlersRef.current?.onDragCancel?.();
+        postApiV1NodeMoveNav({
+          id: active.id as string,
+          kb_id: kb_id!,
+          nav_id: over.id as string,
+        }).then(() => {
+          message.success('已移动到该目录');
+          refresh();
+        });
+        return;
+      }
+      treeDragHandlersRef.current?.onDragEnd?.(e);
+    },
+    [kb_id, navList, refresh, groups],
+  );
+  const handleLayoutDragCancel = useCallback(() => {
+    treeDragHandlersRef.current?.onDragCancel?.();
+  }, []);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -140,34 +242,47 @@ const Content = () => {
         }}
         refreshTrigger={refreshTrigger}
       />
-      <Stack direction={'row'} gap={2} sx={{ mt: 2 }}>
-        <DocPageNavs
-          navList={navList}
-          onNavListChange={setNavList}
-          onNavDeleted={navId => {
-            setGroups(prev => prev.filter(g => g.nav_id !== navId));
-          }}
-          refresh={refresh}
-          isSearching={!!search}
-          loading={loading && !hasLoadedOnce}
-        />
-        <DocPageList
-          groups={groups}
-          nav_id={nav_id}
-          search={search}
-          refresh={refresh}
-          wikiUrl={wikiUrl}
-          loading={loading && !hasLoadedOnce}
-          onPublishOpen={ids => {
-            setPublishIds(ids ?? []);
-            setPublishOpen(true);
-          }}
-          onRagOpen={ids => {
-            setRagIds(ids ?? []);
-            setRagOpen(true);
-          }}
-        />
-      </Stack>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        onDragStart={handleLayoutDragStart}
+        onDragMove={handleLayoutDragMove}
+        onDragOver={handleLayoutDragOver}
+        onDragEnd={handleLayoutDragEnd}
+        onDragCancel={handleLayoutDragCancel}
+      >
+        <Stack direction={'row'} gap={2} sx={{ mt: 2 }}>
+          <DocPageNavs
+            navList={navList}
+            onNavListChange={setNavList}
+            onNavDeleted={navId => {
+              setGroups(prev => prev.filter(g => g.nav_id !== navId));
+            }}
+            refresh={refresh}
+            isSearching={!!search}
+            loading={loading && !hasLoadedOnce}
+          />
+          <DocPageList
+            groups={groups}
+            nav_id={nav_id}
+            search={search}
+            refresh={refresh}
+            wikiUrl={wikiUrl}
+            loading={loading && !hasLoadedOnce}
+            onPublishOpen={ids => {
+              setPublishIds(ids ?? []);
+              setPublishOpen(true);
+            }}
+            onRagOpen={ids => {
+              setRagIds(ids ?? []);
+              setRagOpen(true);
+            }}
+            registerTreeDragHandlers={handlers => {
+              treeDragHandlersRef.current = handlers;
+            }}
+          />
+        </Stack>
+      </DndContext>
       <VersionPublish
         open={publishOpen}
         defaultSelected={publishIds}

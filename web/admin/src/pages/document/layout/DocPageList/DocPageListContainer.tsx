@@ -29,6 +29,7 @@ const DocPageListContainer = ({
   loading = false,
   onPublishOpen,
   onRagOpen,
+  registerTreeDragHandlers,
 }: DocPageListContainerProps) => {
   const { kb_id } = useAppSelector(state => state.config);
   const dragTreeRef = useRef<DragTreeHandle>(null);
@@ -237,6 +238,7 @@ const DocPageListContainer = ({
         refresh={refresh}
         createLocal={createLocal}
         scrollTo={scrollTo}
+        registerTreeDragHandlers={registerTreeDragHandlers}
       />
       <DocListModals
         kb_id={kb_id}
