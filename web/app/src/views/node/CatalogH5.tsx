@@ -1,23 +1,24 @@
 'use client';
 
 import { IconNav } from '@/components/icons';
-import { IconXiajiantou } from '@panda-wiki/icons';
+import { useStore } from '@/provider';
 import { filterTreeBySearch } from '@/utils';
-import { addExpandState } from '@/utils/drag';
-import { useParams } from 'next/navigation';
+import { addExpandState } from '@/utils/tree';
 import SearchIcon from '@mui/icons-material/Search';
 import { Box, Stack, TextField } from '@mui/material';
+import { IconXiajiantou } from '@panda-wiki/icons';
 import { useDebounce } from 'ahooks';
+import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import CatalogFolder from './CatalogFolder';
-import { useStore } from '@/provider';
 
 const CatalogH5 = () => {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const params = useParams() || {};
   const id = params.id as string;
-  const { tree: initialTree, kbDetail } = useStore();
+  const { tree: initialTree, kbDetail, nodeList } = useStore();
+  console.log(nodeList);
   const debouncedSearchTerm = useDebounce(searchTerm, { wait: 300 });
 
   const catalogSetting = kbDetail?.settings?.catalog_settings;
@@ -30,7 +31,7 @@ const CatalogH5 = () => {
       catalogFolderExpand,
     );
     return filterTreeBySearch(originalTree, debouncedSearchTerm);
-  }, [debouncedSearchTerm]);
+  }, [initialTree, id, catalogFolderExpand, debouncedSearchTerm]);
 
   useEffect(() => {
     if (open) {
@@ -53,7 +54,7 @@ const CatalogH5 = () => {
     <Box
       sx={{
         position: 'sticky',
-        top: '64px',
+        top: nodeList?.length && nodeList?.length > 1 ? '108px' : '108px',
         width: '100%',
         zIndex: 2,
         bgcolor: 'background.paper3',
@@ -142,11 +143,7 @@ const CatalogH5 = () => {
         />
         <Box sx={{ py: 3 }}>
           {tree.map(item => (
-            <CatalogFolder
-              key={item.id}
-              item={item}
-              searchTerm={debouncedSearchTerm}
-            />
+            <CatalogFolder key={item.id} item={item} />
           ))}
         </Box>
       </Box>

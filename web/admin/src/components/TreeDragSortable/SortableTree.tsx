@@ -52,6 +52,14 @@ import {
   setProperty,
 } from './utilities';
 
+export type TreeDragHandlers = {
+  onDragStart: (e: DragStartEvent) => void;
+  onDragMove: (e: DragMoveEvent) => void;
+  onDragOver: (e: DragOverEvent) => void;
+  onDragEnd: (e: DragEndEvent) => void;
+  onDragCancel: () => void;
+};
+
 export type SortableTreeProps<
   TData extends Record<string, any>,
   TElement extends HTMLElement,
@@ -73,6 +81,8 @@ export type SortableTreeProps<
   canRootHaveChildren?: boolean | ((dragItem: FlattenedItem<TData>) => boolean);
   virtualized?: boolean;
   virtualizedHeight?: number | string;
+  /** 当使用外部 DndContext 时传入，注册拖拽回调以便父级统一处理 onDragEnd 等 */
+  registerDragHandlers?: (handlers: TreeDragHandlers | null) => void;
 };
 
 export type SortableTreeHandle = {
@@ -126,6 +136,7 @@ function SortableTreeInner<
     canRootHaveChildren,
     virtualized = false,
     virtualizedHeight = '100%',
+    registerDragHandlers,
     ...rest
   }: SortableTreeProps<TreeItemData, TElement>,
   ref: React.Ref<SortableTreeHandle>,
@@ -167,17 +178,11 @@ function SortableTreeInner<
     items: flattenedItems,
     offset: offsetLeft,
   });
-  // const [coordinateGetter] = useState(() =>
-  //   sortableTreeKeyboardCoordinates(sensorContext, indentationWidth)
-  // );
   const sensors = useSensors(
     useSensor(
       PointerSensor,
       pointerSensorOptions ?? defaultPointerSensorOptions,
     ),
-    // useSensor(KeyboardSensor, {
-    //   coordinateGetter,
-    // })
   );
 
   const sortedIds = useMemo(
@@ -197,6 +202,14 @@ function SortableTreeInner<
 
   const itemsRef = useRef(items);
   itemsRef.current = items;
+
+  // Refs for handlers when using external DndContext (registerDragHandlers)
+  const handleDragStartRef = useRef<(e: DragStartEvent) => void>(() => {});
+  const handleDragMoveRef = useRef<(e: DragMoveEvent) => void>(() => {});
+  const handleDragOverRef = useRef<(e: DragOverEvent) => void>(() => {});
+  const handleDragEndRef = useRef<(e: DragEndEvent) => void>(() => {});
+  const handleDragCancelRef = useRef<() => void>(() => {});
+
   const handleRemove = useCallback(
     (id: string) => {
       const item = findItemDeep(itemsRef.current, id)!;
@@ -316,131 +329,124 @@ function SortableTreeInner<
     ],
   );
 
-  return (
-    <DndContext
-      accessibility={{ announcements }}
-      sensors={disableSorting ? undefined : sensors}
-      modifiers={indicator ? modifiersArray : undefined}
-      collisionDetection={closestCenter}
-      // measuring={measuring}
-      onDragStart={disableSorting ? undefined : handleDragStart}
-      onDragMove={disableSorting ? undefined : handleDragMove}
-      onDragOver={disableSorting ? undefined : handleDragOver}
-      onDragEnd={disableSorting ? undefined : handleDragEnd}
-      onDragCancel={disableSorting ? undefined : handleDragCancel}
-      {...dndContextProps}
+  const treeContent = (
+    <SortableContext
+      items={sortedIds}
+      strategy={
+        disableSorting ? undefined : customListSortingStrategy(strategyCallback)
+      }
     >
-      <SortableContext
-        items={sortedIds}
-        strategy={
-          disableSorting
-            ? undefined
-            : customListSortingStrategy(strategyCallback)
-        }
-      >
-        {virtualized ? (
-          <Virtuoso
-            ref={virtuosoRef}
-            style={{ height: virtualizedHeight }}
-            totalCount={flattenedItems.length}
-            itemContent={renderItem}
-            increaseViewportBy={{ top: 200, bottom: 200 }}
-            overscan={5}
-          />
-        ) : (
-          flattenedItems.map(item => {
-            return (
-              <SortableTreeItem
-                {...rest}
-                key={item.id}
-                id={item.id as any}
-                item={item}
-                childCount={item.children?.length}
-                depth={
-                  item.id === activeId && projected && !keepGhostInPlace
-                    ? projected.depth
-                    : item.depth
-                }
-                indentationWidth={indentationWidth}
-                indicator={indicator}
-                collapsed={Boolean(item.collapsed && item.children?.length)}
-                onCollapse={item.children?.length ? handleCollapse : undefined}
-                onRemove={handleRemove}
-                isLast={
-                  item.id === activeId && projected
-                    ? projected.isLast
-                    : item.isLast
-                }
-                parent={
-                  item.id === activeId && projected
-                    ? projected.parent
-                    : item.parent
-                }
-                TreeItemComponent={TreeItemComponent}
-                disableSorting={disableSorting}
-                sortableProps={sortableProps}
-                keepGhostInPlace={keepGhostInPlace}
-              />
-            );
-          })
-        )}
-        {createPortal(
-          <DragOverlay
-            dropAnimation={
-              dropAnimation === undefined
-                ? dropAnimationDefaultConfig
-                : dropAnimation
-            }
-          >
-            {activeId && activeItem ? (
-              <TreeItemComponent
-                {...rest}
-                item={activeItem}
-                children={[]}
-                depth={activeItem.depth}
-                clone
-                childCount={getChildCount(items, activeId) + 1}
-                indentationWidth={indentationWidth}
-                isLast={false}
-                parent={activeItem.parent}
-                isOver={false}
-                isOverParent={false}
-              />
-            ) : null}
-          </DragOverlay>,
-          document.body,
-        )}
-      </SortableContext>
-    </DndContext>
+      {virtualized ? (
+        <Virtuoso
+          ref={virtuosoRef}
+          style={{ height: virtualizedHeight }}
+          totalCount={flattenedItems.length}
+          itemContent={renderItem}
+          increaseViewportBy={{ top: 200, bottom: 200 }}
+          overscan={5}
+        />
+      ) : (
+        flattenedItems.map(item => {
+          return (
+            <SortableTreeItem
+              {...rest}
+              key={item.id}
+              id={item.id as any}
+              item={item}
+              childCount={item.children?.length}
+              depth={
+                item.id === activeId && projected && !keepGhostInPlace
+                  ? projected.depth
+                  : item.depth
+              }
+              indentationWidth={indentationWidth}
+              indicator={indicator}
+              collapsed={Boolean(item.collapsed && item.children?.length)}
+              onCollapse={item.children?.length ? handleCollapse : undefined}
+              onRemove={handleRemove}
+              isLast={
+                item.id === activeId && projected
+                  ? projected.isLast
+                  : item.isLast
+              }
+              parent={
+                item.id === activeId && projected
+                  ? projected.parent
+                  : item.parent
+              }
+              TreeItemComponent={TreeItemComponent}
+              disableSorting={disableSorting}
+              sortableProps={sortableProps}
+              keepGhostInPlace={keepGhostInPlace}
+            />
+          );
+        })
+      )}
+      {createPortal(
+        <DragOverlay
+          dropAnimation={
+            dropAnimation === undefined
+              ? dropAnimationDefaultConfig
+              : dropAnimation
+          }
+        >
+          {activeId && activeItem ? (
+            <TreeItemComponent
+              {...rest}
+              item={activeItem}
+              children={[]}
+              depth={activeItem.depth}
+              clone
+              childCount={getChildCount(items, activeId) + 1}
+              indentationWidth={indentationWidth}
+              isLast={false}
+              parent={activeItem.parent}
+              isOver={false}
+              isOverParent={false}
+            />
+          ) : null}
+        </DragOverlay>,
+        document.body,
+      )}
+    </SortableContext>
   );
 
-  function handleDragStart({ active: { id: activeId } }: DragStartEvent) {
+  function resetState() {
+    setOverId(null);
+    setActiveId(null);
+    setOffsetLeft(0);
+    setCurrentPosition(null);
+    document.body.style.setProperty('cursor', '');
+  }
+
+  function handleDragStart(event: DragStartEvent) {
+    const activeId = event.active.id;
     setActiveId(activeId);
     setOverId(activeId);
-
     const activeItem = flattenedItems.find(({ id }) => id === activeId);
-
     if (activeItem) {
       setCurrentPosition({
         parentId: activeItem.parentId,
         overId: activeId,
       });
     }
-
     document.body.style.setProperty('cursor', 'grabbing');
   }
+  handleDragStartRef.current = handleDragStart;
 
-  function handleDragMove({ delta }: DragMoveEvent) {
-    setOffsetLeft(delta.x);
+  function handleDragMove(event: DragMoveEvent) {
+    setOffsetLeft(event.delta.x);
   }
+  handleDragMoveRef.current = handleDragMove;
 
-  function handleDragOver({ over }: DragOverEvent) {
-    setOverId(over?.id ?? null);
+  function handleDragOver(event: DragOverEvent) {
+    setOverId(event.over?.id ?? null);
   }
+  handleDragOverRef.current = handleDragOver;
 
-  function handleDragEnd({ active, over }: DragEndEvent) {
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
     resetState();
-
     if (projected && over) {
       const { depth, parentId } = projected;
       if (keepGhostInPlace && over.id === active.id) return;
@@ -448,7 +454,6 @@ function SortableTreeInner<
       const overIndex = clonedItems.findIndex(({ id }) => id === over.id);
       const activeIndex = clonedItems.findIndex(({ id }) => id === active.id);
       const activeTreeItem = clonedItems[activeIndex];
-
       clonedItems[activeIndex] = { ...activeTreeItem, depth, parentId };
       const draggedFromParent = activeTreeItem.parent;
       const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
@@ -457,11 +462,6 @@ function SortableTreeInner<
       const currentParent = newActiveItem.parentId
         ? sortedItems.find(x => x.id === newActiveItem.parentId)!
         : null;
-      // removing setTimeout leads to an unwanted scrolling
-      // Use case:
-      //   There are a lot of items in a tree (so that the scroll exists).
-      //   You take the node from the bottom and move it to the top
-      //   Without `setTimeout` when you drop the node the list gets scrolled to the bottom.
       setTimeout(() =>
         onItemsChanged(newItems, {
           type: 'dropped',
@@ -472,19 +472,45 @@ function SortableTreeInner<
       );
     }
   }
+  handleDragEndRef.current = handleDragEnd;
 
   function handleDragCancel() {
     resetState();
   }
+  handleDragCancelRef.current = handleDragCancel;
 
-  function resetState() {
-    setOverId(null);
-    setActiveId(null);
-    setOffsetLeft(0);
-    setCurrentPosition(null);
+  useEffect(() => {
+    if (!registerDragHandlers) return;
+    registerDragHandlers({
+      onDragStart: (e: DragStartEvent) => handleDragStartRef.current(e),
+      onDragMove: (e: DragMoveEvent) => handleDragMoveRef.current(e),
+      onDragOver: (e: DragOverEvent) => handleDragOverRef.current(e),
+      onDragEnd: (e: DragEndEvent) => handleDragEndRef.current(e),
+      onDragCancel: () => handleDragCancelRef.current(),
+    });
+    return () => registerDragHandlers(null);
+  }, [registerDragHandlers]);
 
-    document.body.style.setProperty('cursor', '');
+  if (registerDragHandlers) {
+    return treeContent;
   }
+
+  return (
+    <DndContext
+      accessibility={{ announcements }}
+      sensors={disableSorting ? undefined : sensors}
+      modifiers={indicator ? modifiersArray : undefined}
+      collisionDetection={closestCenter}
+      onDragStart={disableSorting ? undefined : handleDragStart}
+      onDragMove={disableSorting ? undefined : handleDragMove}
+      onDragOver={disableSorting ? undefined : handleDragOver}
+      onDragEnd={disableSorting ? undefined : handleDragEnd}
+      onDragCancel={disableSorting ? undefined : handleDragCancel}
+      {...dndContextProps}
+    >
+      {treeContent}
+    </DndContext>
+  );
 
   function getMovementAnnouncement(
     eventName: string,

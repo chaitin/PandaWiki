@@ -1,6 +1,8 @@
 'use client';
 
+import { useSmartScroll } from '@/hooks';
 import { copyText } from '@/utils';
+import { getImagePath } from '@/utils/getImagePath';
 import { Box, Dialog, useTheme } from '@mui/material';
 import mk from '@vscode/markdown-it-katex';
 import hljs from 'highlight.js';
@@ -14,11 +16,9 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { useSmartScroll } from '@/hooks';
 import { clearImageBlobCache, createImageRenderer } from './imageRenderer';
 import { incrementalRender } from './incrementalRenderer';
 import { createMermaidRenderer } from './mermaidRenderer';
-import { getImagePath } from '@/utils/getImagePath';
 import {
   processThinkingContent,
   useThinkingRenderer,

@@ -15,6 +15,7 @@ import {
   postShareV1AuthLoginSimple,
 } from '@/request/ShareAuth';
 import { getShareV1NodeList } from '@/request/ShareNode';
+import { parseNodeListResponse } from '@/utils/tree';
 import { clearCookie } from '@/utils/cookie';
 
 import {
@@ -125,7 +126,15 @@ export default function Login() {
         password,
       }).then(() => {
         getShareV1NodeList().then(res => {
-          setNodeList?.((res as any) ?? []);
+          const raw = (res as any) ?? [];
+          const { isGrouped, navDataMap, defaultNavId } =
+            parseNodeListResponse(raw);
+          const nodeList = isGrouped
+            ? (navDataMap[defaultNavId || ''] ??
+              navDataMap[Object.keys(navDataMap)[0]] ??
+              [])
+            : raw;
+          setNodeList?.(Array.isArray(nodeList) ? nodeList : []);
           message.success('认证成功');
           window.open(redirectUrl, '_self');
         });
@@ -223,7 +232,15 @@ export default function Login() {
         password,
       }).then(() => {
         getShareV1NodeList().then(res => {
-          setNodeList?.((res as any) ?? []);
+          const raw = (res as any) ?? [];
+          const { isGrouped, navDataMap, defaultNavId } =
+            parseNodeListResponse(raw);
+          const nodeList = isGrouped
+            ? (navDataMap[defaultNavId || ''] ??
+              navDataMap[Object.keys(navDataMap)[0]] ??
+              [])
+            : raw;
+          setNodeList?.(Array.isArray(nodeList) ? nodeList : []);
           message.success('认证成功');
           window.open(redirectUrl, '_self');
         });

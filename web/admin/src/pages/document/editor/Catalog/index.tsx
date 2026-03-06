@@ -1,37 +1,83 @@
 import { ITreeItem } from '@/api';
 import Cascader from '@/components/Cascader';
+import Loading from '@/components/Loading';
 import { setProperty } from '@/components/TreeDragSortable/utilities';
-import { V1NodeDetailResp } from '@/request/types';
-import { useAppSelector } from '@/store';
+import {
+  DomainNodeListItemResp,
+  GithubComChaitinPandaWikiApiNodeV1NodeListGroupNavResp,
+  V1NodeDetailResp,
+} from '@/request/types';
+import { useAppDispatch, useAppSelector } from '@/store';
+import { setNavId } from '@/store/slices/config';
 import { addOpacityToColor } from '@/utils';
+import { convertToTree } from '@/utils/drag';
 import { Ellipsis } from '@ctzhian/ui';
-import { alpha, Box, IconButton, Stack, useTheme } from '@mui/material';
+import {
+  alpha,
+  Box,
+  Button,
+  IconButton,
+  Popover,
+  Stack,
+  useTheme,
+} from '@mui/material';
+import {
+  IconIcon_tool_close,
+  IconJiahao,
+  IconMulushouqi,
+  IconWenjian,
+  IconWenjianjia,
+  IconXiajiantou,
+  IconXiala,
+} from '@panda-wiki/icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import DocAddByCustomText from '../../component/DocAddByCustomText';
 import KBSwitch from './KBSwitch';
-import {
-  IconIcon_tool_close,
-  IconWenjianjia,
-  IconWenjian,
-  IconMulushouqi,
-  IconXiajiantou,
-} from '@panda-wiki/icons';
+
+function getFirstDocIdInTree(items: ITreeItem[]): string | undefined {
+  for (const item of items) {
+    if (item.type === 2) return item.id;
+    if (item.children?.length) {
+      const found = getFirstDocIdInTree(item.children);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
+function getFirstDocId(
+  list: DomainNodeListItemResp[] = [],
+): string | undefined {
+  const tree = convertToTree(list);
+  return getFirstDocIdInTree(tree);
+}
 
 interface CatalogProps {
   curNode: V1NodeDetailResp;
   setCatalogOpen: (open: boolean) => void;
   catalogData: ITreeItem[];
-  onRefresh: () => Promise<ITreeItem[]>;
+  groups: GithubComChaitinPandaWikiApiNodeV1NodeListGroupNavResp[];
+  nav_id: string;
+  loading?: boolean;
+  onRefresh: () => Promise<
+    GithubComChaitinPandaWikiApiNodeV1NodeListGroupNavResp[]
+  >;
+  onSaveCurrentDoc?: () => Promise<void>;
 }
 
 const Catalog = ({
   curNode,
   setCatalogOpen,
   catalogData: externalData,
+  groups,
+  nav_id,
+  loading = false,
   onRefresh,
+  onSaveCurrentDoc,
 }: CatalogProps) => {
   const theme = useTheme();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const { id = '' } = useParams();
   const { pathname } = useLocation();
@@ -49,6 +95,46 @@ const Catalog = ({
   const [opraParentId, setOpraParentId] = useState<string>('');
   const [docFileKey, setDocFileKey] = useState<1 | 2>(1);
   const [customDocOpen, setCustomDocOpen] = useState(false);
+  const [navPopoverAnchor, setNavPopoverAnchor] = useState<HTMLElement | null>(
+    null,
+  );
+
+  const navList = useMemo(
+    () =>
+      [...groups]
+        .map(g => ({
+          id: g.nav_id,
+          name: g.nav_name,
+          position: g.position ?? 0,
+        }))
+        .filter(n => n.id)
+        .sort((a, b) => a.position - b.position),
+    [groups],
+  );
+  const currentNav = navList.find(n => n.id === nav_id) || navList[0];
+
+  const handleNavSelect = useCallback(
+    (targetNavId: string) => {
+      if (targetNavId === nav_id) {
+        setNavPopoverAnchor(null);
+        return;
+      }
+      dispatch(setNavId(targetNavId));
+      setNavPopoverAnchor(null);
+      const targetGroup = groups.find(g => g.nav_id === targetNavId);
+      const firstDocId = getFirstDocId(targetGroup?.list);
+      if (firstDocId) {
+        if (isHistory) {
+          navigate(`/doc/editor/history/${firstDocId}`);
+        } else {
+          navigate(`/doc/editor/${firstDocId}`);
+        }
+      } else {
+        navigate('/doc/editor/space');
+      }
+    },
+    [nav_id, groups, dispatch, navigate, isHistory],
+  );
 
   const ImportContentWays = {
     docFile: {
@@ -70,17 +156,19 @@ const Catalog = ({
   };
 
   const getCatalogData = useCallback(() => {
-    onRefresh().then(tree => {
-      setData(tree);
-      // 计算当前文档的所有父级文件夹，并默认展开
+    onRefresh();
+  }, [onRefresh]);
+
+  // 同步外部数据到内部状态，并计算展开的文件夹
+  useEffect(() => {
+    setData(externalData);
+    if (externalData.length > 0) {
       try {
         const currentId = id as string;
         if (!currentId) {
           setExpandedFolders(new Set());
           return;
         }
-
-        // 从树形结构中构建 id 到节点的映射
         const buildMap = (items: ITreeItem[], map: Map<string, ITreeItem>) => {
           items.forEach(item => {
             map.set(item.id, item);
@@ -89,10 +177,8 @@ const Catalog = ({
             }
           });
         };
-
         const map = new Map<string, ITreeItem>();
-        buildMap(tree, map);
-
+        buildMap(externalData, map);
         const expanded = new Set<string>();
         let cur = map.get(currentId);
         while (cur && cur.parentId) {
@@ -107,15 +193,10 @@ const Catalog = ({
       } catch (e) {
         setExpandedFolders(new Set());
       }
-    });
-  }, [onRefresh, id]);
-
-  // 同步外部数据到内部状态
-  useEffect(() => {
-    if (externalData.length > 0) {
-      setData(externalData);
+    } else {
+      setExpandedFolders(new Set());
     }
-  }, [externalData]);
+  }, [externalData, id]);
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => {
@@ -368,19 +449,81 @@ const Catalog = ({
         direction={'row'}
         alignItems={'center'}
         justifyContent={'space-between'}
-        sx={{ pr: 1 }}
+        sx={{ px: 1 }}
       >
-        <Box
+        <Button
+          onClick={e =>
+            navList.length > 0 && setNavPopoverAnchor(e.currentTarget)
+          }
+          disabled={navList.length === 0}
+          endIcon={
+            navList.length > 1 ? (
+              <IconXiala
+                sx={{
+                  fontSize: 16,
+                  transform: navPopoverAnchor ? 'rotate(180deg)' : 'none',
+                  transition: 'transform 0.2s',
+                }}
+              />
+            ) : null
+          }
           sx={{
-            px: 2,
+            px: 1.5,
+            py: 0.5,
+            minWidth: 0,
             fontSize: 14,
             fontWeight: 'bold',
             color: 'text.tertiary',
+            textTransform: 'none',
+            '&:hover':
+              navList.length > 0
+                ? { color: 'text.primary', bgcolor: 'action.hover' }
+                : {},
           }}
         >
-          目录
-        </Box>
+          <Ellipsis sx={{ maxWidth: 140 }}>
+            {currentNav?.name || '目录'}
+          </Ellipsis>
+        </Button>
         {renderAdd('')}
+        <Popover
+          open={!!navPopoverAnchor}
+          anchorEl={navPopoverAnchor}
+          onClose={() => setNavPopoverAnchor(null)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+          slotProps={{
+            paper: {
+              sx: { mt: 1, minWidth: 180, maxHeight: 320, p: 0.5 },
+            },
+          }}
+        >
+          <Stack sx={{ py: 0 }}>
+            {navList.map(nav => (
+              <Stack
+                key={nav.id}
+                direction='row'
+                alignItems='center'
+                onClick={() => nav.id && handleNavSelect(nav.id)}
+                sx={{
+                  fontSize: 14,
+                  px: 2,
+                  lineHeight: '40px',
+                  height: 40,
+                  width: 180,
+                  borderRadius: '5px',
+                  cursor: 'pointer',
+                  color: nav.id === nav_id ? 'primary.main' : 'text.primary',
+                  '&:hover': {
+                    bgcolor: addOpacityToColor(theme.palette.primary.main, 0.1),
+                  },
+                }}
+              >
+                <Ellipsis>{nav.name || nav.id}</Ellipsis>
+              </Stack>
+            ))}
+          </Stack>
+        </Popover>
       </Stack>
       <Stack
         sx={{
@@ -391,19 +534,50 @@ const Catalog = ({
           overflowX: 'hidden',
         }}
       >
-        {renderTree(data)}
+        {loading ? (
+          <Loading />
+        ) : data.length === 0 ? (
+          <Button
+            fullWidth
+            variant='text'
+            startIcon={<IconJiahao sx={{ fontSize: '10px !important' }} />}
+            onClick={() => {
+              setOpraParentId('');
+              setDocFileKey(2);
+              setCustomDocOpen(true);
+            }}
+            sx={{
+              justifyContent: 'center',
+              textTransform: 'none',
+            }}
+          >
+            添加文档
+          </Button>
+        ) : (
+          renderTree(data)
+        )}
       </Stack>
       <DocAddByCustomText
         type={docFileKey}
         autoJump={false}
         open={customDocOpen}
         parentId={opraParentId}
-        onCreated={node => {
-          onRefresh();
+        onCreated={async node => {
+          if (node.type === 2) {
+            await onSaveCurrentDoc?.();
+            await onRefresh();
+            if (isHistory) {
+              navigate(`/doc/editor/history/${node.id}`);
+            } else {
+              navigate(`/doc/editor/${node.id}`);
+            }
+          } else {
+            await onRefresh();
+          }
           if (opraParentId) {
             setExpandedFolders(prev => {
               const ns = new Set(prev);
-              if (opraParentId) ns.add(opraParentId);
+              ns.add(opraParentId);
               return ns;
             });
           }

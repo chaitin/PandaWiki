@@ -1,10 +1,9 @@
 'use client';
-import { IconMulu } from '@panda-wiki/icons';
 import { useStore } from '@/provider';
-import { addExpandState } from '@/utils/drag';
 import { Box, Stack, SxProps, Tooltip } from '@mui/material';
+import { IconMulu } from '@panda-wiki/icons';
 import { useParams } from 'next/navigation';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import CatalogFolder from './CatalogFolder';
 
 const Catalog = ({ sx }: { sx?: SxProps }) => {
@@ -17,58 +16,37 @@ const Catalog = ({ sx }: { sx?: SxProps }) => {
     setCatalogShow,
     catalogWidth,
     tree = [],
-    setTree,
   } = useStore();
 
-  const catalogSetting = kbDetail?.settings?.catalog_settings;
-  const catalogFolderExpand = catalogSetting?.catalog_folder !== 2;
   const docWidth = kbDetail?.settings?.theme_and_style?.doc_width || 'full';
 
-  useEffect(() => {
-    const { tree: originalTree } = addExpandState(
-      tree || [],
-      id as string,
-      catalogFolderExpand,
-    );
-    setTree?.(originalTree);
-  }, []);
-
   const listRef = useRef<HTMLDivElement>(null);
-  const hasScrolledRef = useRef(false);
+  const hasScrolledOnceRef = useRef(false);
 
+  // 仅首次进入页面时自动滚动到当前文档在目录中的位置（刷新后会再次执行）
+  // 切换文档时不滚动，避免打断用户浏览
   useEffect(() => {
-    if (hasScrolledRef.current) return;
-    if (!id || !catalogShow) return;
-    // 等待子项渲染完成后再滚动
+    if (!id || !catalogShow || hasScrolledOnceRef.current) return;
     const scrollToActive = () => {
       const el = document.getElementById(`catalog-item-${id}`);
       const container = listRef.current;
       if (el && container) {
-        // 计算目标元素相对于滚动容器的位置
         const containerRect = container.getBoundingClientRect();
         const elementRect = el.getBoundingClientRect();
-
-        // 计算目标元素在容器中的相对位置
         const elementTop =
           elementRect.top - containerRect.top + container.scrollTop;
         const containerHeight = container.clientHeight;
         const elementHeight = el.offsetHeight;
-
-        // 计算滚动位置，让元素居中显示
         const scrollTop = elementTop - containerHeight / 2 + elementHeight / 2;
-
-        // 平滑滚动到目标位置
-        container.scrollTo({
-          top: scrollTop,
-          behavior: 'smooth',
-        });
-
-        hasScrolledRef.current = true;
+        container.scrollTo({ top: scrollTop, behavior: 'smooth' });
+        hasScrolledOnceRef.current = true;
       }
     };
-    const raf = requestAnimationFrame(scrollToActive);
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(scrollToActive);
+    });
     return () => cancelAnimationFrame(raf);
-  }, [id, catalogShow]);
+  }, [id, catalogShow, tree]);
 
   if (mobile) return null;
 
@@ -78,8 +56,8 @@ const Catalog = ({ sx }: { sx?: SxProps }) => {
       alignItems={docWidth === 'full' ? 'flex-start' : 'flex-end'}
       sx={{
         position: 'sticky',
-        top: 114,
-        maxHeight: 'calc(100vh - 164px)',
+        top: 160,
+        maxHeight: 'calc(100vh - 164px - 44px)',
         zIndex: 9,
         fontSize: 14,
         width: catalogWidth,

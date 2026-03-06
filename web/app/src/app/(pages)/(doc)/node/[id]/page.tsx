@@ -1,4 +1,5 @@
 import { getShareV1NodeDetail } from '@/request/ShareNode';
+import type { V1ShareNodeDetailResp } from '@/request/types';
 import { formatMeta } from '@/utils';
 import Doc from '@/views/node';
 import { ResolvingMetadata } from 'next';
@@ -7,24 +8,23 @@ export interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+const defaultNode = {
+  name: '无权访问',
+  meta: { summary: '无权访问' },
+};
+
 export async function generateMetadata(
   { params }: PageProps,
   parent: ResolvingMetadata,
 ) {
   const { id } = await params;
-  let node = {
-    name: '无权访问',
-    meta: {
-      summary: '无权访问',
-    },
-  };
+  let node: { name?: string; meta?: { summary?: string } } = defaultNode;
   try {
-    // @ts-ignore
-    node = (await getShareV1NodeDetail({ id })) as any;
-  } catch (error) {
-    console.log(error);
+    const res = await getShareV1NodeDetail({ id, format: 'json' });
+    node = (res as V1ShareNodeDetailResp) ?? defaultNode;
+  } catch {
+    // 使用默认 node
   }
-
   return await formatMeta(
     { title: node?.name, description: node?.meta?.summary },
     parent,
@@ -33,15 +33,15 @@ export async function generateMetadata(
 
 const DocPage = async ({ params }: PageProps) => {
   const { id = '' } = await params;
-  let error: any = null;
-  let node: any = null;
+  let error: unknown = null;
+  let node: V1ShareNodeDetailResp | null = null;
   try {
-    // @ts-ignore
-    node = await getShareV1NodeDetail({ id });
+    const res = await getShareV1NodeDetail({ id, format: 'json' });
+    node = (res as V1ShareNodeDetailResp) ?? null;
   } catch (err) {
     error = err;
   }
-  return <Doc node={node} error={error} />;
+  return <Doc node={node ?? undefined} error={error as Error} />;
 };
 
 export default DocPage;

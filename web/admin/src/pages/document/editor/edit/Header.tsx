@@ -56,7 +56,9 @@ const Header = ({
     wikiUrlRef.current = wikiUrl;
   }, [wikiUrl]);
 
-  const { kb_id, license, kbList } = useAppSelector(state => state.config);
+  const { kb_id, nav_id, license, kbList } = useAppSelector(
+    state => state.config,
+  );
 
   const currentKb = useMemo(() => {
     return kbList?.find(item => item.id === kb_id);
@@ -268,6 +270,7 @@ const Header = ({
                       name: detail.name + ' [副本]',
                       content: detail.content,
                       kb_id,
+                      nav_id: nav_id || detail.nav_id || '',
                       parent_id: detail.parent_id || undefined,
                       type: 2,
                       emoji: detail.meta?.emoji,

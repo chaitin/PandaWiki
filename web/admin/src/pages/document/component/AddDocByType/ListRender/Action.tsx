@@ -36,7 +36,7 @@ interface BatchActionBarProps {
 
 const BatchActionBar = (props: BatchActionBarProps) => {
   const theme = useTheme();
-  const { kb_id } = useAppSelector(state => state.config);
+  const { kb_id, nav_id } = useAppSelector(state => state.config);
   const {
     data,
     loading,
@@ -208,6 +208,7 @@ const BatchActionBar = (props: BatchActionBarProps) => {
               parent_id: actualParentId,
               type: 1, // 文件夹类型
               kb_id,
+              nav_id: nav_id || '',
             });
 
             const oldId = item.id!; // 保存原平台 ID
@@ -264,6 +265,7 @@ const BatchActionBar = (props: BatchActionBarProps) => {
                 parent_id: actualParentId,
                 type: 2, // 文件类型
                 kb_id,
+                nav_id: nav_id || '',
               });
 
               setData(prev =>

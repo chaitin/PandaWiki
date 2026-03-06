@@ -340,6 +340,7 @@ export interface GithubComChaitinPandaWikiProApiAuthV1AuthSetReq {
 export interface GithubComChaitinPandaWikiProApiContributeV1ContributeAuditReq {
   id: string;
   kb_id: string;
+  nav_id: string;
   parent_id?: string;
   position?: number;
   status: "approved" | "rejected";

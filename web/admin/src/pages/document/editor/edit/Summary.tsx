@@ -67,7 +67,12 @@ const Summary = ({ open, onClose, updateDetail }: SummaryProps) => {
             summary,
           },
         });
-        putApiV1NodeDetail({ id: nodeDetail.id!, kb_id, summary }).then(() => {
+        putApiV1NodeDetail({
+          id: nodeDetail.id!,
+          kb_id,
+          nav_id: nodeDetail.nav_id || '',
+          summary,
+        }).then(() => {
           message.success('保存成功');
         });
         handleClose();

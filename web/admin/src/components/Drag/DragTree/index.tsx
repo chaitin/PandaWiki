@@ -21,6 +21,7 @@ const DragTree = forwardRef<DragTreeHandle, DragTreeProps>(
       data,
       menu,
       updateData,
+      refresh,
       ui = 'move',
       readOnly = false,
       selected,
@@ -30,6 +31,7 @@ const DragTree = forwardRef<DragTreeHandle, DragTreeProps>(
       disabled,
       virtualized = false,
       virtualizedHeight,
+      registerDragHandlers,
     },
     ref,
   ) => {
@@ -50,6 +52,7 @@ const DragTree = forwardRef<DragTreeHandle, DragTreeProps>(
           menu,
           data,
           updateData,
+          refresh,
           readOnly,
           selected,
           onSelectChange,
@@ -64,6 +67,7 @@ const DragTree = forwardRef<DragTreeHandle, DragTreeProps>(
         <SortableTree
           ref={sortableTreeRef}
           disableSorting={readOnly}
+          registerDragHandlers={registerDragHandlers}
           items={data.map(it => ({ ...it }))}
           onItemsChanged={(
             newItems: TreeItems<ITreeItem>,
@@ -84,6 +88,7 @@ const DragTree = forwardRef<DragTreeHandle, DragTreeProps>(
                 kb_id: kb_id,
               }).then(() => {
                 updateData?.(newItems);
+                refresh?.();
               });
             } else {
               updateData?.(newItems);

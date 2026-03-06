@@ -59,6 +59,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     setNodeDetail,
     onSave,
     catalogData,
+    saveCurrentDocRef,
   } = useOutletContext<WrapContext>();
 
   const storageTocOpen = localStorage.getItem('toc-open');
@@ -99,6 +100,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       putApiV1NodeDetail({
         id: defaultDetail.id!,
         kb_id: defaultDetail.kb_id!,
+        nav_id: defaultDetail.nav_id || '',
         summary: newSummary,
       }).then(() => {
         updateDetail({
@@ -117,6 +119,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       putApiV1NodeDetail({
         id: defaultDetail.id!,
         kb_id: defaultDetail.kb_id!,
+        nav_id: defaultDetail.nav_id || '',
         name: newTitle,
       });
     }, 500),
@@ -353,6 +356,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
               putApiV1NodeDetail({
                 id: defaultDetail.id!,
                 kb_id: defaultDetail.kb_id!,
+                nav_id: defaultDetail.nav_id || '',
                 emoji: value,
               }).then(() => {
                 updateDetail({
@@ -670,6 +674,36 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       if (editorRef) editorRef.editor.destroy();
     };
   }, []);
+
+  useEffect(() => {
+    saveCurrentDocRef.current = async () => {
+      if (editorRef?.editor) {
+        let content = nodeDetail?.content || '';
+        if (!isMarkdown) {
+          content = editorRef.getContent();
+          updateDetail({ content });
+        }
+        await onSave(content);
+        initialStateRef.current = {
+          content: content,
+          summary: summary,
+          emoji: nodeDetail?.meta?.emoji || '',
+        };
+        setIsEditing(false);
+      }
+    };
+    return () => {
+      saveCurrentDocRef.current = null;
+    };
+  }, [
+    editorRef,
+    isMarkdown,
+    nodeDetail?.content,
+    nodeDetail?.meta?.emoji,
+    onSave,
+    summary,
+    saveCurrentDocRef,
+  ]);
 
   useEffect(() => {
     if (id !== defaultDetail.id) {

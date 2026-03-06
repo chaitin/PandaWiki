@@ -7,7 +7,11 @@ import { parsePathname } from '@/utils';
 import { postShareV1StatPage } from '@/request/ShareStat';
 import { getShareV1NodeList } from '@/request/ShareNode';
 import { getShareV1AppWebInfo } from '@/request/ShareApp';
-import { filterEmptyFolders, convertToTree } from '@/utils/drag';
+import {
+  filterEmptyFolders,
+  convertToTree,
+  parseNodeListResponse,
+} from '@/utils/tree';
 import { deepSearchFirstNode } from '@/utils';
 
 const StatPage = {
@@ -19,7 +23,15 @@ const StatPage = {
 
 const getFirstNode = async () => {
   const nodeListResult: any = await getShareV1NodeList();
-  const tree = filterEmptyFolders(convertToTree(nodeListResult || []));
+  const { isGrouped, navDataMap, defaultNavId } = parseNodeListResponse(
+    nodeListResult || [],
+  );
+  const nodeListForTree = isGrouped
+    ? (navDataMap[defaultNavId || ''] ?? navDataMap[Object.keys(navDataMap)[0]])
+    : nodeListResult || [];
+  const tree = filterEmptyFolders(
+    convertToTree(Array.isArray(nodeListForTree) ? nodeListForTree : []),
+  );
   return deepSearchFirstNode(tree);
 };
 

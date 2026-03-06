@@ -1,21 +1,21 @@
 'use client';
 
 import Logo from '@/assets/images/logo.png';
-import { Stack, Box, IconButton, alpha, Tooltip } from '@mui/material';
-import { postShareProV1AuthLogout } from '@/request/pro/ShareAuth';
-import { IconDengchu } from '@panda-wiki/icons';
+import { useBasePath } from '@/hooks';
 import { useStore } from '@/provider';
-import { useMemo, useState } from 'react';
-import ErrorIcon from '@mui/icons-material/Error';
+import { postShareProV1AuthLogout } from '@/request/pro/ShareAuth';
+import { getImagePath } from '@/utils/getImagePath';
 import { Modal } from '@ctzhian/ui';
+import ErrorIcon from '@mui/icons-material/Error';
+import { alpha, Box, IconButton, Stack, Tooltip } from '@mui/material';
+import { IconDengchu } from '@panda-wiki/icons';
 import {
   Header as CustomHeader,
   WelcomeHeader as WelcomeHeaderComponent,
 } from '@panda-wiki/ui';
+import { useMemo, useState } from 'react';
 import QaModal from '../QaModal';
 import ThemeSwitch from './themeSwitch';
-import { getImagePath } from '@/utils/getImagePath';
-import { useBasePath } from '@/hooks';
 interface HeaderProps {
   isDocPage?: boolean;
   isWelcomePage?: boolean;

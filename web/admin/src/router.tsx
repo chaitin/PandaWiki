@@ -42,7 +42,7 @@ const router = [
       {
         path: '',
         element: createElement(
-          LazyLoadable(lazy(() => import('./pages/document'))),
+          LazyLoadable(lazy(() => import('./pages/document/layout'))),
         ),
       },
       {

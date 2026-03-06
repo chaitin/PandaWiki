@@ -1,14 +1,22 @@
 import { ITreeItem } from '@/api';
 import { getApiV1AppDetail } from '@/request';
 import { getApiV1KnowledgeBaseList } from '@/request/KnowledgeBase';
-import { getApiV1NodeList, putApiV1NodeDetail } from '@/request/Node';
-import { V1NodeDetailResp } from '@/request/types';
+import { getApiV1NodeListGroupNav, putApiV1NodeDetail } from '@/request/Node';
+import {
+  GithubComChaitinPandaWikiApiNodeV1NodeListGroupNavResp,
+  V1NodeDetailResp,
+} from '@/request/types';
 import { useAppDispatch, useAppSelector } from '@/store';
-import { setKbDetail, setKbId, setKbList } from '@/store/slices/config';
+import {
+  setKbDetail,
+  setKbId,
+  setKbList,
+  setNavId,
+} from '@/store/slices/config';
 import { convertToTree } from '@/utils/drag';
 import { message } from '@ctzhian/ui';
 import { Box, Drawer, Stack, useMediaQuery } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Catalog from './Catalog';
 
@@ -20,7 +28,12 @@ export interface WrapContext {
   onSave: (content: string) => void;
   docWidth: string;
   catalogData: ITreeItem[];
-  refreshCatalog: () => Promise<ITreeItem[]>;
+  groups: GithubComChaitinPandaWikiApiNodeV1NodeListGroupNavResp[];
+  nav_id: string;
+  refreshCatalog: () => Promise<
+    GithubComChaitinPandaWikiApiNodeV1NodeListGroupNavResp[]
+  >;
+  saveCurrentDocRef: React.MutableRefObject<(() => Promise<void>) | null>;
 }
 
 const DocEditor = () => {
@@ -30,9 +43,20 @@ const DocEditor = () => {
   const { kb_id = '' } = useAppSelector(state => state.config);
   const [nodeDetail, setNodeDetail] = useState<V1NodeDetailResp>({});
   const [catalogOpen, setCatalogOpen] = useState(true);
-  const [catalogData, setCatalogData] = useState<ITreeItem[]>([]);
+  const [groups, setGroups] = useState<
+    GithubComChaitinPandaWikiApiNodeV1NodeListGroupNavResp[]
+  >([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const nav_id = useAppSelector(state => state.config.nav_id) || '';
 
   const [docWidth, setDocWidth] = useState<string>('full');
+  const saveCurrentDocRef = useRef<(() => Promise<void>) | null>(null);
+
+  const catalogData = useMemo(() => {
+    const curGroup = groups.find(g => g.nav_id === nav_id);
+    const nodeList = curGroup?.list ?? [];
+    return convertToTree(nodeList);
+  }, [groups, nav_id]);
 
   const getInfo = async () => {
     const res = await getApiV1AppDetail({ kb_id: kb_id!, type: '1' });
@@ -55,14 +79,28 @@ const DocEditor = () => {
     });
   };
 
-  const refreshCatalog = async (): Promise<ITreeItem[]> => {
+  const refreshCatalog = async (): Promise<
+    GithubComChaitinPandaWikiApiNodeV1NodeListGroupNavResp[]
+  > => {
     const params = {
       kb_id: kb_id || localStorage.getItem('kb_id') || '',
     };
-    const res = await getApiV1NodeList(params);
-    const tree = convertToTree(res || []);
-    setCatalogData(tree);
-    return tree;
+    setCatalogLoading(true);
+    try {
+      const res = await getApiV1NodeListGroupNav(params);
+      const list = res || [];
+      setGroups(list);
+      if (list.length > 0) {
+        const storedNavId = localStorage.getItem(`nav_id_${params.kb_id}`);
+        const validInList =
+          storedNavId && list.some(g => g.nav_id === storedNavId);
+        const idToUse = validInList ? storedNavId! : list[0].nav_id || '';
+        dispatch(setNavId(idToUse));
+      }
+      return list;
+    } finally {
+      setCatalogLoading(false);
+    }
   };
 
   const onSave = async (content: string) => {
@@ -71,6 +109,7 @@ const DocEditor = () => {
       await putApiV1NodeDetail({
         kb_id,
         id: nodeDetail.id,
+        nav_id: nodeDetail.nav_id || '',
         content,
         name: nodeDetail.name || '',
       });
@@ -91,6 +130,18 @@ const DocEditor = () => {
       getInfo();
     }
   }, [kb_id]);
+
+  useEffect(() => {
+    if (kb_id) {
+      refreshCatalog();
+    }
+  }, [kb_id]);
+
+  useEffect(() => {
+    if (nodeDetail.nav_id && groups.some(g => g.nav_id === nodeDetail.nav_id)) {
+      dispatch(setNavId(nodeDetail.nav_id));
+    }
+  }, [nodeDetail.nav_id, groups, dispatch]);
 
   return (
     <Stack
@@ -116,7 +167,13 @@ const DocEditor = () => {
           curNode={nodeDetail}
           setCatalogOpen={setCatalogOpen}
           catalogData={catalogData}
+          groups={groups}
+          nav_id={nav_id}
+          loading={catalogLoading}
           onRefresh={refreshCatalog}
+          onSaveCurrentDoc={() =>
+            saveCurrentDocRef.current?.() ?? Promise.resolve()
+          }
         />
       </Drawer>
       <Box sx={{ flexGrow: 1 }}>
@@ -129,7 +186,10 @@ const DocEditor = () => {
             onSave,
             docWidth,
             catalogData,
+            groups,
+            nav_id,
             refreshCatalog,
+            saveCurrentDocRef,
           }}
         />
       </Box>

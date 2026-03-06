@@ -75,7 +75,7 @@ const DocPropertiesModal = ({
   onOk,
   isBatch = false,
 }: DocPropertiesModalProps) => {
-  const { kb_id, license } = useAppSelector(state => state.config);
+  const { kb_id, nav_id, license } = useAppSelector(state => state.config);
   const [loading, setLoading] = useState(false);
   const [userGroups, setUserGroups] = useState<
     GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem[]
@@ -151,6 +151,7 @@ const DocPropertiesModal = ({
             name: values.name,
             summary: values.summary,
             kb_id: kb_id!,
+            nav_id: data[0].nav_id || nav_id || '',
           })
         : undefined,
     ]).then(() => {

@@ -7,6 +7,15 @@ import { TreeItems } from '@/components/TreeDragSortable';
 import { DomainNodeListItemResp } from '@/request/types';
 import { createContext } from 'react';
 
+/** 与 TreeDragSortable 的 TreeDragHandlers 一致，用于文档树在外部 DndContext 下注册拖拽回调 */
+export type TreeDragHandlers = {
+  onDragStart: (e: import('@dnd-kit/core').DragStartEvent) => void;
+  onDragMove: (e: import('@dnd-kit/core').DragMoveEvent) => void;
+  onDragOver: (e: import('@dnd-kit/core').DragOverEvent) => void;
+  onDragEnd: (e: import('@dnd-kit/core').DragEndEvent) => void;
+  onDragCancel: () => void;
+};
+
 export interface DragTreeProps {
   data: ITreeItem[];
   readOnly?: boolean;
@@ -22,6 +31,8 @@ export interface DragTreeProps {
   disabled?: (value: ITreeItem) => boolean;
   virtualized?: boolean;
   virtualizedHeight?: number | string;
+  /** 使用外部 DndContext 时由父级传入，用于注册树的拖拽回调（如从树拖到目录） */
+  registerDragHandlers?: (handlers: TreeDragHandlers | null) => void;
 }
 
 // 定义上下文类型
@@ -35,19 +46,6 @@ export interface AppContextType {
 export const AppContext = createContext<
   (Omit<DragTreeProps, 'data'> & AppContextType) | null
 >(null);
-
-export const checkValidateInput = (value: string) => {
-  if (!value) {
-    return {
-      result: false,
-      message: 'Required',
-    };
-  } else {
-    return {
-      result: true,
-    };
-  }
-};
 
 export const checkValidateTree = (
   tree: TreeItems<ITreeItem>,

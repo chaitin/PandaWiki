@@ -30,7 +30,12 @@ const Summary = ({ open, data, kb_id, onClose, refresh }: SummaryProps) => {
   };
 
   const handleOk = () => {
-    putApiV1NodeDetail({ id: data.id!, kb_id, summary }).then(() => {
+    putApiV1NodeDetail({
+      id: data.id!,
+      kb_id,
+      nav_id: data.nav_id || '',
+      summary,
+    }).then(() => {
       message.success('保存成功');
       refresh?.(summary);
       onClose();

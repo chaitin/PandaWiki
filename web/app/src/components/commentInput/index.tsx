@@ -288,7 +288,7 @@ const CommentInput = React.forwardRef<CommentInputRef, CommentInputProps>(
           minRows={2}
           slotProps={{
             htmlInput: {
-              maxlength: 1000,
+              maxLength: 1000,
             },
           }}
           sx={{

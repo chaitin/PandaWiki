@@ -8,6 +8,7 @@ import DocAddByCustomText from './DocAddByCustomText';
 interface InputContentProps {
   exportFile?: boolean;
   refresh?: () => void;
+  disabled?: boolean;
   context?: React.ReactElement<{ onClick?: any; 'aria-describedby'?: any }>;
   createLocal?: (node: {
     id: string;
@@ -23,6 +24,7 @@ interface InputContentProps {
 const AddDocBtn = ({
   exportFile = true,
   refresh,
+  disabled = false,
   context,
   createLocal,
   scrollTo,
@@ -168,7 +170,13 @@ const AddDocBtn = ({
     <Box>
       <TreeMenu
         menu={menuItems}
-        context={context || <Button variant='contained'>创建文档</Button>}
+        context={
+          context || (
+            <Button variant='contained' disabled={disabled}>
+              创建文档
+            </Button>
+          )
+        }
       />
       {key && (
         <AddDocByType

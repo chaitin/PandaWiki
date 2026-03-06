@@ -44,7 +44,7 @@ const DocAddByCustomText = ({
   type = 2,
   onCreated,
 }: DocAddByCustomTextProps) => {
-  const { kb_id: id } = useAppSelector(state => state.config);
+  const { kb_id: id, nav_id } = useAppSelector(state => state.config);
   const text = type === 1 ? '文件夹' : '文档';
 
   const {
@@ -71,6 +71,7 @@ const DocAddByCustomText = ({
       putApiV1NodeDetail({
         id: data.id || '',
         kb_id: id,
+        nav_id: data.nav_id || nav_id || '',
         name: value.name,
         emoji: value.emoji,
       }).then(() => {
@@ -90,6 +91,7 @@ const DocAddByCustomText = ({
         name: value.name,
         content: '',
         kb_id: id,
+        nav_id: nav_id || '',
         type,
         emoji: value.emoji,
         content_type: value.content_type,
@@ -109,6 +111,7 @@ const DocAddByCustomText = ({
           content_type: value.content_type,
           emoji: value.emoji,
         });
+        refresh?.();
         if (type === 2 && autoJump) {
           window.open(`/doc/editor/${id}`, '_blank');
         }

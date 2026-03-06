@@ -95,7 +95,7 @@ const TreeItem = React.forwardRef<
   HTMLDivElement,
   TreeItemComponentProps<ITreeItem>
 >((props, ref) => {
-  const { kb_id: id } = useAppSelector(state => state.config);
+  const { kb_id: id, nav_id } = useAppSelector(state => state.config);
   const { item, collapsed } = props;
   const context = useContext(AppContext);
 
@@ -111,6 +111,7 @@ const TreeItem = React.forwardRef<
     menu,
     relativeSelect = true,
     updateData,
+    refresh,
     disabled,
     scrollToItem,
   } = context;
@@ -351,6 +352,10 @@ const TreeItem = React.forwardRef<
                         putApiV1NodeDetail({
                           id: item.id,
                           kb_id: id,
+                          nav_id:
+                            (item as { nav_id?: string }).nav_id ||
+                            nav_id ||
+                            '',
                           name: value,
                           emoji,
                         }).then(() => {
@@ -365,6 +370,7 @@ const TreeItem = React.forwardRef<
                             updated_at: dayjs().toString(),
                           });
                           updateData?.(temp);
+                          refresh?.();
                         });
                       } else {
                         if (value === '') {
@@ -375,6 +381,7 @@ const TreeItem = React.forwardRef<
                           name: value,
                           content: '',
                           kb_id: id,
+                          nav_id: nav_id || '',
                           parent_id: item.parentId,
                           type: item.type,
                           emoji,
@@ -395,6 +402,7 @@ const TreeItem = React.forwardRef<
                           }
                           updateTree(temp, item.id, newItem);
                           updateData?.(temp);
+                          refresh?.();
                           // 滚动到保存后的项
                           setTimeout(() => {
                             scrollToItem?.(res.id);
@@ -409,7 +417,6 @@ const TreeItem = React.forwardRef<
                     variant='outlined'
                     size='small'
                     onClick={e => {
-                      console.log('cancel');
                       e.stopPropagation();
                       if (!item.name) {
                         removeItem(item.id);
@@ -452,6 +459,10 @@ const TreeItem = React.forwardRef<
                           await putApiV1NodeDetail({
                             id: item.id,
                             kb_id: id,
+                            nav_id:
+                              (item as { nav_id?: string }).nav_id ||
+                              nav_id ||
+                              '',
                             emoji: value,
                           });
                           message.success('更新成功');
@@ -463,6 +474,7 @@ const TreeItem = React.forwardRef<
                             emoji: value,
                           });
                           updateData?.(temp);
+                          refresh?.();
                         } catch (error) {
                           message.error('更新失败');
                         }

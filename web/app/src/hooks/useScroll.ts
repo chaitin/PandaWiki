@@ -126,13 +126,6 @@ const useScroll = (headings: TocList, domId: string) => {
             }, 1000);
           }, 100);
         }
-      } else {
-        // 没有hash时，设置第一个标题为活跃状态并设置hash
-        // const activeHeader = findActiveHeading()
-        // if (activeHeader) {
-        //   setActiveHeading(activeHeader)
-        //   location.hash = encodeURIComponent(activeHeader.title)
-        // }
       }
       isFirstLoad.current = false;
     }

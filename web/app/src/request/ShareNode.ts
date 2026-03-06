@@ -48,11 +48,11 @@ export const getShareV1NodeDetail = (
   });
 
 /**
- * @description GetNodeList
+ * @description ShareNodeList
  *
  * @tags share_node
  * @name GetShareV1NodeList
- * @summary GetNodeList
+ * @summary ShareNodeList
  * @request GET:/share/v1/node/list
  * @response `200` `DomainResponse` OK
  */

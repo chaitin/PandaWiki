@@ -1,16 +1,17 @@
-import { AppSetting, KnowledgeBaseListItem } from '@/api';
+import { KnowledgeBaseListItem } from '@/api';
 import { DomainLicenseResp } from '@/request/pro/types';
 import {
   DomainAppDetailResp,
   DomainKnowledgeBaseDetail,
-  V1UserInfoResp,
   GithubComChaitinPandaWikiDomainModelListItem,
+  V1UserInfoResp,
 } from '@/request/types';
 import { createSlice } from '@reduxjs/toolkit';
 
 export interface config {
   user: V1UserInfoResp;
   kb_id: string;
+  nav_id: string;
   license: DomainLicenseResp;
   kbList: KnowledgeBaseListItem[] | null;
   modelList: GithubComChaitinPandaWikiDomainModelListItem[] | null;
@@ -35,6 +36,7 @@ const initialState: config = {
     started_at: 0,
   },
   kb_id: '',
+  nav_id: '',
   kbList: null,
   modelList: null,
   kb_c: false,
@@ -56,6 +58,16 @@ const configSlice = createSlice({
     setKbId(state, { payload }) {
       localStorage.setItem('kb_id', payload);
       state.kb_id = payload;
+    },
+    setNavId(state, { payload }) {
+      state.nav_id = payload;
+      if (state.kb_id) {
+        if (payload) {
+          localStorage.setItem(`nav_id_${state.kb_id}`, payload);
+        } else {
+          localStorage.removeItem(`nav_id_${state.kb_id}`);
+        }
+      }
     },
     setKbList(state, { payload }) {
       state.kbList = payload;
@@ -93,6 +105,7 @@ const configSlice = createSlice({
 export const {
   setUser,
   setKbId,
+  setNavId,
   setKbList,
   setKbC,
   setModelStatus,

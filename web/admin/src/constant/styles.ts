@@ -14,7 +14,6 @@ export const tableSx = {
 
 export const treeSx = (readOnly: boolean) => ({
   cursor: 'grab',
-  pl: readOnly ? 0 : 2,
   '&:active': {
     cursor: 'grabbing',
   },

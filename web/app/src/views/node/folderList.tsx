@@ -2,8 +2,10 @@
 
 import { IconWenjianjia, IconWenjian } from '@panda-wiki/icons';
 import { DomainShareNodeDetailItem } from '@/request/types';
-import { useStore } from '@/provider';
 import { ITreeItem } from '@/assets/type';
+import { useStore } from '@/provider';
+import { useBasePath } from '@/hooks';
+import { findParentPath } from '@/utils/tree';
 import Link from 'next/link';
 import {
   Accordion,
@@ -166,30 +168,10 @@ interface FolderListProps {
 
 const FolderList: React.FC<FolderListProps> = ({ list = [] }) => {
   const { tree, setTree } = useStore();
+  const basePath = useBasePath();
 
   const handleCatalogExpand = (item: DomainShareNodeDetailItem) => {
     if (!tree || !setTree || !item.id) return;
-
-    // 查找目标节点的所有父级路径
-    const findParentPath = (
-      nodes: ITreeItem[],
-      targetId: string,
-      path: string[] = [],
-    ): string[] | null => {
-      for (const node of nodes) {
-        if (node.id === targetId) {
-          return path;
-        }
-        if (node.children && node.children.length > 0) {
-          const found = findParentPath(node.children, targetId, [
-            ...path,
-            node.id,
-          ]);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
 
     const parentPath = findParentPath(tree, item.id) || [];
     if (parentPath.length === 0) return;
@@ -308,7 +290,7 @@ const FolderList: React.FC<FolderListProps> = ({ list = [] }) => {
             {renderIcon(item)}
             <StyledContentBox>
               <StyledLink
-                href={`/node/${item.id}`}
+                href={`${basePath}/node/${item.id}`}
                 prefetch={false}
                 onClick={() => handleCatalogExpand(item)}
               >

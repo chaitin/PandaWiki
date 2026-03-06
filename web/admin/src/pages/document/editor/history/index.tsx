@@ -43,7 +43,7 @@ const CATALOG_WIDTH = 292;
 const History = () => {
   const { id = '' } = useParams();
   const navigate = useNavigate();
-  const { kb_id } = useAppSelector(state => state.config);
+  const { kb_id, nav_id } = useAppSelector(state => state.config);
   const { catalogOpen, setCatalogOpen, docWidth } =
     useOutletContext<WrapContext>();
   const theme = useTheme();
@@ -596,6 +596,7 @@ const History = () => {
           await putApiV1NodeDetail({
             id: id,
             kb_id: kb_id,
+            nav_id: nav_id || '',
             content: curNode?.content,
           });
           navigate(`/doc/editor/${id}`, {

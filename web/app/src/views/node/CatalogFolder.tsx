@@ -11,14 +11,9 @@ import { useParams } from 'next/navigation';
 interface CatalogFolderProps {
   item: ITreeItem;
   depth?: number;
-  searchTerm?: string;
 }
 
-const CatalogFolder = ({
-  item,
-  depth = 1,
-  searchTerm = '',
-}: CatalogFolderProps) => {
+const CatalogFolder = ({ item, depth = 1 }: CatalogFolderProps) => {
   const theme = useTheme();
   const { themeMode = 'light', setTree } = useStore();
   const params = useParams() || {};
