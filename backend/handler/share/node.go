@@ -30,29 +30,30 @@ func NewShareNodeHandler(
 	group := echo.Group("share/v1/node",
 		h.ShareAuthMiddleware.Authorize,
 	)
-	group.GET("/list", h.GetNodeList)
+	group.GET("/list", h.ShareNodeList)
 	group.GET("/detail", h.GetNodeDetail)
 
 	return h
 }
 
-// GetNodeList
+// ShareNodeList
 //
-//	@Summary		GetNodeList
-//	@Description	GetNodeList
+//	@Summary		ShareNodeList
+//	@Description	ShareNodeList
 //	@Tags			share_node
 //	@Accept			json
 //	@Produce		json
 //	@Param			X-KB-ID	header		string	true	"kb id"
 //	@Success		200		{object}	domain.Response
 //	@Router			/share/v1/node/list [get]
-func (h *ShareNodeHandler) GetNodeList(c echo.Context) error {
-	kbID := c.Request().Header.Get("X-KB-ID")
-	if kbID == "" {
+func (h *ShareNodeHandler) ShareNodeList(c echo.Context) error {
+
+	kbId := c.Request().Header.Get("X-KB-ID")
+	if kbId == "" {
 		return h.NewResponseWithError(c, "kb_id is required", nil)
 	}
 
-	nodes, err := h.usecase.GetNodeReleaseListByKBID(c.Request().Context(), kbID, domain.GetAuthID(c))
+	nodes, err := h.usecase.GetShareNodeList(c.Request().Context(), kbId, domain.GetAuthID(c))
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get node list", err)
 	}

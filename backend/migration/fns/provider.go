@@ -9,4 +9,5 @@ var ProviderSet = wire.NewSet(
 	NewMigrationCreateBotAuth,
 	NewMigrationFixGroupIds,
 	NewMigrationUpdateNodeStatusUnreleased,
+	NewMigrationCreateFirstNavs,
 )

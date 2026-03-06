@@ -27,6 +27,7 @@ import (
 
 type NodeUsecase struct {
 	nodeRepo     *pg.NodeRepository
+	navRepo      *pg.NavRepository
 	appRepo      *pg.AppRepository
 	ragRepo      *mq.RAGRepository
 	kbRepo       *pg.KnowledgeBaseRepository
@@ -42,6 +43,7 @@ type NodeUsecase struct {
 
 func NewNodeUsecase(
 	nodeRepo *pg.NodeRepository,
+	navRepo *pg.NavRepository,
 	appRepo *pg.AppRepository,
 	ragRepo *mq.RAGRepository,
 	userRepo *pg.UserRepository,
@@ -56,6 +58,7 @@ func NewNodeUsecase(
 ) *NodeUsecase {
 	return &NodeUsecase{
 		nodeRepo:     nodeRepo,
+		navRepo:      navRepo,
 		rAGService:   ragService,
 		appRepo:      appRepo,
 		ragRepo:      ragRepo,
@@ -158,6 +161,12 @@ func (u *NodeUsecase) NodeAction(ctx context.Context, req *domain.NodeActionReq)
 }
 
 func (u *NodeUsecase) Update(ctx context.Context, req *domain.UpdateNodeReq, userId string) error {
+	if req.NavId != nil {
+		_, err := u.navRepo.GetById(ctx, *req.NavId)
+		if err != nil {
+			return errors.New("invalid nav_id")
+		}
+	}
 	err := u.nodeRepo.UpdateNodeContent(ctx, req, userId)
 	if err != nil {
 		return err
@@ -342,6 +351,20 @@ func (u *NodeUsecase) BatchMoveNode(ctx context.Context, req *domain.BatchMoveRe
 	return u.nodeRepo.BatchMove(ctx, req)
 }
 
+func (u *NodeUsecase) MoveNodeNav(ctx context.Context, req *v1.NodeMoveNavReq) error {
+	nav, err := u.navRepo.GetById(ctx, req.NavID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("nav not found: %w", err)
+		}
+		return err
+	}
+	if nav.KbID != req.KbID {
+		return fmt.Errorf("nav does not belong to kb %s", req.KbID)
+	}
+	return u.nodeRepo.MoveNodeNav(ctx, req.KbID, req.ID, req.NavID)
+}
+
 func (u *NodeUsecase) convertMDToHTML(mdStr string) string {
 	extensions := parser.CommonExtensions & ^parser.Autolink & ^parser.MathJax
 	p := parser.NewWithExtensions(extensions)
@@ -357,9 +380,9 @@ func (u *NodeUsecase) convertMDToHTML(mdStr string) string {
 	return string(html)
 }
 
-func (u *NodeUsecase) GetNodeReleaseListByKBID(ctx context.Context, kbID string, authId uint) ([]*domain.ShareNodeListItemResp, error) {
+func (u *NodeUsecase) GetShareNodeList(ctx context.Context, kbId string, authId uint) ([]*shareV1.NodeListGroupNavResp, error) {
 
-	nodes, err := u.nodeRepo.GetNodeReleaseListByKBID(ctx, kbID)
+	nodes, err := u.nodeRepo.GetNodeReleaseListByKBID(ctx, kbId)
 	if err != nil {
 		return nil, err
 	}
@@ -369,20 +392,45 @@ func (u *NodeUsecase) GetNodeReleaseListByKBID(ctx context.Context, kbID string,
 		return nil, err
 	}
 
-	items := make([]*domain.ShareNodeListItemResp, 0)
+	navs, err := u.navRepo.GetReleaseList(ctx, kbId)
+	if err != nil {
+		return nil, err
+	}
 
-	for i, node := range nodes {
+	result := make([]*shareV1.NodeListGroupNavResp, 0, len(navs))
+	navIndexMap := make(map[string]int, len(navs))
+	for _, nav := range navs {
+		navIndexMap[nav.ID] = len(result)
+		result = append(result, &shareV1.NodeListGroupNavResp{
+			NavID:    nav.ID,
+			NavName:  nav.Name,
+			Position: nav.Position,
+			List:     []domain.ShareNodeListItemResp{},
+		})
+	}
+
+	// O(1) auth group lookup
+	nodeGroupIdSet := lo.SliceToMap(nodeGroupIds, func(id string) (string, struct{}) {
+		return id, struct{}{}
+	})
+
+	for _, node := range nodes {
 		switch node.Permissions.Visible {
 		case consts.NodeAccessPermOpen:
-			items = append(items, nodes[i])
 		case consts.NodeAccessPermPartial:
-			if slices.Contains(nodeGroupIds, node.ID) {
-				items = append(items, nodes[i])
+			if _, ok := nodeGroupIdSet[node.ID]; !ok {
+				continue
 			}
+		default:
+			continue
+		}
+		if idx, ok := navIndexMap[node.NavId]; ok {
+			result[idx].List = append(result[idx].List, *node)
+			result[idx].Count++
 		}
 	}
 
-	return items, nil
+	return result, nil
 }
 
 func (u *NodeUsecase) GetNodeReleaseListByParentID(ctx context.Context, kbID, parentID string, authId uint) ([]*domain.ShareNodeDetailItem, error) {
@@ -709,4 +757,91 @@ func (u *NodeUsecase) NodeRestudy(ctx context.Context, req *v1.NodeRestudyReq) e
 	}
 
 	return nil
+}
+
+func (u *NodeUsecase) GetNodeStats(ctx context.Context, kbId string) (*v1.NodeStatsResp, error) {
+	resp, err := u.nodeRepo.GetNodeStats(ctx, kbId)
+	if err != nil {
+		return nil, err
+	}
+
+	navs, err := u.navRepo.GetList(ctx, kbId)
+	if err != nil {
+		return nil, err
+	}
+
+	navsReleased, err := u.navRepo.GetReleaseList(ctx, kbId)
+	if err != nil {
+		return nil, err
+	}
+
+	navsReleasedMap := make(map[string]float64, len(navsReleased))
+	for _, nr := range navsReleased {
+		navsReleasedMap[nr.ID] = nr.Position
+	}
+
+	for _, nav := range navs {
+		releasedPos, found := navsReleasedMap[nav.ID]
+		if !found || releasedPos != nav.Position {
+			resp.UnreleasedNavCount++
+		}
+	}
+	return resp, nil
+}
+
+func (u *NodeUsecase) GetNodeListGroupByNav(ctx context.Context, kbId, status, search string) ([]*v1.NodeListGroupNavResp, error) {
+	nodes, err := u.nodeRepo.GetNodeListByStatus(ctx, kbId, status, search)
+	if err != nil {
+		return nil, err
+	}
+
+	navs, err := u.navRepo.GetList(ctx, kbId)
+	if err != nil {
+		return nil, err
+	}
+
+	navsReleased, err := u.navRepo.GetReleaseList(ctx, kbId)
+	if err != nil {
+		return nil, err
+	}
+
+	navsReleasedMap := make(map[string]float64, len(navsReleased))
+	for _, nr := range navsReleased {
+		navsReleasedMap[nr.ID] = nr.Position
+	}
+
+	// 按 position 顺序预建分组，用 map 做 O(1) 索引
+	result := make([]*v1.NodeListGroupNavResp, 0, len(navs))
+	navIndexMap := make(map[string]int, len(navs))
+	for _, nav := range navs {
+		releasedPos, found := navsReleasedMap[nav.ID]
+		navIndexMap[nav.ID] = len(result)
+		result = append(result, &v1.NodeListGroupNavResp{
+			NavID:      nav.ID,
+			NavName:    nav.Name,
+			Position:   nav.Position,
+			IsReleased: found && releasedPos == nav.Position,
+			List:       []domain.NodeListItemResp{},
+		})
+	}
+
+	for _, node := range nodes {
+		if idx, ok := navIndexMap[node.NavId]; ok {
+			result[idx].List = append(result[idx].List, *node)
+			result[idx].Count++
+		}
+	}
+
+	// 搜索时过滤掉空分组
+	if search != "" {
+		filtered := make([]*v1.NodeListGroupNavResp, 0, len(result))
+		for _, group := range result {
+			if group.Count > 0 {
+				filtered = append(filtered, group)
+			}
+		}
+		return filtered, nil
+	}
+
+	return result, nil
 }

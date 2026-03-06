@@ -27,3 +27,11 @@ type ShareNodeDetailResp struct {
 	List             []*domain.ShareNodeDetailItem `json:"list" gorm:"-"`
 	PV               int64                         `json:"pv" gorm:"-"`
 }
+
+type NodeListGroupNavResp struct {
+	NavName  string                         `json:"nav_name"`
+	NavID    string                         `json:"nav_id"`
+	Position float64                        `json:"position"`
+	Count    int64                          `json:"count"`
+	List     []domain.ShareNodeListItemResp `json:"list"`
+}

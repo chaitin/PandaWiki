@@ -1349,6 +1349,8 @@ definitions:
         type: string
       name:
         type: string
+      nav_id:
+        type: string
       parent_id:
         type: string
       position:
@@ -1364,6 +1366,7 @@ definitions:
     required:
     - kb_id
     - name
+    - nav_id
     - type
     type: object
   domain.DirDocConfig:
@@ -1820,6 +1823,8 @@ definitions:
       id:
         type: string
       name:
+        type: string
+      nav_id:
         type: string
       parent_id:
         type: string
@@ -2459,6 +2464,8 @@ definitions:
         type: string
       name:
         type: string
+      nav_id:
+        type: string
       position:
         type: number
       summary:
@@ -2686,6 +2693,23 @@ definitions:
         type: string
       source_type:
         $ref: '#/definitions/consts.SourceType'
+    type: object
+  github_com_chaitin_panda-wiki_api_node_v1.NodeListGroupNavResp:
+    properties:
+      count:
+        type: integer
+      is_released:
+        type: boolean
+      list:
+        items:
+          $ref: '#/definitions/domain.NodeListItemResp'
+        type: array
+      nav_id:
+        type: string
+      nav_name:
+        type: string
+      position:
+        type: number
     type: object
   github_com_chaitin_panda-wiki_api_share_v1.AuthGetResp:
     properties:
@@ -3099,6 +3123,58 @@ definitions:
       token:
         type: string
     type: object
+  v1.NavAddReq:
+    properties:
+      kb_id:
+        type: string
+      name:
+        type: string
+      position:
+        type: number
+    required:
+    - kb_id
+    - name
+    type: object
+  v1.NavListResp:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      position:
+        type: number
+      updated_at:
+        type: string
+    type: object
+  v1.NavMoveReq:
+    properties:
+      id:
+        type: string
+      kb_id:
+        type: string
+      next_id:
+        type: string
+      prev_id:
+        type: string
+    required:
+    - id
+    - kb_id
+    type: object
+  v1.NavUpdateReq:
+    properties:
+      id:
+        type: string
+      kb_id:
+        type: string
+      name:
+        type: string
+    required:
+    - id
+    - kb_id
+    - name
+    type: object
   v1.NodeDetailResp:
     properties:
       content:
@@ -3121,6 +3197,8 @@ definitions:
         $ref: '#/definitions/domain.NodeMeta'
       name:
         type: string
+      nav_id:
+        type: string
       parent_id:
         type: string
       permissions:
@@ -3137,6 +3215,19 @@ definitions:
         $ref: '#/definitions/domain.NodeType'
       updated_at:
         type: string
+    type: object
+  v1.NodeMoveNavReq:
+    properties:
+      id:
+        type: string
+      kb_id:
+        type: string
+      nav_id:
+        type: string
+    required:
+    - id
+    - kb_id
+    - nav_id
     type: object
   v1.NodePermissionEditReq:
     properties:
@@ -3205,6 +3296,18 @@ definitions:
     - node_ids
     type: object
   v1.NodeRestudyResp:
+    type: object
+  v1.NodeStatsResp:
+    properties:
+      unpublished_count:
+        description: 未发布的文档数
+        type: integer
+      unreleased_nav_count:
+        description: 未发布目录数量
+        type: integer
+      unstudied_count:
+        description: 未学习的文档数
+        type: integer
     type: object
   v1.ResetPasswordReq:
     properties:
@@ -4415,6 +4518,133 @@ paths:
       summary: switch mode
       tags:
       - model
+  /api/v1/nav/add:
+    post:
+      consumes:
+      - application/json
+      description: Add Nav
+      parameters:
+      - description: Params
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NavAddReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: 添加分栏
+      tags:
+      - Nav
+  /api/v1/nav/delete:
+    delete:
+      consumes:
+      - application/json
+      description: DeleteNav Nav
+      parameters:
+      - in: query
+        name: id
+        required: true
+        type: string
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: 删除栏目
+      tags:
+      - Nav
+  /api/v1/nav/list:
+    get:
+      consumes:
+      - application/json
+      description: Get Nav List
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.PWResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/v1.NavListResp'
+                  type: array
+              type: object
+      security:
+      - bearerAuth: []
+      summary: 获取分栏列表
+      tags:
+      - Nav
+  /api/v1/nav/move:
+    post:
+      consumes:
+      - application/json
+      description: Move Nav
+      parameters:
+      - description: Params
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NavMoveReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: 移动栏目
+      tags:
+      - Nav
+  /api/v1/nav/update:
+    patch:
+      consumes:
+      - application/json
+      description: Update Nav
+      parameters:
+      - description: Params
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NavUpdateReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PWResponse'
+      security:
+      - bearerAuth: []
+      summary: 更新栏目信息
+      tags:
+      - Nav
   /api/v1/node:
     post:
       consumes:
@@ -4569,6 +4799,9 @@ paths:
         required: true
         type: string
       - in: query
+        name: nav_id
+        type: string
+      - in: query
         name: search
         type: string
       produces:
@@ -4588,6 +4821,44 @@ paths:
       security:
       - bearerAuth: []
       summary: Get Node List
+      tags:
+      - node
+  /api/v1/node/list/group/nav:
+    get:
+      consumes:
+      - application/json
+      description: Get unpublished or unstudied document list grouped by nav
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      - in: query
+        name: search
+        type: string
+      - enum:
+        - unpublished
+        - unstudied
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.PWResponse'
+            - properties:
+                data:
+                  items:
+                    $ref: '#/definitions/github_com_chaitin_panda-wiki_api_node_v1.NodeListGroupNavResp'
+                  type: array
+              type: object
+      security:
+      - bearerAuth: []
+      summary: Get Node List Grouped by Nav
       tags:
       - node
   /api/v1/node/move:
@@ -4612,6 +4883,30 @@ paths:
       security:
       - bearerAuth: []
       summary: Move Node
+      tags:
+      - node
+  /api/v1/node/move/nav:
+    post:
+      consumes:
+      - application/json
+      description: Move node (and all its descendants if folder) to a different nav
+      parameters:
+      - description: Move Node Nav
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/v1.NodeMoveNavReq'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+      security:
+      - bearerAuth: []
+      summary: Move Node to Nav
       tags:
       - node
   /api/v1/node/permission:
@@ -4742,6 +5037,33 @@ paths:
       summary: 文档重新学习
       tags:
       - Node
+  /api/v1/node/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get Node Statistics
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/domain.PWResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/v1.NodeStatsResp'
+              type: object
+      security:
+      - bearerAuth: []
+      summary: Get Node Statistics
+      tags:
+      - node
   /api/v1/node/summary:
     post:
       consumes:
@@ -5729,6 +6051,26 @@ paths:
       summary: GetConversationDetail
       tags:
       - share_conversation
+  /share/v1/nav/list:
+    get:
+      consumes:
+      - application/json
+      description: ShareNavList
+      parameters:
+      - in: query
+        name: kb_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Response'
+      summary: 前台获取栏目列表
+      tags:
+      - share_nav
   /share/v1/node/detail:
     get:
       consumes:
@@ -5769,7 +6111,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: GetNodeList
+      description: ShareNodeList
       parameters:
       - description: kb id
         in: header
@@ -5783,7 +6125,7 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/domain.Response'
-      summary: GetNodeList
+      summary: ShareNodeList
       tags:
       - share_node
   /share/v1/openapi/github/callback:

@@ -151,6 +151,7 @@ type KBReleaseNodeRelease struct {
 	ReleaseID     string    `json:"release_id" gorm:"index"`
 	NodeID        string    `json:"node_id"`
 	NodeReleaseID string    `json:"node_release_id" gorm:"index"`
+	NavID         string    `json:"nav_id"`
 	CreatedAt     time.Time `json:"created_at"`
 }
 

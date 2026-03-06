@@ -1,0 +1,5 @@
+DROP TABLE IF EXISTS navs;
+DROP TABLE IF EXISTS nav_releases;
+
+ALTER TABLE nodes DROP COLUMN IF EXISTS nav_id;
+ALTER TABLE kb_release_node_releases DROP COLUMN IF EXISTS nav_id;

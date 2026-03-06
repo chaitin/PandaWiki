@@ -37,6 +37,9 @@ func NewNodeHandler(
 
 	group := echo.Group("/api/v1/node", h.auth.Authorize, h.auth.ValidateKBUserPerm(consts.UserKBPermissionDocManage))
 	group.GET("/list", h.GetNodeList)
+	group.GET("/list/group/nav", h.NodeListGroupNav)
+	group.GET("/stats", h.NodeStats)
+
 	group.POST("", h.CreateNode)
 	group.GET("/detail", h.GetNodeDetail)
 	group.PUT("/detail", h.UpdateNodeDetail)
@@ -44,6 +47,7 @@ func NewNodeHandler(
 
 	group.POST("/action", h.NodeAction)
 	group.POST("/move", h.MoveNode)
+	group.POST("/move/nav", h.NodeMoveNav)
 	group.POST("/batch_move", h.BatchMoveNode)
 
 	group.GET("/recommend_nodes", h.RecommendNodes)
@@ -96,6 +100,35 @@ func (h *NodeHandler) CreateNode(c echo.Context) error {
 	})
 }
 
+// NodeStats
+//
+//	@Summary		Get Node Statistics
+//	@Description	Get Node Statistics
+//	@Tags			node
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			kb_id	query		v1.NodeStatsReq	true	"Knowledge Base ID"
+//	@Success		200		{object}	domain.PWResponse{data=v1.NodeStatsResp}
+//	@Router			/api/v1/node/stats [get]
+func (h *NodeHandler) NodeStats(c echo.Context) error {
+	var req v1.NodeStatsReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "invalid request", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+
+	ctx := c.Request().Context()
+	stats, err := h.usecase.GetNodeStats(ctx, req.KbId)
+	if err != nil {
+		return h.NewResponseWithError(c, "get node stats failed", err)
+	}
+
+	return h.NewResponseWithData(c, stats)
+}
+
 // GetNodeList
 //
 //	@Summary		Get Node List
@@ -121,6 +154,33 @@ func (h *NodeHandler) GetNodeList(c echo.Context) error {
 		return h.NewResponseWithError(c, "get node list failed", err)
 	}
 	return h.NewResponseWithData(c, nodes)
+}
+
+// NodeListGroupNav
+//
+//	@Summary		Get Node List Grouped by Nav
+//	@Description	Get unpublished or unstudied document list grouped by nav
+//	@Tags			node
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			params	query		v1.NodeListGroupNavReq	true	"Params"
+//	@Success		200		{object}	domain.PWResponse{data=[]v1.NodeListGroupNavResp}
+//	@Router			/api/v1/node/list/group/nav [get]
+func (h *NodeHandler) NodeListGroupNav(c echo.Context) error {
+	var req v1.NodeListGroupNavReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "invalid request", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+	ctx := c.Request().Context()
+	result, err := h.usecase.GetNodeListGroupByNav(ctx, req.KbId, req.Status, req.Search)
+	if err != nil {
+		return h.NewResponseWithError(c, "get node list group by nav failed", err)
+	}
+	return h.NewResponseWithData(c, result)
 }
 
 // GetNodeDetail
@@ -232,6 +292,32 @@ func (h *NodeHandler) MoveNode(c echo.Context) error {
 	ctx := c.Request().Context()
 	if err := h.usecase.MoveNode(ctx, req); err != nil {
 		return h.NewResponseWithError(c, "move node failed", err)
+	}
+	return h.NewResponseWithData(c, nil)
+}
+
+// NodeMoveNav
+//
+//	@Summary		Move Node to Nav
+//	@Description	Move node (and all its descendants if folder) to a different nav
+//	@Tags			node
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			body	body		v1.NodeMoveNavReq	true	"Move Node Nav"
+//	@Success		200		{object}	domain.Response
+//	@Router			/api/v1/node/move/nav [post]
+func (h *NodeHandler) NodeMoveNav(c echo.Context) error {
+	req := &v1.NodeMoveNavReq{}
+	if err := c.Bind(req); err != nil {
+		return h.NewResponseWithError(c, "request body is invalid", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+	ctx := c.Request().Context()
+	if err := h.usecase.MoveNodeNav(ctx, req); err != nil {
+		return h.NewResponseWithError(c, "move node nav failed", err)
 	}
 	return h.NewResponseWithData(c, nil)
 }

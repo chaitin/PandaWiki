@@ -647,6 +647,28 @@ func (r *KnowledgeBaseRepository) CreateKBRelease(ctx context.Context, release *
 		if len(nodeReleases) == 0 {
 			return nil
 		}
+
+		// build node_id -> nav_id map from current nodes
+		type nodeNavID struct {
+			ID    string `gorm:"column:id"`
+			NavID string `gorm:"column:nav_id"`
+		}
+		var nodeNavIDs []nodeNavID
+		nodeIDs := make([]string, len(nodeReleases))
+		for i, nr := range nodeReleases {
+			nodeIDs[i] = nr.NodeID
+		}
+		if err := tx.Model(&domain.Node{}).
+			Where("id IN ?", nodeIDs).
+			Select("id, nav_id").
+			Find(&nodeNavIDs).Error; err != nil {
+			return err
+		}
+		navIDMap := make(map[string]string, len(nodeNavIDs))
+		for _, n := range nodeNavIDs {
+			navIDMap[n.ID] = n.NavID
+		}
+
 		kbReleaseNodeReleases := make([]*domain.KBReleaseNodeRelease, len(nodeReleases))
 		for i, nodeRelease := range nodeReleases {
 			kbReleaseNodeReleases[i] = &domain.KBReleaseNodeRelease{
@@ -655,12 +677,40 @@ func (r *KnowledgeBaseRepository) CreateKBRelease(ctx context.Context, release *
 				ReleaseID:     release.ID,
 				NodeID:        nodeRelease.NodeID,
 				NodeReleaseID: nodeRelease.ID,
+				NavID:         navIDMap[nodeRelease.NodeID],
 				CreatedAt:     time.Now(),
 			}
 		}
 		if err := tx.CreateInBatches(&kbReleaseNodeReleases, 2000).Error; err != nil {
 			return err
 		}
+
+		// snapshot current navs into nav_releases
+		var navs []*domain.Nav
+		if err := tx.Where("kb_id = ?", release.KBID).
+			Order("position ASC").
+			Find(&navs).Error; err != nil {
+			return err
+		}
+		if len(navs) > 0 {
+			navReleases := make([]*domain.NavRelease, len(navs))
+			now := time.Now()
+			for i, nav := range navs {
+				navReleases[i] = &domain.NavRelease{
+					ID:        uuid.New().String(),
+					NavID:     nav.ID,
+					ReleaseID: release.ID,
+					KbID:      release.KBID,
+					Name:      nav.Name,
+					Position:  nav.Position,
+					CreatedAt: now,
+				}
+			}
+			if err := tx.CreateInBatches(&navReleases, 2000).Error; err != nil {
+				return err
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return err
