@@ -33,6 +33,7 @@ import VersionPublish from '../release/components/VersionPublish';
 import AddDocBtn from './component/AddDocBtn';
 import AddDocByType from './component/AddDocByType';
 import DocDelete from './component/DocDelete';
+import FolderPermissionModal from './component/FolderPermissionModal';
 import DocPropertiesModal from './component/DocPropertiesModal';
 import DocSearch from './component/DocSearch';
 import DocStatus from './component/DocStatus';
@@ -76,6 +77,10 @@ const Content = () => {
   const [key, setKey] = useState<ConstsCrawlerSource | null>(null);
   const [propertiesOpen, setPropertiesOpen] = useState(false);
   const [isBatch, setIsBatch] = useState(false);
+  const [folderPermissionNode, setFolderPermissionNode] = useState<{
+    id: string;
+    name?: string;
+  } | null>(null);
 
   // 从树形数据中查找节点并转换为列表格式
   const findItemInTree = (
@@ -141,6 +146,10 @@ const Content = () => {
     setPropertiesOpen(true);
     setOpraData(getOperationData(item));
     setIsBatch(false);
+  };
+
+  const handleFolderPermission = (item: ITreeItem) => {
+    setFolderPermissionNode({ id: item.id, name: item.name });
   };
 
   const handleFrontDoc = (id: string) => {
@@ -258,6 +267,11 @@ const Content = () => {
                     ),
                 },
               ],
+            },
+            {
+              label: '编辑开放权限',
+              key: 'folder_permission',
+              onClick: () => handleFolderPermission(item),
             },
           ]
         : []),
@@ -908,6 +922,14 @@ const Content = () => {
         }}
         data={opraData}
         isBatch={isBatch}
+      />
+      <FolderPermissionModal
+        open={!!folderPermissionNode}
+        onCancel={() => setFolderPermissionNode(null)}
+        onSuccess={getData}
+        nodeId={folderPermissionNode?.id ?? ''}
+        nodeName={folderPermissionNode?.name}
+        kbId={kb_id ?? ''}
       />
     </>
   );

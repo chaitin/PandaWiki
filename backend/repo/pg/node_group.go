@@ -7,6 +7,31 @@ import (
 	"github.com/chaitin/panda-wiki/domain"
 )
 
+// GetVisibleGroupIdsByNodeIds 批量查询节点的「导航内可见」用户组 ID，返回 node_id -> auth_group_id 列表的映射
+func (r *NodeRepository) GetVisibleGroupIdsByNodeIds(ctx context.Context, nodeIDs []string) (map[string][]int, error) {
+	if len(nodeIDs) == 0 {
+		return map[string][]int{}, nil
+	}
+	var rows []struct {
+		NodeID      string `gorm:"column:node_id"`
+		AuthGroupID int    `gorm:"column:auth_group_id"`
+	}
+	err := r.db.WithContext(ctx).
+		Model(&domain.NodeAuthGroup{}).
+		Where("node_id IN ?", nodeIDs).
+		Where("perm = ?", consts.NodePermNameVisible).
+		Select("node_id, auth_group_id").
+		Find(&rows).Error
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string][]int)
+	for _, row := range rows {
+		out[row.NodeID] = append(out[row.NodeID], row.AuthGroupID)
+	}
+	return out, nil
+}
+
 func (r *NodeRepository) GetNodeGroupsByGroupIdsPerm(ctx context.Context, authGroupIds []uint, perm consts.NodePermName) ([]domain.NodeAuthGroup, error) {
 	nodeGroups := make([]domain.NodeAuthGroup, 0)
 

@@ -89,6 +89,9 @@ func (u *NodeUsecase) GetList(ctx context.Context, req *domain.GetNodeListReq) (
 		return nodes, nil
 	}
 
+	// 按当前用户可见性过滤：只保留当前用户有「导航内可见」权限的节点
+	nodes = u.filterNodesByVisiblePermission(ctx, req.KBID, nodes)
+
 	publisherMap, err := u.nodeRepo.GetNodeReleasePublisherMap(ctx, req.KBID)
 	if err != nil {
 		return nil, err
@@ -101,6 +104,85 @@ func (u *NodeUsecase) GetList(ctx context.Context, req *domain.GetNodeListReq) (
 	}
 
 	return nodes, nil
+}
+
+// filterNodesByVisiblePermission 只保留当前用户能看到的节点（依据 permissions.visible 与 node_auth_groups）
+func (u *NodeUsecase) filterNodesByVisiblePermission(ctx context.Context, kbID string, nodes []*domain.NodeListItemResp) []*domain.NodeListItemResp {
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return nodes
+	}
+	user, err := u.userRepo.GetUser(ctx, authInfo.UserId)
+	if err == nil && user != nil && user.Role == consts.UserRoleAdmin {
+		return nodes
+	}
+	userGroupIDs := make([]int, 0)
+	groups, err := u.authRepo.GetUserGroups(ctx, authInfo.UserId)
+	if err == nil {
+		for _, g := range groups {
+			userGroupIDs = append(userGroupIDs, int(g.ID))
+		}
+	}
+	partialNodeIDs := make([]string, 0)
+	for _, node := range nodes {
+		if node.Permissions.Visible == consts.NodeAccessPermPartial {
+			partialNodeIDs = append(partialNodeIDs, node.ID)
+		}
+	}
+	visibleGroupMap, _ := u.nodeRepo.GetVisibleGroupIdsByNodeIds(ctx, partialNodeIDs)
+	hasIntersection := func(a, b []int) bool {
+		set := make(map[int]struct{}, len(b))
+		for _, id := range b {
+			set[id] = struct{}{}
+		}
+		for _, id := range a {
+			if _, ok := set[id]; ok {
+				return true
+			}
+		}
+		return false
+	}
+	filtered := make([]*domain.NodeListItemResp, 0, len(nodes))
+	for _, node := range nodes {
+		switch node.Permissions.Visible {
+		case consts.NodeAccessPermOpen:
+			filtered = append(filtered, node)
+		case consts.NodeAccessPermPartial:
+			if hasIntersection(userGroupIDs, visibleGroupMap[node.ID]) {
+				filtered = append(filtered, node)
+			}
+		case consts.NodeAccessPermClosed:
+			// 不加入
+		default:
+			filtered = append(filtered, node)
+		}
+	}
+	// 排除父节点不可见的子节点：只保留「从自身到根路径上的节点都在可见集合内」的节点
+	allowedIDs := make(map[string]struct{}, len(filtered))
+	for _, n := range filtered {
+		allowedIDs[n.ID] = struct{}{}
+	}
+	parentOf := make(map[string]string)
+	for _, n := range nodes {
+		if n.ParentID != "" {
+			parentOf[n.ID] = n.ParentID
+		}
+	}
+	hasAllAncestorsVisible := func(nodeID string) bool {
+		for id := nodeID; id != ""; id = parentOf[id] {
+			if _, ok := allowedIDs[id]; !ok {
+				return false
+			}
+		}
+		return true
+	}
+	final := make([]*domain.NodeListItemResp, 0, len(filtered))
+	for _, n := range filtered {
+		if hasAllAncestorsVisible(n.ID) {
+			final = append(final, n)
+		}
+	}
+	return final
 }
 
 func (u *NodeUsecase) GetNodeByKBID(ctx context.Context, id, kbId, format string) (*v1.NodeDetailResp, error) {
