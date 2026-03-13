@@ -9347,13 +9347,17 @@ const docTemplate = `{
         "v1.NodeMoveNavReq": {
             "type": "object",
             "required": [
-                "id",
+                "ids",
                 "kb_id",
                 "nav_id"
             ],
             "properties": {
-                "id": {
-                    "type": "string"
+                "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "kb_id": {
                     "type": "string"

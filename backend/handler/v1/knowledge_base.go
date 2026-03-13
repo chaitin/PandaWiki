@@ -99,7 +99,7 @@ func (h *KnowledgeBaseHandler) CreateKnowledgeBase(c echo.Context) error {
 			return h.NewResponseWithError(c, "端口或域名已被其他知识库占用", nil)
 		}
 		if errors.Is(err, domain.ErrSyncCaddyConfigFailed) {
-			return h.NewResponseWithError(c, "端口可能已被其他程序占用，请检查", nil)
+			return h.NewResponseWithError(c, "保存配置失败，请检查端口或证书配置", nil)
 		}
 		return h.NewResponseWithError(c, "failed to create knowledge base", err)
 	}
@@ -154,7 +154,7 @@ func (h *KnowledgeBaseHandler) UpdateKnowledgeBase(c echo.Context) error {
 			return h.NewResponseWithError(c, "端口或域名已被其他知识库占用", nil)
 		}
 		if errors.Is(err, domain.ErrSyncCaddyConfigFailed) {
-			return h.NewResponseWithError(c, "端口可能已被其他程序占用，请检查", nil)
+			return h.NewResponseWithError(c, "保存配置失败，请检查端口或证书配置", nil)
 		}
 		return h.NewResponseWithError(c, "failed to update knowledge base", err)
 	}

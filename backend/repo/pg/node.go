@@ -1004,9 +1004,9 @@ func (r *NodeRepository) GetOldNodeDocIDsByNodeID(ctx context.Context, nodeRelea
 	return docIDs, nil
 }
 
-func (r *NodeRepository) MoveNodeNav(ctx context.Context, kbID, nodeID, navID string) error {
+func (r *NodeRepository) MoveNodeNav(ctx context.Context, kbID, navID string, nodeIDs []string) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		allIDs := r.collectAllChildNodeIDs(tx, kbID, []string{nodeID})
+		allIDs := r.collectAllChildNodeIDs(tx, kbID, nodeIDs)
 		if err := tx.Model(&domain.Node{}).
 			Where("kb_id = ? AND id IN ?", kbID, allIDs).
 			Update("nav_id", navID).Error; err != nil {
@@ -1014,7 +1014,9 @@ func (r *NodeRepository) MoveNodeNav(ctx context.Context, kbID, nodeID, navID st
 		}
 
 		if err := tx.Model(&domain.Node{}).
-			Where("kb_id = ? AND id = ?", kbID, nodeID).
+			Where("kb_id = ? AND id IN ?", kbID, allIDs).
+			Where("parent_id != ''").
+			Where("parent_id NOT IN ?", allIDs).
 			Update("parent_id", "").Error; err != nil {
 			return err
 		}

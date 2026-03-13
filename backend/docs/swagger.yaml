@@ -3222,14 +3222,17 @@ definitions:
     type: object
   v1.NodeMoveNavReq:
     properties:
-      id:
-        type: string
+      ids:
+        items:
+          type: string
+        minItems: 1
+        type: array
       kb_id:
         type: string
       nav_id:
         type: string
     required:
-    - id
+    - ids
     - kb_id
     - nav_id
     type: object

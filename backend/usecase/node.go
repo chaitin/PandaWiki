@@ -363,7 +363,7 @@ func (u *NodeUsecase) MoveNodeNav(ctx context.Context, req *v1.NodeMoveNavReq) e
 	if nav.KbID != req.KbID {
 		return fmt.Errorf("nav does not belong to kb %s", req.KbID)
 	}
-	return u.nodeRepo.MoveNodeNav(ctx, req.KbID, req.ID, req.NavID)
+	return u.nodeRepo.MoveNodeNav(ctx, req.KbID, req.NavID, req.IDs)
 }
 
 func (u *NodeUsecase) convertMDToHTML(mdStr string) string {

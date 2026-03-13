@@ -78,9 +78,9 @@ type NodeStatsResp struct {
 }
 
 type NodeMoveNavReq struct {
-	ID    string `json:"id" validate:"required"`
-	KbID  string `json:"kb_id" validate:"required"`
-	NavID string `json:"nav_id" validate:"required"`
+	IDs   []string `json:"ids" query:"[]ids" validate:"required,min=1"`
+	KbID  string   `json:"kb_id" validate:"required"`
+	NavID string   `json:"nav_id" validate:"required"`
 }
 
 type NodeListGroupNavReq struct {
