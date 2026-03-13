@@ -110,6 +110,7 @@ const DocListModals = ({
       open={moveOpen}
       data={list}
       selected={opraData}
+      refresh={refresh}
       onMoved={({ ids, parentId }) => {
         setData(prev => {
           const idSet = new Set(ids);

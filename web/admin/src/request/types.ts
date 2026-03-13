@@ -1381,7 +1381,6 @@ export interface DomainWeChatAppAdvancedSetting {
   disclaimer_content?: string;
   feedback_enable?: boolean;
   feedback_type?: string[];
-  logo?: string;
   prompt?: string;
   text_response_enable?: boolean;
 }
@@ -1757,7 +1756,8 @@ export interface V1NodeDetailResp {
 }
 
 export interface V1NodeMoveNavReq {
-  id: string;
+  /** @minItems 1 */
+  ids: string[];
   kb_id: string;
   nav_id: string;
 }
@@ -1878,7 +1878,6 @@ export interface V1WechatAppInfoResp {
   disclaimer_content?: string;
   feedback_enable?: boolean;
   feedback_type?: string[];
-  logo?: string;
   wechat_app_is_enabled?: boolean;
 }
 

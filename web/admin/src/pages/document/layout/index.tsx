@@ -1,7 +1,7 @@
 import { useURLSearchParams } from '@/hooks';
 import VersionPublish from '@/pages/release/components/VersionPublish';
-import { getApiV1NodeListGroupNav, postApiV1NodeMoveNav } from '@/request/Node';
 import { postApiV1NavMove } from '@/request/Nav';
+import { getApiV1NodeListGroupNav, postApiV1NodeMoveNav } from '@/request/Node';
 import {
   GithubComChaitinPandaWikiApiNodeV1NodeListGroupNavResp,
   V1NavListResp,
@@ -16,8 +16,8 @@ import {
   DragMoveEvent,
   DragOverEvent,
   DragStartEvent,
-  pointerWithin,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -169,7 +169,7 @@ const Content = () => {
         // 文档树节点拖到目录
         treeDragHandlersRef.current?.onDragCancel?.();
         postApiV1NodeMoveNav({
-          id: active.id as string,
+          ids: [active.id as string],
           kb_id: kb_id!,
           nav_id: over.id as string,
         }).then(() => {
@@ -251,7 +251,7 @@ const Content = () => {
         onDragEnd={handleLayoutDragEnd}
         onDragCancel={handleLayoutDragCancel}
       >
-        <Stack direction={'row'} gap={2} sx={{ mt: 2 }}>
+        <Stack direction={'row'} sx={{ mt: 2 }}>
           <DocPageNavs
             navList={navList}
             onNavListChange={setNavList}

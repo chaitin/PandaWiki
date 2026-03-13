@@ -24,7 +24,12 @@ import {
   TextField,
   useTheme,
 } from '@mui/material';
-import { IconDrag, IconGengduo, IconJiahao } from '@panda-wiki/icons';
+import {
+  IconDrag,
+  IconGengduo,
+  IconJiahao,
+  IconXiajiantou,
+} from '@panda-wiki/icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import NavEditModal from './NavEditModal';
 
@@ -243,14 +248,30 @@ const DocPageNavs = ({
   const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
   const selectedItemRef = useRef<HTMLDivElement | null>(null);
   const hasScrolledToSelectedRef = useRef(false);
+  const [expend, setExpend] = useState(
+    localStorage.getItem(`doc_nav_expend_${kb_id}`) !== '0',
+  );
+
+  useEffect(() => {
+    if (!kb_id) return;
+    const stored = localStorage.getItem(`doc_nav_expend_${kb_id}`);
+    if (stored === '0') {
+      setExpend(false);
+    } else if (stored === '1') {
+      setExpend(true);
+    }
+  }, [kb_id]);
+
+  useEffect(() => {
+    if (!kb_id) return;
+    localStorage.setItem(`doc_nav_expend_${kb_id}`, expend ? '1' : '0');
+  }, [kb_id, expend]);
 
   const navs = navListProp || [];
   const sortedNavs = [...navs].sort(
     (a, b) => (a.position ?? 0) - (b.position ?? 0),
   );
 
-  // navList 变化后同步 selectedId，优先级：localStorage(nav_id_${kb_id}) > 第一个
-  // 注意：sortedNavs 为空时不能调用 setNavId('')，因为初始加载时 navList 也为 []，会误删 localStorage
   useEffect(() => {
     const navIdFromStorage = kb_id
       ? localStorage.getItem(`nav_id_${kb_id}`)
@@ -267,8 +288,6 @@ const DocPageNavs = ({
       }
     } else {
       setSelectedId(null);
-      // 不在此处 dispatch(setNavId(''))，否则初次挂载时 navList 未加载会误删 localStorage
-      // 清空 nav_id 的场景由父组件 getData（接口返回空）或 handleDeleteConfirm（删除最后一项）处理
       const rest: Record<string, string> = {};
       searchParams.forEach((v, k) => {
         if (k !== 'nav_id') rest[k] = v;
@@ -278,7 +297,6 @@ const DocPageNavs = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kb_id, navListProp]);
 
-  // 首次刷新时自动滚动到当前选中的 nav
   useEffect(() => {
     if (
       !selectedId ||
@@ -296,7 +314,6 @@ const DocPageNavs = ({
     });
   }, [selectedId, sortedNavs.length]);
 
-  // 切换 kb 时重置，以便新 kb 首次加载也能滚动
   useEffect(() => {
     hasScrolledToSelectedRef.current = false;
   }, [kb_id]);
@@ -395,8 +412,15 @@ const DocPageNavs = ({
   const showEmptySearch = isSearching && sortedNavs.length === 0;
 
   return (
-    <>
-      <Card sx={{ width: 220 }}>
+    <Box sx={{ position: 'relative' }}>
+      <Card
+        sx={{
+          width: expend ? 220 : 0,
+          height: '100%',
+          mr: expend ? 2 : 0,
+          transition: 'width 0.1s ease-in-out, mr 0.1s ease-in-out',
+        }}
+      >
         {loading ? (
           <Loading sx={{ py: 4 }} />
         ) : showEmptySearch ? (
@@ -446,6 +470,41 @@ const DocPageNavs = ({
           </>
         )}
       </Card>
+      <Box
+        sx={{
+          position: 'absolute',
+          height: '40px',
+          width: '10px',
+          bgcolor: 'background.paper3',
+          borderRadius: '5px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          right: 3,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          ':hover': {
+            bgcolor: 'background.paper',
+            svg: {
+              color: 'text.tertiary',
+            },
+          },
+        }}
+        onClick={() => setExpend(!expend)}
+      >
+        <IconXiajiantou
+          sx={{
+            fontSize: 16,
+            color: '#cccccc',
+            transform: 'rotate(-90deg)',
+            transition: 'all 0.1s ease-in-out',
+            ...(expend && {
+              transform: 'rotate(90deg)',
+            }),
+          }}
+        />
+      </Box>
       <NavEditModal
         open={editOpen}
         onClose={handleEditClose}
@@ -508,7 +567,7 @@ const DocPageNavs = ({
           </Box>
         </Box>
       </Modal>
-    </>
+    </Box>
   );
 };
 
