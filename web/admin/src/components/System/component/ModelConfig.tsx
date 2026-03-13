@@ -252,7 +252,7 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
         })
         .then(res => {
           if (res.error) {
-            message.error(value.model_name + ' 检查模型失败');
+            message.error(res.error);
             return Promise.reject(res.error);
           }
           return value;
