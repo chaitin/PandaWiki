@@ -12,7 +12,7 @@
     "api": "cx-swagger-api"
   },
   "dependencies": {
-    "@ctzhian/modelkit": "2.13.2",
+    "@ctzhian/modelkit": "2.13.3",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
