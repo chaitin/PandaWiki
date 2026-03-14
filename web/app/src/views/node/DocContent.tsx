@@ -85,19 +85,19 @@ const DocContent = ({
       setCommentLoading(true);
       let token = '';
 
-      try {
-        const Cap = (await import('@cap.js/widget')).default;
-        const cap = new Cap({
-          apiEndpoint: `${basePath}/share/v1/captcha/`,
-        });
-        const solution = await cap.solve();
-        token = solution.token;
-      } catch (error) {
-        message.error('验证失败');
-        console.log(error, 'error---------');
-        setCommentLoading(false);
-        return;
-      }
+      // try {
+      //   const Cap = (await import('@cap.js/widget')).default;
+      //   const cap = new Cap({
+      //     apiEndpoint: `${basePath}/share/v1/captcha/`,
+      //   });
+      //   const solution = await cap.solve();
+      //   token = solution.token;
+      // } catch (error) {
+      //   message.error('验证失败');
+      //   console.log(error, 'error---------');
+      //   setCommentLoading(false);
+      //   return;
+      // }
 
       try {
         // 先上传所有图片
