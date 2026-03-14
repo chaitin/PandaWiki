@@ -88,9 +88,9 @@ func (h *ShareCommonHandler) FileUpload(c echo.Context) error {
 	}
 
 	// validate captcha token
-	if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
-		return h.NewResponseWithError(c, "failed to validate captcha token", nil)
-	}
+	// if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
+	// 	return h.NewResponseWithError(c, "failed to validate captcha token", nil)
+	// }
 
 	key, err := h.fileUsecase.UploadFile(ctx, req.KbId, file)
 	if err != nil {

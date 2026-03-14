@@ -85,9 +85,9 @@ func (h *ShareCommentHandler) CreateComment(c echo.Context) error {
 		return h.NewResponseWithError(c, "please check comment is open", nil)
 	}
 	// validate captcha token
-	if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
-		return h.NewResponseWithError(c, "failed to validate captcha token", nil)
-	}
+	// if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
+	// 	return h.NewResponseWithError(c, "failed to validate captcha token", nil)
+	// }
 
 	for _, url := range req.PicUrls {
 		if !strings.HasPrefix(url, "/static-file/") {
