@@ -486,9 +486,9 @@ func (h *ShareChatHandler) ChatSearch(c echo.Context) error {
 	}
 	ctx := c.Request().Context()
 	// validate captcha token
-	if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
-		return h.NewResponseWithError(c, "invalid captcha token", nil)
-	}
+	// if !h.Captcha.ValidateToken(ctx, req.CaptchaToken) {
+	// 	return h.NewResponseWithError(c, "invalid captcha token", nil)
+	// }
 
 	req.RemoteIP = c.RealIP()
 
