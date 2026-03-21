@@ -126,9 +126,9 @@ type KnowledgeBaseDetail struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 
-	DatasetID      string                  `json:"dataset_id"`
-	Perm           consts.UserKBPermission `json:"perm"` // 用户对知识库的权限
-	AccessSettings AccessSettings          `json:"access_settings" gorm:"type:jsonb"`
+	DatasetID      string                    `json:"dataset_id"`
+	Perms          consts.UserKBPermissions `json:"perms"`
+	AccessSettings AccessSettings           `json:"access_settings" gorm:"type:jsonb"`
 
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`

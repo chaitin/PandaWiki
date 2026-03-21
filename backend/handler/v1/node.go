@@ -35,23 +35,21 @@ func NewNodeHandler(
 		auth:        auth,
 	}
 
-	group := echo.Group("/api/v1/node", h.auth.Authorize, h.auth.ValidateKBUserPerm(consts.UserKBPermissionDocManage))
-	group.GET("/list", h.GetNodeList)
-	group.POST("", h.CreateNode)
-	group.GET("/detail", h.GetNodeDetail)
-	group.PUT("/detail", h.UpdateNodeDetail)
-	group.POST("/summary", h.SummaryNode)
+	readGroup := echo.Group("/api/v1/node", h.auth.Authorize, h.auth.ValidateKBUserPermAny(consts.UserKBPermissionDocManage, consts.UserKBPermissionAuditManage))
+	readGroup.GET("/list", h.GetNodeList)
+	readGroup.GET("/detail", h.GetNodeDetail)
+	readGroup.GET("/recommend_nodes", h.RecommendNodes)
+	readGroup.GET("/permission", h.NodePermission)
 
-	group.POST("/action", h.NodeAction)
-	group.POST("/move", h.MoveNode)
-	group.POST("/batch_move", h.BatchMoveNode)
-
-	group.GET("/recommend_nodes", h.RecommendNodes)
-	group.POST("/restudy", h.NodeRestudy)
-
-	// node permission
-	group.GET("/permission", h.NodePermission)
-	group.PATCH("/permission/edit", h.NodePermissionEdit)
+	writeGroup := echo.Group("/api/v1/node", h.auth.Authorize, h.auth.ValidateKBUserPerm(consts.UserKBPermissionDocManage))
+	writeGroup.POST("", h.CreateNode)
+	writeGroup.PUT("/detail", h.UpdateNodeDetail)
+	writeGroup.POST("/summary", h.SummaryNode)
+	writeGroup.POST("/action", h.NodeAction)
+	writeGroup.POST("/move", h.MoveNode)
+	writeGroup.POST("/batch_move", h.BatchMoveNode)
+	writeGroup.POST("/restudy", h.NodeRestudy)
+	writeGroup.PATCH("/permission/edit", h.NodePermissionEdit)
 
 	return h
 }

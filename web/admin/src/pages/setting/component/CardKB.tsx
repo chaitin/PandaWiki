@@ -29,6 +29,8 @@ import InfoIcon from '@mui/icons-material/Info';
 import {
   Box,
   Button,
+  Checkbox,
+  Chip,
   MenuItem,
   Select,
   Stack,
@@ -251,8 +253,9 @@ const ApiToken = () => {
 
               <Tooltip
                 title={
-                  kbDetail?.perm !==
-                  ConstsUserKBPermission.UserKBPermissionFullControl
+                  !kbDetail?.perms?.includes(
+                    ConstsUserKBPermission.UserKBPermissionFullControl,
+                  )
                     ? '权限不足'
                     : '商业版可用'
                 }
@@ -266,8 +269,9 @@ const ApiToken = () => {
                     ml: 1,
                     visibility:
                       !isBusiness ||
-                      kbDetail?.perm !==
-                        ConstsUserKBPermission.UserKBPermissionFullControl
+                      !kbDetail?.perms?.includes(
+                        ConstsUserKBPermission.UserKBPermissionFullControl,
+                      )
                         ? 'visible'
                         : 'hidden',
                   }}
@@ -281,22 +285,25 @@ const ApiToken = () => {
                   fontSize: 16,
                   cursor:
                     !isBusiness ||
-                    kbDetail?.perm !==
-                      ConstsUserKBPermission.UserKBPermissionFullControl
+                    !kbDetail?.perms?.includes(
+                      ConstsUserKBPermission.UserKBPermissionFullControl,
+                    )
                       ? 'not-allowed'
                       : 'pointer',
                   color:
                     !isBusiness ||
-                    kbDetail?.perm !==
-                      ConstsUserKBPermission.UserKBPermissionFullControl
+                    !kbDetail?.perms?.includes(
+                      ConstsUserKBPermission.UserKBPermissionFullControl,
+                    )
                       ? 'text.disabled'
                       : 'error.main',
                 }}
                 onClick={() => {
                   if (
                     !isBusiness ||
-                    kbDetail?.perm !==
-                      ConstsUserKBPermission.UserKBPermissionFullControl
+                    !kbDetail?.perms?.includes(
+                      ConstsUserKBPermission.UserKBPermissionFullControl,
+                    )
                   )
                     return;
                   onDeleteApiToken(it.id!, it.name!);
@@ -431,14 +438,11 @@ const CardKB = () => {
     });
   };
 
-  const onUpdateUserPermission = (
-    id: string,
-    perm: V1KBUserUpdateReq['perm'],
-  ) => {
+  const onUpdateUserPermission = (id: string, perms: string[]) => {
     patchApiV1KnowledgeBaseUserUpdate({
       kb_id,
       user_id: id,
-      perm,
+      perms,
     }).then(() => {
       getUserList();
       message.success('更新成功');
@@ -505,30 +509,95 @@ const CardKB = () => {
               <Stack direction={'row'} alignItems={'center'}>
                 <Select
                   size='small'
-                  sx={{ width: 180 }}
-                  value={it.perms}
+                  multiple
+                  sx={{ width: 260 }}
+                  value={it.perms || []}
                   disabled={!isPro || it.role === 'admin'}
-                  onChange={e =>
-                    onUpdateUserPermission(
-                      it.id!,
-                      e.target.value as V1KBUserUpdateReq['perm'],
-                    )
-                  }
+                  onChange={e => {
+                    const val = e.target.value as string[];
+                    if (val.length === 0) return;
+                    if (
+                      val.includes(
+                        ConstsUserKBPermission.UserKBPermissionFullControl,
+                      ) &&
+                      !(it.perms || []).includes(
+                        ConstsUserKBPermission.UserKBPermissionFullControl,
+                      )
+                    ) {
+                      onUpdateUserPermission(it.id!, [
+                        ConstsUserKBPermission.UserKBPermissionFullControl,
+                      ]);
+                    } else {
+                      onUpdateUserPermission(
+                        it.id!,
+                        val.filter(
+                          v =>
+                            v !==
+                            ConstsUserKBPermission.UserKBPermissionFullControl,
+                        ),
+                      );
+                    }
+                  }}
+                  renderValue={selected => (
+                    <Stack direction='row' gap={0.5} flexWrap='wrap'>
+                      {(selected as string[]).map(v => {
+                        const labels: Record<string, string> = {
+                          full_control: '完全控制',
+                          doc_manage: '文档管理',
+                          audit_manage: '审核管理',
+                          user_manage: '用户管理',
+                          data_operate: '数据运营',
+                        };
+                        return (
+                          <Chip key={v} label={labels[v] || v} size='small' />
+                        );
+                      })}
+                    </Stack>
+                  )}
                 >
                   <MenuItem
                     value={ConstsUserKBPermission.UserKBPermissionFullControl}
                   >
+                    <Checkbox
+                      size='small'
+                      checked={(it.perms || []).includes(
+                        ConstsUserKBPermission.UserKBPermissionFullControl,
+                      )}
+                    />
                     完全控制
                   </MenuItem>
                   <MenuItem
                     value={ConstsUserKBPermission.UserKBPermissionDocManage}
                   >
+                    <Checkbox
+                      size='small'
+                      checked={(it.perms || []).includes(
+                        ConstsUserKBPermission.UserKBPermissionDocManage,
+                      )}
+                    />
                     文档管理
                   </MenuItem>
                   <MenuItem
-                    value={ConstsUserKBPermission.UserKBPermissionDataOperate}
+                    value={ConstsUserKBPermission.UserKBPermissionAuditManage}
                   >
-                    数据运营
+                    <Checkbox
+                      size='small'
+                      checked={(it.perms || []).includes(
+                        ConstsUserKBPermission.UserKBPermissionAuditManage,
+                      )}
+                    />
+                    审核管理
+                  </MenuItem>
+                  <MenuItem
+                    value={ConstsUserKBPermission.UserKBPermissionUserManage}
+                  >
+                    <Checkbox
+                      size='small'
+                      checked={(it.perms || []).includes(
+                        ConstsUserKBPermission.UserKBPermissionUserManage,
+                      )}
+                    />
+                    用户管理
                   </MenuItem>
                 </Select>
 

@@ -67,7 +67,8 @@ const useAuth = (hasAuth: boolean) => {
         getKbList(),
       ]).then(([modelStatus, kbList]) => {
         if (
-          user.role === ConstsUserRole.UserRoleUser &&
+          user.role !== ConstsUserRole.UserRoleAdmin &&
+          user.role !== ConstsUserRole.UserRoleUser &&
           kbList.length === 0 &&
           pathname !== '/login'
         ) {

@@ -15,6 +15,7 @@ import {
 } from '@/request/types';
 import { useAppDispatch, useAppSelector } from '@/store';
 import { setIsRefreshDocList } from '@/store/slices/config';
+import { ConstsUserKBPermission, ConstsUserRole } from '@/request/types';
 import { addOpacityToColor } from '@/utils';
 import { collapseAllFolders, convertToTree } from '@/utils/drag';
 import { message } from '@ctzhian/ui';
@@ -43,11 +44,22 @@ import RagErrorReStart from './component/RagErrorReStart';
 import Summary from './component/Summary';
 
 const Content = () => {
-  const { kb_id, isRefreshDocList, kbList } = useAppSelector(
+  const { kb_id, isRefreshDocList, kbList, kbDetail, user } = useAppSelector(
     state => state.config,
   );
   const dispatch = useAppDispatch();
   const theme = useTheme();
+
+  const isAdmin = user.role === ConstsUserRole.UserRoleAdmin;
+  const userPerms = kbDetail.perms || [];
+  const canEditDocs =
+    isAdmin ||
+    userPerms.includes(ConstsUserKBPermission.UserKBPermissionFullControl) ||
+    userPerms.includes(ConstsUserKBPermission.UserKBPermissionDocManage);
+  const canPublish =
+    isAdmin ||
+    userPerms.includes(ConstsUserKBPermission.UserKBPermissionFullControl) ||
+    userPerms.includes(ConstsUserKBPermission.UserKBPermissionAuditManage);
   const dragTreeRef = useRef<DragTreeHandle>(null);
 
   const [searchParams] = useURLSearchParams();
@@ -163,172 +175,172 @@ const Content = () => {
 
   const menu = (opra: TreeMenuOptions): TreeMenuItem[] => {
     const { item, createItem, renameItem, isEditing: isEditing } = opra;
-    return [
-      ...(item.type === 1
-        ? [
+    const items: TreeMenuItem[] = [];
+
+    if (canEditDocs && item.type === 1) {
+      items.push(
+        {
+          label: '创建文件夹',
+          key: 'folder',
+          onClick: () => createItem(1),
+        },
+        {
+          label: '创建文档',
+          key: 'doc',
+          children: [
             {
-              label: '创建文件夹',
-              key: 'folder',
-              onClick: () => createItem(1),
+              label: '创建富文本',
+              key: 'rich_text',
+              onClick: () => createItem(2, 'html'),
             },
             {
-              label: '创建文档',
-              key: 'doc',
-              children: [
-                {
-                  label: '创建富文本',
-                  key: 'rich_text',
-                  onClick: () => createItem(2, 'html'),
-                },
-                {
-                  label: '创建 Markdown',
-                  key: 'md',
-                  onClick: () => createItem(2, 'md'),
-                },
-              ],
+              label: '创建 Markdown',
+              key: 'md',
+              onClick: () => createItem(2, 'md'),
+            },
+          ],
+        },
+        {
+          label: '导入文档',
+          key: 'next-line',
+          children: [
+            {
+              label: '通过离线文件导入',
+              key: ConstsCrawlerSource.CrawlerSourceFile,
+              onClick: () =>
+                handleUrl(item, ConstsCrawlerSource.CrawlerSourceFile),
             },
             {
-              label: '导入文档',
-              key: 'next-line',
-              children: [
-                {
-                  label: '通过离线文件导入',
-                  key: ConstsCrawlerSource.CrawlerSourceFile,
-                  onClick: () =>
-                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceFile),
-                },
-                {
-                  label: '通过 URL 导入',
-                  key: ConstsCrawlerSource.CrawlerSourceUrl,
-                  onClick: () =>
-                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceUrl),
-                },
-                {
-                  label: '通过 RSS 导入',
-                  key: ConstsCrawlerSource.CrawlerSourceRSS,
-                  onClick: () =>
-                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceRSS),
-                },
-                {
-                  label: '通过 Sitemap 导入',
-                  key: ConstsCrawlerSource.CrawlerSourceSitemap,
-                  onClick: () =>
-                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceSitemap),
-                },
-                {
-                  label: '通过 Notion 导入',
-                  key: ConstsCrawlerSource.CrawlerSourceNotion,
-                  onClick: () =>
-                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceNotion),
-                },
-                {
-                  label: '通过 Epub 导入',
-                  key: ConstsCrawlerSource.CrawlerSourceEpub,
-                  onClick: () =>
-                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceEpub),
-                },
-                {
-                  label: '通过 Wiki.js 导入',
-                  key: ConstsCrawlerSource.CrawlerSourceWikijs,
-                  onClick: () =>
-                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceWikijs),
-                },
-                {
-                  label: '通过 语雀 导入',
-                  key: ConstsCrawlerSource.CrawlerSourceYuque,
-                  onClick: () =>
-                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceYuque),
-                },
-                {
-                  label: '通过 思源笔记 导入',
-                  key: ConstsCrawlerSource.CrawlerSourceSiyuan,
-                  onClick: () =>
-                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceSiyuan),
-                },
-                {
-                  label: '通过 MinDoc 导入',
-                  key: ConstsCrawlerSource.CrawlerSourceMindoc,
-                  onClick: () =>
-                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceMindoc),
-                },
-                {
-                  label: '通过飞书文档导入',
-                  key: ConstsCrawlerSource.CrawlerSourceFeishu,
-                  onClick: () =>
-                    handleUrl(item, ConstsCrawlerSource.CrawlerSourceFeishu),
-                },
-                {
-                  label: '通过 Confluence 导入',
-                  key: ConstsCrawlerSource.CrawlerSourceConfluence,
-                  onClick: () =>
-                    handleUrl(
-                      item,
-                      ConstsCrawlerSource.CrawlerSourceConfluence,
-                    ),
-                },
-              ],
+              label: '通过 URL 导入',
+              key: ConstsCrawlerSource.CrawlerSourceUrl,
+              onClick: () =>
+                handleUrl(item, ConstsCrawlerSource.CrawlerSourceUrl),
             },
             {
-              label: '编辑开放权限',
-              key: 'folder_permission',
-              onClick: () => handleFolderPermission(item),
+              label: '通过 RSS 导入',
+              key: ConstsCrawlerSource.CrawlerSourceRSS,
+              onClick: () =>
+                handleUrl(item, ConstsCrawlerSource.CrawlerSourceRSS),
             },
-          ]
-        : []),
-      ...(item.type === 2
-        ? [
-            ...(item.status === 1
-              ? [
-                  {
-                    label: '更新发布',
-                    key: 'update_publish',
-                    onClick: () => handlePublish(item),
-                  },
-                ]
-              : []),
-            // {
-            //   label: item.summary ? '查看摘要' : '生成摘要',
-            //   key: 'summary',
-            //   onClick: () => handleSummary(item),
-            // },
-          ]
-        : []),
-      ...(item.type === 2 &&
+            {
+              label: '通过 Sitemap 导入',
+              key: ConstsCrawlerSource.CrawlerSourceSitemap,
+              onClick: () =>
+                handleUrl(item, ConstsCrawlerSource.CrawlerSourceSitemap),
+            },
+            {
+              label: '通过 Notion 导入',
+              key: ConstsCrawlerSource.CrawlerSourceNotion,
+              onClick: () =>
+                handleUrl(item, ConstsCrawlerSource.CrawlerSourceNotion),
+            },
+            {
+              label: '通过 Epub 导入',
+              key: ConstsCrawlerSource.CrawlerSourceEpub,
+              onClick: () =>
+                handleUrl(item, ConstsCrawlerSource.CrawlerSourceEpub),
+            },
+            {
+              label: '通过 Wiki.js 导入',
+              key: ConstsCrawlerSource.CrawlerSourceWikijs,
+              onClick: () =>
+                handleUrl(item, ConstsCrawlerSource.CrawlerSourceWikijs),
+            },
+            {
+              label: '通过 语雀 导入',
+              key: ConstsCrawlerSource.CrawlerSourceYuque,
+              onClick: () =>
+                handleUrl(item, ConstsCrawlerSource.CrawlerSourceYuque),
+            },
+            {
+              label: '通过 思源笔记 导入',
+              key: ConstsCrawlerSource.CrawlerSourceSiyuan,
+              onClick: () =>
+                handleUrl(item, ConstsCrawlerSource.CrawlerSourceSiyuan),
+            },
+            {
+              label: '通过 MinDoc 导入',
+              key: ConstsCrawlerSource.CrawlerSourceMindoc,
+              onClick: () =>
+                handleUrl(item, ConstsCrawlerSource.CrawlerSourceMindoc),
+            },
+            {
+              label: '通过飞书文档导入',
+              key: ConstsCrawlerSource.CrawlerSourceFeishu,
+              onClick: () =>
+                handleUrl(item, ConstsCrawlerSource.CrawlerSourceFeishu),
+            },
+            {
+              label: '通过 Confluence 导入',
+              key: ConstsCrawlerSource.CrawlerSourceConfluence,
+              onClick: () =>
+                handleUrl(item, ConstsCrawlerSource.CrawlerSourceConfluence),
+            },
+          ],
+        },
+        {
+          label: '编辑开放权限',
+          key: 'folder_permission',
+          onClick: () => handleFolderPermission(item),
+        },
+      );
+    }
+
+    if (canPublish && item.type === 2 && item.status === 1) {
+      items.push({
+        label: '更新发布',
+        key: 'update_publish',
+        onClick: () => handlePublish(item),
+      });
+    }
+
+    if (
+      canEditDocs &&
+      item.type === 2 &&
       item.rag_status &&
       [
         ConstsNodeRagInfoStatus.NodeRagStatusFailed,
         ConstsNodeRagInfoStatus.NodeRagStatusPending,
       ].includes(item.rag_status)
-        ? [
-            {
-              label:
-                item.rag_status === ConstsNodeRagInfoStatus.NodeRagStatusPending
-                  ? '学习文档'
-                  : '重新学习',
-              key: 'restudy',
-              onClick: () => handleRestudy(item),
-            },
-          ]
-        : []),
-      ...(item.type === 2
-        ? [
-            {
-              label: '文档属性',
-              key: 'properties',
-              onClick: () => handleProperties(item),
-            },
-            {
-              label: '前台查看',
-              key: 'front_doc',
-              onClick: () => handleFrontDoc(item.id),
-            },
-          ]
-        : []),
-      ...(!isEditing
-        ? [{ label: '重命名', key: 'rename', onClick: renameItem }]
-        : []),
-      { label: '删除', key: 'delete', onClick: () => handleDelete(item) },
-    ];
+    ) {
+      items.push({
+        label:
+          item.rag_status === ConstsNodeRagInfoStatus.NodeRagStatusPending
+            ? '学习文档'
+            : '重新学习',
+        key: 'restudy',
+        onClick: () => handleRestudy(item),
+      });
+    }
+
+    if (item.type === 2) {
+      items.push(
+        {
+          label: '文档属性',
+          key: 'properties',
+          onClick: () => handleProperties(item),
+        },
+        {
+          label: '前台查看',
+          key: 'front_doc',
+          onClick: () => handleFrontDoc(item.id),
+        },
+      );
+    }
+
+    if (canEditDocs && !isEditing) {
+      items.push({ label: '重命名', key: 'rename', onClick: renameItem });
+    }
+
+    if (canEditDocs) {
+      items.push({
+        label: '删除',
+        key: 'delete',
+        onClick: () => handleDelete(item),
+      });
+    }
+
+    return items;
   };
 
   // 收集当前已展开的文件夹 id（collapsed === false）
@@ -459,7 +471,7 @@ const Content = () => {
             sx={{ fontSize: 16, fontWeight: 700 }}
           >
             <Box>目录</Box>
-            {publish.unpublished > 0 && (
+            {canPublish && publish.unpublished > 0 && (
               <>
                 <Box
                   sx={{
@@ -516,80 +528,84 @@ const Content = () => {
           </Stack>
           <Stack direction={'row'} alignItems={'center'} gap={2}>
             <DocSearch />
-            <AddDocBtn
-              refresh={getData}
-              createLocal={node => {
-                setData(prev => {
-                  // 追加到根末尾
-                  const next = [
-                    ...prev,
-                    {
-                      id: node.id,
-                      name: node.name,
-                      level: 0,
-                      order: prev.length
-                        ? (prev[prev.length - 1].order ?? 0) + 1
-                        : 0,
-                      emoji: node.emoji,
-                      content_type: node.content_type,
-                      parentId: undefined,
-                      children: node.type === 1 ? [] : undefined,
-                      type: node.type,
-                      status: 1,
-                    } as ITreeItem,
-                  ];
-                  return next;
-                });
-              }}
-              scrollTo={id => {
-                // 滚动到新创建项
-                setTimeout(() => {
-                  dragTreeRef.current?.scrollToItem(id);
-                }, 120);
-              }}
-            />
-            <Cascader
-              list={[
-                {
-                  key: 'batch',
-                  label: (
-                    <Stack
-                      direction={'row'}
-                      alignItems={'center'}
-                      gap={1}
-                      sx={{
-                        fontSize: 14,
-                        px: 2,
-                        lineHeight: '40px',
-                        height: 40,
-                        width: 180,
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                        ':hover': {
-                          bgcolor: addOpacityToColor(
-                            theme.palette.primary.main,
-                            0.1,
-                          ),
-                        },
-                      }}
-                      onClick={() => setBatchOpen(true)}
-                    >
-                      批量操作
-                    </Stack>
-                  ),
-                },
-              ]}
-              context={
-                <Box>
-                  <IconButton size='small'>
-                    <IconGengduo sx={{ fontSize: '16px' }} />
-                  </IconButton>
-                </Box>
-              }
-            />
+            {canEditDocs && (
+              <AddDocBtn
+                refresh={getData}
+                createLocal={node => {
+                  setData(prev => {
+                    // 追加到根末尾
+                    const next = [
+                      ...prev,
+                      {
+                        id: node.id,
+                        name: node.name,
+                        level: 0,
+                        order: prev.length
+                          ? (prev[prev.length - 1].order ?? 0) + 1
+                          : 0,
+                        emoji: node.emoji,
+                        content_type: node.content_type,
+                        parentId: undefined,
+                        children: node.type === 1 ? [] : undefined,
+                        type: node.type,
+                        status: 1,
+                      } as ITreeItem,
+                    ];
+                    return next;
+                  });
+                }}
+                scrollTo={id => {
+                  // 滚动到新创建项
+                  setTimeout(() => {
+                    dragTreeRef.current?.scrollToItem(id);
+                  }, 120);
+                }}
+              />
+            )}
+            {canEditDocs && (
+              <Cascader
+                list={[
+                  {
+                    key: 'batch',
+                    label: (
+                      <Stack
+                        direction={'row'}
+                        alignItems={'center'}
+                        gap={1}
+                        sx={{
+                          fontSize: 14,
+                          px: 2,
+                          lineHeight: '40px',
+                          height: 40,
+                          width: 180,
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                          ':hover': {
+                            bgcolor: addOpacityToColor(
+                              theme.palette.primary.main,
+                              0.1,
+                            ),
+                          },
+                        }}
+                        onClick={() => setBatchOpen(true)}
+                      >
+                        批量操作
+                      </Stack>
+                    ),
+                  },
+                ]}
+                context={
+                  <Box>
+                    <IconButton size='small'>
+                      <IconGengduo sx={{ fontSize: '16px' }} />
+                    </IconButton>
+                  </Box>
+                }
+              />
+            )}
           </Stack>
         </Stack>
-        {supportSelect && (
+        {canEditDocs && supportSelect && (
           <Stack
             direction={'row'}
             alignItems={'center'}

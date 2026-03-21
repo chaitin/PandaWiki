@@ -14,7 +14,9 @@ import (
 type AuthMiddleware interface {
 	Authorize(next echo.HandlerFunc) echo.HandlerFunc
 	ValidateUserRole(role consts.UserRole) echo.MiddlewareFunc
-	ValidateKBUserPerm(role consts.UserKBPermission) echo.MiddlewareFunc
+	ValidateUserRoleOrAnyKBPerm(role consts.UserRole, perm consts.UserKBPermission) echo.MiddlewareFunc
+	ValidateKBUserPerm(perm consts.UserKBPermission) echo.MiddlewareFunc
+	ValidateKBUserPermAny(perms ...consts.UserKBPermission) echo.MiddlewareFunc
 	ValidateLicenseEdition(edition ...consts.LicenseEdition) echo.MiddlewareFunc
 	MustGetUserID(c echo.Context) (string, bool)
 }

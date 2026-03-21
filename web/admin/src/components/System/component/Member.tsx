@@ -2,7 +2,11 @@ import NoData from '@/assets/images/nodata.png';
 import Card from '@/components/Card';
 import { tableSx } from '@/constant/styles';
 import { getApiV1UserList } from '@/request/User';
-import { ConstsUserRole, V1UserListItemResp } from '@/request/types';
+import {
+  ConstsUserKBPermission,
+  ConstsUserRole,
+  V1UserListItemResp,
+} from '@/request/types';
 import { useAppSelector } from '@/store';
 import { Table } from '@ctzhian/ui';
 import { ColumnType } from '@ctzhian/ui/dist/Table';
@@ -18,8 +22,17 @@ const ConstsUserRoleMap = {
   [ConstsUserRole.UserRoleUser]: '普通管理员',
 };
 
-const Member = () => {
-  const { user } = useAppSelector(state => state.config);
+const Member = ({ tableHeight = '338px' }: { tableHeight?: string }) => {
+  const { user, kbDetail } = useAppSelector(state => state.config);
+  const isAdmin = user.role === ConstsUserRole.UserRoleAdmin;
+  const hasUserManage =
+    isAdmin ||
+    kbDetail.perms?.includes(
+      ConstsUserKBPermission.UserKBPermissionUserManage,
+    ) ||
+    kbDetail.perms?.includes(
+      ConstsUserKBPermission.UserKBPermissionFullControl,
+    );
   const [loading, setLoading] = useState(false);
   const [userList, setUserList] = useState<V1UserListItemResp[]>([]);
   const [curUser, setCurUser] = useState<V1UserListItemResp | null>(null);
@@ -74,9 +87,7 @@ const Member = () => {
             sx={{ p: 0, minWidth: 'auto' }}
             color='primary'
             disabled={
-              record.role === 'admin' &&
-              user.account !== 'admin' &&
-              user.id !== record.id
+              record.role === 'admin' && !isAdmin && user.id !== record.id
             }
             onClick={() => {
               setCurUser(record);
@@ -86,8 +97,8 @@ const Member = () => {
             {user?.id === record.id ? '修改密码' : '重置密码'}
           </Button>
           {user?.id !== record.id &&
-            (user.account === 'admin' ||
-              (user.role === 'admin' && record.role !== 'admin')) && (
+            hasUserManage &&
+            (isAdmin || record.role !== 'admin') && (
               <Button
                 size='small'
                 color='error'
@@ -155,7 +166,7 @@ const Member = () => {
         rowKey='id'
         size='small'
         updateScrollTop={false}
-        height='338px'
+        height={tableHeight}
         sx={{ overflow: 'hidden', ...tableSx }}
         pagination={false}
         renderEmpty={

@@ -1,6 +1,8 @@
 package v1
 
 import (
+	"github.com/lib/pq"
+
 	"github.com/chaitin/panda-wiki/consts"
 )
 
@@ -9,25 +11,25 @@ type KBUserListReq struct {
 }
 
 type KBUserListItemResp struct {
-	ID      string                  `json:"id"`
-	Account string                  `json:"account"`
-	Role    consts.UserRole         `json:"role"`
-	Perm    consts.UserKBPermission `json:"perms"`
+	ID      string          `json:"id"`
+	Account string          `json:"account"`
+	Role    consts.UserRole `json:"role"`
+	Perms   pq.StringArray  `json:"perms" gorm:"type:text[];column:perms"`
 }
 
 type KBUserInviteReq struct {
-	KBId   string                  `json:"kb_id" validate:"required"`
-	UserId string                  `json:"user_id" validate:"required"`
-	Perm   consts.UserKBPermission `json:"perm" validate:"required,oneof=full_control doc_manage data_operate"`
+	KBId   string   `json:"kb_id" validate:"required"`
+	UserId string   `json:"user_id" validate:"required"`
+	Perms  []string `json:"perms" validate:"required,min=1"`
 }
 
 type KBUserInviteResp struct {
 }
 
 type KBUserUpdateReq struct {
-	KBId   string                  `json:"kb_id" validate:"required"`
-	UserId string                  `json:"user_id" validate:"required"`
-	Perm   consts.UserKBPermission `json:"perm" validate:"required,oneof=full_control doc_manage data_operate"`
+	KBId   string   `json:"kb_id" validate:"required"`
+	UserId string   `json:"user_id" validate:"required"`
+	Perms  []string `json:"perms" validate:"required,min=1"`
 }
 
 type KBUserUpdateResp struct {

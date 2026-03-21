@@ -145,6 +145,44 @@ func (m *JWTMiddleware) ValidateUserRole(role consts.UserRole) echo.MiddlewareFu
 	}
 }
 
+func (m *JWTMiddleware) ValidateUserRoleOrAnyKBPerm(role consts.UserRole, perm consts.UserKBPermission) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			authInfo := domain.GetAuthInfoFromCtx(c.Request().Context())
+			if authInfo == nil {
+				return c.JSON(http.StatusUnauthorized, domain.PWResponse{
+					Success: false,
+					Message: "Unauthorized",
+				})
+			}
+
+			if authInfo.IsToken {
+				return c.JSON(http.StatusForbidden, domain.PWResponse{
+					Success: false,
+					Message: "token not supported",
+				})
+			}
+
+			valid, err := m.userAccessRepo.ValidateRole(authInfo.UserId, role)
+			if err == nil && valid {
+				return next(c)
+			}
+
+			validPerm, err := m.userAccessRepo.ValidateAnyKBPerm(authInfo.UserId, perm)
+			if err != nil || !validPerm {
+				m.logger.Error("ValidateUserRoleOrAnyKBPerm check failed",
+					log.Any("user_id", authInfo.UserId))
+				return c.JSON(http.StatusForbidden, domain.PWResponse{
+					Success: false,
+					Message: "StatusForbidden",
+				})
+			}
+
+			return next(c)
+		}
+	}
+}
+
 func (m *JWTMiddleware) ValidateKBUserPerm(perm consts.UserKBPermission) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -183,6 +221,62 @@ func (m *JWTMiddleware) ValidateKBUserPerm(perm consts.UserKBPermission) echo.Mi
 					} else {
 						m.logger.Info("ValidateKBUserPerm ValidateKBPerm failed", log.String("kb_id", kbId), log.String("user_id", authInfo.UserId))
 					}
+					return c.JSON(http.StatusForbidden, domain.PWResponse{
+						Success: false,
+						Message: "Unauthorized ValidateKBPerm",
+					})
+				}
+			}
+
+			return next(c)
+		}
+	}
+}
+
+func (m *JWTMiddleware) ValidateKBUserPermAny(perms ...consts.UserKBPermission) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			authInfo := domain.GetAuthInfoFromCtx(c.Request().Context())
+			if authInfo == nil {
+				return c.JSON(http.StatusUnauthorized, domain.PWResponse{
+					Success: false,
+					Message: "Unauthorized",
+				})
+			}
+
+			kbId, _ := GetKbID(c)
+
+			if authInfo.IsToken {
+				if authInfo.KBId != kbId {
+					return c.JSON(http.StatusForbidden, domain.PWResponse{
+						Success: false,
+						Message: "Unauthorized ValidateTokenKBPerm kbId",
+					})
+				}
+				matched := false
+				for _, perm := range perms {
+					if authInfo.Permission == consts.UserKBPermissionFullControl || authInfo.Permission == perm {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					return c.JSON(http.StatusForbidden, domain.PWResponse{
+						Success: false,
+						Message: "Unauthorized ValidateTokenKBPerm",
+					})
+				}
+			} else {
+				matched := false
+				for _, perm := range perms {
+					valid, err := m.userAccessRepo.ValidateKBPerm(kbId, authInfo.UserId, perm)
+					if err == nil && valid {
+						matched = true
+						break
+					}
+				}
+				if !matched {
+					m.logger.Info("ValidateKBUserPermAny failed", log.String("kb_id", kbId), log.String("user_id", authInfo.UserId))
 					return c.JSON(http.StatusForbidden, domain.PWResponse{
 						Success: false,
 						Message: "Unauthorized ValidateKBPerm",

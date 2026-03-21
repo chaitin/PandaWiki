@@ -46,14 +46,14 @@ func NewKnowledgeBaseHandler(
 	group.DELETE("/detail", h.DeleteKnowledgeBase, h.auth.ValidateUserRole(consts.UserRoleAdmin))
 
 	// user management
-	userGroup := group.Group("/user", h.auth.ValidateKBUserPerm(consts.UserKBPermissionFullControl))
+	userGroup := group.Group("/user", h.auth.ValidateKBUserPerm(consts.UserKBPermissionUserManage))
 	userGroup.GET("/list", h.KBUserList)
 	userGroup.POST("/invite", h.KBUserInvite)
 	userGroup.PATCH("/update", h.KBUserUpdate)
 	userGroup.DELETE("/delete", h.KBUserDelete)
 
 	// release
-	releaseGroup := group.Group("/release", h.auth.ValidateKBUserPerm(consts.UserKBPermissionDocManage))
+	releaseGroup := group.Group("/release", h.auth.ValidateKBUserPerm(consts.UserKBPermissionAuditManage))
 	releaseGroup.POST("", h.CreateKBRelease)
 	releaseGroup.GET("/list", h.GetKBReleaseList)
 
@@ -184,12 +184,12 @@ func (h *KnowledgeBaseHandler) GetKnowledgeBaseDetail(c echo.Context) error {
 		return h.NewResponseWithError(c, "failed to get knowledge base detail", err)
 	}
 
-	perm, err := h.usecase.GetKnowledgeBasePerm(c.Request().Context(), kbID)
+	perms, err := h.usecase.GetKnowledgeBasePerms(c.Request().Context(), kbID)
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to get knowledge base permission", err)
 	}
 
-	if perm != consts.UserKBPermissionFullControl {
+	if !perms.Contains(consts.UserKBPermissionFullControl) {
 		kb.AccessSettings.PrivateKey = ""
 		kb.AccessSettings.PublicKey = ""
 	}
@@ -198,7 +198,7 @@ func (h *KnowledgeBaseHandler) GetKnowledgeBaseDetail(c echo.Context) error {
 		ID:             kb.ID,
 		Name:           kb.Name,
 		DatasetID:      kb.DatasetID,
-		Perm:           perm,
+		Perms:          perms,
 		AccessSettings: kb.AccessSettings,
 		CreatedAt:      kb.CreatedAt,
 		UpdatedAt:      kb.UpdatedAt,

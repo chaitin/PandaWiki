@@ -26,6 +26,10 @@ export enum ConstsUserKBPermission {
   UserKBPermissionDocManage = "doc_manage",
   /** 数据运营 */
   UserKBPermissionDataOperate = "data_operate",
+  /** 审核管理（发布文档） */
+  UserKBPermissionAuditManage = "audit_manage",
+  /** 用户管理 */
+  UserKBPermissionUserManage = "user_manage",
 }
 
 export enum ConstsSourceType {

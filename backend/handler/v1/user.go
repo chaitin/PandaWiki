@@ -47,23 +47,24 @@ func NewUserHandler(e *echo.Echo, baseHandler *handler.BaseHandler, logger *log.
 
 	group.GET("", h.GetUserInfo, h.auth.Authorize)
 	group.GET("/list", h.ListUsers, h.auth.Authorize)
-	group.GET("/guest/list", h.ListGuestUsers, h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
-	group.POST("/create", h.CreateUser, h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
-	group.POST("/guest/create", h.CreateGuestUser, h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
+	userManagePerm := h.auth.ValidateUserRoleOrAnyKBPerm(consts.UserRoleAdmin, consts.UserKBPermissionUserManage)
+	group.GET("/guest/list", h.ListGuestUsers, h.auth.Authorize, userManagePerm)
+	group.POST("/create", h.CreateUser, h.auth.Authorize, userManagePerm)
+	group.POST("/guest/create", h.CreateGuestUser, h.auth.Authorize, userManagePerm)
 	group.PUT("/reset_password", h.ResetPassword, h.auth.Authorize)
-	group.PUT("/guest/:id", h.UpdateGuestUser, h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
-	group.DELETE("/delete", h.DeleteUser, h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
-	group.DELETE("/guest/:id", h.DeleteGuestUser, h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
+	group.PUT("/guest/:id", h.UpdateGuestUser, h.auth.Authorize, userManagePerm)
+	group.DELETE("/delete", h.DeleteUser, h.auth.Authorize, userManagePerm)
+	group.DELETE("/guest/:id", h.DeleteGuestUser, h.auth.Authorize, userManagePerm)
 
 	// 用户组管理
-	group.GET("/auth_group/list", h.ListAuthGroups, h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
-	group.POST("/auth_group/create", h.CreateAuthGroup, h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
-	group.PUT("/auth_group/:id", h.UpdateAuthGroup, h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
-	group.DELETE("/auth_group/:id", h.DeleteAuthGroup, h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
+	group.GET("/auth_group/list", h.ListAuthGroups, h.auth.Authorize, userManagePerm)
+	group.POST("/auth_group/create", h.CreateAuthGroup, h.auth.Authorize, userManagePerm)
+	group.PUT("/auth_group/:id", h.UpdateAuthGroup, h.auth.Authorize, userManagePerm)
+	group.DELETE("/auth_group/:id", h.DeleteAuthGroup, h.auth.Authorize, userManagePerm)
 
 	// 用户与用户组关联
-	group.GET("/groups", h.GetUserGroups, h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
-	group.PUT("/groups", h.UpdateUserGroups, h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
+	group.GET("/groups", h.GetUserGroups, h.auth.Authorize, userManagePerm)
+	group.PUT("/groups", h.UpdateUserGroups, h.auth.Authorize, userManagePerm)
 
 	// Pro 版本用户组管理接口
 	proGroup := e.Group("/api/pro/v1/auth/group", h.auth.Authorize, h.auth.ValidateUserRole(consts.UserRoleAdmin))
@@ -90,6 +91,14 @@ func (h *UserHandler) CreateUser(c echo.Context) error {
 
 	if err := c.Validate(&req); err != nil {
 		return h.NewResponseWithError(c, "invalid request", err)
+	}
+
+	authInfo := domain.GetAuthInfoFromCtx(c.Request().Context())
+	if authInfo != nil {
+		caller, err := h.usecase.GetUser(c.Request().Context(), authInfo.UserId)
+		if err == nil && caller.Role != consts.UserRoleAdmin && req.Role == consts.UserRoleAdmin {
+			return h.NewResponseWithError(c, "非超级管理员不能创建超级管理员", nil)
+		}
 	}
 
 	uid := uuid.New().String()
@@ -301,7 +310,13 @@ func (h *UserHandler) DeleteUser(c echo.Context) error {
 	}
 
 	if user.Role != consts.UserRoleAdmin {
-		return h.NewResponseWithError(c, "只有管理员可以删除用户", nil)
+		targetUser, err := h.usecase.GetUser(ctx, req.UserID)
+		if err != nil {
+			return h.NewResponseWithError(c, "failed to get target user", err)
+		}
+		if targetUser.Role == consts.UserRoleAdmin {
+			return h.NewResponseWithError(c, "非超级管理员不能删除超级管理员", nil)
+		}
 	}
 
 	err = h.usecase.DeleteUser(ctx, req.UserID)

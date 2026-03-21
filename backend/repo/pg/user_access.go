@@ -120,6 +120,21 @@ func (r *UserAccessRepository) ValidateRole(userID string, role consts.UserRole)
 	return false, nil
 }
 
+func (r *UserAccessRepository) ValidateAnyKBPerm(userId string, perm consts.UserKBPermission) (bool, error) {
+	var kbUsers []domain.KBUsers
+	if err := r.db.Model(&domain.KBUsers{}).
+		Where("user_id = ?", userId).
+		Find(&kbUsers).Error; err != nil {
+		return false, fmt.Errorf("get kb users failed %s", err)
+	}
+	for _, kbUser := range kbUsers {
+		if kbUser.GetPerms().Contains(perm) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (r *UserAccessRepository) ValidateKBPerm(kbId, userId string, perm consts.UserKBPermission) (bool, error) {
 	var user domain.User
 	if err := r.db.Model(&domain.User{}).Where("id = ?", userId).First(&user).Error; err != nil {
@@ -136,12 +151,7 @@ func (r *UserAccessRepository) ValidateKBPerm(kbId, userId string, perm consts.U
 		First(&kbUser).Error
 	if err != nil {
 		return false, fmt.Errorf("get kb user failed %s", err)
-
 	}
 
-	if kbUser.Perm == perm || kbUser.Perm == consts.UserKBPermissionFullControl {
-		return true, nil
-	}
-
-	return false, nil
+	return kbUser.GetPerms().Contains(perm), nil
 }

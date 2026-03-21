@@ -164,14 +164,12 @@ func (u *KnowledgeBaseUsecase) GetKnowledgeBase(ctx context.Context, kbID string
 	return kb, nil
 }
 
-func (u *KnowledgeBaseUsecase) GetKnowledgeBasePerm(ctx context.Context, kbID string) (consts.UserKBPermission, error) {
-
-	perm, err := u.repo.GetKBPermByUserId(ctx, kbID)
+func (u *KnowledgeBaseUsecase) GetKnowledgeBasePerms(ctx context.Context, kbID string) (consts.UserKBPermissions, error) {
+	perms, err := u.repo.GetKBPermsByUserId(ctx, kbID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
-	return perm, nil
+	return perms, nil
 }
 
 func (u *KnowledgeBaseUsecase) DeleteKnowledgeBase(ctx context.Context, kbID string) error {
@@ -255,7 +253,7 @@ func (u *KnowledgeBaseUsecase) KBUserInvite(ctx context.Context, req v1.KBUserIn
 	if err := u.repo.CreateKBUser(ctx, &domain.KBUsers{
 		KBId:      req.KBId,
 		UserId:    req.UserId,
-		Perm:      req.Perm,
+		Perms:     req.Perms,
 		CreatedAt: time.Now(),
 	}); err != nil {
 		return err
@@ -286,11 +284,11 @@ func (u *KnowledgeBaseUsecase) UpdateUserKB(ctx context.Context, req v1.KBUserUp
 		if err != nil {
 			return err
 		}
-		if user.Role != consts.UserRoleAdmin && kbUser.Perm != consts.UserKBPermissionFullControl {
+		if user.Role != consts.UserRoleAdmin && !kbUser.GetPerms().Contains(consts.UserKBPermissionFullControl) {
 			return fmt.Errorf("only admin can update user from knowledge base")
 		}
 	}
-	return u.repo.UpdateKBUserPerm(ctx, req.KBId, req.UserId, req.Perm)
+	return u.repo.UpdateKBUserPerms(ctx, req.KBId, req.UserId, req.Perms)
 }
 
 func (u *KnowledgeBaseUsecase) KBUserDelete(ctx context.Context, req v1.KBUserDeleteReq) error {
@@ -315,7 +313,7 @@ func (u *KnowledgeBaseUsecase) KBUserDelete(ctx context.Context, req v1.KBUserDe
 		if err != nil {
 			return err
 		}
-		if user.Role != consts.UserRoleAdmin && kbUser.Perm != consts.UserKBPermissionFullControl {
+		if user.Role != consts.UserRoleAdmin && !kbUser.GetPerms().Contains(consts.UserKBPermissionFullControl) {
 			return fmt.Errorf("only admin can delete user from knowledge base")
 		}
 	}

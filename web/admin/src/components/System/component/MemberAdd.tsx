@@ -3,7 +3,16 @@ import { postApiV1KnowledgeBaseUserInvite } from '@/request/KnowledgeBase';
 import Card from '@/components/Card';
 import { copyText, generatePassword } from '@/utils';
 import { CheckCircle } from '@mui/icons-material';
-import { Box, Button, MenuItem, Select, Stack, TextField } from '@mui/material';
+import {
+  Box,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+} from '@mui/material';
 import { FormItem } from '@/components/Form';
 import { Modal, message } from '@ctzhian/ui';
 import { useState, useMemo, useEffect } from 'react';
@@ -11,16 +20,37 @@ import { Controller, useForm } from 'react-hook-form';
 import { useAppSelector } from '@/store';
 import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
 import { VersionCanUse } from '@/components/VersionMask';
-import { ConstsUserKBPermission, V1KBUserInviteReq } from '@/request/types';
+import { ConstsUserKBPermission } from '@/request/types';
 import { ConstsLicenseEdition } from '@/request/pro/types';
 
 type Role = 'admin' | 'user';
 
-const PERM_MAP = {
-  [ConstsUserKBPermission.UserKBPermissionFullControl]: '完全控制',
-  [ConstsUserKBPermission.UserKBPermissionDocManage]: '文档管理',
-  [ConstsUserKBPermission.UserKBPermissionDataOperate]: '数据运营',
-};
+const PERM_OPTIONS = [
+  {
+    value: ConstsUserKBPermission.UserKBPermissionFullControl,
+    label: '完全控制',
+    description: '拥有所有权限',
+    proOnly: false,
+  },
+  {
+    value: ConstsUserKBPermission.UserKBPermissionDocManage,
+    label: '文档管理',
+    description: '创建编辑文档，但无法发布',
+    proOnly: true,
+  },
+  {
+    value: ConstsUserKBPermission.UserKBPermissionAuditManage,
+    label: '审核管理',
+    description: '无法编辑创建文档，但可以发布文档',
+    proOnly: true,
+  },
+  {
+    value: ConstsUserKBPermission.UserKBPermissionUserManage,
+    label: '用户管理',
+    description: '管理用户和管理员',
+    proOnly: true,
+  },
+];
 
 const VERSION_MAP = {
   [ConstsLicenseEdition.LicenseEditionFree]: {
@@ -63,17 +93,18 @@ const MemberAdd = ({
       account: '',
       role: 'user' as Role,
       kb_id: '',
-      perm: '' as V1KBUserInviteReq['perm'],
+      perms: [ConstsUserKBPermission.UserKBPermissionFullControl] as string[],
     },
   });
 
   const account = watch('account');
   const watchRole = watch('role');
   const watchKbId = watch('kb_id');
+  const watchPerms = watch('perms');
 
   useEffect(() => {
     if (watchKbId) {
-      setValue('perm', ConstsUserKBPermission.UserKBPermissionFullControl);
+      setValue('perms', [ConstsUserKBPermission.UserKBPermissionFullControl]);
     }
   }, [watchKbId]);
 
@@ -105,7 +136,7 @@ const MemberAdd = ({
             kb_id: data.kb_id,
             // @ts-expect-error 类型错误
             user_id: res.id,
-            perm: data.perm,
+            perms: data.perms,
           }).then(() => {
             onSuccess();
             if (location.pathname.startsWith('/setting')) {
@@ -252,56 +283,77 @@ const MemberAdd = ({
             <FormItem label='权限' sx={{ mt: 2 }}>
               <Controller
                 control={control}
-                name='perm'
-                render={({ field }) => (
-                  <Select
-                    {...field}
-                    fullWidth
-                    displayEmpty
-                    sx={{ height: 52 }}
-                    MenuProps={{
-                      sx: {
-                        '.Mui-disabled': {
-                          opacity: '1 !important',
-                          color: 'text.disabled',
-                        },
-                      },
-                    }}
-                    renderValue={(value: V1KBUserInviteReq['perm']) => {
-                      return value ? (
-                        PERM_MAP[value]
-                      ) : (
-                        <Box sx={{ color: '#9e9fa3' }}>请选择</Box>
-                      );
-                    }}
-                  >
-                    <MenuItem
-                      value={ConstsUserKBPermission.UserKBPermissionFullControl}
-                    >
-                      完全控制
-                    </MenuItem>
-
-                    <MenuItem
-                      value={ConstsUserKBPermission.UserKBPermissionDocManage}
-                      disabled={!isPro}
-                    >
-                      文档管理{' '}
-                      <VersionCanUse
-                        permission={PROFESSION_VERSION_PERMISSION}
-                      />
-                    </MenuItem>
-
-                    <MenuItem
-                      value={ConstsUserKBPermission.UserKBPermissionDataOperate}
-                      disabled={!isPro}
-                    >
-                      数据运营{' '}
-                      <VersionCanUse
-                        permission={PROFESSION_VERSION_PERMISSION}
-                      />
-                    </MenuItem>
-                  </Select>
-                )}
+                name='perms'
+                render={({ field }) => {
+                  const isFullControl = field.value.includes(
+                    ConstsUserKBPermission.UserKBPermissionFullControl,
+                  );
+                  const handleToggle = (permValue: string) => {
+                    if (
+                      permValue ===
+                      ConstsUserKBPermission.UserKBPermissionFullControl
+                    ) {
+                      field.onChange([permValue]);
+                      return;
+                    }
+                    let next = field.value.filter(
+                      (v: string) =>
+                        v !==
+                        ConstsUserKBPermission.UserKBPermissionFullControl,
+                    );
+                    if (next.includes(permValue)) {
+                      next = next.filter((v: string) => v !== permValue);
+                    } else {
+                      next = [...next, permValue];
+                    }
+                    if (next.length === 0) {
+                      next = [
+                        ConstsUserKBPermission.UserKBPermissionFullControl,
+                      ];
+                    }
+                    field.onChange(next);
+                  };
+                  return (
+                    <Stack gap={0.5}>
+                      {PERM_OPTIONS.map(opt => (
+                        <FormControlLabel
+                          key={opt.value}
+                          disabled={opt.proOnly && !isPro}
+                          control={
+                            <Checkbox
+                              size='small'
+                              checked={
+                                isFullControl
+                                  ? opt.value ===
+                                    ConstsUserKBPermission.UserKBPermissionFullControl
+                                  : field.value.includes(opt.value)
+                              }
+                              onChange={() => handleToggle(opt.value)}
+                            />
+                          }
+                          label={
+                            <Stack direction='row' alignItems='center' gap={1}>
+                              <Box sx={{ fontSize: 14 }}>{opt.label}</Box>
+                              <Box
+                                sx={{
+                                  fontSize: 12,
+                                  color: 'text.tertiary',
+                                }}
+                              >
+                                {opt.description}
+                              </Box>
+                              {opt.proOnly && !isPro && (
+                                <VersionCanUse
+                                  permission={PROFESSION_VERSION_PERMISSION}
+                                />
+                              )}
+                            </Stack>
+                          }
+                        />
+                      ))}
+                    </Stack>
+                  );
+                }}
               />
             </FormItem>
           </>

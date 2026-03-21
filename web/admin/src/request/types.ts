@@ -106,6 +106,10 @@ export enum ConstsUserKBPermission {
   UserKBPermissionDocManage = "doc_manage",
   /** 数据运营 */
   UserKBPermissionDataOperate = "data_operate",
+  /** 审核管理（发布文档） */
+  UserKBPermissionAuditManage = "audit_manage",
+  /** 用户管理 */
+  UserKBPermissionUserManage = "user_manage",
 }
 
 export enum ConstsStatDay {
@@ -899,8 +903,8 @@ export interface DomainKnowledgeBaseDetail {
   dataset_id?: string;
   id?: string;
   name?: string;
-  /** 用户对知识库的权限 */
-  perm?: ConstsUserKBPermission;
+  /** 用户对知识库的权限列表 */
+  perms?: ConstsUserKBPermission[];
   updated_at?: string;
 }
 
@@ -1643,20 +1647,20 @@ export interface V1FileUploadResp {
 
 export interface V1KBUserInviteReq {
   kb_id: string;
-  perm: "full_control" | "doc_manage" | "data_operate";
+  perms: string[];
   user_id: string;
 }
 
 export interface V1KBUserListItemResp {
   account?: string;
   id?: string;
-  perms?: ConstsUserKBPermission;
+  perms?: ConstsUserKBPermission[];
   role?: ConstsUserRole;
 }
 
 export interface V1KBUserUpdateReq {
   kb_id: string;
-  perm: "full_control" | "doc_manage" | "data_operate";
+  perms: string[];
   user_id: string;
 }
 

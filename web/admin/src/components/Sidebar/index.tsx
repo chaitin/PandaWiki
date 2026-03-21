@@ -2,7 +2,7 @@ import Logo from '@/assets/images/logo.png';
 import Qrcode from '@/assets/images/qrcode.png';
 
 import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
-import { ConstsUserKBPermission } from '@/request/types';
+import { ConstsUserKBPermission, ConstsUserRole } from '@/request/types';
 import { Modal } from '@ctzhian/ui';
 import { useState, useMemo, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
@@ -20,6 +20,7 @@ import {
   IconChilun,
   IconGroup,
   IconGithub,
+  IconAChilunshezhisheding,
 } from '@panda-wiki/icons';
 
 const MENUS = [
@@ -32,6 +33,7 @@ const MENUS = [
     perms: [
       ConstsUserKBPermission.UserKBPermissionFullControl,
       ConstsUserKBPermission.UserKBPermissionDocManage,
+      ConstsUserKBPermission.UserKBPermissionAuditManage,
     ],
   },
   {
@@ -40,7 +42,10 @@ const MENUS = [
     pathname: 'user',
     icon: IconGroup,
     show: true,
-    perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
+    perms: [
+      ConstsUserKBPermission.UserKBPermissionFullControl,
+      ConstsUserKBPermission.UserKBPermissionUserManage,
+    ],
   },
   {
     label: '统计',
@@ -53,14 +58,6 @@ const MENUS = [
       ConstsUserKBPermission.UserKBPermissionDataOperate,
     ],
   },
-  // {
-  //   label: '贡献',
-  //   value: '/contribution',
-  //   pathname: 'contribution',
-  //   icon: IconGongxian,
-  //   show: true,
-  //   perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
-  // },
   {
     label: '问答',
     value: '/conversation',
@@ -91,7 +88,7 @@ const MENUS = [
     show: true,
     perms: [
       ConstsUserKBPermission.UserKBPermissionFullControl,
-      ConstsUserKBPermission.UserKBPermissionDocManage,
+      ConstsUserKBPermission.UserKBPermissionAuditManage,
     ],
   },
   {
@@ -102,19 +99,34 @@ const MENUS = [
     show: true,
     perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
   },
+  {
+    label: '管理员',
+    value: '/member',
+    pathname: 'member',
+    icon: IconAChilunshezhisheding,
+    show: true,
+    perms: [
+      ConstsUserKBPermission.UserKBPermissionFullControl,
+      ConstsUserKBPermission.UserKBPermissionUserManage,
+    ],
+  },
 ];
 
 const Sidebar = () => {
   const { pathname } = useLocation();
-  const { kbDetail } = useAppSelector(state => state.config);
+  const { kbDetail, user } = useAppSelector(state => state.config);
   const theme = useTheme();
   const [showQrcode, setShowQrcode] = useState(false);
   const navigate = useNavigate();
   const menus = useMemo(() => {
+    const isAdmin = user.role === ConstsUserRole.UserRoleAdmin;
+    const userPerms = kbDetail.perms || [];
     return MENUS.filter(it => {
-      return it.perms.includes(kbDetail.perm!);
+      if ('role' in it && it.role && user.role !== it.role) return false;
+      if (isAdmin) return true;
+      return it.perms.some(p => userPerms.includes(p));
     });
-  }, [kbDetail]);
+  }, [kbDetail, user]);
 
   useEffect(() => {
     const menu = menus.find(it => {

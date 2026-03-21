@@ -4,24 +4,16 @@ import { useAppDispatch, useAppSelector } from '@/store';
 import { setModelList, setModelStatus } from '@/store/slices/config';
 import { Modal } from '@ctzhian/ui';
 import { IconAChilunshezhisheding } from '@panda-wiki/icons';
-import { Box, Button, Tab, Tabs, useTheme } from '@mui/material';
+import { Box, Button } from '@mui/material';
 import { useEffect, useState, useRef } from 'react';
 
-import Member from './component/Member';
 import ModelConfig, { ModelConfigRef } from './component/ModelConfig';
 
-const SystemTabs = [
-  { label: '模型配置', id: 'model-config' },
-  { label: '管理员管理', id: 'user-management' },
-];
-
 const System = () => {
-  const theme = useTheme();
   const { user, modelList, isCreateWikiModalOpen } = useAppSelector(
     state => state.config,
   );
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('model-config');
   const dispatch = useAppDispatch();
   const modelConfigRef = useRef<ModelConfigRef>(null);
   const [chatModelData, setChatModelData] =
@@ -95,72 +87,23 @@ const System = () => {
         disableEnforceFocus={true}
         footer={null}
         onCancel={() => {
-          if (activeTab === 'model-config' && modelConfigRef.current) {
+          if (modelConfigRef.current) {
             modelConfigRef.current.handleClose();
           } else {
             setOpen(false);
           }
         }}
       >
-        <Tabs
-          value={activeTab}
-          onChange={(event, newValue) => setActiveTab(newValue)}
-          aria-label='system tabs'
-          sx={{
-            mb: 2,
-            borderBottom: 1,
-            borderColor: 'divider',
-            '& .MuiTabs-indicator': {
-              display: 'none',
-            },
-            '& .MuiTab-root': {
-              minHeight: 48,
-              textTransform: 'none',
-              fontSize: '14px',
-              fontWeight: 400,
-              color: theme.palette.text.secondary,
-              position: 'relative',
-              '&.Mui-selected': {
-                color: theme.palette.primary.main,
-                fontWeight: 500,
-              },
-              '&.Mui-selected::after': {
-                content: '""',
-                position: 'absolute',
-                bottom: 0,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '40px',
-                height: '2px',
-                backgroundColor: theme.palette.primary.main,
-                zIndex: 1,
-              },
-            },
-          }}
-        >
-          {SystemTabs.map(tab => (
-            <Tab key={tab.id} label={tab.label} value={tab.id} />
-          ))}
-        </Tabs>
-        {activeTab === 'user-management' && (
-          <Box>
-            <Member />
-          </Box>
-        )}
-        {activeTab === 'model-config' && (
-          <Box>
-            <ModelConfig
-              ref={modelConfigRef}
-              onCloseModal={() => setOpen(false)}
-              chatModelData={chatModelData}
-              embeddingModelData={embeddingModelData}
-              rerankModelData={rerankModelData}
-              analysisModelData={analysisModelData}
-              analysisVLModelData={analysisVLModelData}
-              getModelList={getModelList}
-            />
-          </Box>
-        )}
+        <ModelConfig
+          ref={modelConfigRef}
+          onCloseModal={() => setOpen(false)}
+          chatModelData={chatModelData}
+          embeddingModelData={embeddingModelData}
+          rerankModelData={rerankModelData}
+          analysisModelData={analysisModelData}
+          analysisVLModelData={analysisVLModelData}
+          getModelList={getModelList}
+        />
       </Modal>
     </>
   );

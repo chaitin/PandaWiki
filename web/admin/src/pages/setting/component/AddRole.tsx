@@ -1,11 +1,14 @@
-import { Box, Tooltip, Stack, Select, MenuItem, Radio } from '@mui/material';
+import {
+  Box,
+  Checkbox,
+  FormControlLabel,
+  Tooltip,
+  Stack,
+  Radio,
+} from '@mui/material';
 import { getApiV1UserList } from '@/request/User';
 import { postApiV1KnowledgeBaseUserInvite } from '@/request/KnowledgeBase';
-import {
-  ConstsUserKBPermission,
-  V1KBUserInviteReq,
-  V1UserListItemResp,
-} from '@/request/types';
+import { ConstsUserKBPermission, V1UserListItemResp } from '@/request/types';
 import { FormItem } from '@/components/Form';
 import NoData from '@/assets/images/nodata.png';
 import Card from '@/components/Card';
@@ -16,6 +19,33 @@ import { useEffect, useMemo, useState } from 'react';
 import { useAppSelector } from '@/store';
 import { VersionCanUse } from '@/components/VersionMask';
 import { PROFESSION_VERSION_PERMISSION } from '@/constant/version';
+
+const PERM_OPTIONS = [
+  {
+    value: ConstsUserKBPermission.UserKBPermissionFullControl,
+    label: '完全控制',
+    description: '拥有所有权限',
+    proOnly: false,
+  },
+  {
+    value: ConstsUserKBPermission.UserKBPermissionDocManage,
+    label: '文档管理',
+    description: '创建编辑文档，但无法发布',
+    proOnly: true,
+  },
+  {
+    value: ConstsUserKBPermission.UserKBPermissionAuditManage,
+    label: '审核管理',
+    description: '无法编辑创建文档，但可以发布文档',
+    proOnly: true,
+  },
+  {
+    value: ConstsUserKBPermission.UserKBPermissionUserManage,
+    label: '用户管理',
+    description: '管理用户和管理员',
+    proOnly: true,
+  },
+];
 
 interface AddRoleProps {
   open: boolean;
@@ -30,9 +60,9 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
   const [list, setList] = useState<V1UserListItemResp[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRowKeys, setSelectedRowKeys] = useState<string>('');
-  const [perm, setPerm] = useState<V1KBUserInviteReq['perm']>(
+  const [perms, setPerms] = useState<string[]>([
     ConstsUserKBPermission.UserKBPermissionFullControl,
-  );
+  ]);
 
   const columns: ColumnType<V1UserListItemResp>[] = [
     {
@@ -100,7 +130,7 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
     postApiV1KnowledgeBaseUserInvite({
       kb_id,
       user_id: selectedRowKeys,
-      perm,
+      perms,
     }).then(() => {
       onOk();
       message.success('添加成功');
@@ -112,9 +142,7 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
       getData();
     } else {
       setSelectedRowKeys('');
-      setPerm(
-        ConstsUserKBPermission.UserKBPermissionFullControl as V1KBUserInviteReq['perm'],
-      );
+      setPerms([ConstsUserKBPermission.UserKBPermissionFullControl]);
     }
   }, [open]);
 
@@ -208,39 +236,64 @@ const AddRole = ({ open, onCancel, onOk, selectedIds }: AddRoleProps) => {
         }
         sx={{ mt: 2 }}
       >
-        <Select
-          fullWidth
-          sx={{ height: 52 }}
-          value={perm}
-          MenuProps={{
-            sx: {
-              '.Mui-disabled': {
-                opacity: '1 !important',
-                color: 'text.disabled',
-              },
-            },
-          }}
-          onChange={e => setPerm(e.target.value as V1KBUserInviteReq['perm'])}
-        >
-          <MenuItem value={ConstsUserKBPermission.UserKBPermissionFullControl}>
-            完全控制
-          </MenuItem>
-
-          <MenuItem
-            value={ConstsUserKBPermission.UserKBPermissionDocManage}
-            disabled={!isPro}
-          >
-            文档管理{' '}
-            <VersionCanUse permission={PROFESSION_VERSION_PERMISSION} />
-          </MenuItem>
-          <MenuItem
-            value={ConstsUserKBPermission.UserKBPermissionDataOperate}
-            disabled={!isPro}
-          >
-            数据运营{' '}
-            <VersionCanUse permission={PROFESSION_VERSION_PERMISSION} />
-          </MenuItem>
-        </Select>
+        <Stack gap={0.5}>
+          {PERM_OPTIONS.map(opt => {
+            const isFullControl = perms.includes(
+              ConstsUserKBPermission.UserKBPermissionFullControl,
+            );
+            const handleToggle = (permValue: string) => {
+              if (
+                permValue === ConstsUserKBPermission.UserKBPermissionFullControl
+              ) {
+                setPerms([permValue]);
+                return;
+              }
+              let next = perms.filter(
+                v => v !== ConstsUserKBPermission.UserKBPermissionFullControl,
+              );
+              if (next.includes(permValue)) {
+                next = next.filter(v => v !== permValue);
+              } else {
+                next = [...next, permValue];
+              }
+              if (next.length === 0) {
+                next = [ConstsUserKBPermission.UserKBPermissionFullControl];
+              }
+              setPerms(next);
+            };
+            return (
+              <FormControlLabel
+                key={opt.value}
+                disabled={opt.proOnly && !isPro}
+                control={
+                  <Checkbox
+                    size='small'
+                    checked={
+                      isFullControl
+                        ? opt.value ===
+                          ConstsUserKBPermission.UserKBPermissionFullControl
+                        : perms.includes(opt.value)
+                    }
+                    onChange={() => handleToggle(opt.value)}
+                  />
+                }
+                label={
+                  <Stack direction='row' alignItems='center' gap={1}>
+                    <Box sx={{ fontSize: 14 }}>{opt.label}</Box>
+                    <Box sx={{ fontSize: 12, color: 'text.tertiary' }}>
+                      {opt.description}
+                    </Box>
+                    {opt.proOnly && !isPro && (
+                      <VersionCanUse
+                        permission={PROFESSION_VERSION_PERMISSION}
+                      />
+                    )}
+                  </Stack>
+                }
+              />
+            );
+          })}
+        </Stack>
       </FormItem>
     </Modal>
   );
