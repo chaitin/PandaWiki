@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build:dev": "vite build --m development",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "generate-routes": "node scripts/generate-routes.js",
     "build:analyze": "tsc -b && vite build -- --analyze",
     "api": "cx-swagger-api"
