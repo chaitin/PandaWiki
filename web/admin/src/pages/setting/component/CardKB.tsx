@@ -359,9 +359,7 @@ const ApiToken = () => {
                     sx={{ height: 52 }}
                     fullWidth
                     onChange={e =>
-                      field.onChange(
-                        e.target.value as V1KBUserUpdateReq['perm'],
-                      )
+                      field.onChange(e.target.value as unknown as string[])
                     }
                   >
                     <MenuItem

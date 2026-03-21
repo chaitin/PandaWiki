@@ -17,7 +17,7 @@ services:
     depends_on:
       - api
     restart: always
-    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-nginx:v3.46.1
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-nginx:v3.46.1b
     ports:
       - ${ADMIN_PORT}:8080
     volumes:
@@ -29,7 +29,7 @@ services:
   app:
     container_name: panda-wiki-app
     restart: always
-    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-app:v3.46.1
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-app:v3.46.1b
     environment:
       # 容器内必须用服务名访问 API，不能用 localhost
       - TARGET=http://panda-wiki-api:8000
@@ -45,7 +45,7 @@ services:
       - caddy
       - raglite
     restart: always
-    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:latest
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-api:v3.46.1b
     volumes:
       - ./data/caddy/run:/app/run
       - ./data/nginx/ssl:/app/etc/nginx/ssl
