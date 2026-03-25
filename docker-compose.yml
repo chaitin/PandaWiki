@@ -17,7 +17,7 @@ services:
     depends_on:
       - api
     restart: always
-    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-nginx:v3.46.1b
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-nginx:v3.46.1a
     ports:
       - ${ADMIN_PORT}:8080
     volumes:
@@ -29,11 +29,14 @@ services:
   app:
     container_name: panda-wiki-app
     restart: always
-    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-app:v3.46.1b
+    image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/panda-wiki-app:v3.46.1a
     environment:
       # 容器内必须用服务名访问 API，不能用 localhost
       - TARGET=http://panda-wiki-api:8000
       - DEV_KB_ID=1bb45cda-6e76-4e47-a4a0-1611ef224645
+    volumes:
+      - /root/projects/PandaWiki/web/app/dist/standalone/projects/PandaWiki/web/app/:/app/app/
+      - /root/projects/PandaWiki/web/app/dist/static/:/app/app/dist/static/
     networks:
       panda-wiki:
         ipv4_address: "${SUBNET_PREFIX:-169.254.15}.112"
@@ -151,6 +154,8 @@ services:
     networks:
       panda-wiki:
         ipv4_address: "${SUBNET_PREFIX:-169.254.15}.14"
+    ports:
+      - "6333:6333"
   crawler:
     image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/anydoc:v0.7.1
     container_name: panda-wiki-crawler
