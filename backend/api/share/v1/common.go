@@ -3,7 +3,7 @@ package v1
 type ShareFileUploadReq struct {
 	KbId         string `json:"-"`
 	File         string `form:"file"`
-	CaptchaToken string `form:"captcha_token" json:"captcha_token" validate:"required"`
+	CaptchaToken string `form:"captcha_token" json:"captcha_token"`
 }
 
 type FileUploadResp struct {
