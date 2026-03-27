@@ -115,34 +115,20 @@ export const INIT_LADING_DATA = {
     {
       type: 'banner',
       banner_config: {
-        title: '欢迎使用 PandaWiki AI 知识库',
+        title: '欢迎使用封置库',
         title_color: '#6E73FE',
         title_font_size: 60,
-        subtitle:
-          'PandaWiki 是一款 AI 驱动的开源知识库搭建系统，帮助你快速构建智能化产品文档、技术文档、FAQ、博客系统，借助大模型的力量为你提供 AI 创作、AI 问答、AI 搜索等能力。',
+        subtitle: '封置库 是一款 AI 驱动的知识库系统，帮助你快速搜索封置能力。',
         placeholder: '有问题？问问 AI',
         subtitle_color: '#ffffff80',
         subtitle_font_size: 16,
         bg_url: '',
         hot_search: [
-          '如何安装PandaWiki',
-          'PandaWiki能做什么？',
-          '忘了admin的密码如何重置？',
+          '如何为封置库提供意见？',
+          '封置库能做什么？',
+          '忘了封置库的密码怎么办？',
         ],
-        btns: [
-          {
-            id: '1760701149843',
-            text: '查看文档',
-            type: 'contained',
-            href: '',
-          },
-          {
-            id: '1760701163769',
-            text: '社区论坛',
-            type: 'outlined',
-            href: 'https://pandawiki.qa.baizhi.cloud',
-          },
-        ],
+        btns: [],
       },
 
       node_ids: [],
