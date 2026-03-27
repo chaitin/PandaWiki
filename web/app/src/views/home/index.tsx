@@ -201,13 +201,22 @@ const componentMap = {
 
 const Welcome = () => {
   const basePath = useBasePath();
-  const { mobile = false, kbDetail, setQaModalOpen } = useStore();
+  const {
+    mobile = false,
+    kbDetail,
+    setQaModalOpen,
+    setChatSearchImages,
+  } = useStore();
   const settings = kbDetail?.settings;
   const onBannerSearch = (
     searchText: string,
     type: 'chat' | 'search' = 'chat',
+    images?: File[],
   ) => {
-    if (searchText.trim()) {
+    if (searchText.trim() || (images && images.length > 0)) {
+      if (images && images.length > 0) {
+        setChatSearchImages?.(images);
+      }
       if (type === 'chat') {
         sessionStorage.setItem('chat_search_query', searchText.trim());
         setQaModalOpen?.(true);

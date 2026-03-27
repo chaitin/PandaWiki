@@ -26,6 +26,7 @@ interface AuthGroup {
   parent_id?: number;
   position: number;
   auth_ids: number[];
+  user_ids: string[];
   created_at: string;
   updated_at: string;
 }
@@ -56,7 +57,7 @@ const AuthGroupManage = () => {
     setLoading(true);
     getApiV1UserAuthGroupList({ kb_id: selectedKbId })
       .then((data: any) => {
-        const res = data?.data?.groups || data?.groups || [];
+        const res = data?.groups || [];
         setGroupList(res);
       })
       .catch((err: any) => {
@@ -83,8 +84,8 @@ const AuthGroupManage = () => {
     },
     {
       title: '成员数量',
-      dataIndex: 'auth_ids',
-      render: (authIds: number[]) => <Box>{authIds?.length || 0}</Box>,
+      dataIndex: 'user_ids',
+      render: (userIds: string[]) => <Box>{userIds?.length || 0}</Box>,
     },
     {
       title: '创建时间',

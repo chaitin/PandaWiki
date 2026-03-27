@@ -375,14 +375,16 @@ const AiQaContent: React.FC<{
     }
   };
 
-  // 上传所有图片到服务器
-  const uploadAllImages = async (): Promise<string[]> => {
-    if (uploadedImages.length === 0) return [];
+  const uploadAllImages = async (
+    images?: typeof uploadedImages,
+  ): Promise<string[]> => {
+    const imagesToUpload = images || uploadedImages;
+    if (imagesToUpload.length === 0) return [];
 
     const uploadedUrls: string[] = [];
 
     try {
-      for (const image of uploadedImages) {
+      for (const image of imagesToUpload) {
         let token = '';
         // 上传新图片
         const result = await postShareV1CommonFileUpload({
@@ -401,11 +403,11 @@ const AiQaContent: React.FC<{
     }
   };
 
-  const chatAnswer = async (q: string) => {
+  const chatAnswer = async (q: string, images?: typeof uploadedImages) => {
     setLoading(true);
     setThinking(1);
 
-    const imagePaths = await uploadAllImages();
+    const imagePaths = await uploadAllImages(images);
 
     let token = '';
 
@@ -536,9 +538,14 @@ const AiQaContent: React.FC<{
       window.location.origin + `${basePath}/cap@0.0.6/cap_wasm.min.js`;
   }, []);
 
-  const onSearch = (q: string, reset: boolean = false) => {
-    if (loading || (!q.trim() && uploadedImages.length === 0)) return;
-    setShouldAutoScroll(true); // 开始新搜索时，重置为自动滚动
+  const onSearch = (
+    q: string,
+    reset: boolean = false,
+    preloadImages?: typeof uploadedImages,
+  ) => {
+    const effectiveImages = preloadImages || uploadedImages;
+    if (loading || (!q.trim() && effectiveImages.length === 0)) return;
+    setShouldAutoScroll(true);
     const newConversation = reset
       ? []
       : conversation.some(item => item.source === 'history')
@@ -546,7 +553,7 @@ const AiQaContent: React.FC<{
         : [...conversation];
     lastResultExpendRef.current = false;
     newConversation.push({
-      image_paths: uploadedImages.map(img => img.url),
+      image_paths: effectiveImages.map(img => img.url),
       q,
       a: '',
       score: 0,
@@ -563,7 +570,7 @@ const AiQaContent: React.FC<{
     setConversation(newConversation);
     setFullAnswer('');
     setTimeout(() => {
-      chatAnswer(q);
+      chatAnswer(q, effectiveImages);
       setInput('');
       setUploadedImages([]);
     }, 0);
@@ -575,7 +582,13 @@ const AiQaContent: React.FC<{
     setThinking(4);
   };
 
-  const { mobile = false, kbDetail, qaModalOpen } = useStore();
+  const {
+    mobile = false,
+    kbDetail,
+    qaModalOpen,
+    chatSearchImages,
+    setChatSearchImages,
+  } = useStore();
 
   const isFeedbackEnabled =
     // @ts-ignore
@@ -627,6 +640,16 @@ const AiQaContent: React.FC<{
         });
       },
     });
+    let preloadImages: typeof uploadedImages = [];
+    if (chatSearchImages && chatSearchImages.length > 0) {
+      preloadImages = chatSearchImages.map(file => ({
+        id: Date.now().toString() + Math.random(),
+        url: URL.createObjectURL(file),
+        file,
+      }));
+      setUploadedImages(preloadImages);
+      setChatSearchImages?.([]);
+    }
     const searchQuery =
       sessionStorage.getItem('chat_search_query') || searchParams.get('ask');
     if (searchQuery) {
@@ -634,7 +657,13 @@ const AiQaContent: React.FC<{
       const newSearchParams = new URLSearchParams(searchParams.toString());
       newSearchParams.delete('cid');
       window.history.replaceState(null, '', newSearchParams.toString());
-      onSearch(searchQuery, true);
+      onSearch(
+        searchQuery,
+        true,
+        preloadImages.length > 0 ? preloadImages : undefined,
+      );
+    } else if (preloadImages.length > 0) {
+      // 只有图片没有文本时，不自动搜索，只预加载图片到输入区
     }
     return () => {
       handleSearchAbort();

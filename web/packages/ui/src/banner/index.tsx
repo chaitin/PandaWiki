@@ -10,7 +10,10 @@ import {
   Box,
   alpha,
   lighten,
+  IconButton,
+  SvgIcon,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { StyledTopicBox } from '../component/styledCommon';
 
 const StyledBanner = styled('div')(({ theme }) => ({
@@ -114,6 +117,18 @@ interface SearchSuggestion {
   type?: 'recent' | 'suggestion' | 'trending';
 }
 
+const ImageIcon = (props: any) => (
+  <SvgIcon viewBox='0 0 1228 1024' {...props}>
+    <path d='M999.33333332 62a99.99 99.99 0 0 1 99.99 99.99V862.1A99.99 99.99 0 0 1 999.33333332 962H199.32333332A99.99 99.99 0 0 1 99.33333332 862.01V161.9A99.99 99.99 0 0 1 199.32333332 62H999.33333332zM745.98333332 567.71l-5.58 2.97L279.24333332 862.1h695.07c12.06 0 22.5-8.64 24.66-20.52l0.36-4.5V736.82L798.63333332 574.1a50.04 50.04 0 0 0-52.65-6.57zM974.31333332 161.9H224.43333332a25.02 25.02 0 0 0-25.02 25.02v607.23L687.03333332 486.17c51.3-32.4 117-30.69 166.5 4.14l8.1 6.12L999.33333332 608.03V187.1a25.02 25.02 0 0 0-20.52-24.57l-4.5-0.45zM411.81333332 287a87.48 87.48 0 1 1 0 174.96 87.48 87.48 0 0 1 0-174.96z' />
+  </SvgIcon>
+);
+
+interface UploadedImage {
+  id: string;
+  url: string;
+  file: File;
+}
+
 interface BannerProps {
   title: {
     text: string;
@@ -135,7 +150,7 @@ interface BannerProps {
     text: string;
     href: string;
   }[];
-  onSearch?: (value: string, type?: 'search' | 'chat') => void;
+  onSearch?: (value: string, type?: 'search' | 'chat', images?: File[]) => void;
   onSearchSuggestions?: (query: string) => Promise<SearchSuggestion[]>;
   basePath?: string;
 }
@@ -159,8 +174,66 @@ const Banner = React.memo(
     const [selectedIndex, setSelectedIndex] = useState(-1);
     const [isFocused, setIsFocused] = useState(false);
     const [typedText, setTypedText] = useState('');
+    const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const debounceTimer = useRef<NodeJS.Timeout | null>(null);
     const typewriterTimer = useRef<NodeJS.Timeout | null>(null);
+
+    const handleImageSelect = (files: FileList | null) => {
+      if (!files || files.length === 0) return;
+      const maxImages = 3;
+      const remainingSlots = maxImages - uploadedImages.length;
+      if (remainingSlots <= 0) return;
+
+      const filesToAdd = Array.from(files).slice(0, remainingSlots);
+      const newImages: UploadedImage[] = [];
+
+      for (const file of filesToAdd) {
+        if (!file.type.startsWith('image/')) continue;
+        if (file.size > 10 * 1024 * 1024) continue;
+        newImages.push({
+          id: Date.now().toString() + Math.random(),
+          url: URL.createObjectURL(file),
+          file,
+        });
+      }
+
+      setUploadedImages(prev => [...prev, ...newImages]);
+    };
+
+    const handleRemoveImage = (id: string) => {
+      setUploadedImages(prev => {
+        const img = prev.find(i => i.id === id);
+        if (img?.url.startsWith('blob:')) URL.revokeObjectURL(img.url);
+        return prev.filter(i => i.id !== id);
+      });
+    };
+
+    const handlePaste = (e: React.ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const imageFiles: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.startsWith('image/')) {
+          const file = items[i].getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        const dt = new DataTransfer();
+        imageFiles.forEach(f => dt.items.add(f));
+        handleImageSelect(dt.files);
+      }
+    };
+
+    useEffect(() => {
+      return () => {
+        uploadedImages.forEach(img => {
+          if (img.url.startsWith('blob:')) URL.revokeObjectURL(img.url);
+        });
+      };
+    }, []);
 
     // 添加文字动画效果
     const titleRef = useTextAnimation(0, 0.1);
@@ -268,21 +341,23 @@ const Banner = React.memo(
       }
     };
 
+    const doSearch = (type: 'search' | 'chat' = 'chat') => {
+      if (!searchText.trim() && uploadedImages.length === 0) return;
+      const files = uploadedImages.map(img => img.file);
+      onSearch?.(searchText, type, files.length > 0 ? files : undefined);
+      setSearchText('');
+      uploadedImages.forEach(img => {
+        if (img.url.startsWith('blob:')) URL.revokeObjectURL(img.url);
+      });
+      setUploadedImages([]);
+      setAnchorEl(null);
+      setSelectedIndex(-1);
+    };
+
     // 处理键盘事件
     const handleKeyDown = (e: React.KeyboardEvent) => {
       if (e.key === 'Enter') {
-        // e.preventDefault();
-        // if (selectedIndex >= 0 && suggestions[selectedIndex]) {
-        //   const selectedSuggestion = suggestions[selectedIndex];
-        //   setSearchText(selectedSuggestion.title);
-        //   onSearch?.(selectedSuggestion.title);
-        // } else {
-        //   onSearch?.(searchText);
-        // }
-        onSearch?.(searchText, 'chat');
-        setSearchText('');
-        setAnchorEl(null);
-        setSelectedIndex(-1);
+        doSearch('chat');
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         setSelectedIndex(prev =>
@@ -355,28 +430,76 @@ const Banner = React.memo(
           {/* )} */}
 
           <StyledSearchBox>
+            {uploadedImages.length > 0 && (
+              <Stack direction='row' gap={1} flexWrap='wrap' sx={{ mb: 1 }}>
+                {uploadedImages.map(image => (
+                  <Box
+                    key={image.id}
+                    sx={{
+                      position: 'relative',
+                      width: 56,
+                      height: 56,
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      border: theme =>
+                        `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
+                    }}
+                  >
+                    <img
+                      src={image.url}
+                      alt=''
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                    <IconButton
+                      size='small'
+                      onClick={() => handleRemoveImage(image.id)}
+                      sx={{
+                        position: 'absolute',
+                        top: -4,
+                        right: -4,
+                        width: 18,
+                        height: 18,
+                        bgcolor: 'rgba(0,0,0,0.5)',
+                        color: '#fff',
+                        '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                      }}
+                    >
+                      <CloseIcon sx={{ fontSize: 12 }} />
+                    </IconButton>
+                  </Box>
+                ))}
+              </Stack>
+            )}
             <Box sx={{ position: 'relative' }}>
               <style>{blinkAnimation}</style>
-              {!isFocused && !searchText && typedText && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    pointerEvents: 'none',
-                    color: theme => alpha(theme.palette.text.primary, 0.85),
-                    fontSize: '16px',
-                    lineHeight: 1.5,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  <span>{typedText}</span>
-                  <StyledCursor />
-                </Box>
-              )}
+              {!isFocused &&
+                !searchText &&
+                typedText &&
+                uploadedImages.length === 0 && (
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      pointerEvents: 'none',
+                      color: theme => alpha(theme.palette.text.primary, 0.85),
+                      fontSize: '16px',
+                      lineHeight: 1.5,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    <span>{typedText}</span>
+                    <StyledCursor />
+                  </Box>
+                )}
               <StyledTextField
                 fullWidth
                 placeholder={isFocused || searchText ? search.placeholder : ''}
@@ -385,10 +508,22 @@ const Banner = React.memo(
                 onKeyDown={handleKeyDown}
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
+                onPaste={handlePaste}
                 multiline
                 rows={3}
               />
             </Box>
+            <input
+              ref={fileInputRef}
+              type='file'
+              accept='image/*'
+              multiple
+              style={{ display: 'none' }}
+              onChange={e => {
+                handleImageSelect(e.target.files);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+              }}
+            />
             <Stack direction='row' alignItems='center' gap={1} flexWrap='wrap'>
               <Stack direction='row' gap='8px 16px' flexWrap='wrap'>
                 {search.hot?.map(hot => (
@@ -397,19 +532,32 @@ const Banner = React.memo(
                   </StyledHotItem>
                 ))}
               </Stack>
-              <Button
-                variant='contained'
-                size='small'
-                sx={{
-                  fontSize: 12,
-                  borderRadius: 4,
-                  flexShrink: 0,
-                  ml: 'auto',
-                }}
-                onClick={() => onSearch?.(searchText, 'chat')}
+              <Stack
+                direction='row'
+                gap={1}
+                sx={{ ml: 'auto' }}
+                alignItems='center'
               >
-                AI 智能问答
-              </Button>
+                <IconButton
+                  size='small'
+                  onClick={() => fileInputRef.current?.click()}
+                  sx={{ flexShrink: 0 }}
+                >
+                  <ImageIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                </IconButton>
+                <Button
+                  variant='contained'
+                  size='small'
+                  sx={{
+                    fontSize: 12,
+                    borderRadius: 4,
+                    flexShrink: 0,
+                  }}
+                  onClick={() => doSearch('chat')}
+                >
+                  AI 智能问答
+                </Button>
+              </Stack>
             </Stack>
           </StyledSearchBox>
 

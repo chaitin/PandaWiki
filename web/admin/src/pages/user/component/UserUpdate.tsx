@@ -62,12 +62,9 @@ const UserUpdate = ({ user, refresh, onClose }: UserUpdateProps) => {
       getApiV1UserAuthGroupList({ kb_id: kb.id })
         .then(
           (data: {
-            data?: {
-              groups?: Array<{ id: number; name: string; path?: string }>;
-            };
             groups?: Array<{ id: number; name: string; path?: string }>;
           }) => {
-            const groups = data?.data?.groups || data?.groups || [];
+            const groups = data?.groups || [];
             return groups.map(g => ({
               id: g.id,
               name: g.name,
@@ -90,11 +87,9 @@ const UserUpdate = ({ user, refresh, onClose }: UserUpdateProps) => {
     getApiV1UserGroups({ user_id: user.id })
       .then(
         (data: {
-          data?: {
-            groups?: Array<{ id: number; name: string; path?: string }>;
-          };
+          groups?: Array<{ id: number; name: string; path?: string }>;
         }) => {
-          const groups = data?.data?.groups || [];
+          const groups = data?.groups || [];
           const groupOptions = groups.map(g => ({
             id: g.id,
             name: g.name,
