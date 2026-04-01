@@ -3,7 +3,6 @@ import Bgi from '@/assets/images/login-bgi.png';
 import Logo from '@/assets/images/logo.png';
 import Avatar from '@/components/Avatar';
 import Card from '@/components/Card';
-import { useURLSearchParams } from '@/hooks';
 import { Box, Button, IconButton, Stack, TextField } from '@mui/material';
 import { Icon, message } from '@ctzhian/ui';
 import { useState } from 'react';
@@ -18,8 +17,6 @@ import {
 
 const Login = () => {
   const navigate = useNavigate();
-  const [searchParams] = useURLSearchParams();
-  const redirect = searchParams.get('redirect') || '/';
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
   const [see, setSee] = useState(false);
@@ -30,7 +27,7 @@ const Login = () => {
     postApiV1UserLogin({ account, password })
       .then(res => {
         localStorage.setItem('panda_wiki_token', res.token!);
-        navigate(redirect);
+        navigate('/');
         message.success('登录成功');
       })
       .finally(() => {

@@ -59,12 +59,10 @@ export enum ContentType {
 }
 
 const redirectToLogin = () => {
-  const redirectAfterLogin = encodeURIComponent(location.href);
-  const search = `redirect=${redirectAfterLogin}`;
   const pathname = location.pathname.startsWith("/user")
     ? "/user/login"
     : "/login";
-  window.location.href = `${pathname}?${search}`;
+  window.location.href = pathname;
 };
 
 type ExtractDataProp<T> = T extends { data?: infer U } ? U : T;
