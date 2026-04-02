@@ -337,6 +337,28 @@ func (r *NodeRepository) Delete(ctx context.Context, kbID string, ids []string) 
 	return lo.Uniq(docIDs), nil
 }
 
+// GetAllChildNodeIDs returns all descendant node IDs (not including the parent IDs themselves)
+func (r *NodeRepository) GetAllChildNodeIDs(ctx context.Context, kbID string, parentIDs []string) []string {
+	allChildIDs := make([]string, 0)
+	currentParentIDs := parentIDs
+	for len(currentParentIDs) > 0 {
+		var childIDs []string
+		if err := r.db.WithContext(ctx).Model(&domain.Node{}).
+			Where("parent_id IN ?", currentParentIDs).
+			Where("kb_id = ?", kbID).
+			Select("id").
+			Find(&childIDs).Error; err != nil {
+			break
+		}
+		if len(childIDs) == 0 {
+			break
+		}
+		allChildIDs = append(allChildIDs, childIDs...)
+		currentParentIDs = childIDs
+	}
+	return lo.Uniq(allChildIDs)
+}
+
 // collectAllChildNodeIDs recursively collects all child node IDs for the given parent IDs
 func (r *NodeRepository) collectAllChildNodeIDs(tx *gorm.DB, kbID string, parentIDs []string) []string {
 	allIDs := make([]string, 0)

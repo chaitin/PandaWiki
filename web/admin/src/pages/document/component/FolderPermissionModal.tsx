@@ -1,8 +1,5 @@
 import { Form, FormItem } from '@/pages/setting/component/Common';
-import {
-  getApiV1NodePermission,
-  patchApiV1NodePermissionEdit,
-} from '@/request/NodePermission';
+import { patchApiV1NodePermissionEdit } from '@/request/NodePermission';
 import { getApiProV1AuthGroupList } from '@/request/pro/AuthGroup';
 import type { GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem } from '@/request/pro/types';
 import { ConstsNodeAccessPerm } from '@/request/types';
@@ -27,8 +24,8 @@ export interface FolderPermissionModalProps {
 }
 
 type FormValues = {
-  visible: ConstsNodeAccessPerm | null;
-  visible_groups: GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem[];
+  perm: ConstsNodeAccessPerm | null;
+  groups: GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem[];
 };
 
 const FolderPermissionModal = ({
@@ -47,13 +44,13 @@ const FolderPermissionModal = ({
   const { control, handleSubmit, setValue, reset, watch } = useForm<FormValues>(
     {
       defaultValues: {
-        visible: ConstsNodeAccessPerm.NodeAccessPermOpen,
-        visible_groups: [],
+        perm: ConstsNodeAccessPerm.NodeAccessPermOpen,
+        groups: [],
       },
     },
   );
 
-  const watchVisible = watch('visible');
+  const watchPerm = watch('perm');
 
   useEffect(() => {
     if (!open || !nodeId || !kbId) return;
@@ -64,19 +61,8 @@ const FolderPermissionModal = ({
       })
       .catch(() => setUserGroups([]));
 
-    getApiV1NodePermission({ kb_id: kbId, id: nodeId }).then(res => {
-      if (res?.permissions?.visible != null) {
-        setValue('visible', res.permissions.visible);
-      }
-      const groups = (res?.visible_groups || []).map(
-        (item: { auth_group_id?: number; name?: string; path?: string }) => ({
-          id: item.auth_group_id,
-          path: item.path ?? item.name ?? '',
-          name: item.name,
-        }),
-      );
-      setValue('visible_groups', groups);
-    });
+    setValue('perm', ConstsNodeAccessPerm.NodeAccessPermOpen);
+    setValue('groups', []);
   }, [open, nodeId, kbId, setValue]);
 
   useEffect(() => {
@@ -85,16 +71,24 @@ const FolderPermissionModal = ({
 
   const onSubmit = handleSubmit(values => {
     setLoading(true);
+    const permValue = values.perm ?? ConstsNodeAccessPerm.NodeAccessPermOpen;
+    const groupIds =
+      permValue === ConstsNodeAccessPerm.NodeAccessPermPartial
+        ? (values.groups || []).map(g => g.id!)
+        : [];
+
     patchApiV1NodePermissionEdit({
       kb_id: kbId,
       ids: [nodeId],
       permissions: {
-        visible: values.visible ?? ConstsNodeAccessPerm.NodeAccessPermOpen,
+        answerable: permValue,
+        visitable: permValue,
+        visible: permValue,
       },
-      visible_groups:
-        values.visible === ConstsNodeAccessPerm.NodeAccessPermPartial
-          ? (values.visible_groups || []).map(g => g.id!)
-          : [],
+      answerable_groups: groupIds,
+      visitable_groups: groupIds,
+      visible_groups: groupIds,
+      apply_children: true,
     })
       .then(() => {
         message.success('保存成功');
@@ -114,10 +108,10 @@ const FolderPermissionModal = ({
       onOk={onSubmit}
     >
       <Form labelWidth={100} gap={3}>
-        <FormItem label='开放查看权限' required>
+        <FormItem label='开放权限' required>
           <Controller
             control={control}
-            name='visible'
+            name='perm'
             render={({ field }) => (
               <RadioGroup row {...field} sx={{ gap: 2 }}>
                 <FormControlLabel
@@ -139,11 +133,11 @@ const FolderPermissionModal = ({
             )}
           />
         </FormItem>
-        {watchVisible === ConstsNodeAccessPerm.NodeAccessPermPartial && (
-          <FormItem label='可见用户组'>
+        {watchPerm === ConstsNodeAccessPerm.NodeAccessPermPartial && (
+          <FormItem label='允许的用户组'>
             <Controller
               control={control}
-              name='visible_groups'
+              name='groups'
               render={({ field }) => (
                 <Autocomplete
                   {...field}
@@ -159,7 +153,7 @@ const FolderPermissionModal = ({
                     <TextField
                       {...params}
                       size='small'
-                      placeholder='选择可查看此文件夹的用户组'
+                      placeholder='选择允许的用户组'
                     />
                   )}
                 />

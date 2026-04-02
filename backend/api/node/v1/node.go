@@ -53,6 +53,7 @@ type NodePermissionEditReq struct {
 	AnswerableGroups *[]int                  `json:"answerable_groups"` // 可被问答
 	VisitableGroups  *[]int                  `json:"visitable_groups"`  // 可被访问
 	VisibleGroups    *[]int                  `json:"visible_groups"`    // 导航内可见
+	ApplyChildren    bool                    `json:"apply_children"`    // 是否递归应用到子目录和文件
 }
 
 type NodePermissionEditResp struct {

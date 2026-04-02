@@ -2,7 +2,7 @@ import { getApiV1KnowledgeBaseDetail } from '@/request/KnowledgeBase';
 import { useAppSelector, useAppDispatch } from '@/store';
 import { setKbDetail } from '@/store/slices/config';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import { Button, IconButton, Stack, Tooltip } from '@mui/material';
+import { Button, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import { message, Modal } from '@ctzhian/ui';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -12,7 +12,7 @@ import { IconDengchu } from '@panda-wiki/icons';
 
 const Header = () => {
   const navigate = useNavigate();
-  const { kb_id } = useAppSelector(state => state.config);
+  const { kb_id, user } = useAppSelector(state => state.config);
   const dispatch = useAppDispatch();
   const [wikiUrl, setWikiUrl] = useState<string>('');
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
@@ -80,6 +80,20 @@ const Header = () => {
           访问 Wiki 网站
         </Button>
         <System />
+        {user?.account && (
+          <Typography
+            variant='body2'
+            sx={{
+              color: 'text.secondary',
+              maxWidth: 120,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {user.account}
+          </Typography>
+        )}
         <Tooltip arrow title='退出登录'>
           <IconButton
             size='small'

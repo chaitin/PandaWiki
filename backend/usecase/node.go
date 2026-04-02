@@ -605,6 +605,15 @@ func (u *NodeUsecase) ValidateNodePermissionsEdit(req v1.NodePermissionEditReq, 
 }
 
 func (u *NodeUsecase) NodePermissionsEdit(ctx context.Context, req v1.NodePermissionEditReq) error {
+	targetIDs := req.IDs
+	if req.ApplyChildren && len(req.IDs) > 0 {
+		childIDs := u.nodeRepo.GetAllChildNodeIDs(ctx, req.KbId, req.IDs)
+		if len(childIDs) > 0 {
+			targetIDs = append(append([]string{}, req.IDs...), childIDs...)
+		}
+	}
+	req.IDs = targetIDs
+
 	if req.Permissions != nil {
 		updateMap := map[string]interface{}{
 			"permissions": req.Permissions,

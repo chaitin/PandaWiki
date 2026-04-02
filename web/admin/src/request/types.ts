@@ -1704,6 +1704,8 @@ export interface V1NodePermissionEditReq {
   visible_groups?: number[];
   /** 可被访问 */
   visitable_groups?: number[];
+  /** 是否递归应用到子目录和文件 */
+  apply_children?: boolean;
 }
 
 export type V1NodePermissionEditResp = Record<string, any>;

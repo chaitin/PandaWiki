@@ -21,7 +21,7 @@ const CatalogH5 = () => {
   const debouncedSearchTerm = useDebounce(searchTerm, { wait: 300 });
 
   const catalogSetting = kbDetail?.settings?.catalog_settings;
-  const catalogFolderExpand = catalogSetting?.catalog_folder !== 2;
+  const catalogFolderExpand = false;
 
   const tree = useMemo(() => {
     const { tree: originalTree } = addExpandState(

@@ -93,22 +93,14 @@ const DocPropertiesModal = ({
   } = useForm({
     defaultValues: {
       name: '',
-      answerable: null as ConstsNodeAccessPerm | null,
-      visitable: null as ConstsNodeAccessPerm | null,
-      visible: null as ConstsNodeAccessPerm | null,
+      perm: null as ConstsNodeAccessPerm | null,
       summary: '',
-      answerable_groups:
-        [] as GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem[],
-      visitable_groups:
-        [] as GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem[],
-      visible_groups:
+      perm_groups:
         [] as GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem[],
     },
   });
 
-  const watchAnswerable = watch('answerable');
-  const watchVisitable = watch('visitable');
-  const watchVisible = watch('visible');
+  const watchPerm = watch('perm');
 
   const onGenerateSummary = () => {
     setLoading(true);
@@ -126,6 +118,11 @@ const DocPropertiesModal = ({
   };
 
   const onSubmit = handleSubmit(values => {
+    const permValue = values.perm as ConstsNodeAccessPerm;
+    const groupIds = isBusiness
+      ? values.perm_groups.map(item => item.id!)
+      : undefined;
+
     Promise.all([
       patchApiV1NodePermissionEdit({
         kb_id: kb_id!,
@@ -133,19 +130,13 @@ const DocPropertiesModal = ({
           .filter(item => item.type === DomainNodeType.NodeTypeDocument)
           .map(item => item.id!),
         permissions: {
-          answerable: values.answerable as ConstsNodeAccessPerm,
-          visitable: values.visitable as ConstsNodeAccessPerm,
-          visible: values.visible as ConstsNodeAccessPerm,
+          answerable: permValue,
+          visitable: permValue,
+          visible: permValue,
         },
-        answerable_groups: isBusiness
-          ? values.answerable_groups.map(item => item.id!)
-          : undefined,
-        visitable_groups: isBusiness
-          ? values.visitable_groups.map(item => item.id!)
-          : undefined,
-        visible_groups: isBusiness
-          ? values.visible_groups.map(item => item.id!)
-          : undefined,
+        answerable_groups: groupIds,
+        visitable_groups: groupIds,
+        visible_groups: groupIds,
       }),
 
       !isBatch
@@ -201,27 +192,11 @@ const DocPropertiesModal = ({
       }).then(res => {
         const permissions = res.permissions!;
         if (permissions) {
-          setValue('answerable', permissions.answerable!);
-          setValue('visitable', permissions.visitable!);
-          setValue('visible', permissions.visible!);
+          setValue('perm', permissions.answerable!);
         }
         setValue(
-          'answerable_groups',
+          'perm_groups',
           (res.answerable_groups || []).map((item: any) => ({
-            id: item.auth_group_id,
-            path: item.path || item.name,
-          })),
-        );
-        setValue(
-          'visitable_groups',
-          (res.visitable_groups || []).map((item: any) => ({
-            id: item.auth_group_id,
-            path: item.path || item.name,
-          })),
-        );
-        setValue(
-          'visible_groups',
-          (res.visible_groups || []).map((item: any) => ({
             id: item.auth_group_id,
             path: item.path || item.name,
           })),
@@ -319,9 +294,9 @@ const DocPropertiesModal = ({
             </FormItem>
           </>
         )}
-        <FormItem label='可被问答' sx={{ mt: isBatch ? 2 : 0 }}>
+        <FormItem label='开放权限' sx={{ mt: isBatch ? 2 : 0 }}>
           <Controller
-            name='answerable'
+            name='perm'
             control={control}
             render={({ field }) => (
               <RadioGroup row {...field} sx={{ gap: 2 }}>
@@ -342,10 +317,10 @@ const DocPropertiesModal = ({
             )}
           />
         </FormItem>
-        {watchAnswerable === ConstsNodeAccessPerm.NodeAccessPermPartial && (
-          <FormItem label=' '>
+        {watchPerm === ConstsNodeAccessPerm.NodeAccessPermPartial && (
+          <FormItem label='允许的用户组'>
             <Controller
-              name='answerable_groups'
+              name='perm_groups'
               control={control}
               render={({ field }) => (
                 <Autocomplete
@@ -354,114 +329,12 @@ const DocPropertiesModal = ({
                   multiple
                   options={userGroups}
                   getOptionLabel={option => option.path!}
-                  onChange={(_, value) => {
-                    field.onChange(value);
-                  }}
+                  onChange={(_, value) => field.onChange(value)}
                   isOptionEqualToValue={(option, value) =>
                     option.id === value.id
                   }
                   renderInput={params => (
-                    <TextField {...params} placeholder='可被问答的用户组' />
-                  )}
-                />
-              )}
-            />
-          </FormItem>
-        )}
-
-        <FormItem label='可被访问'>
-          <Controller
-            name='visitable'
-            control={control}
-            render={({ field }) => (
-              <RadioGroup row {...field} sx={{ gap: 2 }}>
-                {PER_OPTIONS.map(option => (
-                  <FormControlLabel
-                    key={option.value}
-                    value={option.value}
-                    control={<Radio size='small' />}
-                    label={option.label}
-                    disabled={
-                      !isBusiness &&
-                      option.value ===
-                        ConstsNodeAccessPerm.NodeAccessPermPartial
-                    }
-                  />
-                ))}
-              </RadioGroup>
-            )}
-          />
-        </FormItem>
-        {watchVisitable === ConstsNodeAccessPerm.NodeAccessPermPartial && (
-          <FormItem label=' '>
-            <Controller
-              name='visitable_groups'
-              control={control}
-              render={({ field }) => (
-                <Autocomplete
-                  {...field}
-                  fullWidth
-                  multiple
-                  options={userGroups}
-                  getOptionLabel={option => option.path!}
-                  onChange={(_, value) => {
-                    field.onChange(value);
-                  }}
-                  isOptionEqualToValue={(option, value) =>
-                    option.id === value.id
-                  }
-                  renderInput={params => (
-                    <TextField {...params} placeholder='可被访问的用户组' />
-                  )}
-                />
-              )}
-            />
-          </FormItem>
-        )}
-
-        <FormItem label='导航内可见'>
-          <Controller
-            name='visible'
-            control={control}
-            render={({ field }) => (
-              <RadioGroup row {...field} sx={{ gap: 2 }}>
-                {PER_OPTIONS.map(option => (
-                  <FormControlLabel
-                    key={option.value}
-                    value={option.value}
-                    control={<Radio size='small' />}
-                    label={option.label}
-                    disabled={
-                      !isBusiness &&
-                      option.value ===
-                        ConstsNodeAccessPerm.NodeAccessPermPartial
-                    }
-                  />
-                ))}
-              </RadioGroup>
-            )}
-          />
-        </FormItem>
-        {watchVisible === ConstsNodeAccessPerm.NodeAccessPermPartial && (
-          <FormItem label=' '>
-            <Controller
-              name='visible_groups'
-              control={control}
-              render={({ field }) => (
-                <Autocomplete
-                  {...field}
-                  fullWidth
-                  multiple
-                  options={userGroups}
-                  getOptionLabel={option => option.path!}
-                  onChange={(_, value) => {
-                    field.onChange(value);
-                  }}
-                  isOptionEqualToValue={(option, value) =>
-                    option.id === value.id
-                  }
-                  renderInput={params => (
-                    <TextField {...params} placeholder='导航内可见的用户组' />
+                    <TextField {...params} placeholder='选择允许的用户组' />
                   )}
                 />
               )}

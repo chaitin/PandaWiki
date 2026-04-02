@@ -85,3 +85,7 @@ a {
   background-color: #9b9b9b;
   border-radius: 10px;
 }
+
+.editor-container.MuiBox-root img {
+  width: 30%;
+}

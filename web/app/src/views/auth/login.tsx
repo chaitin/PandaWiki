@@ -198,7 +198,7 @@ export default function Login() {
       (kbDetail as any)?.id ||
       (kbDetail as any)?.kb_id ||
       (typeof window !== 'undefined' ? (window as any).__KB_ID__ : '') ||
-      (process.env.DEV_KB_ID ?? '1bb45cda-6e76-4e47-a4a0-1611ef224645');
+      (process.env.DEV_KB_ID ?? 'ef07559f-88ee-45c9-a4f5-44db295144e4');
     if (!kbId) {
       message.error('知识库ID未找到，请刷新页面重试');
       return;
@@ -218,9 +218,11 @@ export default function Login() {
           },
         },
       );
-      setAuthInfo({ username, email: '', avatar_url: '' });
+      let auth = { username, email: username, avatar_url: '' };
+      setAuthInfo({ username, email: username, avatar_url: '' });
       // 登录成功，并保存到localStorage
-      localStorage.setItem('authInfo', JSON.stringify(authInfo));
+      localStorage.setItem('authInfo', JSON.stringify(auth));
+
       getShareV1NodeList().then(res => {
         setNodeList?.((res as any) ?? []);
         message.success('认证成功');

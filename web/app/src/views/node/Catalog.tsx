@@ -21,7 +21,7 @@ const Catalog = ({ sx }: { sx?: SxProps }) => {
   } = useStore();
 
   const catalogSetting = kbDetail?.settings?.catalog_settings;
-  const catalogFolderExpand = catalogSetting?.catalog_folder !== 2;
+  const catalogFolderExpand = false;
   const docWidth = kbDetail?.settings?.theme_and_style?.doc_width || 'full';
 
   useEffect(() => {

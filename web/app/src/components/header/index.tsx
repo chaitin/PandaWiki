@@ -1,7 +1,14 @@
 'use client';
 
 import Logo from '@/assets/images/logo.png';
-import { Stack, Box, IconButton, alpha, Tooltip } from '@mui/material';
+import {
+  Stack,
+  Box,
+  IconButton,
+  alpha,
+  Tooltip,
+  Typography,
+} from '@mui/material';
 import { postShareProV1AuthLogout } from '@/request/pro/ShareAuth';
 import { IconDengchu } from '@panda-wiki/icons';
 import { useStore } from '@/provider';
@@ -23,6 +30,7 @@ interface HeaderProps {
 
 const LogoutButton = () => {
   const [open, setOpen] = useState(false);
+  const { authInfo } = useStore();
   const handleLogout = () => {
     return postShareProV1AuthLogout().then(() => {
       // 使用当前页面的协议（http 或 https）
@@ -115,7 +123,25 @@ const Header = ({ isDocPage = false, isWelcomePage = false }: HeaderProps) => {
     >
       <Stack sx={{ ml: 2 }} direction='row' alignItems='center' gap={1}>
         <ThemeSwitch />
-        {!!authInfo && <LogoutButton />}
+        {!!authInfo && (
+          <>
+            {authInfo.username && (
+              <Typography
+                variant='body2'
+                sx={{
+                  color: 'text.secondary',
+                  maxWidth: 120,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {authInfo.username}
+              </Typography>
+            )}
+            <LogoutButton />
+          </>
+        )}
       </Stack>
       <QaModal />
     </CustomHeader>
@@ -165,9 +191,23 @@ export const WelcomeHeader = () => {
       onQaClick={() => setQaModalOpen?.(true)}
     >
       {!!authInfo && (
-        <Box sx={{ ml: 2 }}>
+        <Stack sx={{ ml: 2 }} direction='row' alignItems='center' gap={1}>
+          {authInfo.username && (
+            <Typography
+              variant='body2'
+              sx={{
+                color: 'text.secondary',
+                maxWidth: 120,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {authInfo.username}
+            </Typography>
+          )}
           <LogoutButton />
-        </Box>
+        </Stack>
       )}
       <QaModal />
     </WelcomeHeaderComponent>
