@@ -534,6 +534,22 @@ const TreeItem = React.forwardRef<
                           </StyledTag>
                         </Tooltip>
                       )}
+                      {item.type === 2 && item.editor && (
+                        <Tooltip title={`${item.editor} 正在编辑`}>
+                          <Box
+                            sx={{
+                              fontSize: 12,
+                              color: 'primary.main',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            ✎ {item.editor}
+                          </Box>
+                        </Tooltip>
+                      )}
                       {item.status === 1 && (
                         <StyledTag color='error'>更新未发布</StyledTag>
                       )}

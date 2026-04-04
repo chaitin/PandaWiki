@@ -2,6 +2,7 @@ package v1
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/labstack/echo/v4"
 
@@ -39,6 +40,7 @@ func NewNodeHandler(
 	readGroup.GET("/list", h.GetNodeList)
 	readGroup.GET("/detail", h.GetNodeDetail)
 	readGroup.GET("/recommend_nodes", h.RecommendNodes)
+	readGroup.GET("/diff", h.GetNodeDiff)
 	readGroup.GET("/permission", h.NodePermission)
 
 	writeGroup := echo.Group("/api/v1/node", h.auth.Authorize, h.auth.ValidateKBUserPerm(consts.UserKBPermissionDocManage))
@@ -49,6 +51,9 @@ func NewNodeHandler(
 	writeGroup.POST("/move", h.MoveNode)
 	writeGroup.POST("/batch_move", h.BatchMoveNode)
 	writeGroup.POST("/restudy", h.NodeRestudy)
+	writeGroup.POST("/lock", h.LockNode)
+	writeGroup.POST("/unlock", h.UnlockNode)
+	writeGroup.POST("/force_unlock", h.ForceUnlockNode)
 	writeGroup.PATCH("/permission/edit", h.NodePermissionEdit)
 
 	return h
@@ -142,10 +147,15 @@ func (h *NodeHandler) GetNodeDetail(c echo.Context) error {
 		return h.NewResponseWithError(c, "validate request failed", err)
 	}
 
-	node, err := h.usecase.GetNodeByKBID(c.Request().Context(), req.ID, req.KbId, req.Format)
+	ctx := c.Request().Context()
+	node, err := h.usecase.GetNodeByKBID(ctx, req.ID, req.KbId, req.Format)
 	if err != nil {
 		h.logger.Error("get node by kb id failed", log.Error(err))
 		return h.NewResponseWithError(c, "get node detail failed", err)
+	}
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo != nil && node.EditorId != "" && node.EditorId != authInfo.UserId {
+		node.EditingLocked = true
 	}
 	return h.NewResponseWithData(c, node)
 }
@@ -203,6 +213,9 @@ func (h *NodeHandler) UpdateNodeDetail(c echo.Context) error {
 	}
 
 	if err := h.usecase.Update(ctx, req, authInfo.UserId); err != nil {
+		if errors.Is(err, domain.ErrNodeEditLockedByOther) {
+			return h.NewResponseWithError(c, "该文档正由其他管理员编辑，请稍后再试", err)
+		}
 		return h.NewResponseWithError(c, "update node detail failed", err)
 	}
 	return h.NewResponseWithData(c, nil)
@@ -410,4 +423,80 @@ func (h *NodeHandler) NodeRestudy(c echo.Context) error {
 	}
 
 	return h.NewResponseWithData(c, nil)
+}
+
+func (h *NodeHandler) LockNode(c echo.Context) error {
+	ctx := c.Request().Context()
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return h.NewResponseWithError(c, "authInfo not found in context", nil)
+	}
+	req := &domain.NodeEditLockReq{}
+	if err := c.Bind(req); err != nil {
+		return h.NewResponseWithError(c, "request body is invalid", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+	editorAccount, err := h.usecase.LockNode(ctx, req, authInfo.UserId)
+	if err != nil {
+		if errors.Is(err, domain.ErrNodeEditLockedByOther) {
+			return h.NewResponseWithError(c, fmt.Sprintf("该文档正由 %s 编辑中，暂时无法进入编辑", editorAccount), err)
+		}
+		return h.NewResponseWithError(c, "lock node failed", err)
+	}
+	return h.NewResponseWithData(c, nil)
+}
+
+func (h *NodeHandler) UnlockNode(c echo.Context) error {
+	ctx := c.Request().Context()
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return h.NewResponseWithError(c, "authInfo not found in context", nil)
+	}
+	req := &domain.NodeEditLockReq{}
+	if err := c.Bind(req); err != nil {
+		return h.NewResponseWithError(c, "request body is invalid", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+	if err := h.usecase.UnlockNode(ctx, req, authInfo.UserId); err != nil {
+		return h.NewResponseWithError(c, "unlock node failed", err)
+	}
+	return h.NewResponseWithData(c, nil)
+}
+
+func (h *NodeHandler) ForceUnlockNode(c echo.Context) error {
+	ctx := c.Request().Context()
+	authInfo := domain.GetAuthInfoFromCtx(ctx)
+	if authInfo == nil {
+		return h.NewResponseWithError(c, "authInfo not found in context", nil)
+	}
+	req := &domain.NodeEditLockReq{}
+	if err := c.Bind(req); err != nil {
+		return h.NewResponseWithError(c, "request body is invalid", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+	if err := h.usecase.ForceUnlockNode(ctx, req); err != nil {
+		return h.NewResponseWithError(c, "force unlock node failed", err)
+	}
+	return h.NewResponseWithData(c, nil)
+}
+
+func (h *NodeHandler) GetNodeDiff(c echo.Context) error {
+	var req v1.NodeDiffReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "invalid request", err)
+	}
+	if err := c.Validate(&req); err != nil {
+		return h.NewResponseWithError(c, "validate request failed", err)
+	}
+	resp, err := h.usecase.GetNodeDiff(c.Request().Context(), req.ID, req.KbId)
+	if err != nil {
+		return h.NewResponseWithError(c, "get node diff failed", err)
+	}
+	return h.NewResponseWithData(c, resp)
 }

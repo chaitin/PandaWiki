@@ -199,6 +199,13 @@ func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.Upda
 			return err
 		}
 
+		// 仅草稿文档互斥编辑；已发布节点在发布时已清空 editor_id，若历史数据残留则不应阻止他人接手编辑
+		if currentNode.Type == domain.NodeTypeDocument && currentNode.Status == domain.NodeStatusDraft {
+			if currentNode.EditorId != "" && currentNode.EditorId != userId {
+				return domain.ErrNodeEditLockedByOther
+			}
+		}
+
 		updateMap := make(map[string]any)
 		updateStatus := false
 
@@ -881,34 +888,31 @@ func (r *NodeRepository) TraverseNodesByCursor(ctx context.Context, callback fun
 func (r *NodeRepository) CreateNodeReleases(ctx context.Context, kbID, userId string, nodeIDs []string) ([]string, error) {
 	releaseIDs := make([]string, 0)
 	if err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// update node status to published and return node ids
-		var updatedNodes []*domain.Node
+		var nodes []*domain.Node
 		if err := tx.Model(&domain.Node{}).
 			Where("kb_id = ?", kbID).
 			Where("id IN ?", nodeIDs).
-			Update("status", domain.NodeStatusReleased).
-			Find(&updatedNodes).Error; err != nil {
+			Find(&nodes).Error; err != nil {
 			return err
 		}
-		if len(updatedNodes) == 0 {
+		if len(nodes) == 0 {
 			return nil
 		}
-		nodeReleases := make([]*domain.NodeRelease, len(updatedNodes))
-		for i, updatedNode := range updatedNodes {
-			// create node release
+		nodeReleases := make([]*domain.NodeRelease, len(nodes))
+		for i, n := range nodes {
 			nodeRelease := &domain.NodeRelease{
 				ID:          uuid.New().String(),
 				KBID:        kbID,
 				PublisherId: userId,
-				EditorId:    updatedNode.EditorId,
-				NodeID:      updatedNode.ID,
-				Type:        updatedNode.Type,
-				Name:        updatedNode.Name,
-				Meta:        updatedNode.Meta,
-				Content:     updatedNode.Content,
-				ParentID:    updatedNode.ParentID,
-				Position:    updatedNode.Position,
-				CreatedAt:   updatedNode.CreatedAt,
+				EditorId:    n.EditorId,
+				NodeID:      n.ID,
+				Type:        n.Type,
+				Name:        n.Name,
+				Meta:        n.Meta,
+				Content:     n.Content,
+				ParentID:    n.ParentID,
+				Position:    n.Position,
+				CreatedAt:   n.CreatedAt,
 				UpdatedAt:   time.Now(),
 			}
 			nodeReleases[i] = nodeRelease
@@ -916,6 +920,15 @@ func (r *NodeRepository) CreateNodeReleases(ctx context.Context, kbID, userId st
 		}
 
 		if err := tx.CreateInBatches(&nodeReleases, 100).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&domain.Node{}).
+			Where("kb_id = ?", kbID).
+			Where("id IN ?", nodeIDs).
+			Updates(map[string]any{
+				"status":    domain.NodeStatusReleased,
+				"editor_id": "",
+			}).Error; err != nil {
 			return err
 		}
 		return nil
@@ -1201,6 +1214,55 @@ func (r *NodeRepository) GetNodeIdsByDocIds(ctx context.Context, docIds []string
 	}
 
 	return docToNodeMap, nil
+}
+
+// LockNode 尝试为文档加编辑锁（CAS：仅当 editor_id 为空或等于当前用户时才设置）
+func (r *NodeRepository) LockNode(ctx context.Context, id, kbID, userId string) (string, error) {
+	return r.lockNodeOp(ctx, id, kbID, userId, true)
+}
+
+// UnlockNode 释放文档编辑锁（仅持有者可释放）
+func (r *NodeRepository) UnlockNode(ctx context.Context, id, kbID, userId string) error {
+	_, err := r.lockNodeOp(ctx, id, kbID, userId, false)
+	return err
+}
+
+// ForceUnlockNode 强制释放文档编辑锁（管理员可释放任何人的锁）
+func (r *NodeRepository) ForceUnlockNode(ctx context.Context, id, kbID string) error {
+	return r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Where("id = ? AND kb_id = ?", id, kbID).
+		Updates(map[string]any{"editor_id": ""}).Error
+}
+
+func (r *NodeRepository) lockNodeOp(ctx context.Context, id, kbID, userId string, lock bool) (string, error) {
+	var currentEditorID string
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var node domain.Node
+		if err := tx.Model(&domain.Node{}).
+			Where("id = ? AND kb_id = ?", id, kbID).
+			Clauses(clause.Locking{Strength: "UPDATE"}).
+			First(&node).Error; err != nil {
+			return err
+		}
+		if lock {
+			if node.EditorId != "" && node.EditorId != userId {
+				currentEditorID = node.EditorId
+				return domain.ErrNodeEditLockedByOther
+			}
+			return tx.Model(&domain.Node{}).
+				Where("id = ? AND kb_id = ?", id, kbID).
+				Updates(map[string]any{"editor_id": userId}).Error
+		}
+		// unlock
+		if node.EditorId != "" && node.EditorId != userId {
+			return nil
+		}
+		return tx.Model(&domain.Node{}).
+			Where("id = ? AND kb_id = ?", id, kbID).
+			Updates(map[string]any{"editor_id": ""}).Error
+	})
+	return currentEditorID, err
 }
 
 func (r *NodeRepository) GetNodeCount(ctx context.Context) (int, error) {

@@ -117,6 +117,8 @@ export function convertToTree(data: DomainNodeListItemResp[]) {
       children: [],
       canHaveChildren: item.type === 1,
       updated_at: item.updated_at || item.created_at,
+      editor: item.editor,
+      editor_id: item.editor_id,
       permissions: item.permissions,
     };
 

@@ -31,6 +31,7 @@ type NodeDetailResp struct {
 	EditorAccount    string                 `json:"editor_account"`
 	PublisherAccount string                 `json:"publisher_account" gorm:"-"`
 	PV               int64                  `json:"pv" gorm:"-"`
+	EditingLocked    bool                   `json:"editing_locked" gorm:"-"`
 }
 
 type NodePermissionReq struct {
@@ -57,6 +58,20 @@ type NodePermissionEditReq struct {
 }
 
 type NodePermissionEditResp struct {
+}
+
+type NodeDiffReq struct {
+	KbId string `query:"kb_id" json:"kb_id" validate:"required"`
+	ID   string `query:"id" json:"id" validate:"required"`
+}
+
+type NodeDiffResp struct {
+	CurrentName    string `json:"current_name"`
+	CurrentContent string `json:"current_content"`
+	ReleaseName    string `json:"release_name"`
+	ReleaseContent string `json:"release_content"`
+	ContentType    string `json:"content_type"`
+	HasRelease     bool   `json:"has_release"`
 }
 
 type NodeRestudyReq struct {

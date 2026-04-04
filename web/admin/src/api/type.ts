@@ -204,6 +204,8 @@ export interface ITreeItem {
   canHaveChildren?: boolean;
   updated_at?: string;
   status?: 1 | 2;
+  editor?: string;
+  editor_id?: string;
   permissions?: DomainNodePermissions;
   collapsed?: boolean;
 }

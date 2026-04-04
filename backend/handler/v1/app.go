@@ -35,10 +35,12 @@ func NewAppHandler(e *echo.Echo, baseHandler *handler.BaseHandler, logger *log.L
 		config:              config,
 	}
 
-	group := e.Group("/api/v1/app", h.auth.Authorize, h.auth.ValidateKBUserPerm(consts.UserKBPermissionFullControl))
-	group.GET("/detail", h.GetAppDetail)
-	group.PUT("", h.UpdateApp)
-	group.DELETE("", h.DeleteApp)
+	readGroup := e.Group("/api/v1/app", h.auth.Authorize, h.auth.ValidateKBUserPermAny(consts.UserKBPermissionFullControl, consts.UserKBPermissionDocManage, consts.UserKBPermissionAuditManage))
+	readGroup.GET("/detail", h.GetAppDetail)
+
+	writeGroup := e.Group("/api/v1/app", h.auth.Authorize, h.auth.ValidateKBUserPerm(consts.UserKBPermissionFullControl))
+	writeGroup.PUT("", h.UpdateApp)
+	writeGroup.DELETE("", h.DeleteApp)
 
 	return h
 }

@@ -116,6 +116,11 @@ func (u *NodeUsecase) filterNodesByVisiblePermission(ctx context.Context, kbID s
 	if err == nil && user != nil && user.Role == consts.UserRoleAdmin {
 		return nodes
 	}
+	if perms, err := u.kbRepo.GetKBPermsByUserId(ctx, kbID); err == nil {
+		if perms.Contains(consts.UserKBPermissionDocManage) || perms.Contains(consts.UserKBPermissionFullControl) {
+			return nodes
+		}
+	}
 	userGroupIDs := make([]int, 0)
 	groups, err := u.authRepo.GetUserGroups(ctx, authInfo.UserId)
 	if err == nil {
@@ -237,6 +242,52 @@ func (u *NodeUsecase) NodeAction(ctx context.Context, req *domain.NodeActionReq)
 		}
 	}
 	return nil
+}
+
+func (u *NodeUsecase) LockNode(ctx context.Context, req *domain.NodeEditLockReq, userId string) (string, error) {
+	currentEditorID, err := u.nodeRepo.LockNode(ctx, req.ID, req.KBID, userId)
+	if err != nil {
+		if errors.Is(err, domain.ErrNodeEditLockedByOther) {
+			account := currentEditorID
+			if userMap, e := u.userRepo.GetUsersAccountMap(ctx); e == nil {
+				if a, ok := userMap[currentEditorID]; ok {
+					account = a
+				}
+			}
+			return account, err
+		}
+		return "", err
+	}
+	return "", nil
+}
+
+func (u *NodeUsecase) UnlockNode(ctx context.Context, req *domain.NodeEditLockReq, userId string) error {
+	return u.nodeRepo.UnlockNode(ctx, req.ID, req.KBID, userId)
+}
+
+func (u *NodeUsecase) ForceUnlockNode(ctx context.Context, req *domain.NodeEditLockReq) error {
+	return u.nodeRepo.ForceUnlockNode(ctx, req.ID, req.KBID)
+}
+
+func (u *NodeUsecase) GetNodeDiff(ctx context.Context, id, kbId string) (*v1.NodeDiffResp, error) {
+	node, err := u.nodeRepo.GetByID(ctx, id, kbId)
+	if err != nil {
+		return nil, err
+	}
+	resp := &v1.NodeDiffResp{
+		CurrentName:    node.Name,
+		CurrentContent: node.Content,
+		ContentType:    node.Meta.ContentType,
+	}
+	release, err := u.nodeRepo.GetLatestNodeReleaseByNodeID(ctx, id)
+	if err != nil {
+		resp.HasRelease = false
+		return resp, nil
+	}
+	resp.HasRelease = true
+	resp.ReleaseName = release.Name
+	resp.ReleaseContent = release.Content
+	return resp, nil
 }
 
 func (u *NodeUsecase) Update(ctx context.Context, req *domain.UpdateNodeReq, userId string) error {

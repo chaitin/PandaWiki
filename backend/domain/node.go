@@ -234,6 +234,11 @@ type NodeActionReq struct {
 	Action string   `json:"action" validate:"required,oneof=delete"`
 }
 
+type NodeEditLockReq struct {
+	ID   string `json:"id" validate:"required"`
+	KBID string `json:"kb_id" validate:"required"`
+}
+
 type UpdateNodeReq struct {
 	ID          string   `json:"id" validate:"required"`
 	KBID        string   `json:"kb_id" validate:"required"`

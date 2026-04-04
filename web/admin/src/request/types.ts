@@ -1680,6 +1680,7 @@ export interface V1NodeDetailResp {
   creator_id?: string;
   editor_account?: string;
   editor_id?: string;
+  editing_locked?: boolean;
   id?: string;
   kb_id?: string;
   meta?: DomainNodeMeta;
@@ -1692,6 +1693,15 @@ export interface V1NodeDetailResp {
   status?: DomainNodeStatus;
   type?: DomainNodeType;
   updated_at?: string;
+}
+
+export interface V1NodeDiffResp {
+  current_name?: string;
+  current_content?: string;
+  release_name?: string;
+  release_content?: string;
+  content_type?: string;
+  has_release?: boolean;
 }
 
 export interface V1NodePermissionEditReq {

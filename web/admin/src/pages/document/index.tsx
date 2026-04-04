@@ -7,7 +7,7 @@ import {
   TreeMenuOptions,
 } from '@/components/Drag/DragTree/TreeMenu';
 import { useURLSearchParams } from '@/hooks';
-import { getApiV1NodeList } from '@/request/Node';
+import { getApiV1NodeList, postApiV1NodeForceUnlock } from '@/request/Node';
 import {
   ConstsCrawlerSource,
   ConstsNodeRagInfoStatus,
@@ -42,6 +42,7 @@ import DocSummary from './component/DocSummary';
 import MoveDocs from './component/MoveDocs';
 import RagErrorReStart from './component/RagErrorReStart';
 import Summary from './component/Summary';
+import NodeDiffModal from './editor/edit/NodeDiffModal';
 
 const Content = () => {
   const { kb_id, isRefreshDocList, kbList, kbDetail, user } = useAppSelector(
@@ -93,6 +94,7 @@ const Content = () => {
     id: string;
     name?: string;
   } | null>(null);
+  const [diffNodeId, setDiffNodeId] = useState<string | null>(null);
 
   // 从树形数据中查找节点并转换为列表格式
   const findItemInTree = (
@@ -313,6 +315,14 @@ const Content = () => {
       });
     }
 
+    if (item.type === 2 && item.status === 1) {
+      items.push({
+        label: '查看差异',
+        key: 'diff',
+        onClick: () => setDiffNodeId(item.id),
+      });
+    }
+
     if (item.type === 2) {
       items.push(
         {
@@ -326,6 +336,24 @@ const Content = () => {
           onClick: () => handleFrontDoc(item.id),
         },
       );
+    }
+
+    if (
+      canEditDocs &&
+      item.type === 2 &&
+      item.editor_id &&
+      item.editor_id === user.id
+    ) {
+      items.push({
+        label: '放弃编辑',
+        key: 'release_edit_lock',
+        onClick: () => {
+          postApiV1NodeForceUnlock({ id: item.id, kb_id }).then(() => {
+            message.success('已释放编辑锁');
+            getData();
+          });
+        },
+      });
     }
 
     if (canEditDocs && !isEditing) {
@@ -946,6 +974,12 @@ const Content = () => {
         nodeId={folderPermissionNode?.id ?? ''}
         nodeName={folderPermissionNode?.name}
         kbId={kb_id ?? ''}
+      />
+      <NodeDiffModal
+        open={!!diffNodeId}
+        nodeId={diffNodeId || ''}
+        kbId={kb_id}
+        onClose={() => setDiffNodeId(null)}
       />
     </>
   );

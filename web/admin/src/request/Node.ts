@@ -26,6 +26,7 @@ import {
   GetApiV1NodeListParams,
   GetApiV1NodeRecommendNodesParams,
   V1NodeDetailResp,
+  V1NodeDiffResp,
   V1NodeRestudyReq,
   V1NodeRestudyResp,
 } from "./types";
@@ -314,6 +315,66 @@ export const postApiV1NodeSummary = (
 ) =>
   httpRequest<DomainResponse>({
     path: `/api/v1/node/summary`,
+    method: "POST",
+    body: body,
+    secure: true,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+export const getApiV1NodeDiff = (
+  query: { id: string; kb_id: string },
+  params: RequestParams = {},
+) =>
+  httpRequest<
+    DomainPWResponse & {
+      data?: V1NodeDiffResp;
+    }
+  >({
+    path: `/api/v1/node/diff`,
+    method: "GET",
+    query: query,
+    secure: true,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+export const postApiV1NodeLock = (
+  body: { id: string; kb_id: string },
+  params: RequestParams = {},
+) =>
+  httpRequest<DomainResponse>({
+    path: `/api/v1/node/lock`,
+    method: "POST",
+    body: body,
+    secure: true,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+export const postApiV1NodeUnlock = (
+  body: { id: string; kb_id: string },
+  params: RequestParams = {},
+) =>
+  httpRequest<DomainResponse>({
+    path: `/api/v1/node/unlock`,
+    method: "POST",
+    body: body,
+    secure: true,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+export const postApiV1NodeForceUnlock = (
+  body: { id: string; kb_id: string },
+  params: RequestParams = {},
+) =>
+  httpRequest<DomainResponse>({
+    path: `/api/v1/node/force_unlock`,
     method: "POST",
     body: body,
     secure: true,

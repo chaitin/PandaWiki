@@ -3,7 +3,11 @@ import { VersionCanUse } from '@/components/VersionMask';
 import { BUSINESS_VERSION_PERMISSION } from '@/constant/version';
 import VersionPublish from '@/pages/release/components/VersionPublish';
 import { postApiV1Node } from '@/request';
-import { V1NodeDetailResp } from '@/request/types';
+import {
+  ConstsUserKBPermission,
+  ConstsUserRole,
+  V1NodeDetailResp,
+} from '@/request/types';
 import { useAppSelector } from '@/store';
 import { addOpacityToColor, getShortcutKeyText } from '@/utils';
 import { Ellipsis, message } from '@ctzhian/ui';
@@ -29,6 +33,7 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { WrapContext } from '..';
 import DocAddByCustomText from '../../component/DocAddByCustomText';
 import DocDelete from '../../component/DocDelete';
+import NodeDiffModal from './NodeDiffModal';
 
 interface HeaderProps {
   edit: boolean;
@@ -50,11 +55,23 @@ const Header = ({
   const firstLoad = useRef(true);
   const [wikiUrl, setWikiUrl] = useState<string>('');
 
-  const { kb_id, license, kbList } = useAppSelector(state => state.config);
+  const { kb_id, license, kbList, user, kbDetail } = useAppSelector(
+    state => state.config,
+  );
 
   const currentKb = useMemo(() => {
     return kbList?.find(item => item.id === kb_id);
   }, [kbList, kb_id]);
+
+  const canPublish = useMemo(() => {
+    const isAdmin = user.role === ConstsUserRole.UserRoleAdmin;
+    const userPerms = kbDetail.perms || [];
+    return (
+      isAdmin ||
+      userPerms.includes(ConstsUserKBPermission.UserKBPermissionFullControl) ||
+      userPerms.includes(ConstsUserKBPermission.UserKBPermissionAuditManage)
+    );
+  }, [user.role, kbDetail.perms]);
 
   const { catalogOpen, nodeDetail, setCatalogOpen } =
     useOutletContext<WrapContext>();
@@ -62,6 +79,7 @@ const Header = ({
   const [renameOpen, setRenameOpen] = useState(false);
   const [delOpen, setDelOpen] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
+  const [diffOpen, setDiffOpen] = useState(false);
 
   const [showSaveTip, setShowSaveTip] = useState(false);
 
@@ -238,6 +256,14 @@ const Header = ({
                 },
               },
               {
+                key: 'diff',
+                textSx: { flex: 1 },
+                label: <StyledMenuSelect>文档比对</StyledMenuSelect>,
+                onClick: () => {
+                  setDiffOpen(true);
+                },
+              },
+              {
                 key: 'rename',
                 textSx: { flex: 1 },
                 label: <StyledMenuSelect>重命名</StyledMenuSelect>,
@@ -370,34 +396,38 @@ const Header = ({
                 ),
                 onClick: handleSave,
               },
-              {
-                key: 'save_publish',
-                label: (
-                  <Stack
-                    direction={'row'}
-                    alignItems={'center'}
-                    gap={1}
-                    sx={{
-                      fontSize: 14,
-                      px: 2,
-                      lineHeight: '40px',
-                      height: 40,
-                      width: 140,
-                      borderRadius: '5px',
-                      cursor: 'pointer',
-                      ':hover': {
-                        bgcolor: addOpacityToColor(
-                          theme.palette.primary.main,
-                          0.1,
-                        ),
-                      },
-                    }}
-                  >
-                    保存并发布
-                  </Stack>
-                ),
-                onClick: handlePublish,
-              },
+              ...(canPublish
+                ? [
+                    {
+                      key: 'save_publish',
+                      label: (
+                        <Stack
+                          direction={'row'}
+                          alignItems={'center'}
+                          gap={1}
+                          sx={{
+                            fontSize: 14,
+                            px: 2,
+                            lineHeight: '40px',
+                            height: 40,
+                            width: 140,
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            ':hover': {
+                              bgcolor: addOpacityToColor(
+                                theme.palette.primary.main,
+                                0.1,
+                              ),
+                            },
+                          }}
+                        >
+                          保存并发布
+                        </Stack>
+                      ),
+                      onClick: handlePublish,
+                    },
+                  ]
+                : []),
             ]}
             context={
               <Button
@@ -445,6 +475,12 @@ const Header = ({
             status: 1,
           },
         ]}
+      />
+      <NodeDiffModal
+        open={diffOpen}
+        nodeId={detail.id || ''}
+        kbId={kb_id}
+        onClose={() => setDiffOpen(false)}
       />
     </Box>
   );
