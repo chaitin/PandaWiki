@@ -26,6 +26,7 @@ export interface FolderPermissionModalProps {
 type FormValues = {
   perm: ConstsNodeAccessPerm | null;
   groups: GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem[];
+  apply_children: string;
 };
 
 const FolderPermissionModal = ({
@@ -46,6 +47,7 @@ const FolderPermissionModal = ({
       defaultValues: {
         perm: ConstsNodeAccessPerm.NodeAccessPermOpen,
         groups: [],
+        apply_children: 'true',
       },
     },
   );
@@ -63,6 +65,7 @@ const FolderPermissionModal = ({
 
     setValue('perm', ConstsNodeAccessPerm.NodeAccessPermOpen);
     setValue('groups', []);
+    setValue('apply_children', 'true');
   }, [open, nodeId, kbId, setValue]);
 
   useEffect(() => {
@@ -88,7 +91,7 @@ const FolderPermissionModal = ({
       answerable_groups: groupIds,
       visitable_groups: groupIds,
       visible_groups: groupIds,
-      apply_children: true,
+      apply_children: values.apply_children === 'true',
     })
       .then(() => {
         message.success('保存成功');
@@ -161,6 +164,26 @@ const FolderPermissionModal = ({
             />
           </FormItem>
         )}
+        <FormItem label='应用范围' required>
+          <Controller
+            control={control}
+            name='apply_children'
+            render={({ field }) => (
+              <RadioGroup {...field}>
+                <FormControlLabel
+                  value='false'
+                  control={<Radio size='small' />}
+                  label='仅当前目录'
+                />
+                <FormControlLabel
+                  value='true'
+                  control={<Radio size='small' />}
+                  label='同时应用到子目录及目录下的文件'
+                />
+              </RadioGroup>
+            )}
+          />
+        </FormItem>
       </Form>
     </Modal>
   );
