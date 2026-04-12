@@ -40,9 +40,11 @@ import Toolbar from './Toolbar';
 
 interface WrapProps {
   detail: V1NodeDetailResp;
+  /** 他人占用编辑锁等场景：可浏览，不可改内容 */
+  readOnly?: boolean;
 }
 
-const Wrap = ({ detail: defaultDetail }: WrapProps) => {
+const Wrap = ({ detail: defaultDetail, readOnly = false }: WrapProps) => {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const { license } = useAppSelector(state => state.config);
@@ -86,6 +88,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
 
   const debouncedUpdateSummary = useCallback(
     debounce((newSummary: string) => {
+      if (readOnly) return;
       putApiV1NodeDetail({
         id: defaultDetail.id!,
         kb_id: defaultDetail.kb_id!,
@@ -99,11 +102,12 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
         });
       });
     }, 500),
-    [defaultDetail.id, defaultDetail.kb_id],
+    [defaultDetail.id, defaultDetail.kb_id, readOnly],
   );
 
   const debouncedUpdateTitle = useCallback(
     debounce((newTitle: string) => {
+      if (readOnly) return;
       putApiV1NodeDetail({
         id: defaultDetail.id!,
         kb_id: defaultDetail.kb_id!,
@@ -114,7 +118,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
         });
       });
     }, 500),
-    [defaultDetail.id, defaultDetail.kb_id],
+    [defaultDetail.id, defaultDetail.kb_id, readOnly],
   );
 
   const updateDetail = (value: V1NodeDetailResp) => {
@@ -185,7 +189,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
   };
 
   const editorRef = useTiptap({
-    editable: !isMarkdown,
+    editable: !readOnly && !isMarkdown,
     contentType: isMarkdown ? 'markdown' : 'html',
     immediatelyRender: true,
     content: defaultDetail.content,
@@ -203,6 +207,19 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     onTocUpdate: handleTocUpdate,
     onAiWritingGetSuggestion: handleAiWritingGetSuggestion,
   });
+
+  useEffect(() => {
+    if (editorRef.editor) {
+      editorRef.editor.setEditable(!readOnly && !isMarkdown);
+    }
+  }, [readOnly, isMarkdown, editorRef.editor]);
+
+  useEffect(() => {
+    if (readOnly) {
+      setShowSummary(false);
+      setAiGenerateOpen(false);
+    }
+  }, [readOnly]);
 
   const exportFile = (value: string, type: string) => {
     if (!value) return;
@@ -272,6 +289,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
   }, [editorRef.editor]);
 
   const changeCatalogItem = useCallback(() => {
+    if (readOnly) return;
     if (editorRef && editorRef.editor) {
       let content = nodeDetail?.content || '';
       if (!isMarkdown) {
@@ -296,10 +314,12 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     nodeDetail?.meta?.emoji,
     nodeDetail?.content,
     isMarkdown,
+    readOnly,
   ]);
 
   const handleGlobalKeydown = useCallback(
     (event: KeyboardEvent) => {
+      if (readOnly) return;
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
         changeCatalogItem();
@@ -309,7 +329,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
         setCatalogOpen(!catalogOpen);
       }
     },
-    [changeCatalogItem, catalogOpen, setCatalogOpen],
+    [changeCatalogItem, catalogOpen, setCatalogOpen, readOnly],
   );
 
   const renderEditorTitleEmojiSummary = () => {
@@ -323,6 +343,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
         >
           <Emoji
             type={2}
+            readOnly={readOnly}
             sx={{ flexShrink: 0, width: 36, height: 36 }}
             iconSx={{ fontSize: 28 }}
             value={nodeDetail?.meta?.emoji}
@@ -348,6 +369,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
             value={title}
             slotProps={{
               input: {
+                readOnly,
                 sx: {
                   fontSize: 28,
                   fontWeight: 'bold',
@@ -364,6 +386,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
               },
             }}
             onChange={e => {
+              if (readOnly) return;
               setTitle(e.target.value);
               debouncedUpdateTitle(e.target.value);
             }}
@@ -474,19 +497,23 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
             direction={'row'}
             alignItems={'center'}
             gap={0.5}
-            onClick={() => setShowSummary(true)}
+            onClick={() => {
+              if (!readOnly) setShowSummary(true);
+            }}
             sx={{
               position: 'absolute',
               top: -18,
               left: 0,
               zIndex: 1,
               lineHeight: '18px',
-              cursor: 'pointer',
+              cursor: readOnly ? 'default' : 'pointer',
               fontSize: 12,
               color: 'text.tertiary',
-              ':hover': {
-                color: 'text.primary',
-              },
+              ...(!readOnly && {
+                ':hover': {
+                  color: 'text.primary',
+                },
+              }),
             }}
           >
             <IconDJzhinengzhaiyao sx={{ fontSize: 12 }} />
@@ -500,6 +527,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
               placeholder='暂无摘要，可在此处输入摘要'
               slotProps={{
                 input: {
+                  readOnly,
                   sx: {
                     bgcolor: 'background.paper2',
                     fontSize: 14,
@@ -514,20 +542,26 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
                 },
               }}
               onChange={e => {
+                if (readOnly) return;
                 setSummary(e.target.value);
                 debouncedUpdateSummary(e.target.value);
               }}
             />
           ) : (
             <Box sx={{ fontSize: 12, color: 'text.tertiary' }}>
-              暂无摘要，点击
-              <Box
-                component='span'
-                sx={{ color: 'primary.main', cursor: 'pointer' }}
-                onClick={() => setShowSummary(true)}
-              >
-                生成摘要
-              </Box>
+              暂无摘要
+              {!readOnly && (
+                <>
+                  ，点击
+                  <Box
+                    component='span'
+                    sx={{ color: 'primary.main', cursor: 'pointer' }}
+                    onClick={() => setShowSummary(true)}
+                  >
+                    生成摘要
+                  </Box>
+                </>
+              )}
             </Box>
           )}
         </Box>
@@ -563,6 +597,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
   }, [handleGlobalKeydown]);
 
   useEffect(() => {
+    if (readOnly) return;
     if (state && state.node && editorRef.editor) {
       const newContent = state.node.content || nodeDetail?.content || '';
       const newSummary =
@@ -585,10 +620,11 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       setIsEditing(false);
       navigate(`/doc/editor/${defaultDetail.id}`);
     }
-  }, [state, editorRef.editor]);
+  }, [state, editorRef.editor, readOnly]);
 
   useEffect(() => {
     const handleTabClose = () => {
+      if (readOnly) return;
       if (isEditing) {
         let content = nodeDetail?.content || '';
         if (!isMarkdown) {
@@ -607,6 +643,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       }
     };
     const handleVisibilityChange = () => {
+      if (readOnly) return;
       if (document.hidden && isEditing) {
         let content = nodeDetail?.content || '';
         if (!isMarkdown) {
@@ -637,6 +674,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
     nodeDetail?.meta?.emoji,
     nodeDetail?.content,
     isMarkdown,
+    readOnly,
   ]);
 
   useEffect(() => {
@@ -646,8 +684,9 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
   }, []);
 
   useEffect(() => {
+    if (readOnly) return;
     if (id !== defaultDetail.id) changeCatalogItem();
-  }, [id]);
+  }, [id, readOnly, defaultDetail.id, changeCatalogItem]);
 
   return (
     <>
@@ -664,9 +703,11 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
       >
         <Header
           edit={isEditing}
+          readOnly={readOnly}
           detail={nodeDetail!}
           updateDetail={updateDetail}
           handleSave={async () => {
+            if (readOnly) return;
             if (editorRef) {
               let content = nodeDetail?.content || '';
               if (!isMarkdown) {
@@ -686,7 +727,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
           }}
           handleExport={handleExport}
         />
-        {!isMarkdown && (
+        {!isMarkdown && !readOnly && (
           <Toolbar editorRef={editorRef} handleAiGenerate={handleAiGenerate} />
         )}
       </Box>
@@ -721,9 +762,11 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
               ref={markdownEditorRef}
               editor={editorRef.editor}
               value={nodeDetail?.content || ''}
+              readOnly={readOnly ? 'true' : ''}
               onUpload={handleUpload}
               placeholder='请输入文档内容'
               onAceChange={value => {
+                if (readOnly) return;
                 updateDetail({
                   content: value,
                 });
@@ -736,6 +779,7 @@ const Wrap = ({ detail: defaultDetail }: WrapProps) => {
             editor={editorRef.editor}
             fixed={fixedToc}
             header={renderEditorTitleEmojiSummary()}
+            contentMarginTop={readOnly ? '56px' : '102px'}
           />
         )}
       </Box>

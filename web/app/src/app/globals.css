@@ -87,5 +87,5 @@ a {
 }
 
 .editor-container.MuiBox-root img {
-  width: 30%;
+  width: 33% !important;
 }

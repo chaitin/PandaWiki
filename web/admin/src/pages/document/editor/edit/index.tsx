@@ -5,23 +5,20 @@ import {
 } from '@/request/Node';
 import { V1NodeDetailResp } from '@/request/types';
 import { useAppSelector } from '@/store';
-import { Box, Stack, Typography, Button } from '@mui/material';
-import LockIcon from '@mui/icons-material/Lock';
+import { Box } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useOutletContext, useParams } from 'react-router-dom';
+import { useOutletContext, useParams } from 'react-router-dom';
 import { WrapContext } from '..';
 import LoadingEditorWrap from './Loading';
 import EditorWrap from './Wrap';
 
 const Edit = () => {
   const { id = '' } = useParams();
-  const navigate = useNavigate();
-  const { kb_id = '' } = useAppSelector(state => state.config);
+  const { kb_id = '', user } = useAppSelector(state => state.config);
   const { setNodeDetail } = useOutletContext<WrapContext>();
   const [loading, setLoading] = useState(false);
   const [detail, setDetail] = useState<V1NodeDetailResp | null>(null);
-  const [locked, setLocked] = useState(false);
-  const [lockHolder, setLockHolder] = useState('');
+  const [readOnly, setReadOnly] = useState(false);
   const lockedNodeRef = useRef<{ id: string; kb_id: string } | null>(null);
 
   const unlockCurrent = useCallback(() => {
@@ -33,24 +30,56 @@ const Edit = () => {
 
   const getDetail = async () => {
     setLoading(true);
-    setLocked(false);
+    setReadOnly(false);
     try {
       const res = await getApiV1NodeDetail({ id, kb_id });
+      const selfId = user?.id;
+
+      const tryAcquireLock = async (): Promise<boolean> => {
+        try {
+          await postApiV1NodeLock({ id, kb_id });
+          lockedNodeRef.current = { id, kb_id };
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
       if (res.editing_locked) {
-        setLocked(true);
-        setLockHolder(res.editor_account || '其他管理员');
-        setDetail(null);
+        const lockedBySelf =
+          !!selfId && !!res.editor_id && res.editor_id === selfId;
+        if (lockedBySelf) {
+          const ok = await tryAcquireLock();
+          if (ok) {
+            setDetail(res);
+            setNodeDetail(res);
+            setReadOnly(false);
+            setTimeout(() => {
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 0);
+            return;
+          }
+        }
+        setDetail(res);
+        setNodeDetail(res);
+        setReadOnly(true);
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 0);
         return;
       }
-      try {
-        await postApiV1NodeLock({ id, kb_id });
-        lockedNodeRef.current = { id, kb_id };
-      } catch {
-        setLocked(true);
-        setLockHolder(res.editor_account || '其他管理员');
-        setDetail(null);
+
+      const ok = await tryAcquireLock();
+      if (!ok) {
+        setDetail(res);
+        setNodeDetail(res);
+        setReadOnly(true);
+        setTimeout(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 0);
         return;
       }
+
       setDetail(res);
       setNodeDetail(res);
       setTimeout(() => {
@@ -69,7 +98,7 @@ const Edit = () => {
     return () => {
       unlockCurrent();
     };
-  }, [id, kb_id]);
+  }, [id, kb_id, user?.id]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -93,28 +122,6 @@ const Edit = () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, []);
-
-  if (locked) {
-    return (
-      <Stack
-        alignItems='center'
-        justifyContent='center'
-        spacing={2}
-        sx={{ height: '80vh' }}
-      >
-        <LockIcon sx={{ fontSize: 64, color: 'text.disabled' }} />
-        <Typography variant='h6' color='text.secondary'>
-          该文档正由 {lockHolder} 编辑中
-        </Typography>
-        <Typography variant='body2' color='text.tertiary'>
-          文档发布后方可编辑，请稍后再试
-        </Typography>
-        <Button variant='outlined' onClick={() => navigate(-1)}>
-          返回
-        </Button>
-      </Stack>
-    );
-  }
 
   return (
     <Box
@@ -149,7 +156,7 @@ const Edit = () => {
       {loading ? (
         <LoadingEditorWrap />
       ) : (
-        detail && <EditorWrap detail={detail} />
+        detail && <EditorWrap detail={detail} readOnly={readOnly} />
       )}
     </Box>
   );

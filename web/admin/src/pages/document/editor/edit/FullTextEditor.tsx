@@ -8,9 +8,16 @@ interface FullTextEditorProps {
   editor: UseTiptapReturn['editor'];
   header: React.ReactNode;
   fixed: boolean;
+  /** 无工具条时（如只读）与顶栏对齐 */
+  contentMarginTop?: string;
 }
 
-const FullTextEditor = ({ editor, header, fixed }: FullTextEditorProps) => {
+const FullTextEditor = ({
+  editor,
+  header,
+  fixed,
+  contentMarginTop = '102px',
+}: FullTextEditorProps) => {
   const { catalogOpen, docWidth } = useOutletContext<WrapContext>();
 
   return (
@@ -22,7 +29,7 @@ const FullTextEditor = ({ editor, header, fixed }: FullTextEditorProps) => {
             : DocWidth[docWidth as keyof typeof DocWidth].value,
         maxWidth: '100%',
         p: '72px 80px 150px',
-        mt: '102px',
+        mt: contentMarginTop,
         mx: 'auto',
       }}
     >

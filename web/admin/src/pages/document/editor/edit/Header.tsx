@@ -12,6 +12,7 @@ import { useAppSelector } from '@/store';
 import { addOpacityToColor, getShortcutKeyText } from '@/utils';
 import { Ellipsis, message } from '@ctzhian/ui';
 import {
+  Alert,
   Box,
   Button,
   IconButton,
@@ -37,6 +38,8 @@ import NodeDiffModal from './NodeDiffModal';
 
 interface HeaderProps {
   edit: boolean;
+  /** 他人占用编辑锁：仅浏览 */
+  readOnly?: boolean;
   detail: V1NodeDetailResp;
   updateDetail: (detail: V1NodeDetailResp) => void;
   handleSave: () => void;
@@ -45,6 +48,7 @@ interface HeaderProps {
 
 const Header = ({
   edit,
+  readOnly = false,
   detail,
   updateDetail,
   handleSave,
@@ -107,6 +111,7 @@ const Header = ({
   }, [currentKb]);
 
   const handlePublish = useCallback(() => {
+    if (readOnly) return;
     if (nodeDetail?.status === 2 && !edit) {
       message.info('当前已是最新版本！');
     } else {
@@ -115,7 +120,7 @@ const Header = ({
         setPublishOpen(true);
       }, 200);
     }
-  }, [nodeDetail, edit]);
+  }, [nodeDetail, edit, readOnly, handleSave]);
 
   useEffect(() => {
     if (nodeDetail?.updated_at && !firstLoad.current) {
@@ -129,6 +134,12 @@ const Header = ({
 
   return (
     <Box sx={{ p: 1 }}>
+      {readOnly && (
+        <Alert severity='info' sx={{ mb: 1, py: 0.25 }}>
+          文档由 {detail.editor_account || '其他用户'}
+          占用编辑中，当前为只读浏览，无法修改或保存。
+        </Alert>
+      )}
       <Stack
         direction={'row'}
         alignItems={'center'}
@@ -265,6 +276,7 @@ const Header = ({
               },
               {
                 key: 'rename',
+                show: !readOnly,
                 textSx: { flex: 1 },
                 label: <StyledMenuSelect>重命名</StyledMenuSelect>,
                 onClick: () => {
@@ -273,6 +285,7 @@ const Header = ({
               },
               {
                 key: 'delete',
+                show: !readOnly,
                 textSx: { flex: 1 },
                 label: <StyledMenuSelect>删除</StyledMenuSelect>,
                 onClick: () => {
@@ -433,7 +446,7 @@ const Header = ({
               <Button
                 size='small'
                 variant='contained'
-                disabled={!detail.name}
+                disabled={!detail.name || readOnly}
                 startIcon={<IconBaocun sx={{ fontSize: 14 }} />}
               >
                 保存

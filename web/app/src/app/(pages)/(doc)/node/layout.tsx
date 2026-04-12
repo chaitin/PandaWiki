@@ -4,7 +4,6 @@ import { FooterSetting } from '@/assets/type';
 import { FooterProvider } from '@/components/footer';
 import Header from '@/components/header';
 import { useStore } from '@/provider';
-import Catalog from '@/views/node/Catalog';
 import CatalogH5 from '@/views/node/CatalogH5';
 import { Box, Stack } from '@mui/material';
 import noDocImage from '@/assets/images/no-doc.png';
@@ -35,7 +34,7 @@ const PCLayout = ({ children }: { children: React.ReactNode }) => {
           direction='row'
           justifyContent='center'
           alignItems='flex-start'
-          gap={'96px'}
+          gap={6}
           sx={{
             pt: '50px',
             pb: 10,
@@ -43,7 +42,6 @@ const PCLayout = ({ children }: { children: React.ReactNode }) => {
             flex: 1,
           }}
         >
-          <Catalog />
           {children}
         </Stack>
       )}
