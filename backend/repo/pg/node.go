@@ -107,8 +107,9 @@ func (r *NodeRepository) Create(ctx context.Context, req *domain.CreateNodeReq, 
 			UpdatedAt: now,
 			EditTime:  now,
 			RagInfo: domain.RagInfo{
-				Status:  consts.NodeRagStatusPending,
-				Message: "",
+				Status:   consts.NodeRagStatusPending,
+				Message:  "",
+				SyncedAt: now,
 			},
 			Permissions: domain.NodePermissions{
 				Answerable: consts.NodeAccessPermOpen,
