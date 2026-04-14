@@ -30,6 +30,7 @@ const DragTree = forwardRef<DragTreeHandle, DragTreeProps>(
       disabled,
       virtualized = false,
       virtualizedHeight,
+      showSelectModeDocLink,
     },
     ref,
   ) => {
@@ -56,6 +57,7 @@ const DragTree = forwardRef<DragTreeHandle, DragTreeProps>(
           supportSelect,
           relativeSelect,
           disabled,
+          showSelectModeDocLink,
           scrollToItem: (itemId: string) => {
             sortableTreeRef.current?.scrollToItem(itemId);
           },

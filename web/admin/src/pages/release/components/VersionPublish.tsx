@@ -202,6 +202,7 @@ const VersionPublish = ({
             <DragTree
               ui='select'
               readOnly
+              showSelectModeDocLink
               selected={selected}
               data={treeList}
               refresh={getData}

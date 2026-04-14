@@ -156,7 +156,16 @@ const Edit = () => {
       {loading ? (
         <LoadingEditorWrap />
       ) : (
-        detail && <EditorWrap detail={detail} readOnly={readOnly} />
+        detail && (
+          <EditorWrap
+            detail={detail}
+            readOnly={readOnly}
+            onRefreshEditingLock={() => {
+              unlockCurrent();
+              void getDetail();
+            }}
+          />
+        )
       )}
     </Box>
   );

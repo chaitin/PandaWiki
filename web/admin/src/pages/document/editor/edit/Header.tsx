@@ -3,6 +3,7 @@ import { VersionCanUse } from '@/components/VersionMask';
 import { BUSINESS_VERSION_PERMISSION } from '@/constant/version';
 import VersionPublish from '@/pages/release/components/VersionPublish';
 import { postApiV1Node } from '@/request';
+import { postApiV1NodeForceUnlock } from '@/request/Node';
 import {
   ConstsUserKBPermission,
   ConstsUserRole,
@@ -42,6 +43,7 @@ interface HeaderProps {
   readOnly?: boolean;
   detail: V1NodeDetailResp;
   updateDetail: (detail: V1NodeDetailResp) => void;
+  onRefreshEditingLock?: () => void;
   handleSave: () => void;
   handleExport: (type: string) => void;
 }
@@ -51,6 +53,7 @@ const Header = ({
   readOnly = false,
   detail,
   updateDetail,
+  onRefreshEditingLock,
   handleSave,
   handleExport,
 }: HeaderProps) => {
@@ -73,6 +76,17 @@ const Header = ({
     return (
       isAdmin ||
       userPerms.includes(ConstsUserKBPermission.UserKBPermissionFullControl) ||
+      userPerms.includes(ConstsUserKBPermission.UserKBPermissionAuditManage)
+    );
+  }, [user.role, kbDetail.perms]);
+
+  const canForceUnlockEdit = useMemo(() => {
+    const isAdmin = user.role === ConstsUserRole.UserRoleAdmin;
+    const userPerms = kbDetail.perms || [];
+    return (
+      isAdmin ||
+      userPerms.includes(ConstsUserKBPermission.UserKBPermissionFullControl) ||
+      userPerms.includes(ConstsUserKBPermission.UserKBPermissionDocManage) ||
       userPerms.includes(ConstsUserKBPermission.UserKBPermissionAuditManage)
     );
   }, [user.role, kbDetail.perms]);
@@ -122,6 +136,14 @@ const Header = ({
     }
   }, [nodeDetail, edit, readOnly, handleSave]);
 
+  const handleForceUnlock = useCallback(() => {
+    if (!detail.id || !kb_id) return;
+    postApiV1NodeForceUnlock({ id: detail.id, kb_id }).then(() => {
+      message.success('已解除编辑锁');
+      onRefreshEditingLock?.();
+    });
+  }, [detail.id, kb_id, onRefreshEditingLock]);
+
   useEffect(() => {
     if (nodeDetail?.updated_at && !firstLoad.current) {
       setShowSaveTip(true);
@@ -135,9 +157,46 @@ const Header = ({
   return (
     <Box sx={{ p: 1 }}>
       {readOnly && (
-        <Alert severity='info' sx={{ mb: 1, py: 0.25 }}>
-          文档由 {detail.editor_account || '其他用户'}
-          占用编辑中，当前为只读浏览，无法修改或保存。
+        <Alert
+          severity='info'
+          sx={{ mb: 1, py: 0.25 }}
+          action={
+            canPublish || (canForceUnlockEdit && detail.editor_id) ? (
+              <Stack direction='row' alignItems='center' spacing={0.5}>
+                {canPublish && (
+                  <Button
+                    color='inherit'
+                    size='small'
+                    onClick={() => setDiffOpen(true)}
+                  >
+                    文档比对
+                  </Button>
+                )}
+                {canForceUnlockEdit && detail.editor_id ? (
+                  <Button
+                    color='inherit'
+                    size='small'
+                    onClick={handleForceUnlock}
+                  >
+                    解除编辑锁
+                  </Button>
+                ) : null}
+              </Stack>
+            ) : undefined
+          }
+        >
+          {detail.editor_id ? (
+            <>
+              文档由 {detail.editor_account || '其他用户'}
+              占用编辑中，当前为只读浏览，无法修改或保存。
+            </>
+          ) : canPublish ? (
+            <>
+              当前为只读浏览，无法修改或保存。您可使用文档比对查看当前内容与已发布版本的差异。
+            </>
+          ) : (
+            <>当前为只读浏览，无法修改或保存。</>
+          )}
         </Alert>
       )}
       <Stack

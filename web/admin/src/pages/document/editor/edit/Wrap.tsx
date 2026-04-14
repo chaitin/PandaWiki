@@ -42,9 +42,15 @@ interface WrapProps {
   detail: V1NodeDetailResp;
   /** 他人占用编辑锁等场景：可浏览，不可改内容 */
   readOnly?: boolean;
+  /** 解除编辑锁后重新拉取详情与锁状态 */
+  onRefreshEditingLock?: () => void;
 }
 
-const Wrap = ({ detail: defaultDetail, readOnly = false }: WrapProps) => {
+const Wrap = ({
+  detail: defaultDetail,
+  readOnly = false,
+  onRefreshEditingLock,
+}: WrapProps) => {
   const { id = '' } = useParams();
   const navigate = useNavigate();
   const { license } = useAppSelector(state => state.config);
@@ -706,6 +712,7 @@ const Wrap = ({ detail: defaultDetail, readOnly = false }: WrapProps) => {
           readOnly={readOnly}
           detail={nodeDetail!}
           updateDetail={updateDetail}
+          onRefreshEditingLock={onRefreshEditingLock}
           handleSave={async () => {
             if (readOnly) return;
             if (editorRef) {

@@ -61,6 +61,11 @@ const Content = () => {
     isAdmin ||
     userPerms.includes(ConstsUserKBPermission.UserKBPermissionFullControl) ||
     userPerms.includes(ConstsUserKBPermission.UserKBPermissionAuditManage);
+  const canForceUnlockEdit =
+    isAdmin ||
+    userPerms.includes(ConstsUserKBPermission.UserKBPermissionFullControl) ||
+    userPerms.includes(ConstsUserKBPermission.UserKBPermissionDocManage) ||
+    userPerms.includes(ConstsUserKBPermission.UserKBPermissionAuditManage);
   const dragTreeRef = useRef<DragTreeHandle>(null);
 
   const [searchParams] = useURLSearchParams();
@@ -350,6 +355,24 @@ const Content = () => {
         onClick: () => {
           postApiV1NodeForceUnlock({ id: item.id, kb_id }).then(() => {
             message.success('已释放编辑锁');
+            getData();
+          });
+        },
+      });
+    }
+
+    if (
+      canForceUnlockEdit &&
+      item.type === 2 &&
+      item.editor_id &&
+      item.editor_id !== user.id
+    ) {
+      items.push({
+        label: '解除编辑锁',
+        key: 'force_unlock_other',
+        onClick: () => {
+          postApiV1NodeForceUnlock({ id: item.id, kb_id }).then(() => {
+            message.success('已解除编辑锁');
             getData();
           });
         },

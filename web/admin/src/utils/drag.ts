@@ -22,6 +22,8 @@ export interface DragTreeProps {
   disabled?: (value: ITreeItem) => boolean;
   virtualized?: boolean;
   virtualizedHeight?: number | string;
+  /** 选择模式下文档节点名称显示为新窗口打开编辑页的链接 */
+  showSelectModeDocLink?: boolean;
 }
 
 // 定义上下文类型

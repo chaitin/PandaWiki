@@ -43,6 +43,10 @@ func NewNodeHandler(
 	readGroup.GET("/diff", h.GetNodeDiff)
 	readGroup.GET("/permission", h.NodePermission)
 
+	// 强制释放编辑锁：文档管理或审核管理均可（用于释放他人占用）
+	forceUnlockGroup := echo.Group("/api/v1/node", h.auth.Authorize, h.auth.ValidateKBUserPermAny(consts.UserKBPermissionDocManage, consts.UserKBPermissionAuditManage))
+	forceUnlockGroup.POST("/force_unlock", h.ForceUnlockNode)
+
 	writeGroup := echo.Group("/api/v1/node", h.auth.Authorize, h.auth.ValidateKBUserPerm(consts.UserKBPermissionDocManage))
 	writeGroup.POST("", h.CreateNode)
 	writeGroup.PUT("/detail", h.UpdateNodeDetail)
@@ -53,7 +57,6 @@ func NewNodeHandler(
 	writeGroup.POST("/restudy", h.NodeRestudy)
 	writeGroup.POST("/lock", h.LockNode)
 	writeGroup.POST("/unlock", h.UnlockNode)
-	writeGroup.POST("/force_unlock", h.ForceUnlockNode)
 	writeGroup.PATCH("/permission/edit", h.NodePermissionEdit)
 
 	return h

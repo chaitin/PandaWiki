@@ -16,6 +16,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Link,
   PaletteColor,
   Stack,
   TextField,
@@ -113,6 +114,7 @@ const TreeItem = React.forwardRef<
     updateData,
     disabled,
     scrollToItem,
+    showSelectModeDocLink,
   } = context;
 
   const [value, setValue] = useState(item.name);
@@ -469,7 +471,24 @@ const TreeItem = React.forwardRef<
                   </Box>
                   {ui === 'select' ? (
                     <Ellipsis sx={{ width: 0, flex: 1, overflow: 'hidden' }}>
-                      {item.name}
+                      {showSelectModeDocLink && item.type === 2 ? (
+                        <Link
+                          href={`${window.__BASENAME__ || ''}/doc/editor/${item.id}`}
+                          target='_blank'
+                          rel='noopener noreferrer'
+                          onClick={e => e.stopPropagation()}
+                          onPointerDown={e => e.stopPropagation()}
+                          underline='hover'
+                          sx={{
+                            color: 'primary.main',
+                            fontWeight: 500,
+                          }}
+                        >
+                          {item.name}
+                        </Link>
+                      ) : (
+                        item.name
+                      )}
                     </Ellipsis>
                   ) : (
                     <>
