@@ -66,10 +66,14 @@ func (s *CTRAG) QueryRecords(ctx context.Context, req *QueryRecordsRequest) (str
 		}
 	}
 	s.logger.Debug("retrieving by history msgs", log.Any("history_msgs", req.HistoryMsgs), log.Any("chat_msgs", chatMsgs))
+	topK := req.TopK
+	if topK <= 0 {
+		topK = 10
+	}
 	data := &raglite.RetrieveRequest{
 		DatasetID: req.DatasetID,
 		Query:     req.Query,
-		TopK:      10,
+		TopK:      topK,
 		Metadata: map[string]interface{}{
 			"group_ids": req.GroupIDs,
 		},

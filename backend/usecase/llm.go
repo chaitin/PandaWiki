@@ -64,6 +64,7 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 	kbID string,
 	groupIDs []int,
 	systemPrompt string,
+	topK int,
 ) ([]*schema.Message, []*domain.RankedNodeChunks, error) {
 	messages := make([]*schema.Message, 0)
 	rankedNodes := make([]*domain.RankedNodeChunks, 0)
@@ -116,6 +117,7 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 				GroupIDs:            groupIDs,
 				SimilarityThreshold: 0.2,
 				HistoryMessages:     historyMessages[:len(historyMessages)-1],
+				TopK:                topK,
 			})
 			if err != nil {
 				u.logger.Error("get rank nodes failed", log.Error(err))
@@ -322,10 +324,15 @@ type GetRankNodesRequest struct {
 	SimilarityThreshold float64
 	HistoryMessages     []*schema.Message
 	MaxChunksPerDoc     int
+	TopK                int
 }
 
 func (u *LLMUsecase) GetRankNodes(ctx context.Context, req GetRankNodesRequest) (string, []*domain.RankedNodeChunks, error) {
 	var rankedNodes []*domain.RankedNodeChunks
+	topK := req.TopK
+	if topK <= 0 {
+		topK = 10
+	}
 	// get related documents from raglite
 	rewrittenQuery, records, err := u.rag.QueryRecords(ctx, &rag.QueryRecordsRequest{
 		DatasetID:           req.DatasetID,
@@ -334,6 +341,7 @@ func (u *LLMUsecase) GetRankNodes(ctx context.Context, req GetRankNodesRequest) 
 		SimilarityThreshold: req.SimilarityThreshold,
 		HistoryMsgs:         req.HistoryMessages,
 		MaxChunksPerDoc:     req.MaxChunksPerDoc,
+		TopK:                topK,
 	})
 	if err != nil {
 		return "", nil, fmt.Errorf("get records from raglite failed: %w", err)

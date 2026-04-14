@@ -14,6 +14,8 @@ type ChatRequest struct {
 	Nonce          string   `json:"nonce"`
 	AppType        AppType  `json:"app_type" validate:"required,oneof=1 2"`
 	CaptchaToken   string   `json:"captcha_token"`
+	// TopN 为向量检索返回片段数量上限；0 或未传表示使用默认 10；合法范围为 1～10
+	TopN int `json:"top_n" validate:"omitempty,min=1,max=10"`
 
 	KBID  string `json:"-" validate:"required"`
 	AppID string `json:"-"`

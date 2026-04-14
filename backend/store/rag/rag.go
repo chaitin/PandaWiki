@@ -20,6 +20,8 @@ type QueryRecordsRequest struct {
 	SimilarityThreshold float64
 	HistoryMsgs         []*schema.Message
 	MaxChunksPerDoc     int
+	// TopK 检索片段上限；<=0 时由实现使用默认值
+	TopK int
 }
 
 type UpsertRecordsRequest struct {

@@ -212,10 +212,20 @@ const Welcome = () => {
     searchText: string,
     type: 'chat' | 'search' = 'chat',
     images?: File[],
+    topN?: number,
   ) => {
     if (searchText.trim() || (images && images.length > 0)) {
       if (images && images.length > 0) {
         setChatSearchImages?.(images);
+      }
+      if (
+        type === 'chat' &&
+        topN != null &&
+        topN >= 1 &&
+        topN <= 10 &&
+        Number.isFinite(topN)
+      ) {
+        sessionStorage.setItem('chat_search_top_n', String(topN));
       }
       if (type === 'chat') {
         sessionStorage.setItem('chat_search_query', searchText.trim());

@@ -30,7 +30,10 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
   Box,
   Button,
+  FormControl,
   IconButton,
+  MenuItem,
+  Select,
   Stack,
   Typography,
   Tooltip,
@@ -95,6 +98,8 @@ export interface ConversationItem {
 
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
+
+const CHAT_TOP_N_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
 const AnswerStatus = {
   1: '正在搜索结果...',
@@ -164,6 +169,7 @@ const AiQaContent: React.FC<{
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fuzzySuggestions, setFuzzySuggestions] = useState<string[]>([]);
   const [showFuzzySuggestions, setShowFuzzySuggestions] = useState(false);
+  const [topN, setTopN] = useState<number>(10);
 
   const searchParams = useSearchParams();
   const basePath = useBasePath();
@@ -403,7 +409,11 @@ const AiQaContent: React.FC<{
     }
   };
 
-  const chatAnswer = async (q: string, images?: typeof uploadedImages) => {
+  const chatAnswer = async (
+    q: string,
+    images?: typeof uploadedImages,
+    topNOverride?: number,
+  ) => {
     setLoading(true);
     setThinking(1);
 
@@ -426,6 +436,13 @@ const AiQaContent: React.FC<{
     //   return;
     // }
 
+    const topNForReq =
+      topNOverride != null &&
+      topNOverride >= 1 &&
+      topNOverride <= 10 &&
+      Number.isFinite(topNOverride)
+        ? topNOverride
+        : topN;
     const reqData = {
       message: q,
       image_paths: imagePaths,
@@ -433,6 +450,7 @@ const AiQaContent: React.FC<{
       conversation_id: '',
       app_type: 1,
       captcha_token: token,
+      top_n: topNForReq,
     };
     if (conversationId) reqData.conversation_id = conversationId;
     if (nonce) reqData.nonce = nonce;
@@ -542,6 +560,7 @@ const AiQaContent: React.FC<{
     q: string,
     reset: boolean = false,
     preloadImages?: typeof uploadedImages,
+    topNOverride?: number,
   ) => {
     const effectiveImages = preloadImages || uploadedImages;
     if (loading || (!q.trim() && effectiveImages.length === 0)) return;
@@ -570,7 +589,7 @@ const AiQaContent: React.FC<{
     setConversation(newConversation);
     setFullAnswer('');
     setTimeout(() => {
-      chatAnswer(q, effectiveImages);
+      chatAnswer(q, effectiveImages, topNOverride);
       setInput('');
       setUploadedImages([]);
     }, 0);
@@ -652,6 +671,16 @@ const AiQaContent: React.FC<{
     }
     const searchQuery =
       sessionStorage.getItem('chat_search_query') || searchParams.get('ask');
+    const storedTopNSS = sessionStorage.getItem('chat_search_top_n');
+    let bootstrapTopN: number | undefined;
+    if (storedTopNSS) {
+      sessionStorage.removeItem('chat_search_top_n');
+      const parsed = parseInt(storedTopNSS, 10);
+      if (!Number.isNaN(parsed) && parsed >= 1 && parsed <= 10) {
+        bootstrapTopN = parsed;
+        setTopN(parsed);
+      }
+    }
     if (searchQuery) {
       sessionStorage.removeItem('chat_search_query');
       const newSearchParams = new URLSearchParams(searchParams.toString());
@@ -661,6 +690,7 @@ const AiQaContent: React.FC<{
         searchQuery,
         true,
         preloadImages.length > 0 ? preloadImages : undefined,
+        bootstrapTopN,
       );
     } else if (preloadImages.length > 0) {
       // 只有图片没有文本时，不自动搜索，只预加载图片到输入区
@@ -1167,16 +1197,35 @@ const AiQaContent: React.FC<{
               style={{ display: 'none' }}
               onChange={handleImageUpload}
             />
-            <IconButton
-              size='small'
-              onClick={() => fileInputRef.current?.click()}
-              disabled={loading}
-              sx={{
-                flexShrink: 0,
-              }}
-            >
-              <IconTupian sx={{ fontSize: 20, color: 'text.secondary' }} />
-            </IconButton>
+            <Stack direction='row' alignItems='center' gap={0.5}>
+              <IconButton
+                size='small'
+                onClick={() => fileInputRef.current?.click()}
+                disabled={loading}
+                sx={{
+                  flexShrink: 0,
+                }}
+              >
+                <IconTupian sx={{ fontSize: 20, color: 'text.secondary' }} />
+              </IconButton>
+
+              <Tooltip title='知识库检索返回的片段数量上限（1～10）'>
+                <FormControl size='small' sx={{ minWidth: 76, flexShrink: 0 }}>
+                  <Select
+                    value={topN}
+                    onChange={e => setTopN(Number(e.target.value))}
+                    disabled={loading}
+                    sx={{ fontSize: 12, height: 32 }}
+                  >
+                    {CHAT_TOP_N_OPTIONS.map(n => (
+                      <MenuItem key={n} value={n} sx={{ fontSize: 12 }}>
+                        Top {n}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Tooltip>
+            </Stack>
 
             <Box
               sx={{

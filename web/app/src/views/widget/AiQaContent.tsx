@@ -23,7 +23,10 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import {
   Box,
   Button,
+  FormControl,
   IconButton,
+  MenuItem,
+  Select,
   Stack,
   Tooltip,
   Typography,
@@ -91,6 +94,8 @@ export interface ConversationItem {
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
+const CHAT_TOP_N_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
 const AnswerStatus = {
   1: '正在搜索结果...',
   2: '思考中...',
@@ -153,6 +158,7 @@ const AiQaContent: React.FC<{
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fuzzySuggestions, setFuzzySuggestions] = useState<string[]>([]);
   const [showFuzzySuggestions, setShowFuzzySuggestions] = useState(false);
+  const [topN, setTopN] = useState<number>(10);
 
   const searchParams = useSearchParams();
 
@@ -396,6 +402,7 @@ const AiQaContent: React.FC<{
       conversation_id: '',
       app_type: 2,
       captcha_token: token,
+      top_n: topN,
     };
     if (conversationId) reqData.conversation_id = conversationId;
     if (nonce) reqData.nonce = nonce;
@@ -1044,18 +1051,37 @@ const AiQaContent: React.FC<{
               style={{ display: 'none' }}
               onChange={handleImageUpload}
             />
-            <Tooltip title='敬请期待'>
-              <IconButton
-                size='small'
-                // onClick={() => fileInputRef.current?.click()}
-                disabled={loading}
-                sx={{
-                  flexShrink: 0,
-                }}
-              >
-                <IconTupian sx={{ fontSize: 20, color: 'text.secondary' }} />
-              </IconButton>
-            </Tooltip>
+            <Stack direction='row' alignItems='center' gap={0.5}>
+              <Tooltip title='敬请期待'>
+                <IconButton
+                  size='small'
+                  // onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                  sx={{
+                    flexShrink: 0,
+                  }}
+                >
+                  <IconTupian sx={{ fontSize: 20, color: 'text.secondary' }} />
+                </IconButton>
+              </Tooltip>
+
+              <Tooltip title='知识库检索返回的片段数量上限（1～10）'>
+                <FormControl size='small' sx={{ minWidth: 76, flexShrink: 0 }}>
+                  <Select
+                    value={topN}
+                    onChange={e => setTopN(Number(e.target.value))}
+                    disabled={loading}
+                    sx={{ fontSize: 12, height: 32 }}
+                  >
+                    {CHAT_TOP_N_OPTIONS.map(n => (
+                      <MenuItem key={n} value={n} sx={{ fontSize: 12 }}>
+                        Top {n}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Tooltip>
+            </Stack>
 
             <Box
               sx={{

@@ -12,6 +12,10 @@ import {
   lighten,
   IconButton,
   SvgIcon,
+  FormControl,
+  MenuItem,
+  Select,
+  Tooltip,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { StyledTopicBox } from '../component/styledCommon';
@@ -129,6 +133,8 @@ interface UploadedImage {
   file: File;
 }
 
+const BANNER_TOP_N_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
+
 interface BannerProps {
   title: {
     text: string;
@@ -150,7 +156,12 @@ interface BannerProps {
     text: string;
     href: string;
   }[];
-  onSearch?: (value: string, type?: 'search' | 'chat', images?: File[]) => void;
+  onSearch?: (
+    value: string,
+    type?: 'search' | 'chat',
+    images?: File[],
+    topN?: number,
+  ) => void;
   onSearchSuggestions?: (query: string) => Promise<SearchSuggestion[]>;
   basePath?: string;
 }
@@ -175,6 +186,7 @@ const Banner = React.memo(
     const [isFocused, setIsFocused] = useState(false);
     const [typedText, setTypedText] = useState('');
     const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+    const [topN, setTopN] = useState(10);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const debounceTimer = useRef<NodeJS.Timeout | null>(null);
     const typewriterTimer = useRef<NodeJS.Timeout | null>(null);
@@ -344,7 +356,7 @@ const Banner = React.memo(
     const doSearch = (type: 'search' | 'chat' = 'chat') => {
       if (!searchText.trim() && uploadedImages.length === 0) return;
       const files = uploadedImages.map(img => img.file);
-      onSearch?.(searchText, type, files.length > 0 ? files : undefined);
+      onSearch?.(searchText, type, files.length > 0 ? files : undefined, topN);
       setSearchText('');
       uploadedImages.forEach(img => {
         if (img.url.startsWith('blob:')) URL.revokeObjectURL(img.url);
@@ -527,7 +539,10 @@ const Banner = React.memo(
             <Stack direction='row' alignItems='center' gap={1} flexWrap='wrap'>
               <Stack direction='row' gap='8px 16px' flexWrap='wrap'>
                 {search.hot?.map(hot => (
-                  <StyledHotItem key={hot} onClick={() => onSearch?.(hot)}>
+                  <StyledHotItem
+                    key={hot}
+                    onClick={() => onSearch?.(hot, 'chat', undefined, topN)}
+                  >
                     {hot}
                   </StyledHotItem>
                 ))}
@@ -545,6 +560,24 @@ const Banner = React.memo(
                 >
                   <ImageIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
                 </IconButton>
+                <Tooltip title='知识库检索返回的片段数量上限（1～10）'>
+                  <FormControl
+                    size='small'
+                    sx={{ minWidth: 76, flexShrink: 0 }}
+                  >
+                    <Select
+                      value={topN}
+                      onChange={e => setTopN(Number(e.target.value))}
+                      sx={{ fontSize: 12, height: 32 }}
+                    >
+                      {BANNER_TOP_N_OPTIONS.map(n => (
+                        <MenuItem key={n} value={n} sx={{ fontSize: 12 }}>
+                          Top {n}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Tooltip>
                 <Button
                   variant='contained'
                   size='small'

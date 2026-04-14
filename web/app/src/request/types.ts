@@ -564,6 +564,8 @@ export interface DomainChatRequest {
   image_paths?: string[];
   message?: string;
   nonce?: string;
+  /** 知识库检索片段上限，1～10；不传时后端默认 10 */
+  top_n?: number;
 }
 
 export interface DomainChatSearchReq {
