@@ -207,7 +207,7 @@ func (u *LLMUsecase) Generate(
 	return resp.Content, nil
 }
 
-func (u *LLMUsecase) SummaryNode(ctx context.Context, model *domain.Model, name, content string) (string, error) {
+func (u *LLMUsecase) SummaryNode(ctx context.Context, model *domain.Model, name, content string, docKind domain.NodeDocVisualKind, imageDataURL string) (string, error) {
 	modelkitModel, err := model.ToModelkitModel()
 	if err != nil {
 		return "", err
@@ -217,6 +217,17 @@ func (u *LLMUsecase) SummaryNode(ctx context.Context, model *domain.Model, name,
 		return "", err
 	}
 
+	switch docKind {
+	case domain.NodeDocVisualVideo:
+		return u.summaryVideoDoc(ctx, chatModel, name, content)
+	case domain.NodeDocVisualImage:
+		return u.summaryImageDoc(ctx, model, chatModel, name, imageDataURL)
+	default:
+		return u.summaryTextDocWithChunks(ctx, chatModel, name, content)
+	}
+}
+
+func (u *LLMUsecase) summaryTextDocWithChunks(ctx context.Context, chatModel model.BaseChatModel, name, content string) (string, error) {
 	chunks, err := u.SplitByTokenLimit(content, summaryChunkTokenLimit)
 	if err != nil {
 		return "", err
@@ -244,18 +255,74 @@ func (u *LLMUsecase) SummaryNode(ctx context.Context, model *domain.Model, name,
 		return "", fmt.Errorf("failed to generate summary for document %s", name)
 	}
 
-	// Join all summaries and generate final summary
 	joined := strings.Join(summaries, "\n\n")
 	finalSummary, err := u.requestSummary(ctx, chatModel, name, joined)
 	if err != nil {
 		u.logger.Error("Failed to generate final summary, using aggregated summaries", log.Error(err))
-		// Fallback: return the joined summaries directly
 		if len(joined) > 500 {
 			return joined[:500] + "...", nil
 		}
 		return joined, nil
 	}
 	return finalSummary, nil
+}
+
+func (u *LLMUsecase) summaryVideoDoc(ctx context.Context, chatModel model.BaseChatModel, name, content string) (string, error) {
+	excerpt := StripTagsToPlain(content)
+	if len(excerpt) > 6000 {
+		excerpt = excerpt[:6000]
+	}
+	summary, err := u.Generate(ctx, chatModel, []*schema.Message{
+		{
+			Role: "system",
+			Content: "你是文档摘要助手。该文档为「视频」类型，正文通常以视频嵌入为主。" +
+				"请生成一段不超过 120 字的中文摘要：明确说明这是一段视频类内容；" +
+				"再结合文档标题与下方摘录的可读文字（若有）概括视频主题或用途。" +
+				"不要输出 HTML、iframe 等标签名，不要编造摘录中不存在的情节。",
+		},
+		{
+			Role:    "user",
+			Content: fmt.Sprintf("文档名称：%s\n正文文字摘录：\n%s", name, excerpt),
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(u.trimThinking(summary)), nil
+}
+
+func (u *LLMUsecase) summaryImageDoc(ctx context.Context, dm *domain.Model, chatModel model.BaseChatModel, docName, imageDataURL string) (string, error) {
+	if imageDataURL == "" {
+		return "", fmt.Errorf("no image data for vision summary")
+	}
+	// 手动配置的模型需显式开启多模态；自动模式（无持久化模型 ID）仍尝试调用。
+	if dm.ID != "" && !dm.Parameters.SupportImages {
+		return "", fmt.Errorf("当前对话模型未开启「支持图片/多模态」，请在模型设置的高级参数中开启 support_images 后再生成图片文档摘要")
+	}
+	system := `你是图像理解与知识库摘要助手。请根据用户给出的文档标题与图片内容，输出一段用于检索与展示的中文摘要。
+要求：
+1. 用自然连贯的一段话描述，不要使用 Markdown 或列表符号。
+2. 详细说明图片中的主要物品或主体是什么；描述物品的颜色、形状、大致大小（可结合画面占比或常见参照）。
+3. 判断画面中是否有文字；若有，简要写出关键文字内容（如标题、标语、品牌名）；若无，明确说明未检测到可读文字。
+4. 全文不超过 320 字。`
+
+	userParts := []schema.ChatMessagePart{
+		{Type: schema.ChatMessagePartTypeText, Text: fmt.Sprintf("文档名称：%s", docName)},
+		{
+			Type: schema.ChatMessagePartTypeImageURL,
+			ImageURL: &schema.ChatMessageImageURL{
+				URL: imageDataURL,
+			},
+		},
+	}
+	summary, err := u.Generate(ctx, chatModel, []*schema.Message{
+		{Role: "system", Content: system},
+		{Role: "user", MultiContent: userParts},
+	})
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(u.trimThinking(summary)), nil
 }
 
 func (u *LLMUsecase) trimThinking(summary string) string {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -121,6 +122,26 @@ type NodeMeta struct {
 	Summary     string `json:"summary"`
 	Emoji       string `json:"emoji"`
 	ContentType string `json:"content_type"`
+}
+
+// NodeDocVisualKind 与后台文档图标（文本 / 图片 / 视频）对应，用于摘要生成策略。
+type NodeDocVisualKind string
+
+const (
+	NodeDocVisualText  NodeDocVisualKind = "text"
+	NodeDocVisualImage NodeDocVisualKind = "image"
+	NodeDocVisualVideo NodeDocVisualKind = "video"
+)
+
+// NodeDocVisualKindFromEmoji 根据 meta.emoji 判断文档展示类型（与 web/admin Emoji 约定一致）。
+func NodeDocVisualKindFromEmoji(emoji string) NodeDocVisualKind {
+	if strings.Contains(emoji, "\U0001f5bc") {
+		return NodeDocVisualImage
+	}
+	if strings.Contains(emoji, "\U0001f3ac") {
+		return NodeDocVisualVideo
+	}
+	return NodeDocVisualText
 }
 
 func (d *NodeMeta) Value() (driver.Value, error) {

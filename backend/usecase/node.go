@@ -403,9 +403,21 @@ func (u *NodeUsecase) SummaryNode(ctx context.Context, req *domain.NodeSummaryRe
 		if err != nil {
 			return "", fmt.Errorf("get latest node release failed: %w", err)
 		}
-		summary, err := u.llmUsecase.SummaryNode(ctx, model, node.Name, node.Content)
+		docKind := domain.NodeDocVisualKindFromEmoji(node.Meta.Emoji)
+		imageDataURL := ""
+		if docKind == domain.NodeDocVisualImage {
+			ref := ExtractFirstImageRefFromDocContent(node.Content)
+			if ref == "" {
+				return "", fmt.Errorf("图片类型文档正文中未找到图片，请插入至少一张图片后再生成摘要")
+			}
+			imageDataURL, err = ResolveImageRefForVision(ctx, u.s3Client, ref)
+			if err != nil {
+				return "", fmt.Errorf("准备图片摘要失败: %w", err)
+			}
+		}
+		summary, err := u.llmUsecase.SummaryNode(ctx, model, node.Name, node.Content, docKind, imageDataURL)
 		if err != nil {
-			return "", fmt.Errorf("summary node failed: %w", err)
+			return "", err
 		}
 		return summary, nil
 	} else {

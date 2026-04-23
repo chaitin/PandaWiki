@@ -275,7 +275,8 @@ func (h *NodeHandler) SummaryNode(c echo.Context) error {
 		if err == domain.ErrModelNotConfigured {
 			return h.NewResponseWithError(c, "请前往管理后台，点击右上角的“系统设置”配置推理大模型。", err)
 		}
-		return h.NewResponseWithError(c, "summary node failed", err)
+		// Message 需包含 err 文案，前端 httpClient 只展示 PWResponse.Message
+		return h.NewResponseWithError(c, err.Error(), err)
 	}
 	return h.NewResponseWithData(c, map[string]any{
 		"summary": summary,

@@ -11,6 +11,7 @@ import (
 	"github.com/chaitin/panda-wiki/mq/types"
 	"github.com/chaitin/panda-wiki/repo/pg"
 	"github.com/chaitin/panda-wiki/store/rag"
+	"github.com/chaitin/panda-wiki/store/s3"
 	"github.com/chaitin/panda-wiki/usecase"
 )
 
@@ -20,17 +21,19 @@ type RAGMQHandler struct {
 	rag          rag.RAGService
 	nodeRepo     *pg.NodeRepository
 	kbRepo       *pg.KnowledgeBaseRepository
+	s3Client     *s3.MinioClient
 	llmUsecase   *usecase.LLMUsecase
 	modelUsecase *usecase.ModelUsecase
 }
 
-func NewRAGMQHandler(consumer mq.MQConsumer, logger *log.Logger, rag rag.RAGService, nodeRepo *pg.NodeRepository, kbRepo *pg.KnowledgeBaseRepository, llmUsecase *usecase.LLMUsecase, modelUsecase *usecase.ModelUsecase) (*RAGMQHandler, error) {
+func NewRAGMQHandler(consumer mq.MQConsumer, logger *log.Logger, rag rag.RAGService, nodeRepo *pg.NodeRepository, kbRepo *pg.KnowledgeBaseRepository, s3Client *s3.MinioClient, llmUsecase *usecase.LLMUsecase, modelUsecase *usecase.ModelUsecase) (*RAGMQHandler, error) {
 	h := &RAGMQHandler{
 		consumer:     consumer,
 		logger:       logger.WithModule("mq.rag"),
 		rag:          rag,
 		nodeRepo:     nodeRepo,
 		kbRepo:       kbRepo,
+		s3Client:     s3Client,
 		llmUsecase:   llmUsecase,
 		modelUsecase: modelUsecase,
 	}
@@ -147,7 +150,19 @@ func (h *RAGMQHandler) HandleNodeContentVectorRequest(ctx context.Context, msg t
 			return nil
 		}
 
-		summary, err := h.llmUsecase.SummaryNode(ctx, model, node.Name, node.Content)
+		docKind := domain.NodeDocVisualKindFromEmoji(node.Meta.Emoji)
+		imageDataURL := ""
+		if docKind == domain.NodeDocVisualImage {
+			ref := usecase.ExtractFirstImageRefFromDocContent(node.Content)
+			if ref != "" {
+				imageDataURL, err = usecase.ResolveImageRefForVision(ctx, h.s3Client, ref)
+				if err != nil {
+					h.logger.Error("prepare image for summary failed", log.Error(err))
+					return nil
+				}
+			}
+		}
+		summary, err := h.llmUsecase.SummaryNode(ctx, model, node.Name, node.Content, docKind, imageDataURL)
 		if err != nil {
 			h.logger.Error("summary node content failed", log.Error(err))
 			return nil
