@@ -67,6 +67,7 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 	groupIDs []int,
 	systemPrompt string,
 	topK int,
+	retrievalAugment string,
 ) ([]*schema.Message, []*domain.RankedNodeChunks, error) {
 	messages := make([]*schema.Message, 0)
 	rankedNodes := make([]*domain.RankedNodeChunks, 0)
@@ -91,6 +92,9 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 		}
 		if len(historyMessages) > 0 {
 			question := historyMessages[len(historyMessages)-1].Content
+			if ra := strings.TrimSpace(retrievalAugment); ra != "" {
+				question = strings.TrimSpace(question) + "\n\n—— 附图检索辅助信息 ——\n" + ra
+			}
 			var rewrittenQuery string
 			if systemPrompt == "" {
 				if settingPrompt, err := u.promptRepo.GetPrompt(ctx, kbID); err != nil {
@@ -540,6 +544,119 @@ func (u *LLMUsecase) GetRankNodes(ctx context.Context, req GetRankNodesRequest) 
 		}
 	}
 	return rewrittenQuery, rankedNodes, nil
+}
+
+// ChainStepEmitter 附图理解各阶段回调（用于 SSE 思维链展示）
+type ChainStepEmitter func(step int, title, detail string)
+
+func (u *LLMUsecase) ensureVisionChatModel(ctx context.Context, dm *domain.Model) (model.BaseChatModel, error) {
+	if dm.ID != "" && !dm.Parameters.SupportImages {
+		return nil, fmt.Errorf("当前模型未开启「支持图片/多模态」，无法分析附图")
+	}
+	mkit, err := dm.ToModelkitModel()
+	if err != nil {
+		return nil, err
+	}
+	return u.modelkit.GetChatModel(ctx, mkit)
+}
+
+const visionObjectDescribeSystem = `你是图像理解助手。请根据图片客观描述：画面中的主要物体或场景是什么（可包含材质、颜色、大致用途等）。用一小段中文输出，不要使用 Markdown 或列表符号，不超过 100 字。`
+
+// BuildImageUnderstandingForRAG 对附图做多步视觉理解，生成拼入向量检索 query 的辅助文本（由调用方通过 SSE 展示各步）。
+func (u *LLMUsecase) BuildImageUnderstandingForRAG(
+	ctx context.Context,
+	visionModel *domain.Model,
+	kbID string,
+	userMessage string,
+	imageDataURL string,
+	emit ChainStepEmitter,
+) (retrievalAugment string, err error) {
+	chatModel, err := u.ensureVisionChatModel(ctx, visionModel)
+	if err != nil {
+		return "", err
+	}
+	caption := strings.TrimSpace(userMessage)
+	if caption == "" {
+		caption = "（用户未输入文字，仅上传图片）"
+	}
+	emit(1, "识别图中物体与场景", "正在调用视觉模型…")
+	userParts := []schema.ChatMessagePart{
+		{Type: schema.ChatMessagePartTypeText, Text: "用户说明：" + caption},
+		{Type: schema.ChatMessagePartTypeImageURL, ImageURL: &schema.ChatMessageImageURL{URL: imageDataURL}},
+	}
+	objRaw, err := u.Generate(ctx, chatModel, []*schema.Message{
+		{Role: "system", Content: visionObjectDescribeSystem},
+		{Role: "user", MultiContent: userParts},
+	})
+	if err != nil {
+		return "", fmt.Errorf("识别图中物体失败: %w", err)
+	}
+	objectDesc := strings.TrimSpace(u.trimThinking(objRaw))
+	if objectDesc == "" {
+		objectDesc = "（模型未返回有效画面描述）"
+	}
+	emit(1, "识别图中物体与场景", objectDesc)
+
+	var parts []string
+	if strings.TrimSpace(userMessage) != "" {
+		parts = append(parts, "用户问题："+strings.TrimSpace(userMessage))
+	}
+	parts = append(parts, "附图画面理解："+objectDesc)
+
+	if u.categoryPromptRepo == nil || kbID == "" {
+		emit(2, "品类与属性", "未加载品类配置，直接使用画面描述辅助检索。")
+		return strings.Join(parts, "\n"), nil
+	}
+	cats, err := u.categoryPromptRepo.GetByKBID(ctx, kbID)
+	if err != nil {
+		u.logger.Error("get category prompts for chat vision failed", log.Error(err))
+		emit(2, "品类与属性", "读取品类配置失败，使用画面描述辅助检索。")
+		return strings.Join(parts, "\n"), nil
+	}
+	usable := lo.Filter(cats, func(c domain.CategoryPromptItem, _ int) bool {
+		return strings.TrimSpace(c.Name) != "" && strings.TrimSpace(c.Content) != ""
+	})
+	if len(usable) == 0 {
+		emit(2, "判断是否属于配置品类", "后台未配置有效品类提示词，跳过品类匹配。")
+		return strings.Join(parts, "\n"), nil
+	}
+
+	emit(2, "判断是否属于配置品类", "比对配置中的品类…")
+	docLabel := strings.TrimSpace(userMessage)
+	if docLabel == "" {
+		docLabel = "用户上传的图片"
+	}
+	matched, err := u.classifyImageDocCategory(ctx, chatModel, docLabel, imageDataURL, usable)
+	if err != nil {
+		emit(2, "判断是否属于配置品类", "品类判断失败："+err.Error()+"，将仅用画面描述辅助检索。")
+		return strings.Join(parts, "\n"), nil
+	}
+	if matched == nil {
+		emit(2, "判断是否属于配置品类", "未命中已配置品类，将结合画面细节进行向量检索。")
+		return strings.Join(parts, "\n"), nil
+	}
+	emit(2, "判断是否属于配置品类", "命中品类：「"+matched.Name+"」")
+
+	emit(3, "按品类提示词提取检索属性", "正在结合图片提取与检索相关的属性要点…")
+	attrSys := strings.TrimSpace(matched.Content) + `
+
+请结合**图片**，根据上述要求，提取最有利于在知识库中检索到相关文档的「关键词与属性要点」：
+- 用中文一段输出，不要使用 Markdown 或列表符号；
+- 多个要点用顿号或逗号分隔；
+- 全文不超过 200 字。`
+	attrRaw, err := u.Generate(ctx, chatModel, []*schema.Message{
+		{Role: "system", Content: attrSys},
+		{Role: "user", MultiContent: userParts},
+	})
+	if err != nil {
+		emit(3, "按品类提示词提取检索属性", "提取失败："+err.Error())
+		return strings.Join(parts, "\n"), nil
+	}
+	attrText := strings.TrimSpace(u.trimThinking(attrRaw))
+	emit(3, "按品类提示词提取检索属性", attrText)
+
+	parts = append(parts, "命中品类「"+matched.Name+"」。与检索相关的属性要点："+attrText)
+	return strings.Join(parts, "\n"), nil
 }
 
 // formatMessageWithImages converts image paths to markdown format and appends to message

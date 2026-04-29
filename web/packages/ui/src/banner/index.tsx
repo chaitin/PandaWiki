@@ -164,6 +164,8 @@ interface BannerProps {
   ) => void;
   onSearchSuggestions?: (query: string) => Promise<SearchSuggestion[]>;
   basePath?: string;
+  /** 若提供则替代横幅按钮的默认新标签打开链接 */
+  onActionButtonNavigate?: (href: string) => void;
 }
 
 const Banner = React.memo(
@@ -176,6 +178,7 @@ const Banner = React.memo(
     onSearch,
     onSearchSuggestions,
     basePath = '',
+    onActionButtonNavigate,
   }: BannerProps) => {
     const [searchText, setSearchText] = useState('');
     const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -611,8 +614,14 @@ const Banner = React.memo(
                 <Button
                   key={btn.text}
                   variant={btn.type}
-                  href={btn.href}
-                  target='_blank'
+                  {...(onActionButtonNavigate
+                    ? {
+                        onClick: () => onActionButtonNavigate(btn.href),
+                      }
+                    : {
+                        href: btn.href,
+                        target: '_blank' as const,
+                      })}
                   size='large'
                   color='primary'
                   sx={theme => ({

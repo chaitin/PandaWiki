@@ -73,8 +73,8 @@ func createApp() (*App, error) {
 	ragRepository := mq2.NewRAGRepository(mqProducer)
 	userRepository := pg2.NewUserRepository(db, logger)
 	kbRepo := cache2.NewKBRepo(cacheCache)
-	categoryPromptRepository := pg2.NewCategoryPromptRepo(db, logger)
-	knowledgeBaseUsecase, err := usecase.NewKnowledgeBaseUsecase(knowledgeBaseRepository, nodeRepository, ragRepository, userRepository, ragService, kbRepo, logger, configConfig, categoryPromptRepository)
+	categoryPromptRepo := pg2.NewCategoryPromptRepo(db, logger)
+	knowledgeBaseUsecase, err := usecase.NewKnowledgeBaseUsecase(knowledgeBaseRepository, nodeRepository, ragRepository, userRepository, ragService, kbRepo, logger, configConfig, categoryPromptRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -82,11 +82,6 @@ func createApp() (*App, error) {
 	captchaCaptcha := captcha.NewCaptcha()
 	baseHandler := handler.NewBaseHandler(echo, logger, configConfig, authMiddleware, shareAuthMiddleware, captchaCaptcha)
 	userUsecase, err := usecase.NewUserUsecase(userRepository, logger, configConfig)
-	if err != nil {
-		return nil, err
-	}
-	appRepository := pg2.NewAppRepository(db, logger)
-	minioClient, err := s3.NewMinioClient(configConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +94,13 @@ func createApp() (*App, error) {
 	conversationRepository := pg2.NewConversationRepository(db, logger)
 	modelRepository := pg2.NewModelRepository(db, logger)
 	promptRepo := pg2.NewPromptRepo(db, logger)
-	llmUsecase := usecase.NewLLMUsecase(configConfig, ragService, conversationRepository, knowledgeBaseRepository, nodeRepository, modelRepository, promptRepo, categoryPromptRepository, logger)
+	llmUsecase := usecase.NewLLMUsecase(configConfig, ragService, conversationRepository, knowledgeBaseRepository, nodeRepository, modelRepository, promptRepo, categoryPromptRepo, logger)
 	knowledgeBaseHandler := v1.NewKnowledgeBaseHandler(baseHandler, echo, knowledgeBaseUsecase, llmUsecase, authMiddleware, logger)
+	appRepository := pg2.NewAppRepository(db, logger)
+	minioClient, err := s3.NewMinioClient(configConfig)
+	if err != nil {
+		return nil, err
+	}
 	systemSettingRepo := pg2.NewSystemSettingRepo(db, logger)
 	modelUsecase := usecase.NewModelUsecase(modelRepository, nodeRepository, ragRepository, ragService, logger, configConfig, knowledgeBaseRepository, systemSettingRepo)
 	nodeUsecase := usecase.NewNodeUsecase(nodeRepository, appRepository, ragRepository, userRepository, knowledgeBaseRepository, llmUsecase, ragService, logger, minioClient, modelRepository, authRepo, modelUsecase)
@@ -113,7 +113,7 @@ func createApp() (*App, error) {
 	ipAddressRepo := ipdb2.NewIPAddressRepo(ipdbIPDB, logger)
 	conversationUsecase := usecase.NewConversationUsecase(conversationRepository, nodeRepository, geoRepo, logger, ipAddressRepo, authRepo)
 	blockWordRepo := pg2.NewBlockWordRepo(db, logger)
-	chatUsecase, err := usecase.NewChatUsecase(llmUsecase, knowledgeBaseRepository, conversationUsecase, modelUsecase, appRepository, blockWordRepo, authRepo, logger)
+	chatUsecase, err := usecase.NewChatUsecase(llmUsecase, knowledgeBaseRepository, conversationUsecase, modelUsecase, appRepository, blockWordRepo, authRepo, minioClient, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -141,19 +141,23 @@ func createApp() (*App, error) {
 	commentUsecase := usecase.NewCommentUsecase(commentRepository, logger, nodeRepository, ipAddressRepo, authRepo)
 	commentHandler := v1.NewCommentHandler(echo, baseHandler, logger, authMiddleware, commentUsecase)
 	authV1Handler := v1.NewAuthV1Handler(echo, baseHandler, logger, authUsecase)
+	documentFeedbackRepository := pg2.NewDocumentFeedbackRepository(db, logger)
+	documentFeedbackUsecase := usecase.NewDocumentFeedbackUsecase(documentFeedbackRepository, nodeRepository, appUsecase, logger)
+	documentFeedbackHandler := v1.NewDocumentFeedbackHandler(echo, baseHandler, logger, authMiddleware, documentFeedbackUsecase)
 	apiHandlers := &v1.APIHandlers{
-		UserHandler:          userHandler,
-		KnowledgeBaseHandler: knowledgeBaseHandler,
-		NodeHandler:          nodeHandler,
-		AppHandler:           appHandler,
-		FileHandler:          fileHandler,
-		ModelHandler:         modelHandler,
-		ConversationHandler:  conversationHandler,
-		CrawlerHandler:       crawlerHandler,
-		CreationHandler:      creationHandler,
-		StatHandler:          statHandler,
-		CommentHandler:       commentHandler,
-		AuthV1Handler:        authV1Handler,
+		UserHandler:             userHandler,
+		KnowledgeBaseHandler:    knowledgeBaseHandler,
+		NodeHandler:             nodeHandler,
+		AppHandler:              appHandler,
+		FileHandler:             fileHandler,
+		ModelHandler:            modelHandler,
+		ConversationHandler:     conversationHandler,
+		CrawlerHandler:          crawlerHandler,
+		CreationHandler:         creationHandler,
+		StatHandler:             statHandler,
+		CommentHandler:          commentHandler,
+		AuthV1Handler:           authV1Handler,
+		DocumentFeedbackHandler: documentFeedbackHandler,
 	}
 	shareNodeHandler := share.NewShareNodeHandler(baseHandler, echo, nodeUsecase, logger)
 	shareAppHandler := share.NewShareAppHandler(echo, baseHandler, logger, appUsecase)
@@ -172,19 +176,21 @@ func createApp() (*App, error) {
 	shareCaptchaHandler := share.NewShareCaptchaHandler(baseHandler, echo, logger)
 	openapiV1Handler := share.NewOpenapiV1Handler(echo, baseHandler, logger, authUsecase, appUsecase)
 	shareCommonHandler := share.NewShareCommonHandler(echo, baseHandler, logger, fileUsecase)
+	shareDocumentFeedbackHandler := share.NewShareDocumentFeedbackHandler(echo, baseHandler, logger, documentFeedbackUsecase)
 	shareHandler := &share.ShareHandler{
-		ShareNodeHandler:         shareNodeHandler,
-		ShareAppHandler:          shareAppHandler,
-		ShareChatHandler:         shareChatHandler,
-		ShareSitemapHandler:      shareSitemapHandler,
-		ShareStatHandler:         shareStatHandler,
-		ShareCommentHandler:      shareCommentHandler,
-		ShareAuthHandler:         shareAuthHandler,
-		ShareConversationHandler: shareConversationHandler,
-		ShareWechatHandler:       shareWechatHandler,
-		ShareCaptchaHandler:      shareCaptchaHandler,
-		OpenapiV1Handler:         openapiV1Handler,
-		ShareCommonHandler:       shareCommonHandler,
+		ShareNodeHandler:             shareNodeHandler,
+		ShareAppHandler:              shareAppHandler,
+		ShareChatHandler:             shareChatHandler,
+		ShareSitemapHandler:          shareSitemapHandler,
+		ShareStatHandler:             shareStatHandler,
+		ShareCommentHandler:          shareCommentHandler,
+		ShareAuthHandler:             shareAuthHandler,
+		ShareConversationHandler:     shareConversationHandler,
+		ShareWechatHandler:           shareWechatHandler,
+		ShareCaptchaHandler:          shareCaptchaHandler,
+		OpenapiV1Handler:             openapiV1Handler,
+		ShareCommonHandler:           shareCommonHandler,
+		ShareDocumentFeedbackHandler: shareDocumentFeedbackHandler,
 	}
 	mcpRepository := pg2.NewMCPRepository(db, logger)
 	client, err := telemetry.NewClient(logger, knowledgeBaseRepository, modelUsecase, userUsecase, nodeRepository, conversationRepository, mcpRepository, configConfig)

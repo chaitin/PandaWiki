@@ -4,6 +4,7 @@ import Logo from '@/assets/images/logo.png';
 import {
   Stack,
   Box,
+  Button,
   IconButton,
   alpha,
   Tooltip,
@@ -14,15 +15,19 @@ import { IconDengchu } from '@panda-wiki/icons';
 import { useStore } from '@/provider';
 import { useMemo, useState } from 'react';
 import ErrorIcon from '@mui/icons-material/Error';
-import { Modal } from '@ctzhian/ui';
+import { message, Modal } from '@ctzhian/ui';
 import {
   Header as CustomHeader,
   WelcomeHeader as WelcomeHeaderComponent,
 } from '@panda-wiki/ui';
 import QaModal from '../QaModal';
 import ThemeSwitch from './themeSwitch';
+import SiteFeedbackDialog from '../SiteFeedbackDialog';
 import { getImagePath } from '@/utils/getImagePath';
 import { useBasePath } from '@/hooks';
+import { isAuthInfoEmpty } from '@/utils/authInfo';
+import { lacksAccountIdentityForSiteFeedback } from '@/utils/siteFeedbackAuth';
+import { clearCookie } from '@/utils/cookie';
 interface HeaderProps {
   isDocPage?: boolean;
   isWelcomePage?: boolean;
@@ -30,14 +35,18 @@ interface HeaderProps {
 
 const LogoutButton = () => {
   const [open, setOpen] = useState(false);
-  const { authInfo } = useStore();
-  const handleLogout = () => {
-    return postShareProV1AuthLogout().then(() => {
-      // 使用当前页面的协议（http 或 https）
-      const protocol = window.location.protocol;
-      const host = window.location.host;
-      window.location.href = `${protocol}//${host}/auth/login`;
-    });
+  const { clearClientAuthInfo } = useStore();
+  const handleLogout = async () => {
+    try {
+      await postShareProV1AuthLogout();
+    } catch (_) {
+      /* 仍清理本地态，避免残留已登录表现 */
+    }
+    await clearCookie();
+    clearClientAuthInfo?.();
+    const protocol = window.location.protocol;
+    const host = window.location.host;
+    window.location.href = `${protocol}//${host}/auth/login`;
   };
   return (
     <>
@@ -79,17 +88,46 @@ const Header = ({ isDocPage = false, isWelcomePage = false }: HeaderProps) => {
     kbDetail,
     catalogWidth,
     setQaModalOpen,
+    setLoginModalOpen,
     authInfo,
   } = useStore();
+  const [siteFbOpen, setSiteFbOpen] = useState(false);
   const basePath = useBasePath();
   const docWidth = useMemo(() => {
     if (isWelcomePage) return 'full';
     return kbDetail?.settings?.theme_and_style?.doc_width || 'full';
   }, [kbDetail, isWelcomePage]);
 
+  const openQaOrLogin = () => {
+    if (isAuthInfoEmpty(authInfo)) {
+      setLoginModalOpen?.(true);
+      return;
+    }
+    setQaModalOpen?.(true);
+  };
+
+  const openSiteFeedbackOrLogin = () => {
+    if (isAuthInfoEmpty(authInfo)) {
+      setLoginModalOpen?.(true);
+      return;
+    }
+    if (lacksAccountIdentityForSiteFeedback(authInfo)) {
+      message.error(
+        '问题反馈需使用账号登录（用户名密码或企业 SSO），当前为访问口令认证',
+      );
+      setLoginModalOpen?.(true);
+      return;
+    }
+    setSiteFbOpen(true);
+  };
+
   const handleSearch = (value?: string, type: 'chat' | 'search' = 'chat') => {
     if (value?.trim()) {
       if (type === 'chat') {
+        if (isAuthInfoEmpty(authInfo)) {
+          setLoginModalOpen?.(true);
+          return;
+        }
         sessionStorage.setItem('chat_search_query', value.trim());
         setQaModalOpen?.(true);
       } else {
@@ -119,11 +157,19 @@ const Header = ({ isDocPage = false, isWelcomePage = false }: HeaderProps) => {
         })) || []
       }
       onSearch={handleSearch}
-      onQaClick={() => setQaModalOpen?.(true)}
+      onQaClick={openQaOrLogin}
     >
       <Stack sx={{ ml: 2 }} direction='row' alignItems='center' gap={1}>
+        <Button
+          size='small'
+          color='inherit'
+          onClick={openSiteFeedbackOrLogin}
+          sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+        >
+          问题反馈
+        </Button>
         <ThemeSwitch />
-        {!!authInfo && (
+        {!isAuthInfoEmpty(authInfo) && authInfo && (
           <>
             {authInfo.username && (
               <Typography
@@ -143,6 +189,10 @@ const Header = ({ isDocPage = false, isWelcomePage = false }: HeaderProps) => {
           </>
         )}
       </Stack>
+      <SiteFeedbackDialog
+        open={siteFbOpen}
+        onClose={() => setSiteFbOpen(false)}
+      />
       <QaModal />
     </CustomHeader>
   );
@@ -150,16 +200,46 @@ const Header = ({ isDocPage = false, isWelcomePage = false }: HeaderProps) => {
 
 export const WelcomeHeader = () => {
   const basePath = useBasePath();
+  const [siteFbOpen, setSiteFbOpen] = useState(false);
   const {
     mobile = false,
     kbDetail,
     catalogWidth,
     setQaModalOpen,
+    setLoginModalOpen,
     authInfo,
   } = useStore();
+
+  const openQaOrLogin = () => {
+    if (isAuthInfoEmpty(authInfo)) {
+      setLoginModalOpen?.(true);
+      return;
+    }
+    setQaModalOpen?.(true);
+  };
+
+  const openSiteFeedbackOrLogin = () => {
+    if (isAuthInfoEmpty(authInfo)) {
+      setLoginModalOpen?.(true);
+      return;
+    }
+    if (lacksAccountIdentityForSiteFeedback(authInfo)) {
+      message.error(
+        '问题反馈需使用账号登录（用户名密码或企业 SSO），当前为访问口令认证',
+      );
+      setLoginModalOpen?.(true);
+      return;
+    }
+    setSiteFbOpen(true);
+  };
+
   const handleSearch = (value?: string, type: 'chat' | 'search' = 'chat') => {
     if (value?.trim()) {
       if (type === 'chat') {
+        if (isAuthInfoEmpty(authInfo)) {
+          setLoginModalOpen?.(true);
+          return;
+        }
         sessionStorage.setItem('chat_search_query', value.trim());
         setQaModalOpen?.(true);
       } else {
@@ -188,27 +268,42 @@ export const WelcomeHeader = () => {
         })) || []
       }
       onSearch={handleSearch}
-      onQaClick={() => setQaModalOpen?.(true)}
+      onQaClick={openQaOrLogin}
     >
-      {!!authInfo && (
-        <Stack sx={{ ml: 2 }} direction='row' alignItems='center' gap={1}>
-          {authInfo.username && (
-            <Typography
-              variant='body2'
-              sx={{
-                color: 'text.secondary',
-                maxWidth: 120,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {authInfo.username}
-            </Typography>
-          )}
-          <LogoutButton />
-        </Stack>
-      )}
+      <Stack sx={{ ml: 2 }} direction='row' alignItems='center' gap={1}>
+        <Button
+          size='small'
+          color='inherit'
+          onClick={openSiteFeedbackOrLogin}
+          sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+        >
+          问题反馈
+        </Button>
+        <ThemeSwitch />
+        {!isAuthInfoEmpty(authInfo) && authInfo && (
+          <>
+            {authInfo.username && (
+              <Typography
+                variant='body2'
+                sx={{
+                  color: 'text.secondary',
+                  maxWidth: 120,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {authInfo.username}
+              </Typography>
+            )}
+            <LogoutButton />
+          </>
+        )}
+      </Stack>
+      <SiteFeedbackDialog
+        open={siteFbOpen}
+        onClose={() => setSiteFbOpen(false)}
+      />
       <QaModal />
     </WelcomeHeaderComponent>
   );

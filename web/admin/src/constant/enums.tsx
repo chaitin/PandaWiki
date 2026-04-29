@@ -848,6 +848,12 @@ export const FeedbackType = {
   3: '其他',
 };
 
+/** 文档纠错 / 站点问题反馈（后台列表） */
+export const DocumentFeedbackCategory = {
+  document: '文档纠错',
+  general: '站点问题',
+};
+
 export const DocWidth = {
   full: {
     label: '全屏',

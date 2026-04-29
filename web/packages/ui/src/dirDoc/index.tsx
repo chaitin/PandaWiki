@@ -32,6 +32,7 @@ interface DirDocProps {
     }[];
   }[];
   basePath?: string;
+  openNode?: (nodeId: string) => void;
 }
 
 const StyledDirDocItem = styled('div')(({ theme }) => ({
@@ -95,7 +96,8 @@ const DirDocItem: React.FC<{
   index: number;
   basePath: string;
   size: any;
-}> = React.memo(({ item, index, basePath, size }) => {
+  openNode?: (nodeId: string) => void;
+}> = React.memo(({ item, index, basePath, size, openNode }) => {
   const cardRef = useCardFadeInAnimation(0.2 + index * 0.1, 0.1);
 
   return (
@@ -113,8 +115,16 @@ const DirDocItem: React.FC<{
           {item.recommend_nodes.slice(0, 4).map((it: any) => (
             <StyledDirDocItemFile
               key={it.id}
-              href={`${basePath}/node/${it.id}`}
-              target='_blank'
+              href={openNode ? undefined : `${basePath}/node/${it.id}`}
+              target={openNode ? undefined : '_blank'}
+              onClick={
+                openNode
+                  ? e => {
+                      e.preventDefault();
+                      openNode(it.id);
+                    }
+                  : undefined
+              }
             >
               {it.emoji ? (
                 <Box>{it.emoji}</Box>
@@ -126,8 +136,18 @@ const DirDocItem: React.FC<{
           ))}
         </StyledDirDocItemFiles>
         <Button
-          href={`${basePath}/node/${item.recommend_nodes[0]?.id}`}
-          target='_blank'
+          {...(openNode
+            ? {
+                onClick: (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  const id = item.recommend_nodes[0]?.id;
+                  if (id) openNode(id);
+                },
+              }
+            : {
+                href: `${basePath}/node/${item.recommend_nodes[0]?.id}`,
+                target: '_blank' as const,
+              })}
           sx={{ gap: 1, alignSelf: 'flex-end' }}
           variant='text'
           color='primary'
@@ -140,7 +160,7 @@ const DirDocItem: React.FC<{
 });
 
 const DirDoc: React.FC<DirDocProps> = React.memo(
-  ({ title, items = [], mobile, basePath = '' }) => {
+  ({ title, items = [], mobile, basePath = '', openNode }) => {
     const size =
       typeof mobile === 'boolean' ? (mobile ? 12 : 4) : { xs: 12, md: 4 };
 
@@ -158,6 +178,7 @@ const DirDoc: React.FC<DirDocProps> = React.memo(
               index={index}
               basePath={basePath}
               size={size}
+              openNode={openNode}
             />
           ))}
         </Grid>

@@ -31,6 +31,13 @@ interface StoreContextType {
   setQaModalOpen?: (value: boolean) => void;
   chatSearchImages?: File[];
   setChatSearchImages?: Dispatch<SetStateAction<File[]>>;
+  loginModalOpen?: boolean;
+  setLoginModalOpen?: (value: boolean) => void;
+  persistClientAuthInfo?: (
+    info: GithubComChaitinPandaWikiProApiShareV1AuthInfoResp,
+  ) => void;
+  /** 退出或显式登出时清除本地 authInfo（含 localStorage） */
+  clearClientAuthInfo?: () => void;
 }
 
 export const StoreContext = createContext<StoreContextType | undefined>(
@@ -87,6 +94,23 @@ export default function StoreProvider({
   const [tree, setTree] = useState<ITreeItem[] | undefined>(initialTree);
   const [qaModalOpen, setQaModalOpen] = useState(false);
   const [chatSearchImages, setChatSearchImages] = useState<File[]>([]);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
+
+  const persistClientAuthInfo = (
+    info: GithubComChaitinPandaWikiProApiShareV1AuthInfoResp,
+  ) => {
+    try {
+      window.localStorage.setItem('authInfo', JSON.stringify(info));
+    } catch (_) {}
+    setLocalAuthInfo(info);
+  };
+
+  const clearClientAuthInfo = () => {
+    try {
+      window.localStorage.removeItem('authInfo');
+    } catch (_) {}
+    setLocalAuthInfo(undefined);
+  };
 
   const [catalogShow, setCatalogShow] = useState(
     catalogSettings?.catalog_visible !== 2,
@@ -137,6 +161,10 @@ export default function StoreProvider({
         setQaModalOpen,
         chatSearchImages,
         setChatSearchImages,
+        loginModalOpen,
+        setLoginModalOpen,
+        persistClientAuthInfo,
+        clearClientAuthInfo,
       }}
     >
       {children}

@@ -85,8 +85,23 @@ const Layout = async ({
   //   email: 'admin@admin.com',
   //   avatar_url: 'https://test.com/avatar.png',
   // };
-  const kbDetail: any =
+  const headerKbId =
+    headersList.get('x-kb-id')?.trim() || process.env.DEV_KB_ID?.trim() || '';
+
+  const kbDetailRaw: any =
     kbDetailResolve.status === 'fulfilled' ? kbDetailResolve.value : undefined;
+
+  const kbDetail: any = kbDetailRaw
+    ? {
+        ...kbDetailRaw,
+        kb_id: String(kbDetailRaw.kb_id || kbDetailRaw.id || headerKbId || ''),
+        id: String(kbDetailRaw.id || kbDetailRaw.kb_id || headerKbId || ''),
+      }
+    : undefined;
+
+  const kbIdForClient = String(
+    kbDetail?.kb_id || kbDetail?.id || headerKbId || '',
+  ).trim();
 
   // if (
   //   authInfoResolve.status === 'rejected' &&
@@ -106,7 +121,7 @@ const Layout = async ({
       <Script
         id='base-path'
         dangerouslySetInnerHTML={{
-          __html: `window._BASE_PATH_ = '${basePath}';`,
+          __html: `window._BASE_PATH_ = '${basePath}';window.__KB_ID__=${JSON.stringify(kbIdForClient)};`,
         }}
       />
       <body

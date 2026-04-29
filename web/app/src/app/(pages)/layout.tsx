@@ -1,4 +1,5 @@
 import StoreProvider from '@/provider';
+import PagesClientChrome from '@/components/PagesClientChrome';
 import { getShareV1AppWebInfo } from '@/request/ShareApp';
 import { getShareV1NodeList } from '@/request/ShareNode';
 import parse, { DOMNode, domToReact } from 'html-react-parser';
@@ -37,7 +38,7 @@ const Layout = async ({
       ) : null}
 
       <StoreProvider nodeList={nodeList || []} tree={tree}>
-        {children}
+        <PagesClientChrome>{children}</PagesClientChrome>
       </StoreProvider>
 
       {kbDetail?.settings?.body_code && (

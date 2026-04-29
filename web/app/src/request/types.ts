@@ -289,6 +289,8 @@ export interface DomainAppDetailResp {
 export interface DomainAppInfoResp {
   base_url?: string;
   name?: string;
+  /** 当前 Web/应用所属知识库 ID，与请求 X-KB-ID 一致 */
+  kb_id?: string;
   recommend_nodes?: DomainRecommendNodeListResp[];
   settings?: DomainAppSettingsResp;
 }

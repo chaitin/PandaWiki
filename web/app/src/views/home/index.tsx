@@ -7,6 +7,7 @@ import { DomainRecommendNodeListResp } from '@/request/types';
 import { useStore } from '@/provider';
 import { useBasePath } from '@/hooks';
 import { getImagePath } from '@/utils/getImagePath';
+import { isAuthInfoEmpty } from '@/utils/authInfo';
 const handleFaqProps = (config: any = {}) => {
   return {
     title: config.title || '链接组',
@@ -22,10 +23,12 @@ const handleBasicDocProps = (
   config: any = {},
   docs: DomainRecommendNodeListResp[],
   basePath: string,
+  openNode?: (nodeId: string) => void,
 ) => {
   return {
     title: config.title || '文档摘要卡片',
     basePath,
+    openNode,
     items:
       docs?.map(item => ({
         ...item,
@@ -38,10 +41,12 @@ const handleDirDocProps = (
   config: any = {},
   docs: DomainRecommendNodeListResp[],
   basePath: string,
+  openNode?: (nodeId: string) => void,
 ) => {
   return {
     title: config.title || '文档目录卡片',
     basePath,
+    openNode,
     items:
       docs?.map(item => ({
         id: item.id,
@@ -58,10 +63,12 @@ const handleSimpleDocProps = (
   config: any = {},
   docs: DomainRecommendNodeListResp[],
   basePath: string,
+  openNode?: (nodeId: string) => void,
 ) => {
   return {
     title: config.title || '简易文档卡片',
     basePath,
+    openNode,
     items:
       docs?.map(item => ({
         ...item,
@@ -206,14 +213,41 @@ const Welcome = () => {
     kbDetail,
     setQaModalOpen,
     setChatSearchImages,
+    authInfo,
+    setLoginModalOpen,
   } = useStore();
   const settings = kbDetail?.settings;
+
+  const openNodeIfAuthed = (nodeId: string) => {
+    if (isAuthInfoEmpty(authInfo)) {
+      setLoginModalOpen?.(true);
+      return;
+    }
+    window.open(`${basePath}/node/${nodeId}`, '_blank');
+  };
+
+  const onBannerActionButtonNavigate = (href: string) => {
+    if (isAuthInfoEmpty(authInfo)) {
+      setLoginModalOpen?.(true);
+      return;
+    }
+    window.open(href, '_blank');
+  };
+
   const onBannerSearch = (
     searchText: string,
     type: 'chat' | 'search' = 'chat',
     images?: File[],
     topN?: number,
   ) => {
+    if (
+      type === 'chat' &&
+      isAuthInfoEmpty(authInfo) &&
+      (searchText.trim() || (images && images.length > 0))
+    ) {
+      setLoginModalOpen?.(true);
+      return;
+    }
     if (searchText.trim() || (images && images.length > 0)) {
       if (images && images.length > 0) {
         setChatSearchImages?.(images);
@@ -264,17 +298,33 @@ const Welcome = () => {
       case 'faq':
         return handleFaqProps(config);
       case 'basic_doc':
-        return handleBasicDocProps(config, data.nodes, basePath);
+        return handleBasicDocProps(
+          config,
+          data.nodes,
+          basePath,
+          openNodeIfAuthed,
+        );
       case 'dir_doc':
-        return handleDirDocProps(config, data.nodes, basePath);
+        return handleDirDocProps(
+          config,
+          data.nodes,
+          basePath,
+          openNodeIfAuthed,
+        );
       case 'simple_doc':
-        return handleSimpleDocProps(config, data.nodes, basePath);
+        return handleSimpleDocProps(
+          config,
+          data.nodes,
+          basePath,
+          openNodeIfAuthed,
+        );
       case 'carousel':
         return handleCarouselProps(config, basePath);
       case 'banner':
         return {
           ...handleBannerProps(config, basePath),
           onSearch: onBannerSearch,
+          onActionButtonNavigate: onBannerActionButtonNavigate,
           btns: (config?.btns || []).map((item: any) => ({
             ...item,
             href: getImagePath(item.href || '/node', basePath),

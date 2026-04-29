@@ -2,8 +2,9 @@ import Card from '@/components/Card';
 
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Comments from './Comments';
+import DocumentSiteFeedback from './DocumentSiteFeedback';
 import Evaluate from './Evaluate';
 import { Stack, Select, MenuItem } from '@mui/material';
 import { CusTabs } from '@ctzhian/ui';
@@ -14,6 +15,10 @@ const Feedback = () => {
   const [tab, setTab] = useState(tabParam || 'evaluate');
   const [commentStatus, setCommentStatus] = useState(99);
   const [showCommentsFilter, setShowCommentsFilter] = useState(false);
+
+  useEffect(() => {
+    setTab(tabParam || 'evaluate');
+  }, [tabParam]);
 
   return (
     <Card>
@@ -38,6 +43,7 @@ const Feedback = () => {
           list={[
             { label: 'AI 问答评价', value: 'evaluate' },
             { label: '文档评论', value: 'comments' },
+            { label: '文档与站点反馈', value: 'document_feedback' },
           ]}
         />
         {showCommentsFilter && (
@@ -62,6 +68,7 @@ const Feedback = () => {
         />
       )}
       {tab === 'evaluate' && <Evaluate />}
+      {tab === 'document_feedback' && <DocumentSiteFeedback />}
     </Card>
   );
 };

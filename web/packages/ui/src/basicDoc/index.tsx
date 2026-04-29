@@ -19,6 +19,8 @@ interface BasicDocProps {
     emoji?: string;
   }[];
   basePath?: string;
+  /** 若提供则替代默认的 `window.open` 打开文档 */
+  openNode?: (nodeId: string) => void;
 }
 
 const StyledBasicDocItem = styled('div')(({ theme }) => ({
@@ -80,7 +82,8 @@ const BasicDocItem: React.FC<{
   index: number;
   basePath: string;
   size: any;
-}> = React.memo(({ item, index, basePath, size }) => {
+  openNode?: (nodeId: string) => void;
+}> = React.memo(({ item, index, basePath, size, openNode }) => {
   const cardRef = useCardFadeInAnimation(0.2 + index * 0.1, 0.1);
 
   return (
@@ -88,6 +91,10 @@ const BasicDocItem: React.FC<{
       <StyledBasicDocItem
         ref={cardRef as React.Ref<HTMLDivElement>}
         onClick={() => {
+          if (openNode) {
+            openNode(item.id);
+            return;
+          }
           window.open(`${basePath}/node/${item.id}`, '_blank');
         }}
       >
@@ -106,7 +113,7 @@ const BasicDocItem: React.FC<{
 });
 
 const BasicDoc: React.FC<BasicDocProps> = React.memo(
-  ({ title, items = [], mobile, basePath = '' }) => {
+  ({ title, items = [], mobile, basePath = '', openNode }) => {
     const size =
       typeof mobile === 'boolean' ? (mobile ? 12 : 4) : { xs: 12, md: 4 };
 
@@ -124,6 +131,7 @@ const BasicDoc: React.FC<BasicDocProps> = React.memo(
               index={index}
               basePath={basePath}
               size={size}
+              openNode={openNode}
             />
           ))}
         </Grid>

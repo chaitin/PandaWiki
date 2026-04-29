@@ -27,6 +27,8 @@ interface SimpleDocProps {
     emoji?: string;
   }[];
   basePath?: string;
+  /** 若提供则替代默认链接打开文档 */
+  openNode?: (nodeId: string) => void;
 }
 
 const StyledSimpleDocItem = styled('a')(({ theme }) => ({
@@ -64,15 +66,24 @@ const SimpleDocItem: React.FC<{
   index: number;
   basePath: string;
   size: any;
-}> = React.memo(({ item, index, basePath, size }) => {
+  openNode?: (nodeId: string) => void;
+}> = React.memo(({ item, index, basePath, size, openNode }) => {
   const cardRef = useCardFadeInAnimation(0.2 + index * 0.1, 0.1);
 
   return (
     <Grid size={size} key={index}>
       <StyledSimpleDocItem
         ref={cardRef as React.Ref<HTMLAnchorElement>}
-        href={`${basePath}/node/${item.id}`}
-        target='_blank'
+        href={openNode ? undefined : `${basePath}/node/${item.id}`}
+        target={openNode ? undefined : '_blank'}
+        onClick={
+          openNode
+            ? e => {
+                e.preventDefault();
+                openNode(item.id);
+              }
+            : undefined
+        }
       >
         <StyledSimpleDocItemTitle>
           {item.emoji ? (
@@ -91,7 +102,7 @@ const SimpleDocItem: React.FC<{
 });
 
 const SimpleDoc: React.FC<SimpleDocProps> = React.memo(
-  ({ title, items = [], mobile, basePath = '' }) => {
+  ({ title, items = [], mobile, basePath = '', openNode }) => {
     const size =
       typeof mobile === 'boolean' ? (mobile ? 12 : 4) : { xs: 12, md: 4 };
 
@@ -109,6 +120,7 @@ const SimpleDoc: React.FC<SimpleDocProps> = React.memo(
               index={index}
               basePath={basePath}
               size={size}
+              openNode={openNode}
             />
           ))}
         </Grid>

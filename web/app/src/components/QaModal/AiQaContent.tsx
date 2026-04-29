@@ -82,6 +82,8 @@ import {
 
 import { getImagePath } from '@/utils/getImagePath';
 
+export type ChatChainStep = { step: number; title: string; detail: string };
+
 export interface ConversationItem {
   image_paths: string[];
   q: string;
@@ -91,6 +93,8 @@ export interface ConversationItem {
   message_id: string;
   source: 'history' | 'chat';
   chunk_result: ChunkResultItem[];
+  /** 附图多步理解（与向量检索准备），由 SSE chain_step 推送 */
+  chain_steps?: ChatChainStep[];
   result_expend: boolean;
   thinking_expend: boolean;
   thinking_content: string;
@@ -107,6 +111,7 @@ const AnswerStatus = {
   2: '思考中...',
   3: '正在回答',
   4: '',
+  5: '分析附图并检索资料…',
 };
 
 const LoadingContent = ({
@@ -416,9 +421,9 @@ const AiQaContent: React.FC<{
     topNOverride?: number,
   ) => {
     setLoading(true);
-    setThinking(1);
 
     const imagePaths = await uploadAllImages(images);
+    setThinking(imagePaths.length > 0 ? 5 : 1);
 
     let token = '';
 
@@ -532,7 +537,40 @@ const AiQaContent: React.FC<{
 
               return newFullAnswer;
             });
+          } else if (type === 'chain_step') {
+            try {
+              const step = JSON.parse(content) as {
+                step: number;
+                title: string;
+                detail: string;
+              };
+              if (
+                typeof step?.step === 'number' &&
+                typeof step?.title === 'string'
+              ) {
+                setConversation(preConversation => {
+                  const newConversation = [...preConversation];
+                  const lastConversation =
+                    newConversation[newConversation.length - 1];
+                  if (lastConversation) {
+                    const prev = lastConversation.chain_steps || [];
+                    lastConversation.chain_steps = [
+                      ...prev,
+                      {
+                        step: step.step,
+                        title: step.title,
+                        detail: String(step.detail ?? ''),
+                      },
+                    ];
+                  }
+                  return newConversation;
+                });
+              }
+            } catch {
+              /* ignore malformed chain_step */
+            }
           } else if (type === 'chunk_result') {
+            setThinking(1);
             setConversation(preConversation => {
               const newConversation = [...preConversation];
               const lastConversation =
@@ -581,6 +619,7 @@ const AiQaContent: React.FC<{
       update_time: '',
       source: 'chat',
       chunk_result: [],
+      chain_steps: [],
       thinking_content: '',
       result_expend: true,
       thinking_expend: true,
@@ -726,6 +765,7 @@ const AiQaContent: React.FC<{
         if (res.messages) {
           let current: Partial<ConversationItem> = {
             chunk_result: [],
+            chain_steps: [],
           };
           res.messages.forEach(message => {
             if (message.role === 'user') {
@@ -733,6 +773,7 @@ const AiQaContent: React.FC<{
                 image_paths: message.image_paths || [],
                 q: message.content,
                 chunk_result: [],
+                chain_steps: [],
               };
             } else if (message.role === 'assistant') {
               if (
@@ -746,6 +787,7 @@ const AiQaContent: React.FC<{
                 current.score = 0;
                 current.message_id = '';
                 current.thinking_content = thinkingContent;
+                current.chain_steps = current.chain_steps || [];
                 current.source = 'history';
                 current.id = uuidv4();
                 conversation.push(current as ConversationItem);
@@ -766,6 +808,7 @@ const AiQaContent: React.FC<{
               message_id: '',
               source: 'history',
               chunk_result: [],
+              chain_steps: [],
               thinking_content: '',
               id: uuidv4(),
               result_expend: true,
@@ -925,6 +968,48 @@ const AiQaContent: React.FC<{
               {item.q && <StyledUserBubble>{item.q}</StyledUserBubble>}
               {/* AI回答气泡 - 左对齐 */}
               <StyledAiBubble>
+                {(item.chain_steps?.length ?? 0) > 0 && (
+                  <StyledThinkingAccordion defaultExpanded>
+                    <StyledThinkingAccordionSummary
+                      expandIcon={<ExpandMoreIcon sx={{ fontSize: 16 }} />}
+                    >
+                      <Typography
+                        variant='body2'
+                        sx={theme => ({
+                          fontSize: 12,
+                          color: alpha(theme.palette.text.primary, 0.5),
+                        })}
+                      >
+                        思维链（附图检索准备）
+                      </Typography>
+                    </StyledThinkingAccordionSummary>
+                    <StyledThinkingAccordionDetails>
+                      <Stack gap={1.5} alignItems='stretch'>
+                        {(item.chain_steps || []).map((s, si) => (
+                          <Box key={`${s.step}-${si}`}>
+                            <Typography
+                              variant='body2'
+                              sx={{ fontSize: 12, fontWeight: 600, mb: 0.5 }}
+                            >
+                              {s.step}. {s.title}
+                            </Typography>
+                            <Typography
+                              variant='body2'
+                              sx={theme => ({
+                                fontSize: 12,
+                                color: alpha(theme.palette.text.primary, 0.65),
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                              })}
+                            >
+                              {s.detail}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Stack>
+                    </StyledThinkingAccordionDetails>
+                  </StyledThinkingAccordion>
+                )}
                 {/* 搜索结果 */}
                 {item.chunk_result.length > 0 && (
                   <StyledChunkAccordion

@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -14,6 +16,7 @@ import (
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/repo/pg"
+	"github.com/chaitin/panda-wiki/store/s3"
 	"github.com/chaitin/panda-wiki/utils"
 )
 
@@ -25,12 +28,13 @@ type ChatUsecase struct {
 	blockWordRepo       *pg.BlockWordRepo
 	kbRepo              *pg.KnowledgeBaseRepository
 	AuthRepo            *pg.AuthRepo
+	s3Client            *s3.MinioClient
 	logger              *log.Logger
 	modelkit            *modelkit.ModelKit
 }
 
 func NewChatUsecase(llmUsecase *LLMUsecase, kbRepo *pg.KnowledgeBaseRepository, conversationUsecase *ConversationUsecase, modelUsecase *ModelUsecase, appRepo *pg.AppRepository,
-	blockWordRepo *pg.BlockWordRepo, authRepo *pg.AuthRepo, logger *log.Logger) (*ChatUsecase, error) {
+	blockWordRepo *pg.BlockWordRepo, authRepo *pg.AuthRepo, s3Client *s3.MinioClient, logger *log.Logger) (*ChatUsecase, error) {
 	modelkit := modelkit.NewModelKit(logger.Logger)
 	u := &ChatUsecase{
 		llmUsecase:          llmUsecase,
@@ -40,6 +44,7 @@ func NewChatUsecase(llmUsecase *LLMUsecase, kbRepo *pg.KnowledgeBaseRepository, 
 		blockWordRepo:       blockWordRepo,
 		kbRepo:              kbRepo,
 		AuthRepo:            authRepo,
+		s3Client:            s3Client,
 		logger:              logger.WithModule("usecase.chat"),
 		modelkit:            modelkit,
 	}
@@ -48,6 +53,22 @@ func NewChatUsecase(llmUsecase *LLMUsecase, kbRepo *pg.KnowledgeBaseRepository, 
 		return nil, err
 	}
 	return u, nil
+}
+
+func (u *ChatUsecase) pickVisionModel(ctx context.Context, chatFallback *domain.Model) (*domain.Model, error) {
+	vm, err := u.modelUsecase.GetModelByType(ctx, domain.ModelTypeAnalysisVL)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		u.logger.Warn("get analysis-vl model failed, try chat model", log.Error(err))
+	}
+	if err == nil && vm != nil {
+		if vm.ID == "" || vm.Parameters.SupportImages {
+			return vm, nil
+		}
+	}
+	if chatFallback.ID != "" && !chatFallback.Parameters.SupportImages {
+		return nil, fmt.Errorf("请配置支持多模态的 analysis-vl 视觉模型，或为对话模型开启「支持图片」后再使用附图提问")
+	}
+	return chatFallback, nil
 }
 
 func (u *ChatUsecase) initDFA() error {
@@ -223,7 +244,40 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 		if topN == 0 {
 			topN = 10
 		}
-		messages, rankedNodes, err := u.llmUsecase.BuildConversationMessageWithRAG(ctx, req.ConversationID, req.KBID, groupIds, req.Prompt, topN)
+
+		retrievalAugment := ""
+		if len(req.ImagePaths) > 0 && u.s3Client != nil {
+			sendChainStep := func(step int, title, detail string) {
+				b, jErr := json.Marshal(map[string]any{"step": step, "title": title, "detail": detail})
+				if jErr != nil {
+					return
+				}
+				eventCh <- domain.SSEEvent{Type: "chain_step", Content: string(b)}
+			}
+			sendChainStep(0, "附图检索准备", "已收到附图，将依次完成：识别画面 → 品类判断 →（若命中）按品类提取检索要点 → 向量检索。")
+
+			dataURL, rerr := ResolveImageRefForVision(ctx, u.s3Client, req.ImagePaths[0])
+			if rerr != nil {
+				u.logger.Error("resolve image for chat vision failed", log.Error(rerr))
+				sendChainStep(0, "附图检索准备", "无法加载图片："+rerr.Error())
+			} else {
+				vm, verr := u.pickVisionModel(ctx, req.ModelInfo)
+				if verr != nil {
+					sendChainStep(0, "附图检索准备", verr.Error())
+				} else {
+					aug, aerr := u.llmUsecase.BuildImageUnderstandingForRAG(ctx, vm, req.KBID, strings.TrimSpace(req.Message), dataURL, sendChainStep)
+					if aerr != nil {
+						u.logger.Error("image understanding for RAG failed", log.Error(aerr))
+						sendChainStep(0, "附图检索准备", "视觉分析失败："+aerr.Error())
+					} else {
+						retrievalAugment = aug
+					}
+				}
+			}
+			sendChainStep(4, "向量检索", "正在根据上述理解与知识库进行关联检索…")
+		}
+
+		messages, rankedNodes, err := u.llmUsecase.BuildConversationMessageWithRAG(ctx, req.ConversationID, req.KBID, groupIds, req.Prompt, topN, retrievalAugment)
 		if err != nil {
 			u.logger.Error("build messages failed", log.Error(err))
 			eventCh <- domain.SSEEvent{Type: "error", Content: err.Error()}

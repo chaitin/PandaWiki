@@ -98,12 +98,15 @@ export interface DomainDocumentFeedbackListItem {
   content?: string;
   correction_suggestion?: string;
   created_at?: string;
+  feedback_category?: string;
   id?: string;
   info?: DomainDocumentFeedbackInfo;
   ip_address?: DomainIPAddress;
   kb_id?: string;
   node_id?: string;
   node_name?: string;
+  submitter_name?: string;
+  remote_ip?: string;
   user_id?: string;
 }
 
@@ -650,6 +653,8 @@ export interface GetApiProV1DocumentListParams {
   page: number;
   /** @min 1 */
   per_page: number;
+  /** document | general */
+  feedback_category?: string;
 }
 
 export interface GetApiProV1NodeReleaseDetailParams {
@@ -690,10 +695,12 @@ export interface PostApiV1LicensePayload {
 }
 
 export interface PostShareProV1DocumentFeedbackPayload {
-  /** Node ID */
-  node_id: string;
+  /** Node ID，站点问题反馈可为空 */
+  node_id?: string;
   /** Content */
   content: string;
+  /** document | general，默认 document */
+  feedback_category?: string;
   /** Correction Suggestion */
   correction_suggestion?: string;
   /**

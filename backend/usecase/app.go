@@ -587,6 +587,7 @@ func (u *AppUsecase) GetMCPServerAppInfo(ctx context.Context, kbID string) (*dom
 		return nil, err
 	}
 	appInfo := &domain.AppInfoResp{
+		KBID: kbID,
 		Settings: domain.AppSettingsResp{
 			MCPServerSettings: apiApp.Settings.MCPServerSettings,
 		},
@@ -636,6 +637,7 @@ func (u *AppUsecase) ShareGetWebAppInfo(ctx context.Context, kbID string, authId
 	}
 	appInfo := &domain.AppInfoResp{
 		Name:    app.Name,
+		KBID:    kbID,
 		BaseUrl: kb.AccessSettings.BaseURL,
 		Settings: domain.AppSettingsResp{
 			Title:              app.Settings.Title,
@@ -713,6 +715,7 @@ func (u *AppUsecase) GetWidgetAppInfo(ctx context.Context, kbID string) (*domain
 		return nil, err
 	}
 	appInfo := &domain.AppInfoResp{
+		KBID: kbID,
 		Settings: domain.AppSettingsResp{
 			Title:              webApp.Settings.Title,
 			Icon:               webApp.Settings.Icon,
@@ -896,6 +899,7 @@ func (u *AppUsecase) GetOpenAIAPIAppInfo(ctx context.Context, kbID string) (*dom
 		return nil, err
 	}
 	appInfo := &domain.AppInfoResp{
+		KBID: kbID,
 		Settings: domain.AppSettingsResp{
 			OpenAIAPIBotSettings: apiApp.Settings.OpenAIAPIBotSettings,
 		},

@@ -627,6 +627,8 @@ type CreateAppReq struct {
 type AppInfoResp struct {
 	Name string `json:"name"`
 
+	// KBID 当前应用所属知识库 ID（与请求头 X-KB-ID 一致，供前端登录等场景使用）
+	KBID           string                   `json:"kb_id"`
 	Settings       AppSettingsResp          `json:"settings" gorm:"type:jsonb"`
 	BaseUrl        string                   `json:"base_url"`
 	RecommendNodes []*RecommendNodeListResp `json:"recommend_nodes,omitempty" gorm:"-"`

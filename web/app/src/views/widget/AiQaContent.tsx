@@ -80,6 +80,8 @@ import { handleThinkingContent } from './utils';
 import { useBasePath } from '@/hooks';
 import { getImagePath } from '@/utils/getImagePath';
 
+export type ChatChainStep = { step: number; title: string; detail: string };
+
 export interface ConversationItem {
   q: string;
   a: string;
@@ -88,6 +90,7 @@ export interface ConversationItem {
   message_id: string;
   source: 'history' | 'chat';
   chunk_result: ChunkResultItem[];
+  chain_steps?: ChatChainStep[];
   thinking_content: string;
   id: string;
 }
@@ -102,6 +105,7 @@ const AnswerStatus = {
   2: '思考中...',
   3: '正在回答',
   4: '',
+  5: '分析附图并检索资料…',
 };
 
 const LoadingContent = ({
@@ -482,7 +486,40 @@ const AiQaContent: React.FC<{
 
               return newFullAnswer;
             });
+          } else if (type === 'chain_step') {
+            try {
+              const step = JSON.parse(content) as {
+                step: number;
+                title: string;
+                detail: string;
+              };
+              if (
+                typeof step?.step === 'number' &&
+                typeof step?.title === 'string'
+              ) {
+                setConversation(preConversation => {
+                  const newConversation = [...preConversation];
+                  const lastConversation =
+                    newConversation[newConversation.length - 1];
+                  if (lastConversation) {
+                    const prev = lastConversation.chain_steps || [];
+                    lastConversation.chain_steps = [
+                      ...prev,
+                      {
+                        step: step.step,
+                        title: step.title,
+                        detail: String(step.detail ?? ''),
+                      },
+                    ];
+                  }
+                  return newConversation;
+                });
+              }
+            } catch {
+              /* ignore */
+            }
           } else if (type === 'chunk_result') {
+            setThinking(1);
             setConversation(preConversation => {
               const newConversation = [...preConversation];
               const lastConversation =
@@ -522,6 +559,7 @@ const AiQaContent: React.FC<{
       update_time: '',
       source: 'chat',
       chunk_result: [],
+      chain_steps: [],
       thinking_content: '',
       id: uuidv4(),
     });
@@ -799,6 +837,48 @@ const AiQaContent: React.FC<{
 
               {/* AI回答气泡 - 左对齐 */}
               <StyledAiBubble>
+                {(item.chain_steps?.length ?? 0) > 0 && (
+                  <StyledThinkingAccordion defaultExpanded>
+                    <StyledThinkingAccordionSummary
+                      expandIcon={<ExpandMoreIcon sx={{ fontSize: 16 }} />}
+                    >
+                      <Typography
+                        variant='body2'
+                        sx={theme => ({
+                          fontSize: 12,
+                          color: alpha(theme.palette.text.primary, 0.5),
+                        })}
+                      >
+                        思维链（附图检索准备）
+                      </Typography>
+                    </StyledThinkingAccordionSummary>
+                    <StyledThinkingAccordionDetails>
+                      <Stack gap={1.5}>
+                        {(item.chain_steps || []).map((s, si) => (
+                          <Box key={`${s.step}-${si}`}>
+                            <Typography
+                              variant='body2'
+                              sx={{ fontSize: 12, fontWeight: 600, mb: 0.5 }}
+                            >
+                              {s.step}. {s.title}
+                            </Typography>
+                            <Typography
+                              variant='body2'
+                              sx={theme => ({
+                                fontSize: 12,
+                                color: alpha(theme.palette.text.primary, 0.65),
+                                whiteSpace: 'pre-wrap',
+                                wordBreak: 'break-word',
+                              })}
+                            >
+                              {s.detail}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Stack>
+                    </StyledThinkingAccordionDetails>
+                  </StyledThinkingAccordion>
+                )}
                 {/* 搜索结果 */}
                 {item.chunk_result.length > 0 && (
                   <StyledChunkAccordion defaultExpanded>
