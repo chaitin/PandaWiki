@@ -11,6 +11,7 @@ const OtherBread = {
   stat: { title: '统计', to: '/stat' },
   conversation: { title: '问答', to: '/conversation' },
   feedback: { title: '反馈', to: '/feedback' },
+  'category-prompt': { title: '提示词', to: '/category-prompt' },
   application: { title: '设置', to: '/setting' },
   release: { title: '发布', to: '/release' },
   contribution: { title: '贡献', to: '/contribution' },

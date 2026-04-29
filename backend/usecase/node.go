@@ -415,7 +415,7 @@ func (u *NodeUsecase) SummaryNode(ctx context.Context, req *domain.NodeSummaryRe
 				return "", fmt.Errorf("准备图片摘要失败: %w", err)
 			}
 		}
-		summary, err := u.llmUsecase.SummaryNode(ctx, model, node.Name, node.Content, docKind, imageDataURL)
+		summary, err := u.llmUsecase.SummaryNode(ctx, model, req.KBID, node.Name, node.Content, docKind, imageDataURL)
 		if err != nil {
 			return "", err
 		}

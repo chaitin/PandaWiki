@@ -21,6 +21,7 @@ import {
   IconGroup,
   IconGithub,
   IconAChilunshezhisheding,
+  IconWenjian,
 } from '@panda-wiki/icons';
 
 const MENUS = [
@@ -90,6 +91,14 @@ const MENUS = [
       ConstsUserKBPermission.UserKBPermissionFullControl,
       ConstsUserKBPermission.UserKBPermissionAuditManage,
     ],
+  },
+  {
+    label: '提示词',
+    value: '/category-prompt',
+    pathname: 'category-prompt',
+    icon: IconWenjian,
+    show: true,
+    perms: [ConstsUserKBPermission.UserKBPermissionFullControl],
   },
   {
     label: '设置',

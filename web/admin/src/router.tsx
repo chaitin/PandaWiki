@@ -93,6 +93,12 @@ const router = [
           LazyLoadable(lazy(() => import('./pages/member'))),
         ),
       },
+      {
+        path: '/category-prompt',
+        element: createElement(
+          LazyLoadable(lazy(() => import('./pages/category-prompt'))),
+        ),
+      },
     ],
   },
   {

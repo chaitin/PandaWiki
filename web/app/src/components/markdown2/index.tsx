@@ -1,7 +1,7 @@
 'use client';
 
 import { copyText } from '@/utils';
-import { Box, Dialog, useTheme } from '@mui/material';
+import { alpha, Box, Dialog, useTheme } from '@mui/material';
 import mk from '@vscode/markdown-it-katex';
 import hljs from 'highlight.js';
 import 'highlight.js/styles/an-old-hope.css';
@@ -66,6 +66,21 @@ const createMarkdownIt = (): MarkdownIt => {
 
   return md;
 };
+
+/** 文档轮廓 SVG，用作 mask（与问答结果列表 IconWenjian 语义一致） */
+const REF_LIST_DOC_ICON_MASK = encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg>',
+);
+
+/**
+ * 系统提示中的「### 引用列表」会渲染为标题 + blockquote；打上 class 便于加文档图标。
+ */
+function patchChatReferenceListHtml(html: string): string {
+  return html.replace(
+    /(<h[234]>引用列表<\/h[234]>\s*)<blockquote>/gi,
+    '$1<blockquote class="md-chat-reference-list">',
+  );
+}
 
 // ==================== 主组件 ====================
 const MarkDown2: React.FC<MarkDown2Props> = ({
@@ -409,7 +424,8 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
 
     try {
       // 渲染markdown（thinking标签在renderer rules中直接处理）
-      const newHtml = mdRef.current.render(processedContent);
+      const rawHtml = mdRef.current.render(processedContent);
+      const newHtml = patchChatReferenceListHtml(rawHtml);
 
       incrementalRender(containerRef.current, newHtml, lastContentRef.current);
       lastContentRef.current = processedContent;
@@ -508,6 +524,30 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
       padding: '20px',
       color: 'text.secondary',
       fontSize: '14px',
+    },
+
+    // 智能问答文末「引用列表」内链接前显示文档图标
+    '& .md-chat-reference-list a': {
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      verticalAlign: 'baseline',
+    },
+    '& .md-chat-reference-list a::before': {
+      content: '""',
+      display: 'inline-block',
+      width: '14px',
+      height: '14px',
+      flexShrink: 0,
+      backgroundColor: alpha(theme.palette.text.primary, 0.45),
+      maskImage: `url("data:image/svg+xml;charset=utf-8,${REF_LIST_DOC_ICON_MASK}")`,
+      WebkitMaskImage: `url("data:image/svg+xml;charset=utf-8,${REF_LIST_DOC_ICON_MASK}")`,
+      maskSize: 'contain',
+      maskRepeat: 'no-repeat',
+      maskPosition: 'center',
+      WebkitMaskSize: 'contain',
+      WebkitMaskRepeat: 'no-repeat',
+      WebkitMaskPosition: 'center',
     },
 
     // LaTeX 样式

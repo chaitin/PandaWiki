@@ -177,6 +177,8 @@ export interface ChunkResultItem {
   node_id: string;
   name: string;
   summary: string;
+  /** 文档 emoji；无则前端用默认文档图标 */
+  emoji?: string;
 }
 
 export interface ITreeItem {

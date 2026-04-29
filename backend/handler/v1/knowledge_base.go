@@ -57,6 +57,10 @@ func NewKnowledgeBaseHandler(
 	releaseGroup.POST("", h.CreateKBRelease)
 	releaseGroup.GET("/list", h.GetKBReleaseList)
 
+	catPromptGroup := group.Group("/category_prompts", h.auth.ValidateKBUserPerm(consts.UserKBPermissionFullControl))
+	catPromptGroup.GET("", h.GetCategoryPrompts)
+	catPromptGroup.PUT("", h.PutCategoryPrompts)
+
 	return h
 }
 
@@ -262,6 +266,38 @@ func (h *KnowledgeBaseHandler) CreateKBRelease(c echo.Context) error {
 	return h.NewResponseWithData(c, map[string]any{
 		"id": id,
 	})
+}
+
+func (h *KnowledgeBaseHandler) GetCategoryPrompts(c echo.Context) error {
+	kbID := c.QueryParam("id")
+	if kbID == "" {
+		kbID = c.QueryParam("kb_id")
+	}
+	if kbID == "" {
+		return h.NewResponseWithError(c, "kb id is required", nil)
+	}
+	items, err := h.usecase.GetCategoryPrompts(c.Request().Context(), kbID)
+	if err != nil {
+		return h.NewResponseWithError(c, "failed to load category prompts", err)
+	}
+	return h.NewResponseWithData(c, map[string]any{"items": items})
+}
+
+func (h *KnowledgeBaseHandler) PutCategoryPrompts(c echo.Context) error {
+	req := &domain.CategoryPromptsReq{}
+	if err := c.Bind(req); err != nil {
+		return h.NewResponseWithError(c, "invalid request", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request failed", err)
+	}
+	if req.KBID == "" {
+		return h.NewResponseWithError(c, "kb_id is required", nil)
+	}
+	if err := h.usecase.ReplaceCategoryPrompts(c.Request().Context(), req); err != nil {
+		return h.NewResponseWithError(c, "failed to save category prompts", err)
+	}
+	return h.NewResponseWithData(c, nil)
 }
 
 // GetKBReleaseList

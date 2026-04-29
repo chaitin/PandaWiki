@@ -236,6 +236,7 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 				NodeID:        node.NodeID,
 				Name:          node.NodeName,
 				Summary:       node.NodeSummary,
+				Emoji:         node.NodeEmoji,
 				NodePathNames: node.NodePathNames,
 			}
 			eventCh <- domain.SSEEvent{Type: "chunk_result", ChunkResult: &chunkResult}

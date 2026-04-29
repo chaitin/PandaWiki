@@ -23,26 +23,28 @@ import (
 )
 
 type KnowledgeBaseUsecase struct {
-	repo     *pg.KnowledgeBaseRepository
-	nodeRepo *pg.NodeRepository
-	ragRepo  *mq.RAGRepository
-	userRepo *pg.UserRepository
-	rag      rag.RAGService
-	kbCache  *cache.KBRepo
-	logger   *log.Logger
-	config   *config.Config
+	repo               *pg.KnowledgeBaseRepository
+	nodeRepo           *pg.NodeRepository
+	ragRepo            *mq.RAGRepository
+	userRepo           *pg.UserRepository
+	rag                rag.RAGService
+	kbCache            *cache.KBRepo
+	logger             *log.Logger
+	config             *config.Config
+	categoryPromptRepo *pg.CategoryPromptRepo
 }
 
-func NewKnowledgeBaseUsecase(repo *pg.KnowledgeBaseRepository, nodeRepo *pg.NodeRepository, ragRepo *mq.RAGRepository, userRepo *pg.UserRepository, rag rag.RAGService, kbCache *cache.KBRepo, logger *log.Logger, config *config.Config) (*KnowledgeBaseUsecase, error) {
+func NewKnowledgeBaseUsecase(repo *pg.KnowledgeBaseRepository, nodeRepo *pg.NodeRepository, ragRepo *mq.RAGRepository, userRepo *pg.UserRepository, rag rag.RAGService, kbCache *cache.KBRepo, logger *log.Logger, config *config.Config, categoryPromptRepo *pg.CategoryPromptRepo) (*KnowledgeBaseUsecase, error) {
 	u := &KnowledgeBaseUsecase{
-		repo:     repo,
-		nodeRepo: nodeRepo,
-		ragRepo:  ragRepo,
-		userRepo: userRepo,
-		rag:      rag,
-		logger:   logger.WithModule("usecase.knowledge_base"),
-		config:   config,
-		kbCache:  kbCache,
+		repo:               repo,
+		nodeRepo:           nodeRepo,
+		ragRepo:            ragRepo,
+		userRepo:           userRepo,
+		rag:                rag,
+		logger:             logger.WithModule("usecase.knowledge_base"),
+		config:             config,
+		kbCache:            kbCache,
+		categoryPromptRepo: categoryPromptRepo,
 	}
 	return u, nil
 }
@@ -322,4 +324,36 @@ func (u *KnowledgeBaseUsecase) KBUserDelete(ctx context.Context, req v1.KBUserDe
 	}
 
 	return nil
+}
+
+func (u *KnowledgeBaseUsecase) GetCategoryPrompts(ctx context.Context, kbID string) ([]domain.CategoryPromptItem, error) {
+	items, err := u.categoryPromptRepo.GetByKBID(ctx, kbID)
+	if err != nil {
+		return nil, err
+	}
+	if items == nil {
+		return []domain.CategoryPromptItem{}, nil
+	}
+	return items, nil
+}
+
+func (u *KnowledgeBaseUsecase) ReplaceCategoryPrompts(ctx context.Context, req *domain.CategoryPromptsReq) error {
+	out := make([]domain.CategoryPromptItem, 0, len(req.Items))
+	for _, it := range req.Items {
+		name := strings.TrimSpace(it.Name)
+		content := strings.TrimSpace(it.Content)
+		if name == "" {
+			continue
+		}
+		id := strings.TrimSpace(it.ID)
+		if id == "" {
+			id = uuid.New().String()
+		}
+		out = append(out, domain.CategoryPromptItem{
+			ID:      id,
+			Name:    name,
+			Content: content,
+		})
+	}
+	return u.categoryPromptRepo.ReplaceForKBID(ctx, req.KBID, out)
 }

@@ -560,7 +560,10 @@ const Banner = React.memo(
                 >
                   <ImageIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
                 </IconButton>
-                <Tooltip title='知识库检索返回的片段数量上限（1～10）'>
+                <Tooltip
+                  title='知识库检索返回的片段数量上限（1～10）'
+                  placement='top'
+                >
                   <FormControl
                     size='small'
                     sx={{ minWidth: 76, flexShrink: 0 }}

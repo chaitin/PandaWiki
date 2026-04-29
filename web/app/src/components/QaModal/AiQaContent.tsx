@@ -47,6 +47,7 @@ import {
   IconFasong,
   IconXingxing,
   IconXinduihua,
+  IconWenjian,
 } from '@panda-wiki/icons';
 import CloseIcon from '@mui/icons-material/Close';
 import Image from 'next/image';
@@ -963,6 +964,11 @@ const AiQaContent: React.FC<{
                               sx={theme => ({
                                 fontSize: 12,
                                 color: alpha(theme.palette.text.primary, 0.5),
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5,
+                                minWidth: 0,
+                                cursor: 'pointer',
                               })}
                               onClick={() => {
                                 window.open(
@@ -971,7 +977,32 @@ const AiQaContent: React.FC<{
                                 );
                               }}
                             >
-                              {chunk.name}
+                              <Box
+                                component='span'
+                                sx={{
+                                  flexShrink: 0,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  lineHeight: 1,
+                                }}
+                              >
+                                {chunk.emoji || (
+                                  <IconWenjian
+                                    sx={{ fontSize: 14, color: 'inherit' }}
+                                  />
+                                )}
+                              </Box>
+                              <Box
+                                component='span'
+                                sx={{
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                  minWidth: 0,
+                                }}
+                              >
+                                {chunk.name}
+                              </Box>
                             </Typography>
                           </StyledChunkItem>
                         ))}
@@ -1209,7 +1240,10 @@ const AiQaContent: React.FC<{
                 <IconTupian sx={{ fontSize: 20, color: 'text.secondary' }} />
               </IconButton>
 
-              <Tooltip title='知识库检索返回的片段数量上限（1～10）'>
+              <Tooltip
+                title='知识库检索返回的数量上限（1～10）'
+                placement='top'
+              >
                 <FormControl size='small' sx={{ minWidth: 76, flexShrink: 0 }}>
                   <Select
                     value={topN}

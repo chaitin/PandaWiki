@@ -26,15 +26,16 @@ import (
 )
 
 type LLMUsecase struct {
-	rag              rag.RAGService
-	conversationRepo *pg.ConversationRepository
-	kbRepo           *pg.KnowledgeBaseRepository
-	nodeRepo         *pg.NodeRepository
-	modelRepo        *pg.ModelRepository
-	promptRepo       *pg.PromptRepo
-	config           *config.Config
-	logger           *log.Logger
-	modelkit         *modelkit.ModelKit
+	rag                rag.RAGService
+	conversationRepo   *pg.ConversationRepository
+	kbRepo             *pg.KnowledgeBaseRepository
+	nodeRepo           *pg.NodeRepository
+	modelRepo          *pg.ModelRepository
+	promptRepo         *pg.PromptRepo
+	categoryPromptRepo *pg.CategoryPromptRepo
+	config             *config.Config
+	logger             *log.Logger
+	modelkit           *modelkit.ModelKit
 }
 
 const (
@@ -42,19 +43,20 @@ const (
 	summaryMaxChunks       = 4     // max chunks to process for summary
 )
 
-func NewLLMUsecase(config *config.Config, rag rag.RAGService, conversationRepo *pg.ConversationRepository, kbRepo *pg.KnowledgeBaseRepository, nodeRepo *pg.NodeRepository, modelRepo *pg.ModelRepository, promptRepo *pg.PromptRepo, logger *log.Logger) *LLMUsecase {
+func NewLLMUsecase(config *config.Config, rag rag.RAGService, conversationRepo *pg.ConversationRepository, kbRepo *pg.KnowledgeBaseRepository, nodeRepo *pg.NodeRepository, modelRepo *pg.ModelRepository, promptRepo *pg.PromptRepo, categoryPromptRepo *pg.CategoryPromptRepo, logger *log.Logger) *LLMUsecase {
 	tiktoken.SetBpeLoader(&utils.Localloader{})
 	modelkit := modelkit.NewModelKit(logger.Logger)
 	return &LLMUsecase{
-		config:           config,
-		rag:              rag,
-		conversationRepo: conversationRepo,
-		kbRepo:           kbRepo,
-		nodeRepo:         nodeRepo,
-		modelRepo:        modelRepo,
-		promptRepo:       promptRepo,
-		logger:           logger.WithModule("usecase.llm"),
-		modelkit:         modelkit,
+		config:             config,
+		rag:                rag,
+		conversationRepo:   conversationRepo,
+		kbRepo:             kbRepo,
+		nodeRepo:           nodeRepo,
+		modelRepo:          modelRepo,
+		promptRepo:         promptRepo,
+		categoryPromptRepo: categoryPromptRepo,
+		logger:             logger.WithModule("usecase.llm"),
+		modelkit:           modelkit,
 	}
 }
 
@@ -207,7 +209,7 @@ func (u *LLMUsecase) Generate(
 	return resp.Content, nil
 }
 
-func (u *LLMUsecase) SummaryNode(ctx context.Context, model *domain.Model, name, content string, docKind domain.NodeDocVisualKind, imageDataURL string) (string, error) {
+func (u *LLMUsecase) SummaryNode(ctx context.Context, model *domain.Model, kbID, name, content string, docKind domain.NodeDocVisualKind, imageDataURL string) (string, error) {
 	modelkitModel, err := model.ToModelkitModel()
 	if err != nil {
 		return "", err
@@ -221,7 +223,7 @@ func (u *LLMUsecase) SummaryNode(ctx context.Context, model *domain.Model, name,
 	case domain.NodeDocVisualVideo:
 		return u.summaryVideoDoc(ctx, chatModel, name, content)
 	case domain.NodeDocVisualImage:
-		return u.summaryImageDoc(ctx, model, chatModel, name, imageDataURL)
+		return u.summaryImageDoc(ctx, model, chatModel, kbID, name, imageDataURL)
 	default:
 		return u.summaryTextDocWithChunks(ctx, chatModel, name, content)
 	}
@@ -291,22 +293,16 @@ func (u *LLMUsecase) summaryVideoDoc(ctx context.Context, chatModel model.BaseCh
 	return strings.TrimSpace(u.trimThinking(summary)), nil
 }
 
-func (u *LLMUsecase) summaryImageDoc(ctx context.Context, dm *domain.Model, chatModel model.BaseChatModel, docName, imageDataURL string) (string, error) {
-	if imageDataURL == "" {
-		return "", fmt.Errorf("no image data for vision summary")
-	}
-	// 手动配置的模型需显式开启多模态；自动模式（无持久化模型 ID）仍尝试调用。
-	if dm.ID != "" && !dm.Parameters.SupportImages {
-		return "", fmt.Errorf("当前对话模型未开启「支持图片/多模态」，请在模型设置的高级参数中开启 support_images 后再生成图片文档摘要")
-	}
-	system := `你是图像理解与知识库摘要助手。请根据用户给出的文档标题与图片内容，输出一段用于检索与展示的中文摘要。
+// 未命中任何配置品类时：尽量客观、细致地描述画面，便于检索
+const defaultImageDocSummarySystem = `你是图像理解与知识库摘要助手。请根据用户给出的文档标题与图片内容，输出一段用于检索与展示的中文摘要。
 要求：
 1. 用自然连贯的一段话描述，不要使用 Markdown 或列表符号。
 2. 详细说明图片中的主要物品或主体是什么；描述物品的颜色、形状、大致大小（可结合画面占比或常见参照）。
 3. 判断画面中是否有文字；若有，简要写出关键文字内容（如标题、标语、品牌名）；若无，明确说明未检测到可读文字。
 4. 全文不超过 320 字。`
 
-	userParts := []schema.ChatMessagePart{
+func imageSummaryUserParts(docName, imageDataURL string) []schema.ChatMessagePart {
+	return []schema.ChatMessagePart{
 		{Type: schema.ChatMessagePartTypeText, Text: fmt.Sprintf("文档名称：%s", docName)},
 		{
 			Type: schema.ChatMessagePartTypeImageURL,
@@ -315,8 +311,106 @@ func (u *LLMUsecase) summaryImageDoc(ctx context.Context, dm *domain.Model, chat
 			},
 		},
 	}
+}
+
+func pickCategoryFromClassifyOutput(raw string, categories []domain.CategoryPromptItem) *domain.CategoryPromptItem {
+	line := strings.TrimSpace(strings.Split(raw, "\n")[0])
+	line = strings.Trim(line, "`\"'“”")
+	if line == "" {
+		return nil
+	}
+	up := strings.ToUpper(line)
+	if up == "NONE" || up == "NULL" || line == "无" || line == "无匹配" || line == "都不符合" {
+		return nil
+	}
+	for i := range categories {
+		n := strings.TrimSpace(categories[i].Name)
+		if n != "" && n == line {
+			return &categories[i]
+		}
+	}
+	for i := range categories {
+		n := strings.TrimSpace(categories[i].Name)
+		if n != "" && strings.Contains(line, n) {
+			return &categories[i]
+		}
+	}
+	return nil
+}
+
+func (u *LLMUsecase) classifyImageDocCategory(
+	ctx context.Context,
+	chatModel model.BaseChatModel,
+	docName, imageDataURL string,
+	categories []domain.CategoryPromptItem,
+) (*domain.CategoryPromptItem, error) {
+	var b strings.Builder
+	num := 0
+	for i := range categories {
+		n := strings.TrimSpace(categories[i].Name)
+		if n == "" {
+			continue
+		}
+		num++
+		b.WriteString(fmt.Sprintf("%d. %s\n", num, n))
+	}
+	list := strings.TrimSpace(b.String())
+	if list == "" {
+		return nil, nil
+	}
+	system := `你是图像分类助手。请根据文档标题与图片，判断该文档最符合下面「品类」中的哪一种。
+规则：
+1. 若明显属于某一类，请只输出该品类在列表中的准确名称（与列表中该行的文字完全一致），不要输出序号、标点、解释或其他文字。
+2. 若均不符合、无法判断或与所有品类都不贴切，请只输出：NONE`
+	userParts := imageSummaryUserParts(docName, imageDataURL)
+	out, err := u.Generate(ctx, chatModel, []*schema.Message{
+		{Role: "system", Content: system + "\n\n可选品类：\n" + list},
+		{Role: "user", MultiContent: userParts},
+	})
+	if err != nil {
+		return nil, err
+	}
+	out = strings.TrimSpace(u.trimThinking(out))
+	u.logger.Debug("image doc category classify", log.String("raw", out))
+	return pickCategoryFromClassifyOutput(out, categories), nil
+}
+
+func (u *LLMUsecase) summaryImageDoc(ctx context.Context, dm *domain.Model, chatModel model.BaseChatModel, kbID, docName, imageDataURL string) (string, error) {
+	if imageDataURL == "" {
+		return "", fmt.Errorf("no image data for vision summary")
+	}
+	// 手动配置的模型需显式开启多模态；自动模式（无持久化模型 ID）仍尝试调用。
+	if dm.ID != "" && !dm.Parameters.SupportImages {
+		return "", fmt.Errorf("当前对话模型未开启「支持图片/多模态」，请在模型设置的高级参数中开启 support_images 后再生成图片文档摘要")
+	}
+
+	systemForSummary := defaultImageDocSummarySystem
+	if kbID != "" && u.categoryPromptRepo != nil {
+		cats, err := u.categoryPromptRepo.GetByKBID(ctx, kbID)
+		if err != nil {
+			u.logger.Error("load category prompts for image summary failed", log.Error(err))
+		} else if len(cats) > 0 {
+			usable := lo.Filter(cats, func(c domain.CategoryPromptItem, _ int) bool {
+				return strings.TrimSpace(c.Name) != "" && strings.TrimSpace(c.Content) != ""
+			})
+			if len(usable) > 0 {
+				matched, err := u.classifyImageDocCategory(ctx, chatModel, docName, imageDataURL, usable)
+				if err != nil {
+					u.logger.Warn("image category classify failed, fallback to default image summary", log.Error(err))
+				} else if matched != nil {
+					systemForSummary = strings.TrimSpace(matched.Content) +
+						"\n\n输出要求：请输出一段用于知识库检索与展示的中文摘要，单段纯文本，不要使用 Markdown 或小标题，全文不超过 320 字。"
+					u.logger.Info("image summary using category prompt", log.String("category", matched.Name))
+				} else {
+					u.logger.Info("image summary no category match, using detailed visual description")
+				}
+			}
+		}
+	}
+
+	userParts := imageSummaryUserParts(docName, imageDataURL)
 	summary, err := u.Generate(ctx, chatModel, []*schema.Message{
-		{Role: "system", Content: system},
+		{Role: "system", Content: systemForSummary},
 		{Role: "user", MultiContent: userParts},
 	})
 	if err != nil {

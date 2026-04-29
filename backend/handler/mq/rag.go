@@ -162,7 +162,7 @@ func (h *RAGMQHandler) HandleNodeContentVectorRequest(ctx context.Context, msg t
 				}
 			}
 		}
-		summary, err := h.llmUsecase.SummaryNode(ctx, model, node.Name, node.Content, docKind, imageDataURL)
+		summary, err := h.llmUsecase.SummaryNode(ctx, model, request.KBID, node.Name, node.Content, docKind, imageDataURL)
 		if err != nil {
 			h.logger.Error("summary node content failed", log.Error(err))
 			return nil
