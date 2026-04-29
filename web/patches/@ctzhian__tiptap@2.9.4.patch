@@ -1,0 +1,64 @@
+diff --git a/dist/extension/component/Link/Insert.js b/dist/extension/component/Link/Insert.js
+index 09610727a8f4b82579f4663b957a90e541c452bc..512edcf5b8c214adf2e0249a04a43cedb0ce431a 100644
+--- a/dist/extension/component/Link/Insert.js
++++ b/dist/extension/component/Link/Insert.js
+@@ -139,7 +139,26 @@ var InsertLink = function InsertLink(_ref) {
+     required: true,
+     error: href.length > 0 && !href.trim(),
+     helperText: href.length > 0 && !href.trim() ? "请输入有效的链接地址" : ""
+-  })), /*#__PURE__*/React.createElement(Stack, {
++  })), /*#__PURE__*/React.createElement(Button, {
++    variant: "text",
++    size: "small",
++    fullWidth: true,
++    sx: {
++      mt: -0.5,
++      mb: 0.5,
++      justifyContent: 'flex-start'
++    },
++    onClick: function onClick() {
++      var _editor$storage, _pwKbDocLinkPicker;
++      var pick = editor === null || editor === void 0 || (_editor$storage = editor.storage) === null || _editor$storage === void 0 || (_pwKbDocLinkPicker = _editor$storage.pwKbDocLinkPicker) === null || _pwKbDocLinkPicker === void 0 ? void 0 : _pwKbDocLinkPicker.open;
++      if (typeof pick === 'function') {
++        pick({
++          setHref: setHref,
++          setTitle: setTitle
++        });
++      }
++    }
++  }, "\u4ece\u77e5\u8bc6\u5e93\u6587\u6863\u9009\u62e9")), /*#__PURE__*/React.createElement(Stack, {
+     direction: 'row',
+     gap: 2,
+     alignItems: 'center'
+diff --git a/dist/extension/component/Link/index.js b/dist/extension/component/Link/index.js
+index 70a06316fc1294a11ff90472b939805479de1017..6b0aa773c0241b7147f54fde1f6b0500b452f7a3 100644
+--- a/dist/extension/component/Link/index.js
++++ b/dist/extension/component/Link/index.js
+@@ -326,7 +326,26 @@ var LinkViewWrapper = function LinkViewWrapper(_ref) {
+     required: true,
+     error: href.length > 0 && !href.trim(),
+     helperText: href.length > 0 && !href.trim() ? "请输入有效的链接地址" : ""
+-  })), /*#__PURE__*/React.createElement(Stack, {
++  })), /*#__PURE__*/React.createElement(Button, {
++    variant: "text",
++    size: "small",
++    fullWidth: true,
++    sx: {
++      mt: -0.5,
++      mb: 0.5,
++      justifyContent: 'flex-start'
++    },
++    onClick: function onClick() {
++      var _editor$storage2, _pwKbDocLinkPicker2;
++      var pick = editor === null || editor === void 0 || (_editor$storage2 = editor.storage) === null || _editor$storage2 === void 0 || (_pwKbDocLinkPicker2 = _editor$storage2.pwKbDocLinkPicker) === null || _pwKbDocLinkPicker2 === void 0 ? void 0 : _pwKbDocLinkPicker2.open;
++      if (typeof pick === 'function') {
++        pick({
++          setHref: setHref,
++          setTitle: setTitle
++        });
++      }
++    }
++  }, "\u4ece\u77e5\u8bc6\u5e93\u6587\u6863\u9009\u62e9")), /*#__PURE__*/React.createElement(Stack, {
+     direction: 'row',
+     gap: 2,
+     alignItems: 'center'

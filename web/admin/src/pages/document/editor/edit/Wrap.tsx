@@ -13,7 +13,7 @@ import {
   UseTiptapReturn,
 } from '@ctzhian/tiptap';
 import { message } from '@ctzhian/ui';
-import { Box, Stack, TextField, Tooltip } from '@mui/material';
+import { Box, Button, Stack, TextField, Tooltip } from '@mui/material';
 import {
   IconAShijian2,
   IconDJzhinengzhaiyao,
@@ -34,9 +34,12 @@ import { WrapContext } from '..';
 import AIGenerate from './AIGenerate';
 import FullTextEditor from './FullTextEditor';
 import Header from './Header';
+import KbDocLinkPickerDialog from './KbDocLinkPickerDialog';
+import { buildInlineDocLinkHtml } from './kbDocLinkHtml';
 import Summary from './Summary';
 import Toc from './Toc';
 import Toolbar from './Toolbar';
+import { useWikiFrontBaseUrl } from './useWikiFrontBaseUrl';
 
 interface WrapProps {
   detail: V1NodeDetailResp;
@@ -53,7 +56,7 @@ const Wrap = ({
 }: WrapProps) => {
   const { id = '' } = useParams();
   const navigate = useNavigate();
-  const { license } = useAppSelector(state => state.config);
+  const { license, kbList } = useAppSelector(state => state.config);
 
   const state = useLocation().state as { node?: V1NodeDetailResp };
   const { catalogOpen, setCatalogOpen, nodeDetail, setNodeDetail, onSave } =
@@ -81,6 +84,14 @@ const Wrap = ({
   const [selectionText, setSelectionText] = useState('');
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [kbDocLinkOpen, setKbDocLinkOpen] = useState(false);
+  const kbPickIntentRef = useRef<
+    'toolbar' | 'link-popover' | 'markdown' | null
+  >(null);
+  const linkPopoverApiRef = useRef<{
+    setHref: (s: string) => void;
+    setTitle: (s: string) => void;
+  } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const initialStateRef = useRef({
     content: defaultDetail.content || '',
@@ -91,6 +102,8 @@ const Wrap = ({
   const isBusiness = useMemo(() => {
     return BUSINESS_VERSION_PERMISSION.includes(license.edition!);
   }, [license]);
+
+  const wikiFrontBaseUrl = useWikiFrontBaseUrl(kbList, defaultDetail.kb_id);
 
   const debouncedUpdateSummary = useCallback(
     debounce((newSummary: string) => {
@@ -135,6 +148,18 @@ const Wrap = ({
       ...value,
     });
   };
+
+  const handleInsertMarkdownLinkLine = useCallback(
+    (md: string) => {
+      if (readOnly) return;
+      const cur = nodeDetail?.content || '';
+      const sep = cur === '' || cur.endsWith('\n') ? '' : '\n';
+      updateDetail({
+        content: `${cur}${sep}${md}\n`,
+      });
+    },
+    [readOnly, nodeDetail?.content, updateDetail],
+  );
 
   const handleUpload = async (
     file: File,
@@ -213,6 +238,91 @@ const Wrap = ({
     onTocUpdate: handleTocUpdate,
     onAiWritingGetSuggestion: handleAiWritingGetSuggestion,
   });
+
+  const handleInsertRichLinkHtml = useCallback(
+    (html: string) => {
+      const ed = editorRef.editor;
+      if (!ed) {
+        message.error('编辑器未就绪');
+        return;
+      }
+      ed.chain().focus().insertContent(html).run();
+    },
+    [editorRef],
+  );
+
+  const closeKbDocPicker = useCallback(() => {
+    kbPickIntentRef.current = null;
+    linkPopoverApiRef.current = null;
+    setKbDocLinkOpen(false);
+  }, []);
+
+  const openKbDocPickerToolbar = useCallback(() => {
+    kbPickIntentRef.current = 'toolbar';
+    setKbDocLinkOpen(true);
+  }, []);
+
+  const openKbDocPickerMarkdown = useCallback(() => {
+    kbPickIntentRef.current = 'markdown';
+    setKbDocLinkOpen(true);
+  }, []);
+
+  const handleKbDocPicked = useCallback(
+    (href: string, title: string) => {
+      const intent = kbPickIntentRef.current;
+      kbPickIntentRef.current = null;
+      if (intent === 'link-popover' && linkPopoverApiRef.current) {
+        const api = linkPopoverApiRef.current;
+        linkPopoverApiRef.current = null;
+        api.setHref(href);
+        api.setTitle(title);
+        message.success('已填入链接');
+        return;
+      }
+      linkPopoverApiRef.current = null;
+      if (intent === 'markdown') {
+        handleInsertMarkdownLinkLine(
+          `[${title.replace(/]/g, '\\]')}](${href})`,
+        );
+        message.success('已插入 Markdown 链接（在文末，可剪切到正文任意位置）');
+        return;
+      }
+      if (intent === 'toolbar') {
+        handleInsertRichLinkHtml(buildInlineDocLinkHtml(href, title));
+        message.success('已插入文档链接');
+      }
+    },
+    [handleInsertMarkdownLinkLine, handleInsertRichLinkHtml],
+  );
+
+  useEffect(() => {
+    const ed = editorRef.editor;
+    if (!ed || readOnly) {
+      if (
+        ed &&
+        (ed.storage as { pwKbDocLinkPicker?: unknown }).pwKbDocLinkPicker
+      ) {
+        delete (ed.storage as { pwKbDocLinkPicker?: unknown })
+          .pwKbDocLinkPicker;
+      }
+      return;
+    }
+    (
+      ed.storage as { pwKbDocLinkPicker?: { open: (api: unknown) => void } }
+    ).pwKbDocLinkPicker = {
+      open: (api: {
+        setHref: (s: string) => void;
+        setTitle: (s: string) => void;
+      }) => {
+        kbPickIntentRef.current = 'link-popover';
+        linkPopoverApiRef.current = api;
+        setKbDocLinkOpen(true);
+      },
+    };
+    return () => {
+      delete (ed.storage as { pwKbDocLinkPicker?: unknown }).pwKbDocLinkPicker;
+    };
+  }, [editorRef.editor, readOnly]);
 
   useEffect(() => {
     if (editorRef.editor) {
@@ -474,6 +584,17 @@ const Wrap = ({
             <IconPageview1 sx={{ fontSize: 12 }} />
             浏览量 {nodeDetail?.pv}
           </Stack>
+          {!readOnly && isMarkdown && (
+            <Button
+              size='small'
+              variant='text'
+              sx={{ ml: 1, fontSize: 12, minWidth: 'auto' }}
+              startIcon={<IconTianjiawendang sx={{ fontSize: 14 }} />}
+              onClick={openKbDocPickerMarkdown}
+            >
+              插入知识库文档链接
+            </Button>
+          )}
         </Stack>
         <Box
           sx={{
@@ -735,7 +856,11 @@ const Wrap = ({
           handleExport={handleExport}
         />
         {!isMarkdown && !readOnly && (
-          <Toolbar editorRef={editorRef} handleAiGenerate={handleAiGenerate} />
+          <Toolbar
+            editorRef={editorRef}
+            handleAiGenerate={handleAiGenerate}
+            onInsertKbDocLink={openKbDocPickerToolbar}
+          />
         )}
       </Box>
       <Box
@@ -814,6 +939,16 @@ const Wrap = ({
         updateDetail={updateDetail}
         onClose={() => setShowSummary(false)}
       />
+      {defaultDetail.kb_id && (
+        <KbDocLinkPickerDialog
+          open={kbDocLinkOpen}
+          onClose={closeKbDocPicker}
+          kbId={defaultDetail.kb_id}
+          currentNodeId={defaultDetail.id}
+          wikiFrontBaseUrl={wikiFrontBaseUrl}
+          onPick={handleKbDocPicked}
+        />
+      )}
     </>
   );
 };

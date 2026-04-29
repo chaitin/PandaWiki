@@ -4,13 +4,20 @@ import {
   UseTiptapReturn,
 } from '@ctzhian/tiptap';
 import { Box } from '@mui/material';
+import { IconTianjiawendang } from '@panda-wiki/icons';
 
 interface ToolbarProps {
   editorRef: UseTiptapReturn;
   handleAiGenerate?: () => void;
+  /** 从知识库已有文档快速插入链接 */
+  onInsertKbDocLink?: () => void;
 }
 
-const Toolbar = ({ editorRef, handleAiGenerate }: ToolbarProps) => {
+const Toolbar = ({
+  editorRef,
+  handleAiGenerate,
+  onInsertKbDocLink,
+}: ToolbarProps) => {
   return (
     <Box
       sx={{
@@ -26,6 +33,16 @@ const Toolbar = ({ editorRef, handleAiGenerate }: ToolbarProps) => {
       <EditorToolbar
         editor={editorRef.editor}
         menuInToolbarMore={[
+          ...(onInsertKbDocLink
+            ? [
+                {
+                  id: 'kb-doc-link',
+                  label: '知识库文档链接',
+                  icon: <IconTianjiawendang sx={{ fontSize: '1rem' }} />,
+                  onClick: onInsertKbDocLink,
+                },
+              ]
+            : []),
           {
             id: 'ai',
             label: '文本润色',
