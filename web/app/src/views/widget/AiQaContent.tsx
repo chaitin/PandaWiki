@@ -40,6 +40,11 @@ import {
   IconXinduihua,
   IconXingxing,
 } from '@panda-wiki/icons';
+import {
+  DEFAULT_CHAT_TOP_N,
+  getInitialChatTopN,
+  persistChatTopN,
+} from '@panda-wiki/ui';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -163,7 +168,8 @@ const AiQaContent: React.FC<{
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fuzzySuggestions, setFuzzySuggestions] = useState<string[]>([]);
   const [showFuzzySuggestions, setShowFuzzySuggestions] = useState(false);
-  const [topN, setTopN] = useState<number>(10);
+  const [topN, setTopN] = useState<number>(DEFAULT_CHAT_TOP_N);
+  const topNPersistReady = useRef(false);
 
   const searchParams = useSearchParams();
 
@@ -542,6 +548,18 @@ const AiQaContent: React.FC<{
     // window.CAP_CUSTOM_WASM_URL =
     //   window.location.origin + `${basePath}/cap@0.0.6/cap_wasm.min.js`;
   }, []);
+
+  useEffect(() => {
+    setTopN(getInitialChatTopN());
+  }, []);
+
+  useEffect(() => {
+    if (!topNPersistReady.current) {
+      topNPersistReady.current = true;
+      return;
+    }
+    persistChatTopN(topN);
+  }, [topN]);
 
   const onSearch = (q: string, reset: boolean = false) => {
     if (loading || !q.trim()) return;

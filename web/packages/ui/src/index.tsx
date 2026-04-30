@@ -17,6 +17,14 @@ export { default as Comment } from './comment';
 export { default as Question } from './question';
 export { default as BlockGrid } from './blockGrid';
 
+export {
+  CHAT_TOP_N_STORAGE_KEY,
+  DEFAULT_CHAT_TOP_N,
+  getInitialChatTopN,
+  parseValidChatTopN,
+  persistChatTopN,
+} from './chatTopNStorage';
+
 // 导出动画 hooks
 export {
   useTextAnimation,

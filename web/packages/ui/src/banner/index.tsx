@@ -1,5 +1,10 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  DEFAULT_CHAT_TOP_N,
+  getInitialChatTopN,
+  persistChatTopN,
+} from '../chatTopNStorage';
 import { useTextAnimation } from '../hooks/useGsapAnimation';
 import {
   ButtonProps,
@@ -189,7 +194,8 @@ const Banner = React.memo(
     const [isFocused, setIsFocused] = useState(false);
     const [typedText, setTypedText] = useState('');
     const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-    const [topN, setTopN] = useState(10);
+    const [topN, setTopN] = useState(DEFAULT_CHAT_TOP_N);
+    const topNPersistReady = useRef(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const debounceTimer = useRef<NodeJS.Timeout | null>(null);
     const typewriterTimer = useRef<NodeJS.Timeout | null>(null);
@@ -249,6 +255,18 @@ const Banner = React.memo(
         });
       };
     }, []);
+
+    useEffect(() => {
+      setTopN(getInitialChatTopN());
+    }, []);
+
+    useEffect(() => {
+      if (!topNPersistReady.current) {
+        topNPersistReady.current = true;
+        return;
+      }
+      persistChatTopN(topN);
+    }, [topN]);
 
     // 添加文字动画效果
     const titleRef = useTextAnimation(0, 0.1);

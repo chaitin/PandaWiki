@@ -49,6 +49,11 @@ import {
   IconXinduihua,
   IconWenjian,
 } from '@panda-wiki/icons';
+import {
+  DEFAULT_CHAT_TOP_N,
+  getInitialChatTopN,
+  persistChatTopN,
+} from '@panda-wiki/ui';
 import CloseIcon from '@mui/icons-material/Close';
 import Image from 'next/image';
 import {
@@ -175,7 +180,8 @@ const AiQaContent: React.FC<{
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fuzzySuggestions, setFuzzySuggestions] = useState<string[]>([]);
   const [showFuzzySuggestions, setShowFuzzySuggestions] = useState(false);
-  const [topN, setTopN] = useState<number>(10);
+  const [topN, setTopN] = useState<number>(DEFAULT_CHAT_TOP_N);
+  const topNPersistReady = useRef(false);
 
   const searchParams = useSearchParams();
   const basePath = useBasePath();
@@ -594,6 +600,18 @@ const AiQaContent: React.FC<{
     window.CAP_CUSTOM_WASM_URL =
       window.location.origin + `${basePath}/cap@0.0.6/cap_wasm.min.js`;
   }, []);
+
+  useEffect(() => {
+    setTopN(getInitialChatTopN());
+  }, []);
+
+  useEffect(() => {
+    if (!topNPersistReady.current) {
+      topNPersistReady.current = true;
+      return;
+    }
+    persistChatTopN(topN);
+  }, [topN]);
 
   const onSearch = (
     q: string,
