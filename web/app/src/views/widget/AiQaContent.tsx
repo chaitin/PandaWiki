@@ -1081,7 +1081,9 @@ const AiQaContent: React.FC<{
                                 mb: 0.5,
                               }}
                             >
-                              工作模式 · 候选差异核对
+                              {meta.candidates >= 2
+                                ? '工作模式 · 候选差异核对'
+                                : '工作模式 · 信息完备性核对'}
                             </Typography>
                             <Typography
                               variant='body2'
@@ -1091,8 +1093,9 @@ const AiQaContent: React.FC<{
                                 mb: 0.75,
                               })}
                             >
-                              品类「{meta.category}」匹配到 {meta.candidates}{' '}
-                              个候选，请补充以下区分项：
+                              {meta.candidates >= 2
+                                ? `品类「${meta.category}」匹配到 ${meta.candidates} 个候选，请补充以下区分项：`
+                                : `品类「${meta.category}」需要补充以下信息以定位文档：`}
                             </Typography>
                             <Stack direction='row' gap={0.75} flexWrap='wrap'>
                               {meta.missing.map(name => (

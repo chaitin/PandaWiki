@@ -87,7 +87,12 @@ type workModeClarifyMeta struct {
 func formatWorkModeAttributeClarify(categoryName string, candidates int, missing []string) string {
 	name := strings.TrimSpace(categoryName)
 	list := strings.Join(missing, "、")
-	body := "当前为「工作模式」。您的描述命中品类「" + name + "」，但与多份候选文档都吻合，仅在以下维度上存在差异：" + list + "。\n\n请逐项补充以便定位到唯一文档；若某项不适用请写明「不适用」及原因。"
+	var body string
+	if candidates >= 2 {
+		body = "当前为「工作模式」。您的描述命中品类「" + name + "」，但与多份候选文档都吻合，仅在以下维度上存在差异：" + list + "。\n\n请逐项补充以便定位到唯一文档；若某项不适用请写明「不适用」及原因。"
+	} else {
+		body = "当前为「工作模式」。您的描述命中品类「" + name + "」，但所提供的信息不足以确定具体文档，请补充以下信息：" + list + "。\n\n请逐项说明；若某项不适用请写明「不适用」及原因。"
+	}
 	meta := workModeClarifyMeta{Category: name, Candidates: candidates, Missing: missing}
 	if mb, err := json.Marshal(meta); err == nil {
 		return "<!-- " + workModeClarifyMarker + " " + string(mb) + " -->\n" + body
@@ -176,21 +181,40 @@ func (u *ChatUsecase) runWorkModeGate(
 		logger.Warn("candidate retrieval failed, skip gate", log.Error(rErr))
 		return false
 	}
-	if len(candidates) <= 1 {
-		logger.Info("candidates ≤1, skip gate (proceed to RAG)",
-			log.Int("candidates", len(candidates)),
-			log.String("category", matchedForGate.Name),
+	candidateNames := make([]string, 0, len(candidates))
+	for _, c := range candidates {
+		candidateNames = append(candidateNames, c.NodeName)
+	}
+	logger.Info("candidate retrieval result",
+		log.String("category", matchedForGate.Name),
+		log.Int("candidates", len(candidates)),
+		log.Any("doc_names", candidateNames),
+	)
+
+	var (
+		missing []string
+		mErr    error
+		mode    string
+	)
+	if len(candidates) >= 2 {
+		mode = "candidate_diff"
+		missing, mErr = u.llmUsecase.WorkModeListDistinguishingMissing(ctx, gateChatModel, *matchedForGate, candidates, qctx, retrievalAugment)
+	} else {
+		// 候选 ≤ 1（含检索为空）：仍按「全部配置属性中用户没明确说的都问」做兜底，
+		// 这样描述不完整时也能让用户补充必要的定位信息。
+		mode = "complete_attrs"
+		missing, mErr = u.llmUsecase.WorkModeListMissingAttributes(ctx, gateChatModel, *matchedForGate, qctx, retrievalAugment)
+	}
+	if mErr != nil {
+		logger.Warn("missing-attribute check failed, continue RAG",
+			log.String("mode", mode),
+			log.Error(mErr),
 		)
 		return false
 	}
-
-	missing, mErr := u.llmUsecase.WorkModeListDistinguishingMissing(ctx, gateChatModel, *matchedForGate, candidates, qctx, retrievalAugment)
-	if mErr != nil {
-		logger.Warn("distinguishing missing check failed, continue RAG", log.Error(mErr))
-		return false
-	}
 	if len(missing) == 0 {
-		logger.Info("no distinguishing missing attributes, proceed to RAG",
+		logger.Info("no missing attributes, proceed to RAG",
+			log.String("mode", mode),
 			log.String("category", matchedForGate.Name),
 			log.Int("candidates", len(candidates)),
 		)
@@ -198,14 +222,21 @@ func (u *ChatUsecase) runWorkModeGate(
 	}
 
 	logger.Info("clarify required",
+		log.String("mode", mode),
 		log.String("category", matchedForGate.Name),
 		log.Int("candidates", len(candidates)),
 		log.Any("missing", missing),
 	)
+	chainTitle := "工作模式：候选差异核对"
+	chainDetail := fmt.Sprintf("品类「%s」匹配到 %d 个候选；待确认：%s", matchedForGate.Name, len(candidates), strings.Join(missing, "、"))
+	if mode == "complete_attrs" {
+		chainTitle = "工作模式：信息完备性核对"
+		chainDetail = fmt.Sprintf("品类「%s」需要补充：%s", matchedForGate.Name, strings.Join(missing, "、"))
+	}
 	if b, jErr := json.Marshal(map[string]any{
 		"step":   5,
-		"title":  "工作模式：候选差异核对",
-		"detail": fmt.Sprintf("品类「%s」匹配到 %d 个候选；待确认：%s", matchedForGate.Name, len(candidates), strings.Join(missing, "、")),
+		"title":  chainTitle,
+		"detail": chainDetail,
 	}); jErr == nil {
 		eventCh <- domain.SSEEvent{Type: "chain_step", Content: string(b)}
 	}

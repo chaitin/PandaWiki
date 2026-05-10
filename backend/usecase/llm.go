@@ -483,7 +483,13 @@ func parseWorkModeMissingAttributes(raw string, attrs []string) []string {
 }
 
 // 工作模式：候选检索（用于差异化追问）。返回 0/1/多 个候选；调用方决定是否追问。
-const workModeGateRetrieveTopK = 5
+// 门控目的是「检测歧义」，因此放宽阈值与 TopK，避免把潜在候选误过滤。
+const (
+	workModeGateRetrieveTopK = 8
+	// 若一篇文档命中字面包含品类名，加权后多半会主导，但其它相似品类文档（美国/日本/韩国信封）
+	// 在短查询「白色信封」下相似度可能在 0.1 上下；阈值设 0 让 raglite 自己排序后由我们按 TopK 截断。
+	workModeGateSimilarityThreshold = 0.0
+)
 
 func (u *LLMUsecase) RetrieveCandidateNodesForWorkMode(
 	ctx context.Context,
@@ -502,7 +508,7 @@ func (u *LLMUsecase) RetrieveCandidateNodesForWorkMode(
 		DatasetID:           kb.DatasetID,
 		Question:            question,
 		GroupIDs:            groupIDs,
-		SimilarityThreshold: 0.2,
+		SimilarityThreshold: workModeGateSimilarityThreshold,
 		HistoryMessages:     nil,
 		TopK:                workModeGateRetrieveTopK,
 		MaxChunksPerDoc:     1,
