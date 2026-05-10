@@ -1,22 +1,20 @@
-import {
-  AiGenerate2Icon,
-  EditorToolbar,
-  UseTiptapReturn,
-} from '@ctzhian/tiptap';
-import { Box } from '@mui/material';
-import { IconTianjiawendang } from '@panda-wiki/icons';
+import { EditorToolbar, UseTiptapReturn } from '@ctzhian/tiptap';
+import { Box, CircularProgress } from '@mui/material';
+import { IconDJzhinengzhaiyao, IconTianjiawendang } from '@panda-wiki/icons';
 
 interface ToolbarProps {
   editorRef: UseTiptapReturn;
-  handleAiGenerate?: () => void;
+  imageSummaryLoading?: boolean;
   /** 从知识库已有文档快速插入链接 */
   onInsertKbDocLink?: () => void;
+  onImageSummary?: () => void;
 }
 
 const Toolbar = ({
   editorRef,
-  handleAiGenerate,
+  imageSummaryLoading = false,
   onInsertKbDocLink,
+  onImageSummary,
 }: ToolbarProps) => {
   return (
     <Box
@@ -44,10 +42,14 @@ const Toolbar = ({
               ]
             : []),
           {
-            id: 'ai',
-            label: '文本润色',
-            icon: <AiGenerate2Icon sx={{ fontSize: '1rem' }} />,
-            onClick: handleAiGenerate,
+            id: 'image-summary',
+            label: imageSummaryLoading ? '图片摘要中' : '图片摘要',
+            icon: imageSummaryLoading ? (
+              <CircularProgress size={16} />
+            ) : (
+              <IconDJzhinengzhaiyao sx={{ fontSize: '1rem' }} />
+            ),
+            onClick: imageSummaryLoading ? undefined : onImageSummary,
           },
         ]}
       />

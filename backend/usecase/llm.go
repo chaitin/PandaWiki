@@ -423,50 +423,52 @@ func (u *LLMUsecase) summaryImageDoc(ctx context.Context, dm *domain.Model, chat
 	return strings.TrimSpace(u.trimThinking(summary)), nil
 }
 
-func (u *LLMUsecase) SummaryDocImages(ctx context.Context, dm *domain.Model, kbID, docName string, imageDataURLs []string) (string, error) {
+func (u *LLMUsecase) SummaryDocImages(ctx context.Context, dm *domain.Model, kbID, docName string, imageDataURLs []string) ([]string, error) {
 	if len(imageDataURLs) == 0 {
-		return "", fmt.Errorf("no image data for vision summary")
+		return nil, fmt.Errorf("no image data for vision summary")
 	}
 	if dm.ID != "" && !dm.Parameters.SupportImages {
-		return "", fmt.Errorf("当前视觉模型未开启「支持图片/多模态」，请在模型设置的高级参数中开启 support_images 后再生成图片摘要")
+		return nil, fmt.Errorf("当前视觉模型未开启「支持图片/多模态」，请在模型设置的高级参数中开启 support_images 后再生成图片摘要")
 	}
 	modelkitModel, err := dm.ToModelkitModel()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	chatModel, err := u.modelkit.GetChatModel(ctx, modelkitModel)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	parts := []schema.ChatMessagePart{
-		{
-			Type: schema.ChatMessagePartTypeText,
-			Text: fmt.Sprintf("文档标题：%s\n图片数量：%d\n请按图片在文档中出现的顺序总结全部图片。", docName, len(imageDataURLs)),
-		},
-	}
-	for _, imageDataURL := range imageDataURLs {
-		parts = append(parts, schema.ChatMessagePart{
-			Type:     schema.ChatMessagePartTypeImageURL,
-			ImageURL: &schema.ChatMessageImageURL{URL: imageDataURL},
-		})
-	}
-	summary, err := u.Generate(ctx, chatModel, []*schema.Message{
-		{
-			Role: "system",
-			Content: `你是文档图片摘要助手。请阅读用户提供的文档标题和全部图片，为这些图片生成可放入文档摘要字段的中文摘要。
+	summaries := make([]string, 0, len(imageDataURLs))
+	for i, imageDataURL := range imageDataURLs {
+		parts := []schema.ChatMessagePart{
+			{
+				Type: schema.ChatMessagePartTypeText,
+				Text: fmt.Sprintf("文档标题：%s\n当前图片序号：%d/%d\n请为这张图片生成图片描述。", docName, i+1, len(imageDataURLs)),
+			},
+			{
+				Type:     schema.ChatMessagePartTypeImageURL,
+				ImageURL: &schema.ChatMessageImageURL{URL: imageDataURL},
+			},
+		}
+		summary, err := u.Generate(ctx, chatModel, []*schema.Message{
+			{
+				Role: "system",
+				Content: `你是文档图片描述助手。请阅读用户提供的单张图片，为这张图片生成可放入「图片描述」字段的中文描述。
 要求：
-1. 覆盖所有图片，不要遗漏关键图表、界面、流程、产品、文字信息或场景。
-2. 多张图片时按出现顺序概括，可以合并相近内容。
-3. 输出纯文本，不使用 Markdown 表格，不编造图片中看不到的信息。
-4. 总字数不超过 500 字。`,
-		},
-		{Role: "user", MultiContent: parts},
-	})
-	if err != nil {
-		return "", err
+1. 只描述当前图片，不要描述其他图片。
+2. 覆盖图片中的关键图表、界面、流程、产品、文字信息或场景。
+3. 输出单段纯文本，不使用 Markdown，不编造图片中看不到的信息。
+4. 总字数不超过 160 字。`,
+			},
+			{Role: "user", MultiContent: parts},
+		})
+		if err != nil {
+			return nil, err
+		}
+		summaries = append(summaries, strings.TrimSpace(u.trimThinking(summary)))
 	}
-	return strings.TrimSpace(u.trimThinking(summary)), nil
+	return summaries, nil
 }
 
 func (u *LLMUsecase) trimThinking(summary string) string {

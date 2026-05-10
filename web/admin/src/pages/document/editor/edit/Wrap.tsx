@@ -1,7 +1,7 @@
 import { uploadFile } from '@/api';
 import Emoji from '@/components/Emoji';
 import { BUSINESS_VERSION_PERMISSION } from '@/constant/version';
-import { postApiV1CreationTabComplete, putApiV1NodeDetail } from '@/request';
+import { postApiV1NodeImageSummary, putApiV1NodeDetail } from '@/request';
 import { V1NodeDetailResp } from '@/request/types';
 import { useAppSelector } from '@/store';
 import { completeIncompleteLinks } from '@/utils';
@@ -31,7 +31,6 @@ import {
   useParams,
 } from 'react-router-dom';
 import { WrapContext } from '..';
-import AIGenerate from './AIGenerate';
 import FullTextEditor from './FullTextEditor';
 import Header from './Header';
 import KbDocLinkPickerDialog from './KbDocLinkPickerDialog';
@@ -64,10 +63,6 @@ const Wrap = ({
 
   const storageTocOpen = localStorage.getItem('toc-open');
 
-  const postApiV1CreationTabCompleteController = useRef<AbortController | null>(
-    null,
-  );
-
   const markdownEditorRef = useRef<MarkdownEditorRef>(null);
 
   const isMarkdown = useMemo(() => {
@@ -81,9 +76,8 @@ const Wrap = ({
   const [characterCount, setCharacterCount] = useState(0);
   const [headings, setHeadings] = useState<TocList>([]);
   const [fixedToc, setFixedToc] = useState(!!storageTocOpen);
-  const [selectionText, setSelectionText] = useState('');
-  const [aiGenerateOpen, setAiGenerateOpen] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [imageSummaryLoading, setImageSummaryLoading] = useState(false);
   const [kbDocLinkOpen, setKbDocLinkOpen] = useState(false);
   const kbPickIntentRef = useRef<
     'toolbar' | 'link-popover' | 'markdown' | null
@@ -192,33 +186,6 @@ const Wrap = ({
     checkIfEdited();
   };
 
-  const handleAiWritingGetSuggestion = async ({
-    prefix,
-    suffix,
-  }: {
-    prefix: string;
-    suffix: string;
-  }): Promise<string> => {
-    if (postApiV1CreationTabCompleteController.current) {
-      postApiV1CreationTabCompleteController.current.abort();
-    }
-    postApiV1CreationTabCompleteController.current = new AbortController();
-    const signal = postApiV1CreationTabCompleteController.current.signal;
-
-    const suggestion = await postApiV1CreationTabComplete(
-      {
-        prefix: prefix.length > 300 ? prefix.slice(-300) : prefix,
-        suffix: suffix.slice(0, 300),
-      },
-      {
-        signal,
-      },
-    );
-    return new Promise(resolve => {
-      resolve(suggestion || '');
-    });
-  };
-
   const editorRef = useTiptap({
     editable: !readOnly && !isMarkdown,
     contentType: isMarkdown ? 'markdown' : 'html',
@@ -236,7 +203,6 @@ const Wrap = ({
     onUpload: handleUpload,
     onUpdate: handleUpdate,
     onTocUpdate: handleTocUpdate,
-    onAiWritingGetSuggestion: handleAiWritingGetSuggestion,
   });
 
   const handleInsertRichLinkHtml = useCallback(
@@ -333,7 +299,6 @@ const Wrap = ({
   useEffect(() => {
     if (readOnly) {
       setShowSummary(false);
-      setAiGenerateOpen(false);
     }
   }, [readOnly]);
 
@@ -391,25 +356,85 @@ const Wrap = ({
     isMarkdown,
   ]);
 
-  const handleAiGenerate = useCallback(() => {
-    if (editorRef.editor) {
-      const { from, to } = editorRef.editor.state.selection;
-      const text = editorRef.editor.state.doc.textBetween(from, to, '\n');
-      if (!text) {
-        message.error('请先选择文本');
-        return;
-      }
-      setSelectionText(text);
-      setAiGenerateOpen(true);
-    }
-  }, [editorRef.editor]);
-
   const getCurrentContent = useCallback(() => {
     if (!isMarkdown && editorRef) {
       return editorRef.getContent() || '';
     }
     return nodeDetail?.content || '';
   }, [editorRef, isMarkdown, nodeDetail?.content]);
+
+  const applyImageSummaries = useCallback(
+    (summaries: string[]) => {
+      const editor = editorRef.editor;
+      if (!editor || summaries.length === 0) return '';
+      let imageIndex = 0;
+      let changed = false;
+      const tr = editor.state.tr;
+      editor.state.doc.descendants((node, pos) => {
+        if (node.type.name !== 'image') return true;
+        const summary = summaries[imageIndex];
+        imageIndex += 1;
+        if (!summary) return true;
+        tr.setNodeMarkup(pos, undefined, {
+          ...node.attrs,
+          title: summary,
+        });
+        changed = true;
+        return true;
+      });
+      if (!changed) return '';
+      editor.view.dispatch(tr);
+      return editorRef.getContent() || '';
+    },
+    [editorRef],
+  );
+
+  const handleImageSummary = useCallback(() => {
+    if (!nodeDetail?.id || !defaultDetail.kb_id || imageSummaryLoading) return;
+    setImageSummaryLoading(true);
+    postApiV1NodeImageSummary({
+      kb_id: defaultDetail.kb_id,
+      ids: [nodeDetail.id],
+      name: nodeDetail.name,
+      content: getCurrentContent(),
+    })
+      .then(res => {
+        const summaries = (res as { summaries?: string[] }).summaries || [];
+        const content = applyImageSummaries(summaries);
+        if (!content) {
+          message.error('未找到可写入描述的图片');
+          return;
+        }
+        updateDetail({ content });
+        return putApiV1NodeDetail({
+          id: nodeDetail.id!,
+          kb_id: defaultDetail.kb_id!,
+          content,
+          name: title || nodeDetail.name || '',
+        }).then(() => {
+          initialStateRef.current = {
+            content,
+            summary,
+            emoji: nodeDetail?.meta?.emoji || '',
+          };
+          setIsEditing(false);
+          message.success('图片描述已生成');
+        });
+      })
+      .finally(() => {
+        setImageSummaryLoading(false);
+      });
+  }, [
+    defaultDetail.kb_id,
+    applyImageSummaries,
+    getCurrentContent,
+    imageSummaryLoading,
+    nodeDetail?.id,
+    nodeDetail?.meta,
+    nodeDetail?.name,
+    summary,
+    title,
+  ]);
 
   const changeCatalogItem = useCallback(() => {
     if (readOnly) return;
@@ -865,8 +890,9 @@ const Wrap = ({
         {!isMarkdown && !readOnly && (
           <Toolbar
             editorRef={editorRef}
-            handleAiGenerate={handleAiGenerate}
+            imageSummaryLoading={imageSummaryLoading}
             onInsertKbDocLink={openKbDocPickerToolbar}
+            onImageSummary={handleImageSummary}
           />
         )}
       </Box>
@@ -935,17 +961,10 @@ const Wrap = ({
             : undefined
         }
       />
-      <AIGenerate
-        open={aiGenerateOpen}
-        selectText={selectionText}
-        onClose={() => setAiGenerateOpen(false)}
-        editorRef={editorRef}
-      />
       <Summary
         open={showSummary}
         updateDetail={updateDetail}
         onClose={() => setShowSummary(false)}
-        getCurrentContent={getCurrentContent}
       />
       {defaultDetail.kb_id && (
         <KbDocLinkPickerDialog

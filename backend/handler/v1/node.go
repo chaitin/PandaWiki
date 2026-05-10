@@ -304,12 +304,12 @@ func (h *NodeHandler) SummaryNodeImages(c echo.Context) error {
 		return h.NewResponseWithError(c, "validate request body failed", err)
 	}
 	ctx := c.Request().Context()
-	summary, err := h.usecase.SummaryNodeImages(ctx, req)
+	summaries, err := h.usecase.SummaryNodeImages(ctx, req)
 	if err != nil {
 		return h.NewResponseWithError(c, err.Error(), err)
 	}
 	return h.NewResponseWithData(c, map[string]any{
-		"summary": summary,
+		"summaries": summaries,
 	})
 }
 

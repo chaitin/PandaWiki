@@ -1,5 +1,4 @@
 import {
-  postApiV1NodeImageSummary,
   postApiV1NodeSummary,
   putApiV1NodeDetail,
   V1NodeDetailResp,
@@ -16,23 +15,14 @@ interface SummaryProps {
   open: boolean;
   onClose: () => void;
   updateDetail: (detail: V1NodeDetailResp) => void;
-  getCurrentContent?: () => string;
 }
 
-const Summary = ({
-  open,
-  onClose,
-  updateDetail,
-  getCurrentContent,
-}: SummaryProps) => {
+const Summary = ({ open, onClose, updateDetail }: SummaryProps) => {
   const { kb_id } = useAppSelector(state => state.config);
   const { nodeDetail } = useOutletContext<WrapContext>();
   const [summary, setSummary] = useState(nodeDetail?.meta?.summary || '');
-  const [loadingAction, setLoadingAction] = useState<'text' | 'images' | null>(
-    null,
-  );
+  const [loading, setLoading] = useState(false);
   const [edit, setEdit] = useState(false);
-  const loading = !!loadingAction;
 
   const handleClose = () => {
     setEdit(false);
@@ -42,7 +32,7 @@ const Summary = ({
 
   const createSummary = () => {
     if (!nodeDetail) return;
-    setLoadingAction('text');
+    setLoading(true);
     postApiV1NodeSummary({ kb_id, ids: [nodeDetail.id!] })
       .then(res => {
         // @ts-expect-error 类型错误
@@ -50,26 +40,7 @@ const Summary = ({
         setEdit(true);
       })
       .finally(() => {
-        setLoadingAction(null);
-      });
-  };
-
-  const createImageSummary = () => {
-    if (!nodeDetail) return;
-    setLoadingAction('images');
-    postApiV1NodeImageSummary({
-      kb_id,
-      ids: [nodeDetail.id!],
-      name: nodeDetail.name,
-      content: getCurrentContent?.() || nodeDetail.content || '',
-    })
-      .then(res => {
-        // @ts-expect-error 类型错误
-        setSummary(res.summary);
-        setEdit(true);
-      })
-      .finally(() => {
-        setLoadingAction(null);
+        setLoading(false);
       });
   };
 
@@ -129,24 +100,7 @@ const Summary = ({
             )
           }
         >
-          {loadingAction === 'text' ? '正在生成文档摘要...' : 'AI 自动生成摘要'}
-        </Button>
-        <Button
-          fullWidth
-          variant='outlined'
-          onClick={createImageSummary}
-          disabled={loading}
-          startIcon={
-            loadingAction === 'images' ? (
-              <CircularProgress size={16} />
-            ) : (
-              <IconDJzhinengzhaiyao sx={{ fontSize: 16 }} />
-            )
-          }
-        >
-          {loadingAction === 'images'
-            ? '正在摘要全部图片...'
-            : '一键摘要文档全部图片'}
+          点击此处，AI 自动生成摘要
         </Button>
       </Stack>
     </Modal>

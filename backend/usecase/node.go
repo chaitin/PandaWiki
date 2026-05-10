@@ -465,13 +465,13 @@ func (u *NodeUsecase) visionSummaryModel(ctx context.Context) (*domain.Model, er
 	return model, nil
 }
 
-func (u *NodeUsecase) SummaryNodeImages(ctx context.Context, req *domain.NodeSummaryReq) (string, error) {
+func (u *NodeUsecase) SummaryNodeImages(ctx context.Context, req *domain.NodeSummaryReq) ([]string, error) {
 	if len(req.IDs) != 1 {
-		return "", fmt.Errorf("图片摘要仅支持单篇文档")
+		return nil, fmt.Errorf("图片摘要仅支持单篇文档")
 	}
 	node, err := u.nodeRepo.GetNodeByID(ctx, req.IDs[0])
 	if err != nil {
-		return "", fmt.Errorf("get latest node release failed: %w", err)
+		return nil, fmt.Errorf("get latest node release failed: %w", err)
 	}
 	content := req.Content
 	if content == "" {
@@ -483,17 +483,17 @@ func (u *NodeUsecase) SummaryNodeImages(ctx context.Context, req *domain.NodeSum
 	}
 	refs := ExtractImageRefsFromDocContent(content)
 	if len(refs) == 0 {
-		return "", fmt.Errorf("当前文档正文中未找到图片，请插入至少一张图片后再生成图片摘要")
+		return nil, fmt.Errorf("当前文档正文中未找到图片，请插入至少一张图片后再生成图片摘要")
 	}
 	model, err := u.visionSummaryModel(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	imageDataURLs := make([]string, 0, len(refs))
 	for _, ref := range refs {
 		imageDataURL, err := ResolveImageRefForVision(ctx, u.s3Client, ref)
 		if err != nil {
-			return "", fmt.Errorf("准备图片摘要失败: %w", err)
+			return nil, fmt.Errorf("准备图片摘要失败: %w", err)
 		}
 		imageDataURLs = append(imageDataURLs, imageDataURL)
 	}
