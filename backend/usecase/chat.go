@@ -74,7 +74,7 @@ func (u *ChatUsecase) pickVisionModel(ctx context.Context, chatFallback *domain.
 func formatWorkModeAttributeClarify(categoryName string, missing []string) string {
 	name := strings.TrimSpace(categoryName)
 	list := strings.Join(missing, "、")
-	return "当前为「工作模式」，您的问题已命中品类「" + name + "」。为准确检索知识库，请先补充以下信息（后台配置维度）：" + list + "。\n\n请逐条说明；若某项不适用请写明「不适用」及原因。"
+	return "当前为「工作模式」。知识库中每个文档一般对应一件物品；为把您的描述对应到正确物品并检索到对的那篇文档，已命中品类「" + name + "」。请先补充以下信息（后台配置维度）：" + list + "。\n\n请逐条说明；若某项不适用请写明「不适用」及原因。"
 }
 
 func (u *ChatUsecase) sendWorkModeClarifyAndFinish(
@@ -353,7 +353,7 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 									u.logger.Warn("work mode: missing attributes check failed, continue RAG", log.Error(mErr))
 								} else if len(missing) > 0 {
 									clarify := formatWorkModeAttributeClarify(matchedForGate.Name, missing)
-									b, jErr := json.Marshal(map[string]any{"step": 5, "title": "工作模式：属性核对", "detail": "品类「" + matchedForGate.Name + "」尚缺：" + strings.Join(missing, "、")})
+									b, jErr := json.Marshal(map[string]any{"step": 5, "title": "工作模式：属性核对", "detail": "为对应到知识库中的具体物品（文档），品类「" + matchedForGate.Name + "」尚缺：" + strings.Join(missing, "、")})
 									if jErr == nil {
 										eventCh <- domain.SSEEvent{Type: "chain_step", Content: string(b)}
 									}
