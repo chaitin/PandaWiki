@@ -31,3 +31,10 @@
   line-height: 1.45;
   opacity: 0.85;
 }
+.tiptap.ProseMirror :last-child span.editor-image-title {
+  width: 30%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
