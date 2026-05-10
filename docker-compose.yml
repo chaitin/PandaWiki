@@ -179,6 +179,8 @@ services:
     restart: always
     volumes:
       - ./data/raglite:/data
+    ports:
+      - "5050:5050"
     environment:
       - GIN_MODE=release
       - DATABASE_POSTGRESQL_HOST=panda-wiki-postgres
