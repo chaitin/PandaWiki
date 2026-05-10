@@ -1,4 +1,3 @@
-import Logo from '@/assets/images/logo.png';
 import Qrcode from '@/assets/images/qrcode.png';
 
 import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
@@ -9,6 +8,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import Avatar from '../Avatar';
 import Version from './Version';
 import { useAppSelector } from '@/store';
+import { useAdminSiteBranding } from '@/hooks/useAdminSiteBranding';
 import {
   IconBangzhuwendang1,
   IconNeirongguanli,
@@ -123,7 +123,8 @@ const MENUS = [
 
 const Sidebar = () => {
   const { pathname } = useLocation();
-  const { kbDetail, user } = useAppSelector(state => state.config);
+  const { kbDetail, user, kb_id } = useAppSelector(state => state.config);
+  const { displayTitle, logoSrc } = useAdminSiteBranding(kb_id || null);
   const theme = useTheme();
   const [showQrcode, setShowQrcode] = useState(false);
   const navigate = useNavigate();
@@ -172,7 +173,7 @@ const Sidebar = () => {
         justifyContent={'center'}
         sx={{ flexShrink: 0 }}
       >
-        <Avatar src={Logo} sx={{ width: 30, height: 30 }} />
+        <Avatar src={logoSrc} sx={{ width: 30, height: 30 }} />
       </Stack>
       <Box
         sx={{
@@ -184,7 +185,7 @@ const Sidebar = () => {
           borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
-        后台管理
+        {displayTitle}
       </Box>
       <Stack sx={{ py: 2, flexGrow: 1 }} gap={1}>
         {menus.map(it => {

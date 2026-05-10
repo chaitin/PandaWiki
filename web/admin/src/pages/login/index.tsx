@@ -1,11 +1,11 @@
 import { postApiV1UserLogin } from '@/request/User';
 import Bgi from '@/assets/images/login-bgi.png';
-import Logo from '@/assets/images/logo.png';
 import Avatar from '@/components/Avatar';
 import Card from '@/components/Card';
 import { Box, Button, IconButton, Stack, TextField } from '@mui/material';
 import { Icon, message } from '@ctzhian/ui';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useAdminSiteBranding } from '@/hooks/useAdminSiteBranding';
 import { useNavigate } from 'react-router-dom';
 import {
   IconZhanghao,
@@ -17,6 +17,12 @@ import {
 
 const Login = () => {
   const navigate = useNavigate();
+  const kbId = useMemo(
+    () =>
+      typeof window !== 'undefined' ? localStorage.getItem('kb_id') : null,
+    [],
+  );
+  const { displayTitle, logoSrc } = useAdminSiteBranding(kbId);
   const [account, setAccount] = useState('');
   const [password, setPassword] = useState('');
   const [see, setSee] = useState(false);
@@ -70,7 +76,7 @@ const Login = () => {
           }}
         >
           <Stack alignItems={'center'}>
-            <Avatar src={Logo} sx={{ width: 64, height: 64, mb: 1 }} />
+            <Avatar src={logoSrc} sx={{ width: 64, height: 64, mb: 1 }} />
             <Stack
               direction={'row'}
               alignItems={'center'}
@@ -82,7 +88,7 @@ const Login = () => {
                 mb: 4,
               }}
             >
-              FZK后台管理
+              {displayTitle}
             </Stack>
             <TextField
               value={account}
