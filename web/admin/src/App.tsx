@@ -10,6 +10,7 @@ import { getApiV1License } from './request/pro/License';
 import { setLicense } from './store/slices/config';
 
 import '@ctzhian/tiptap/dist/index.css';
+import '@/assets/styles/tiptap-image-caption.css';
 
 function App() {
   const location = useLocation();

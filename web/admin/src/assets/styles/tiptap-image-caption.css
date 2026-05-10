@@ -1,0 +1,33 @@
+/* 图片说明：换行与限宽，避免 inline-block 链条把编辑器/段落撑出横向滚动 */
+.tiptap .image-wrapper,
+.ProseMirror .image-wrapper {
+  max-width: 100%;
+  box-sizing: border-box;
+  vertical-align: bottom;
+}
+
+.tiptap .image-wrapper > span,
+.ProseMirror .image-wrapper > span {
+  max-width: 100%;
+  box-sizing: border-box;
+  vertical-align: bottom;
+}
+
+.editor-image-caption {
+  display: block;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.editor-image-title {
+  display: block;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  font-size: 0.875em;
+  line-height: 1.45;
+  opacity: 0.85;
+}
