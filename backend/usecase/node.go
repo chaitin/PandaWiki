@@ -437,6 +437,69 @@ func (u *NodeUsecase) SummaryNode(ctx context.Context, req *domain.NodeSummaryRe
 	return "", nil
 }
 
+func (u *NodeUsecase) visionSummaryModel(ctx context.Context) (*domain.Model, error) {
+	modelModeSetting, err := u.modelUsecase.GetModelModeSetting(ctx)
+	if err == nil && modelModeSetting.Mode == consts.ModelSettingModeAuto && modelModeSetting.AutoModeAPIKey != "" {
+		return &domain.Model{
+			Model:    consts.GetAutoModeDefaultModel(string(domain.ModelTypeAnalysisVL)),
+			Type:     domain.ModelTypeAnalysisVL,
+			IsActive: true,
+			BaseURL:  consts.AutoModeBaseURL,
+			APIKey:   modelModeSetting.AutoModeAPIKey,
+			Provider: domain.ModelProviderBrandBaiZhiCloud,
+		}, nil
+	}
+	if err != nil {
+		u.logger.Warn("get model mode setting failed, use manual analysis-vl model", log.Error(err))
+	}
+	model, err := u.modelUsecase.GetModelByType(ctx, domain.ModelTypeAnalysisVL)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("请前往系统设置配置 analysis-vl 视觉模型后再生成图片摘要")
+		}
+		return nil, err
+	}
+	if model.ID != "" && !model.Parameters.SupportImages {
+		return nil, fmt.Errorf("analysis-vl 视觉模型未开启「支持图片/多模态」，请在模型设置的高级参数中开启 support_images 后再生成图片摘要")
+	}
+	return model, nil
+}
+
+func (u *NodeUsecase) SummaryNodeImages(ctx context.Context, req *domain.NodeSummaryReq) (string, error) {
+	if len(req.IDs) != 1 {
+		return "", fmt.Errorf("图片摘要仅支持单篇文档")
+	}
+	node, err := u.nodeRepo.GetNodeByID(ctx, req.IDs[0])
+	if err != nil {
+		return "", fmt.Errorf("get latest node release failed: %w", err)
+	}
+	content := req.Content
+	if content == "" {
+		content = node.Content
+	}
+	name := req.Name
+	if name == "" {
+		name = node.Name
+	}
+	refs := ExtractImageRefsFromDocContent(content)
+	if len(refs) == 0 {
+		return "", fmt.Errorf("当前文档正文中未找到图片，请插入至少一张图片后再生成图片摘要")
+	}
+	model, err := u.visionSummaryModel(ctx)
+	if err != nil {
+		return "", err
+	}
+	imageDataURLs := make([]string, 0, len(refs))
+	for _, ref := range refs {
+		imageDataURL, err := ResolveImageRefForVision(ctx, u.s3Client, ref)
+		if err != nil {
+			return "", fmt.Errorf("准备图片摘要失败: %w", err)
+		}
+		imageDataURLs = append(imageDataURLs, imageDataURL)
+	}
+	return u.llmUsecase.SummaryDocImages(ctx, model, req.KBID, name, imageDataURLs)
+}
+
 func (u *NodeUsecase) GetRecommendNodeList(ctx context.Context, req *domain.GetRecommendNodeListReq) ([]*domain.RecommendNodeListResp, error) {
 	// get latest kb release
 	kbRelease, err := u.kbRepo.GetLatestRelease(ctx, req.KBID)

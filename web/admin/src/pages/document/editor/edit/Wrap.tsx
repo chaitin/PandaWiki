@@ -404,6 +404,13 @@ const Wrap = ({
     }
   }, [editorRef.editor]);
 
+  const getCurrentContent = useCallback(() => {
+    if (!isMarkdown && editorRef) {
+      return editorRef.getContent() || '';
+    }
+    return nodeDetail?.content || '';
+  }, [editorRef, isMarkdown, nodeDetail?.content]);
+
   const changeCatalogItem = useCallback(() => {
     if (readOnly) return;
     if (editorRef && editorRef.editor) {
@@ -938,6 +945,7 @@ const Wrap = ({
         open={showSummary}
         updateDetail={updateDetail}
         onClose={() => setShowSummary(false)}
+        getCurrentContent={getCurrentContent}
       />
       {defaultDetail.kb_id && (
         <KbDocLinkPickerDialog

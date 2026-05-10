@@ -1034,8 +1034,10 @@ export interface DomainNodePermissions {
 }
 
 export interface DomainNodeSummaryReq {
+  content?: string;
   ids: string[];
   kb_id: string;
+  name?: string;
 }
 
 export interface DomainObjectUploadResp {

@@ -323,6 +323,20 @@ export const postApiV1NodeSummary = (
     ...params,
   });
 
+export const postApiV1NodeImageSummary = (
+  body: DomainNodeSummaryReq,
+  params: RequestParams = {},
+) =>
+  httpRequest<DomainResponse>({
+    path: `/api/v1/node/image_summary`,
+    method: "POST",
+    body: body,
+    secure: true,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
 export const getApiV1NodeDiff = (
   query: { id: string; kb_id: string },
   params: RequestParams = {},

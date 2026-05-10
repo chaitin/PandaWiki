@@ -423,6 +423,52 @@ func (u *LLMUsecase) summaryImageDoc(ctx context.Context, dm *domain.Model, chat
 	return strings.TrimSpace(u.trimThinking(summary)), nil
 }
 
+func (u *LLMUsecase) SummaryDocImages(ctx context.Context, dm *domain.Model, kbID, docName string, imageDataURLs []string) (string, error) {
+	if len(imageDataURLs) == 0 {
+		return "", fmt.Errorf("no image data for vision summary")
+	}
+	if dm.ID != "" && !dm.Parameters.SupportImages {
+		return "", fmt.Errorf("当前视觉模型未开启「支持图片/多模态」，请在模型设置的高级参数中开启 support_images 后再生成图片摘要")
+	}
+	modelkitModel, err := dm.ToModelkitModel()
+	if err != nil {
+		return "", err
+	}
+	chatModel, err := u.modelkit.GetChatModel(ctx, modelkitModel)
+	if err != nil {
+		return "", err
+	}
+
+	parts := []schema.ChatMessagePart{
+		{
+			Type: schema.ChatMessagePartTypeText,
+			Text: fmt.Sprintf("文档标题：%s\n图片数量：%d\n请按图片在文档中出现的顺序总结全部图片。", docName, len(imageDataURLs)),
+		},
+	}
+	for _, imageDataURL := range imageDataURLs {
+		parts = append(parts, schema.ChatMessagePart{
+			Type:     schema.ChatMessagePartTypeImageURL,
+			ImageURL: &schema.ChatMessageImageURL{URL: imageDataURL},
+		})
+	}
+	summary, err := u.Generate(ctx, chatModel, []*schema.Message{
+		{
+			Role: "system",
+			Content: `你是文档图片摘要助手。请阅读用户提供的文档标题和全部图片，为这些图片生成可放入文档摘要字段的中文摘要。
+要求：
+1. 覆盖所有图片，不要遗漏关键图表、界面、流程、产品、文字信息或场景。
+2. 多张图片时按出现顺序概括，可以合并相近内容。
+3. 输出纯文本，不使用 Markdown 表格，不编造图片中看不到的信息。
+4. 总字数不超过 500 字。`,
+		},
+		{Role: "user", MultiContent: parts},
+	})
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(u.trimThinking(summary)), nil
+}
+
 func (u *LLMUsecase) trimThinking(summary string) string {
 	if !strings.HasPrefix(summary, "<think>") {
 		return summary

@@ -17,19 +17,44 @@ import (
 )
 
 var (
-	reImgSrcHTML = regexp.MustCompile(`(?i)<img[^>]+src\s*=\s*["']([^"']+)["']`)
-	reMdImg      = regexp.MustCompile(`!\[[^\]]*\]\(([^)]+)\)`)
-	reStripTags  = regexp.MustCompile(`(?s)<script\b[^>]*>.*?</script>|<style\b[^>]*>.*?</style>|<[^>]+>`)
-	reSpace      = regexp.MustCompile(`\s+`)
+	reImgRef    = regexp.MustCompile(`(?is)<img[^>]+src\s*=\s*["']([^"']+)["']|!\[[^\]]*\]\(([^)]+)\)`)
+	reStripTags = regexp.MustCompile(`(?s)<script\b[^>]*>.*?</script>|<style\b[^>]*>.*?</style>|<[^>]+>`)
+	reSpace     = regexp.MustCompile(`\s+`)
 )
+
+// ExtractImageRefsFromDocContent returns image URLs or paths in HTML/Markdown body.
+func ExtractImageRefsFromDocContent(content string) []string {
+	refs := make([]string, 0)
+	seen := make(map[string]struct{})
+	addRef := func(ref string) {
+		ref = strings.TrimSpace(ref)
+		if fields := strings.Fields(ref); len(fields) > 0 {
+			ref = fields[0]
+		}
+		if ref == "" {
+			return
+		}
+		if _, ok := seen[ref]; ok {
+			return
+		}
+		seen[ref] = struct{}{}
+		refs = append(refs, ref)
+	}
+	for _, m := range reImgRef.FindAllStringSubmatch(content, -1) {
+		if len(m) > 1 && m[1] != "" {
+			addRef(m[1])
+		} else if len(m) > 2 {
+			addRef(m[2])
+		}
+	}
+	return refs
+}
 
 // ExtractFirstImageRefFromDocContent returns the first image URL or path in HTML/Markdown body.
 func ExtractFirstImageRefFromDocContent(content string) string {
-	if m := reImgSrcHTML.FindStringSubmatch(content); len(m) > 1 {
-		return strings.TrimSpace(m[1])
-	}
-	if m := reMdImg.FindStringSubmatch(content); len(m) > 1 {
-		return strings.TrimSpace(m[1])
+	refs := ExtractImageRefsFromDocContent(content)
+	if len(refs) > 0 {
+		return refs[0]
 	}
 	return ""
 }

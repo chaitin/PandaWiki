@@ -51,6 +51,7 @@ func NewNodeHandler(
 	writeGroup.POST("", h.CreateNode)
 	writeGroup.PUT("/detail", h.UpdateNodeDetail)
 	writeGroup.POST("/summary", h.SummaryNode)
+	writeGroup.POST("/image_summary", h.SummaryNodeImages)
 	writeGroup.POST("/action", h.NodeAction)
 	writeGroup.POST("/move", h.MoveNode)
 	writeGroup.POST("/batch_move", h.BatchMoveNode)
@@ -276,6 +277,35 @@ func (h *NodeHandler) SummaryNode(c echo.Context) error {
 			return h.NewResponseWithError(c, "请前往管理后台，点击右上角的“系统设置”配置推理大模型。", err)
 		}
 		// Message 需包含 err 文案，前端 httpClient 只展示 PWResponse.Message
+		return h.NewResponseWithError(c, err.Error(), err)
+	}
+	return h.NewResponseWithData(c, map[string]any{
+		"summary": summary,
+	})
+}
+
+// SummaryNodeImages
+//
+//	@Summary		Summary Node Images
+//	@Description	Summary all images in one node
+//	@Tags			node
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			body	body		domain.NodeSummaryReq	true	"Summary Node Images"
+//	@Success		200		{object}	domain.Response
+//	@Router			/api/v1/node/image_summary [post]
+func (h *NodeHandler) SummaryNodeImages(c echo.Context) error {
+	req := &domain.NodeSummaryReq{}
+	if err := c.Bind(req); err != nil {
+		return h.NewResponseWithError(c, "request body is invalid", err)
+	}
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request body failed", err)
+	}
+	ctx := c.Request().Context()
+	summary, err := h.usecase.SummaryNodeImages(ctx, req)
+	if err != nil {
 		return h.NewResponseWithError(c, err.Error(), err)
 	}
 	return h.NewResponseWithData(c, map[string]any{

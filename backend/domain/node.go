@@ -309,8 +309,10 @@ type MoveNodeReq struct {
 }
 
 type NodeSummaryReq struct {
-	IDs  []string `json:"ids" validate:"required"`
-	KBID string   `json:"kb_id" validate:"required"`
+	IDs     []string `json:"ids" validate:"required"`
+	KBID    string   `json:"kb_id" validate:"required"`
+	Name    string   `json:"name,omitempty"`
+	Content string   `json:"content,omitempty"`
 }
 
 type GetRecommendNodeListReq struct {
