@@ -5,6 +5,11 @@ import {
   getInitialChatTopN,
   persistChatTopN,
 } from '../chatTopNStorage';
+import {
+  getInitialQaAppMode,
+  persistQaAppMode,
+  type QaAppMode,
+} from '../chatQaModeStorage';
 import { useTextAnimation } from '../hooks/useGsapAnimation';
 import {
   ButtonProps,
@@ -21,6 +26,8 @@ import {
   MenuItem,
   Select,
   Tooltip,
+  Switch,
+  Typography,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { StyledTopicBox } from '../component/styledCommon';
@@ -195,6 +202,9 @@ const Banner = React.memo(
     const [typedText, setTypedText] = useState('');
     const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
     const [topN, setTopN] = useState(DEFAULT_CHAT_TOP_N);
+    const [qaAppMode, setQaAppMode] = useState<QaAppMode>(() =>
+      getInitialQaAppMode(),
+    );
     const topNPersistReady = useRef(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const debounceTimer = useRef<NodeJS.Timeout | null>(null);
@@ -604,16 +614,64 @@ const Banner = React.memo(
                 </Tooltip>
                 <Button
                   variant='contained'
-                  size='small'
+                  size='medium'
                   sx={{
-                    fontSize: 12,
-                    borderRadius: 4,
+                    fontSize: 15,
+                    fontWeight: 600,
+                    borderRadius: 2,
+                    minHeight: 40,
+                    px: 2.5,
                     flexShrink: 0,
                   }}
                   onClick={() => doSearch('chat')}
                 >
-                  AI 智能问答
+                  智能问答
                 </Button>
+                <Stack
+                  direction='row'
+                  alignItems='center'
+                  spacing={0.75}
+                  sx={{ flexShrink: 0 }}
+                >
+                  <Typography
+                    variant='body2'
+                    sx={{
+                      fontSize: 13,
+                      fontWeight: qaAppMode === 'training' ? 600 : 400,
+                      color:
+                        qaAppMode === 'training'
+                          ? 'primary.main'
+                          : 'text.secondary',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    培训模式
+                  </Typography>
+                  <Switch
+                    size='medium'
+                    checked={qaAppMode === 'work'}
+                    onChange={(_, checked) => {
+                      const m: QaAppMode = checked ? 'work' : 'training';
+                      setQaAppMode(m);
+                      persistQaAppMode(m);
+                    }}
+                    inputProps={{ 'aria-label': '培训模式与工作模式切换' }}
+                  />
+                  <Typography
+                    variant='body2'
+                    sx={{
+                      fontSize: 13,
+                      fontWeight: qaAppMode === 'work' ? 600 : 400,
+                      color:
+                        qaAppMode === 'work'
+                          ? 'primary.main'
+                          : 'text.secondary',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    工作模式
+                  </Typography>
+                </Stack>
               </Stack>
             </Stack>
           </StyledSearchBox>

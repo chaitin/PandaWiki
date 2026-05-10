@@ -16,6 +16,8 @@ type ChatRequest struct {
 	CaptchaToken   string   `json:"captcha_token"`
 	// TopN 为向量检索返回片段数量上限；0 或未传表示使用默认 10；合法范围为 1～10
 	TopN int `json:"top_n" validate:"omitempty,min=1,max=10"`
+	// QaMode 前台智能问答：training=培训模式，work=工作模式；空表示不追加模式说明
+	QaMode string `json:"qa_mode,omitempty" validate:"omitempty,oneof=training work"`
 
 	KBID  string `json:"-" validate:"required"`
 	AppID string `json:"-"`

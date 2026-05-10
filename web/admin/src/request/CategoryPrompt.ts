@@ -4,6 +4,8 @@ export interface CategoryPromptItem {
   id: string;
   name: string;
   content: string;
+  /** 检索属性维度，逗号分隔 */
+  attributes?: string;
 }
 
 export const getApiV1CategoryPrompts = (

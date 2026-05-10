@@ -13,10 +13,16 @@ import {
   styled,
   Tabs,
   Tab,
+  useTheme,
 } from '@mui/material';
 import AiQaContent from './AiQaContent';
 import SearchDocContent from './SearchDocContent';
 import { useStore } from '@/provider';
+import {
+  getInitialQaAppMode,
+  QA_APP_MODE_CHANGE_EVENT,
+  type QaAppMode,
+} from '@panda-wiki/ui';
 
 interface SearchSuggestion {
   id: string;
@@ -76,11 +82,16 @@ const StyledTab = styled(Tab)(({ theme }) => ({
 }));
 
 const QaModal: React.FC<QaModalProps> = () => {
+  const theme = useTheme();
   const { qaModalOpen, setQaModalOpen, kbDetail, mobile } = useStore();
   const [searchMode, setSearchMode] = useState<'chat' | 'search'>('chat');
+  const [qaAppMode, setQaAppMode] = useState<QaAppMode>(() =>
+    getInitialQaAppMode(),
+  );
   const inputRef = useRef<HTMLInputElement>(null);
   const aiQaInputRef = useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
+  const qaWorkMode = qaAppMode === 'work';
   const onClose = () => {
     setQaModalOpen?.(false);
   };
@@ -128,6 +139,22 @@ const QaModal: React.FC<QaModalProps> = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const onModeChange = (e: Event) => {
+      const d = (e as CustomEvent<QaAppMode>).detail;
+      if (d === 'training' || d === 'work') setQaAppMode(d);
+    };
+    window.addEventListener(QA_APP_MODE_CHANGE_EVENT, onModeChange);
+    return () =>
+      window.removeEventListener(QA_APP_MODE_CHANGE_EVENT, onModeChange);
+  }, []);
+
+  useEffect(() => {
+    if (qaModalOpen) {
+      setQaAppMode(getInitialQaAppMode());
+    }
+  }, [qaModalOpen]);
+
   return (
     <Modal
       open={qaModalOpen as boolean}
@@ -140,19 +167,40 @@ const QaModal: React.FC<QaModalProps> = () => {
       }}
     >
       <Box
-        sx={theme => ({
+        sx={{
           display: 'flex',
           flexDirection: 'column',
           flex: 1,
           maxWidth: 800,
           maxHeight: '100%',
-          backgroundColor: lighten(theme.palette.background.default, 0.05),
           borderRadius: '10px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
           overflow: 'hidden',
           outline: 'none',
           pb: 2,
-        })}
+          ...(qaWorkMode
+            ? theme.palette.mode === 'light'
+              ? {
+                  backgroundColor: '#f8fafc',
+                  backgroundImage:
+                    'linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%)',
+                  border: '1px solid rgba(148, 163, 184, 0.45)',
+                  boxShadow: '0 16px 48px rgba(15, 23, 42, 0.12)',
+                }
+              : {
+                  backgroundColor: 'rgba(15, 23, 42, 0.75)',
+                  backgroundImage:
+                    'linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%)',
+                  border: '1px solid rgba(148, 163, 184, 0.18)',
+                  boxShadow: '0 16px 48px rgba(0, 0, 0, 0.5)',
+                }
+            : {
+                backgroundColor: lighten(
+                  theme.palette.background.default,
+                  0.05,
+                ),
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+              }),
+        }}
         onClick={e => e.stopPropagation()}
       >
         {/* 顶部标签栏 */}
@@ -166,33 +214,52 @@ const QaModal: React.FC<QaModalProps> = () => {
             pb: 2.5,
           }}
         >
-          <StyledTabs
-            value={searchMode}
-            onChange={(_, value) => {
-              setSearchMode(value as 'chat' | 'search');
-            }}
-            variant='scrollable'
-            scrollButtons={false}
+          <Box
+            sx={
+              qaWorkMode
+                ? {
+                    '& .MuiTabs-root': {
+                      borderColor:
+                        theme.palette.mode === 'light'
+                          ? 'rgba(148, 163, 184, 0.55)'
+                          : 'rgba(148, 163, 184, 0.22)',
+                    },
+                    '& .MuiTabs-indicator': {
+                      backgroundColor:
+                        theme.palette.mode === 'light' ? '#0f172a' : '#64748b',
+                    },
+                  }
+                : undefined
+            }
           >
-            <StyledTab
-              label={
-                <Stack direction='row' gap={0.5} alignItems='center'>
-                  <IconZhinengwenda sx={{ fontSize: 16 }} />
-                  {!mobile && <span>智能问答</span>}
-                </Stack>
-              }
-              value='chat'
-            />
-            <StyledTab
-              label={
-                <Stack direction='row' gap={0.5} alignItems='center'>
-                  <IconJinsousuo sx={{ fontSize: 16 }} />
-                  {!mobile && <span>仅搜索文档</span>}
-                </Stack>
-              }
-              value='search'
-            />
-          </StyledTabs>
+            <StyledTabs
+              value={searchMode}
+              onChange={(_, value) => {
+                setSearchMode(value as 'chat' | 'search');
+              }}
+              variant='scrollable'
+              scrollButtons={false}
+            >
+              <StyledTab
+                label={
+                  <Stack direction='row' gap={0.5} alignItems='center'>
+                    <IconZhinengwenda sx={{ fontSize: 16 }} />
+                    {!mobile && <span>智能问答</span>}
+                  </Stack>
+                }
+                value='chat'
+              />
+              <StyledTab
+                label={
+                  <Stack direction='row' gap={0.5} alignItems='center'>
+                    <IconJinsousuo sx={{ fontSize: 16 }} />
+                    {!mobile && <span>仅搜索文档</span>}
+                  </Stack>
+                }
+                value='search'
+              />
+            </StyledTabs>
+          </Box>
 
           {/* Esc按钮 */}
           {!mobile && (
@@ -209,7 +276,11 @@ const QaModal: React.FC<QaModalProps> = () => {
                 fontWeight: 500,
                 textTransform: 'none',
                 color: 'text.secondary',
-                borderColor: alpha(theme.palette.text.primary, 0.1),
+                borderColor: qaWorkMode
+                  ? theme.palette.mode === 'light'
+                    ? 'rgba(148, 163, 184, 0.65)'
+                    : 'rgba(148, 163, 184, 0.28)'
+                  : alpha(theme.palette.text.primary, 0.1),
               })}
             >
               Esc
@@ -230,6 +301,7 @@ const QaModal: React.FC<QaModalProps> = () => {
             hotSearch={hotSearch}
             placeholder={placeholder}
             inputRef={aiQaInputRef}
+            qaWorkMode={qaWorkMode}
           />
         </Box>
         <Box

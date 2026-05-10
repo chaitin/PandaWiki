@@ -1,7 +1,7 @@
 'use client';
 import { useStore } from '@/provider';
 import SSEClient from '@/utils/fetch';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { postShareV1CommonFileUpload } from '@/request/ShareFile';
 import dayjs from 'dayjs';
@@ -52,6 +52,7 @@ import {
 import {
   DEFAULT_CHAT_TOP_N,
   getInitialChatTopN,
+  getInitialQaAppMode,
   persistChatTopN,
 } from '@panda-wiki/ui';
 import CloseIcon from '@mui/icons-material/Close';
@@ -151,13 +152,61 @@ const AiQaContent: React.FC<{
   hotSearch: string[];
   placeholder: string;
   inputRef: React.RefObject<HTMLInputElement | null>;
-}> = ({ hotSearch, placeholder, inputRef }) => {
+  /** 工作模式：问答区采用偏商务的冷灰 / 藏青配色 */
+  qaWorkMode?: boolean;
+}> = ({ hotSearch, placeholder, inputRef, qaWorkMode = false }) => {
   const sseClientRef = useRef<SSEClient<{
     type: string;
     content: string;
     chunk_result: ChunkResultItem;
   }> | null>(null);
-  const { palette } = useTheme();
+  const theme = useTheme();
+  const { palette } = theme;
+
+  const workChrome = useMemo(() => {
+    if (!qaWorkMode) return null;
+    const L = theme.palette.mode === 'light';
+    return {
+      inputWrapper: L
+        ? {
+            bgcolor: '#ffffff',
+            borderColor: '#cbd5e1',
+            boxShadow: '0 2px 14px rgba(15, 23, 42, 0.07)',
+            '&:hover': { borderColor: 'rgba(30, 41, 59, 0.38)' },
+            '&:focus-within': {
+              borderColor: '#1e40af',
+              boxShadow: '0 0 0 1px rgba(30, 64, 175, 0.22)',
+            },
+          }
+        : {
+            bgcolor: 'rgba(15, 23, 42, 0.55)',
+            borderColor: 'rgba(148, 163, 184, 0.28)',
+            boxShadow: 'none',
+            '&:hover': { borderColor: 'rgba(148, 163, 184, 0.42)' },
+            '&:focus-within': {
+              borderColor: '#94a3b8',
+              boxShadow: '0 0 0 1px rgba(148, 163, 184, 0.22)',
+            },
+          },
+      textFieldBg: L ? '#fafafa' : 'rgba(15, 23, 42, 0.35)',
+      userBubble: L
+        ? { bgcolor: '#0f172a', color: '#f8fafc' }
+        : { bgcolor: '#334155', color: '#f1f5f9' },
+      accent: L ? '#1e3a8a' : '#94a3b8',
+      hotTitle: L ? '#334155' : '#cbd5e1',
+      title: L ? '#0f172a' : '#f1f5f9',
+      hotColBorder: L
+        ? 'rgba(148, 163, 184, 0.4)'
+        : 'rgba(148, 163, 184, 0.16)',
+      hotItemHover: L ? '#1e3a8a' : '#94a3b8',
+      fuzzySuggestHoverBg: L
+        ? 'rgba(15, 23, 42, 0.06)'
+        : 'rgba(248, 250, 252, 0.08)',
+      newConvHover: L
+        ? { borderColor: '#475569', color: '#0f172a' }
+        : { borderColor: '#94a3b8', color: '#e2e8f0' },
+    };
+  }, [qaWorkMode, theme]);
   const messageIdRef = useRef('');
   const lastResultExpendRef = useRef(false);
   const [fullAnswer, setFullAnswer] = useState<string>('');
@@ -367,7 +416,7 @@ const AiQaContent: React.FC<{
             component='span'
             key={index}
             sx={{
-              color: 'primary.main',
+              color: workChrome ? workChrome.accent : 'primary.main',
             }}
           >
             {part}
@@ -463,6 +512,7 @@ const AiQaContent: React.FC<{
       app_type: 1,
       captcha_token: token,
       top_n: topNForReq,
+      qa_mode: getInitialQaAppMode(),
     };
     if (conversationId) reqData.conversation_id = conversationId;
     if (nonce) reqData.nonce = nonce;
@@ -881,7 +931,11 @@ const AiQaContent: React.FC<{
             />
             <Typography
               variant='h6'
-              sx={{ fontSize: 32, color: 'text.primary', fontWeight: 700 }}
+              sx={{
+                fontSize: 32,
+                color: workChrome ? workChrome.title : 'text.primary',
+                fontWeight: 700,
+              }}
             >
               {kbDetail?.settings?.title}
             </Typography>
@@ -902,7 +956,7 @@ const AiQaContent: React.FC<{
                   sx={{
                     fontSize: 12,
                     fontWeight: 500,
-                    color: 'primary.main',
+                    color: workChrome ? workChrome.hotTitle : 'primary.main',
                     display: 'flex',
                     alignItems: 'center',
                     gap: 0.5,
@@ -916,13 +970,26 @@ const AiQaContent: React.FC<{
               {/* 热门搜索列表 - 两列布局 */}
               <StyledHotSearchContainer>
                 {/* 左列 */}
-                <StyledHotSearchColumn>
+                <StyledHotSearchColumn
+                  sx={
+                    workChrome
+                      ? { borderLeftColor: workChrome.hotColBorder }
+                      : undefined
+                  }
+                >
                   {hotSearch
                     .filter((_, index) => index % 2 === 0)
                     .map((suggestion, index) => (
                       <StyledHotSearchColumnItem
                         key={index * 2}
                         onClick={() => onSuggestionClick(suggestion)}
+                        sx={
+                          workChrome
+                            ? {
+                                '&:hover': { color: workChrome.hotItemHover },
+                              }
+                            : undefined
+                        }
                       >
                         • {suggestion}
                       </StyledHotSearchColumnItem>
@@ -930,13 +997,26 @@ const AiQaContent: React.FC<{
                 </StyledHotSearchColumn>
 
                 {/* 右列 */}
-                <StyledHotSearchColumn>
+                <StyledHotSearchColumn
+                  sx={
+                    workChrome
+                      ? { borderLeftColor: workChrome.hotColBorder }
+                      : undefined
+                  }
+                >
                   {hotSearch
                     .filter((_, index) => index % 2 === 1)
                     .map((suggestion, index) => (
                       <StyledHotSearchColumnItem
                         key={index * 2 + 1}
                         onClick={() => onSuggestionClick(suggestion)}
+                        sx={
+                          workChrome
+                            ? {
+                                '&:hover': { color: workChrome.hotItemHover },
+                              }
+                            : undefined
+                        }
                       >
                         • {suggestion}
                       </StyledHotSearchColumnItem>
@@ -983,7 +1063,11 @@ const AiQaContent: React.FC<{
               )}
 
               {/* 用户问题气泡 - 右对齐 */}
-              {item.q && <StyledUserBubble>{item.q}</StyledUserBubble>}
+              {item.q && (
+                <StyledUserBubble sx={workChrome?.userBubble}>
+                  {item.q}
+                </StyledUserBubble>
+              )}
               {/* AI回答气泡 - 左对齐 */}
               <StyledAiBubble>
                 {(item.chain_steps?.length ?? 0) > 0 && (
@@ -1250,11 +1334,16 @@ const AiQaContent: React.FC<{
             border: '1px solid',
             borderColor: alpha(theme.palette.text.primary, 0.1),
             cursor: 'pointer',
-            '&:hover': {
-              boxShadow: `0px 1px 2px 0px ${alpha(theme.palette.text.primary, 0.06)}`,
-              borderColor: 'primary.main',
-              color: 'primary.main',
-            },
+            '&:hover': workChrome
+              ? {
+                  boxShadow: `0px 1px 2px 0px ${alpha(theme.palette.text.primary, 0.06)}`,
+                  ...workChrome.newConvHover,
+                }
+              : {
+                  boxShadow: `0px 1px 2px 0px ${alpha(theme.palette.text.primary, 0.06)}`,
+                  borderColor: 'primary.main',
+                  color: 'primary.main',
+                },
             mb: 2,
           })}
           onClick={onReset}
@@ -1265,7 +1354,7 @@ const AiQaContent: React.FC<{
       )}
 
       <StyledInputContainer>
-        <StyledInputWrapper>
+        <StyledInputWrapper sx={workChrome?.inputWrapper}>
           {/* 多张图片预览 */}
           {uploadedImages.length > 0 && (
             <StyledImagePreviewStack direction='row' flexWrap='wrap' gap={1}>
@@ -1302,6 +1391,16 @@ const AiQaContent: React.FC<{
             onFocus={handleInputFocus}
             onBlur={handleInputBlur}
             onPaste={handlePaste}
+            sx={
+              workChrome
+                ? {
+                    backgroundColor: workChrome.textFieldBg,
+                    '.MuiInputBase-root': {
+                      backgroundColor: workChrome.textFieldBg,
+                    },
+                  }
+                : undefined
+            }
             onKeyDown={e => {
               const isComposing =
                 e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229;
@@ -1396,7 +1495,9 @@ const AiQaContent: React.FC<{
                       fontSize: 16,
                       color:
                         input.length > 0 || uploadedImages.length > 0
-                          ? 'primary.main'
+                          ? workChrome
+                            ? workChrome.accent
+                            : 'primary.main'
                           : 'text.disabled',
                     }}
                   />
@@ -1415,6 +1516,16 @@ const AiQaContent: React.FC<{
               <StyledFuzzySuggestionItem
                 key={index}
                 onClick={() => handleFuzzySuggestionClick(suggestion)}
+                sx={
+                  workChrome
+                    ? {
+                        '&:hover': {
+                          backgroundColor: workChrome.fuzzySuggestHoverBg,
+                          color: workChrome.hotItemHover,
+                        },
+                      }
+                    : undefined
+                }
               >
                 {highlightMatch(suggestion, input)}
               </StyledFuzzySuggestionItem>

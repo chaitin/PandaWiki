@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -68,6 +69,7 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 	systemPrompt string,
 	topK int,
 	retrievalAugment string,
+	qaMode string,
 ) ([]*schema.Message, []*domain.RankedNodeChunks, error) {
 	messages := make([]*schema.Message, 0)
 	rankedNodes := make([]*domain.RankedNodeChunks, 0)
@@ -107,6 +109,8 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 					}
 				}
 			}
+
+			systemPrompt = domain.AugmentSystemPromptWithQaMode(systemPrompt, qaMode)
 
 			template := prompt.FromMessages(schema.GoTemplate,
 				schema.SystemMessage(systemPrompt),
@@ -342,12 +346,7 @@ func pickCategoryFromClassifyOutput(raw string, categories []domain.CategoryProm
 	return nil
 }
 
-func (u *LLMUsecase) classifyImageDocCategory(
-	ctx context.Context,
-	chatModel model.BaseChatModel,
-	docName, imageDataURL string,
-	categories []domain.CategoryPromptItem,
-) (*domain.CategoryPromptItem, error) {
+func buildCategoryList(categories []domain.CategoryPromptItem) string {
 	var b strings.Builder
 	num := 0
 	for i := range categories {
@@ -358,7 +357,175 @@ func (u *LLMUsecase) classifyImageDocCategory(
 		num++
 		b.WriteString(fmt.Sprintf("%d. %s\n", num, n))
 	}
-	list := strings.TrimSpace(b.String())
+	return strings.TrimSpace(b.String())
+}
+
+func (u *LLMUsecase) GetWorkModeCategoryPrompts(ctx context.Context, kbID string) ([]domain.CategoryPromptItem, error) {
+	if u.categoryPromptRepo == nil || kbID == "" {
+		return nil, nil
+	}
+	cats, err := u.categoryPromptRepo.GetByKBID(ctx, kbID)
+	if err != nil {
+		return nil, err
+	}
+	return lo.Filter(cats, func(c domain.CategoryPromptItem, _ int) bool {
+		return strings.TrimSpace(c.Name) != ""
+	}), nil
+}
+
+func (u *LLMUsecase) BuildWorkModeQuestionContext(ctx context.Context, conversationID, currentQuestion string) (string, error) {
+	msgs, err := u.conversationRepo.GetConversationMessagesByID(ctx, conversationID)
+	if err != nil {
+		return "", err
+	}
+	lines := make([]string, 0, 6)
+	start := len(msgs) - 6
+	if start < 0 {
+		start = 0
+	}
+	for _, msg := range msgs[start:] {
+		content := strings.TrimSpace(msg.Content)
+		if content == "" && len(msg.ImagePaths) == 0 {
+			continue
+		}
+		role := "用户"
+		if msg.Role == schema.Assistant {
+			role = "助手"
+		}
+		if len(msg.ImagePaths) > 0 {
+			content = strings.TrimSpace(content + "（用户本轮包含附图）")
+		}
+		lines = append(lines, role+"："+content)
+	}
+	if len(lines) == 0 && strings.TrimSpace(currentQuestion) != "" {
+		lines = append(lines, "用户："+strings.TrimSpace(currentQuestion))
+	}
+	return strings.Join(lines, "\n"), nil
+}
+
+func (u *LLMUsecase) ClassifyTextQuestionCategory(
+	ctx context.Context,
+	chatModel model.BaseChatModel,
+	questionContext string,
+	categories []domain.CategoryPromptItem,
+) (*domain.CategoryPromptItem, error) {
+	list := buildCategoryList(categories)
+	if list == "" {
+		return nil, nil
+	}
+	system := `你是文本问题分类助手。请根据用户当前问题及必要的上一轮上下文，判断它最符合下面「品类」中的哪一种。
+规则：
+1. 若明显属于某一类，请只输出该品类在列表中的准确名称（与列表中该行的文字完全一致），不要输出序号、标点、解释或其他文字。
+2. 若均不符合、无法判断或用户只是补充上一轮缺失属性但无法看出品类，请只输出：NONE`
+	out, err := u.Generate(ctx, chatModel, []*schema.Message{
+		{Role: "system", Content: system + "\n\n可选品类：\n" + list},
+		{Role: "user", Content: strings.TrimSpace(questionContext)},
+	})
+	if err != nil {
+		return nil, err
+	}
+	out = strings.TrimSpace(u.trimThinking(out))
+	u.logger.Debug("work mode text category classify", log.String("raw", out))
+	return pickCategoryFromClassifyOutput(out, categories), nil
+}
+
+type workModeMissingAttributesResp struct {
+	MissingAttributes []string `json:"missing_attributes"`
+}
+
+func extractJSONObject(raw string) string {
+	s := strings.TrimSpace(raw)
+	if i := strings.Index(s, "{"); i >= 0 {
+		if j := strings.LastIndex(s, "}"); j >= i {
+			return s[i : j+1]
+		}
+	}
+	return strings.TrimSpace(s)
+}
+
+func parseWorkModeMissingAttributes(raw string, attrs []string) []string {
+	raw = strings.TrimSpace(raw)
+	raw = extractJSONObject(raw)
+	if raw == "" {
+		return nil
+	}
+	allowed := make(map[string]struct{}, len(attrs))
+	for _, attr := range attrs {
+		allowed[strings.TrimSpace(attr)] = struct{}{}
+	}
+	addAllowed := func(values []string) []string {
+		out := make([]string, 0, len(values))
+		seen := map[string]struct{}{}
+		for _, value := range values {
+			v := strings.TrimSpace(value)
+			if _, ok := allowed[v]; !ok {
+				continue
+			}
+			if _, ok := seen[v]; ok {
+				continue
+			}
+			seen[v] = struct{}{}
+			out = append(out, v)
+		}
+		return out
+	}
+	var obj workModeMissingAttributesResp
+	if err := json.Unmarshal([]byte(raw), &obj); err == nil {
+		return addAllowed(obj.MissingAttributes)
+	}
+	var arr []string
+	if err := json.Unmarshal([]byte(raw), &arr); err == nil {
+		return addAllowed(arr)
+	}
+	norm := strings.ReplaceAll(raw, "，", ",")
+	norm = strings.ReplaceAll(norm, "、", ",")
+	return addAllowed(strings.Split(norm, ","))
+}
+
+func (u *LLMUsecase) WorkModeListMissingAttributes(
+	ctx context.Context,
+	chatModel model.BaseChatModel,
+	category domain.CategoryPromptItem,
+	questionContext string,
+	retrievalAugment string,
+) ([]string, error) {
+	attrs := splitCategoryCommaAttrs(category.Attributes)
+	if len(attrs) == 0 {
+		return nil, nil
+	}
+	system := `你是工作模式下的属性完备性检查助手。请判断用户已陈述的信息是否明确覆盖后台配置的所有属性维度。
+规则：
+1. 只能基于用户当前问题、最近对话上下文，以及可选的附图理解信息判断；不要臆测。
+2. 若某属性未提及、无法从上下文或附图理解中明确推出，就视为缺失。
+3. 输出严格 JSON，格式为：{"missing_attributes":["属性1","属性2"]}。
+4. missing_attributes 中只能使用后台属性列表里的原文；若没有缺失，输出 {"missing_attributes":[]}。`
+	user := fmt.Sprintf("命中品类：%s\n后台属性列表：%s\n\n对话上下文：\n%s",
+		strings.TrimSpace(category.Name),
+		strings.Join(attrs, "、"),
+		strings.TrimSpace(questionContext),
+	)
+	if strings.TrimSpace(retrievalAugment) != "" {
+		user += "\n\n附图理解与属性要点：\n" + strings.TrimSpace(retrievalAugment)
+	}
+	out, err := u.Generate(ctx, chatModel, []*schema.Message{
+		{Role: "system", Content: system},
+		{Role: "user", Content: user},
+	})
+	if err != nil {
+		return nil, err
+	}
+	out = strings.TrimSpace(u.trimThinking(out))
+	u.logger.Debug("work mode missing attrs", log.String("raw", out), log.String("category", category.Name))
+	return parseWorkModeMissingAttributes(out, attrs), nil
+}
+
+func (u *LLMUsecase) classifyImageDocCategory(
+	ctx context.Context,
+	chatModel model.BaseChatModel,
+	docName, imageDataURL string,
+	categories []domain.CategoryPromptItem,
+) (*domain.CategoryPromptItem, error) {
+	list := buildCategoryList(categories)
 	if list == "" {
 		return nil, nil
 	}
@@ -377,6 +544,24 @@ func (u *LLMUsecase) classifyImageDocCategory(
 	out = strings.TrimSpace(u.trimThinking(out))
 	u.logger.Debug("image doc category classify", log.String("raw", out))
 	return pickCategoryFromClassifyOutput(out, categories), nil
+}
+
+// splitCategoryCommaAttrs 解析后台「属性维护」字段（支持英文逗号与中文逗号分隔）。
+func splitCategoryCommaAttrs(raw string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil
+	}
+	norm := strings.ReplaceAll(raw, "，", ",")
+	parts := strings.Split(norm, ",")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		s := strings.TrimSpace(p)
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
 }
 
 func (u *LLMUsecase) summaryImageDoc(ctx context.Context, dm *domain.Model, chatModel model.BaseChatModel, kbID, docName, imageDataURL string) (string, error) {
@@ -618,10 +803,10 @@ func (u *LLMUsecase) BuildImageUnderstandingForRAG(
 	userMessage string,
 	imageDataURL string,
 	emit ChainStepEmitter,
-) (retrievalAugment string, err error) {
+) (retrievalAugment string, matchedCategory *domain.CategoryPromptItem, err error) {
 	chatModel, err := u.ensureVisionChatModel(ctx, visionModel)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 	caption := strings.TrimSpace(userMessage)
 	if caption == "" {
@@ -637,7 +822,7 @@ func (u *LLMUsecase) BuildImageUnderstandingForRAG(
 		{Role: "user", MultiContent: userParts},
 	})
 	if err != nil {
-		return "", fmt.Errorf("识别图中物体失败: %w", err)
+		return "", nil, fmt.Errorf("识别图中物体失败: %w", err)
 	}
 	objectDesc := strings.TrimSpace(u.trimThinking(objRaw))
 	if objectDesc == "" {
@@ -653,20 +838,20 @@ func (u *LLMUsecase) BuildImageUnderstandingForRAG(
 
 	if u.categoryPromptRepo == nil || kbID == "" {
 		emit(2, "品类与属性", "未加载品类配置，直接使用画面描述辅助检索。")
-		return strings.Join(parts, "\n"), nil
+		return strings.Join(parts, "\n"), nil, nil
 	}
 	cats, err := u.categoryPromptRepo.GetByKBID(ctx, kbID)
 	if err != nil {
 		u.logger.Error("get category prompts for chat vision failed", log.Error(err))
 		emit(2, "品类与属性", "读取品类配置失败，使用画面描述辅助检索。")
-		return strings.Join(parts, "\n"), nil
+		return strings.Join(parts, "\n"), nil, nil
 	}
 	usable := lo.Filter(cats, func(c domain.CategoryPromptItem, _ int) bool {
 		return strings.TrimSpace(c.Name) != "" && strings.TrimSpace(c.Content) != ""
 	})
 	if len(usable) == 0 {
 		emit(2, "判断是否属于配置品类", "后台未配置有效品类提示词，跳过品类匹配。")
-		return strings.Join(parts, "\n"), nil
+		return strings.Join(parts, "\n"), nil, nil
 	}
 
 	emit(2, "判断是否属于配置品类", "比对配置中的品类…")
@@ -677,16 +862,20 @@ func (u *LLMUsecase) BuildImageUnderstandingForRAG(
 	matched, err := u.classifyImageDocCategory(ctx, chatModel, docLabel, imageDataURL, usable)
 	if err != nil {
 		emit(2, "判断是否属于配置品类", "品类判断失败："+err.Error()+"，将仅用画面描述辅助检索。")
-		return strings.Join(parts, "\n"), nil
+		return strings.Join(parts, "\n"), nil, nil
 	}
 	if matched == nil {
 		emit(2, "判断是否属于配置品类", "未命中已配置品类，将结合画面细节进行向量检索。")
-		return strings.Join(parts, "\n"), nil
+		return strings.Join(parts, "\n"), nil, nil
 	}
 	emit(2, "判断是否属于配置品类", "命中品类：「"+matched.Name+"」")
 
 	emit(3, "按品类提示词提取检索属性", "正在结合图片提取与检索相关的属性要点…")
-	attrSys := strings.TrimSpace(matched.Content) + `
+	attrPrefix := strings.TrimSpace(matched.Content)
+	if dims := splitCategoryCommaAttrs(matched.Attributes); len(dims) > 0 {
+		attrPrefix += "\n\n本品类在后台配置的检索属性为：" + strings.Join(dims, "、") + "。请结合图片尽量按上述属性逐一给出可检索的具体信息；无法从画面判断的项可略过。"
+	}
+	attrSys := attrPrefix + `
 
 请结合**图片**，根据上述要求，提取最有利于在知识库中检索到相关文档的「关键词与属性要点」：
 - 用中文一段输出，不要使用 Markdown 或列表符号；
@@ -698,13 +887,13 @@ func (u *LLMUsecase) BuildImageUnderstandingForRAG(
 	})
 	if err != nil {
 		emit(3, "按品类提示词提取检索属性", "提取失败："+err.Error())
-		return strings.Join(parts, "\n"), nil
+		return strings.Join(parts, "\n"), matched, nil
 	}
 	attrText := strings.TrimSpace(u.trimThinking(attrRaw))
 	emit(3, "按品类提示词提取检索属性", attrText)
 
 	parts = append(parts, "命中品类「"+matched.Name+"」。与检索相关的属性要点："+attrText)
-	return strings.Join(parts, "\n"), nil
+	return strings.Join(parts, "\n"), matched, nil
 }
 
 // formatMessageWithImages converts image paths to markdown format and appends to message

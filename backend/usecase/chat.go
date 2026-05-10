@@ -71,6 +71,44 @@ func (u *ChatUsecase) pickVisionModel(ctx context.Context, chatFallback *domain.
 	return chatFallback, nil
 }
 
+func formatWorkModeAttributeClarify(categoryName string, missing []string) string {
+	name := strings.TrimSpace(categoryName)
+	list := strings.Join(missing, "、")
+	return "当前为「工作模式」，您的问题已命中品类「" + name + "」。为准确检索知识库，请先补充以下信息（后台配置维度）：" + list + "。\n\n请逐条说明；若某项不适用请写明「不适用」及原因。"
+}
+
+func (u *ChatUsecase) sendWorkModeClarifyAndFinish(
+	ctx context.Context,
+	eventCh chan<- domain.SSEEvent,
+	req *domain.ChatRequest,
+	messageId, userMessageId, clarify string,
+	blockWords []string,
+) {
+	answer := ""
+	onChunk, flushBuffer := u.CreateAcOnChunk(ctx, req.KBID, &answer, eventCh, blockWords)
+	_ = onChunk(ctx, "data", clarify)
+	if flushBuffer != nil {
+		flushBuffer(ctx, "data")
+	}
+	if err := u.conversationUsecase.CreateChatConversationMessage(ctx, req.KBID, &domain.ConversationMessage{
+		ID:             messageId,
+		ConversationID: req.ConversationID,
+		KBID:           req.KBID,
+		AppID:          req.AppID,
+		Role:           schema.Assistant,
+		Content:        answer,
+		Provider:       req.ModelInfo.Provider,
+		Model:          string(req.ModelInfo.Model),
+		RemoteIP:       req.RemoteIP,
+		ParentID:       userMessageId,
+	}); err != nil {
+		u.logger.Error("work mode: failed to save clarify message", log.Error(err))
+		eventCh <- domain.SSEEvent{Type: "error", Content: "failed to save assistant clarify message"}
+		return
+	}
+	eventCh <- domain.SSEEvent{Type: "done"}
+}
+
 func (u *ChatUsecase) initDFA() error {
 	ctx := context.Background()
 	kbList, err := u.kbRepo.GetKnowledgeBaseList(context.Background())
@@ -245,6 +283,7 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 			topN = 10
 		}
 
+		var imageCategoryMatch *domain.CategoryPromptItem
 		retrievalAugment := ""
 		if len(req.ImagePaths) > 0 && u.s3Client != nil {
 			sendChainStep := func(step int, title, detail string) {
@@ -265,19 +304,70 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 				if verr != nil {
 					sendChainStep(0, "附图检索准备", verr.Error())
 				} else {
-					aug, aerr := u.llmUsecase.BuildImageUnderstandingForRAG(ctx, vm, req.KBID, strings.TrimSpace(req.Message), dataURL, sendChainStep)
+					aug, imgCat, aerr := u.llmUsecase.BuildImageUnderstandingForRAG(ctx, vm, req.KBID, strings.TrimSpace(req.Message), dataURL, sendChainStep)
 					if aerr != nil {
 						u.logger.Error("image understanding for RAG failed", log.Error(aerr))
 						sendChainStep(0, "附图检索准备", "视觉分析失败："+aerr.Error())
 					} else {
 						retrievalAugment = aug
+						imageCategoryMatch = imgCat
 					}
 				}
 			}
 			sendChainStep(4, "向量检索", "正在根据上述理解与知识库进行关联检索…")
 		}
 
-		messages, rankedNodes, err := u.llmUsecase.BuildConversationMessageWithRAG(ctx, req.ConversationID, req.KBID, groupIds, req.Prompt, topN, retrievalAugment)
+		if strings.TrimSpace(req.QaMode) == domain.QaModeWork {
+			cats, werr := u.llmUsecase.GetWorkModeCategoryPrompts(ctx, req.KBID)
+			if werr != nil {
+				u.logger.Warn("work mode: load category prompts failed, skip gate", log.Error(werr))
+			} else if len(cats) > 0 {
+				modelkitModel, mkErr := req.ModelInfo.ToModelkitModel()
+				if mkErr != nil {
+					u.logger.Warn("work mode: modelkit convert failed, skip gate", log.Error(mkErr))
+				} else {
+					gateChatModel, gErr := u.modelkit.GetChatModel(ctx, modelkitModel)
+					if gErr != nil {
+						u.logger.Warn("work mode: get chat model failed, skip gate", log.Error(gErr))
+					} else {
+						qctx, qErr := u.llmUsecase.BuildWorkModeQuestionContext(ctx, req.ConversationID, req.Message)
+						if qErr != nil {
+							u.logger.Warn("work mode: build question context failed, skip gate", log.Error(qErr))
+						} else {
+							var matchedForGate *domain.CategoryPromptItem
+							if len(req.ImagePaths) > 0 {
+								if imageCategoryMatch != nil && len(splitCategoryCommaAttrs(imageCategoryMatch.Attributes)) > 0 {
+									matchedForGate = imageCategoryMatch
+								}
+							} else {
+								var cErr error
+								matchedForGate, cErr = u.llmUsecase.ClassifyTextQuestionCategory(ctx, gateChatModel, qctx, cats)
+								if cErr != nil {
+									u.logger.Warn("work mode: text category classify failed, skip gate", log.Error(cErr))
+									matchedForGate = nil
+								}
+							}
+							if matchedForGate != nil && len(splitCategoryCommaAttrs(matchedForGate.Attributes)) > 0 {
+								missing, mErr := u.llmUsecase.WorkModeListMissingAttributes(ctx, gateChatModel, *matchedForGate, qctx, retrievalAugment)
+								if mErr != nil {
+									u.logger.Warn("work mode: missing attributes check failed, continue RAG", log.Error(mErr))
+								} else if len(missing) > 0 {
+									clarify := formatWorkModeAttributeClarify(matchedForGate.Name, missing)
+									b, jErr := json.Marshal(map[string]any{"step": 5, "title": "工作模式：属性核对", "detail": "品类「" + matchedForGate.Name + "」尚缺：" + strings.Join(missing, "、")})
+									if jErr == nil {
+										eventCh <- domain.SSEEvent{Type: "chain_step", Content: string(b)}
+									}
+									u.sendWorkModeClarifyAndFinish(ctx, eventCh, req, messageId, userMessageId, clarify, blockWords)
+									return
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		messages, rankedNodes, err := u.llmUsecase.BuildConversationMessageWithRAG(ctx, req.ConversationID, req.KBID, groupIds, req.Prompt, topN, retrievalAugment, req.QaMode)
 		if err != nil {
 			u.logger.Error("build messages failed", log.Error(err))
 			eventCh <- domain.SSEEvent{Type: "error", Content: err.Error()}

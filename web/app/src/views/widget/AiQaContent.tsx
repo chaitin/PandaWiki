@@ -43,6 +43,7 @@ import {
 import {
   DEFAULT_CHAT_TOP_N,
   getInitialChatTopN,
+  getInitialQaAppMode,
   persistChatTopN,
 } from '@panda-wiki/ui';
 import dayjs from 'dayjs';
@@ -414,6 +415,7 @@ const AiQaContent: React.FC<{
       app_type: 2,
       captcha_token: token,
       top_n: topN,
+      qa_mode: getInitialQaAppMode(),
     };
     if (conversationId) reqData.conversation_id = conversationId;
     if (nonce) reqData.nonce = nonce;

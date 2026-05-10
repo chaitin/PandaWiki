@@ -25,6 +25,16 @@ export {
   persistChatTopN,
 } from './chatTopNStorage';
 
+export {
+  CHAT_QA_MODE_STORAGE_KEY,
+  DEFAULT_QA_APP_MODE,
+  getInitialQaAppMode,
+  parseValidQaAppMode,
+  persistQaAppMode,
+  QA_APP_MODE_CHANGE_EVENT,
+} from './chatQaModeStorage';
+export type { QaAppMode } from './chatQaModeStorage';
+
 // 导出动画 hooks
 export {
   useTextAnimation,

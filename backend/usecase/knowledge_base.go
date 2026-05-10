@@ -350,9 +350,10 @@ func (u *KnowledgeBaseUsecase) ReplaceCategoryPrompts(ctx context.Context, req *
 			id = uuid.New().String()
 		}
 		out = append(out, domain.CategoryPromptItem{
-			ID:      id,
-			Name:    name,
-			Content: content,
+			ID:         id,
+			Name:       name,
+			Content:    content,
+			Attributes: strings.TrimSpace(it.Attributes),
 		})
 	}
 	return u.categoryPromptRepo.ReplaceForKBID(ctx, req.KBID, out)
