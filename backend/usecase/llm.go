@@ -133,6 +133,23 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 				u.logger.Error("get rank nodes failed", log.Error(err))
 				return nil, nil, errors.New("get rank nodes failed")
 			}
+			if len(rankedNodes) == 0 {
+				r2, nodes2, err2 := u.GetRankNodes(ctx, GetRankNodesRequest{
+					DatasetID:           kb.DatasetID,
+					Question:            question,
+					GroupIDs:            groupIDs,
+					SimilarityThreshold: 0,
+					HistoryMessages:     historyMessages[:len(historyMessages)-1],
+					TopK:                topK,
+				})
+				if err2 != nil {
+					u.logger.Warn("rag fallback query failed", log.Error(err2))
+				} else if len(nodes2) > 0 {
+					u.logger.Info("rag retrieval fallback used (no results at threshold 0.2, retried at 0)",
+						log.Int("chunk_groups", len(nodes2)))
+					rewrittenQuery, rankedNodes = r2, nodes2
+				}
+			}
 			documents := domain.FormatNodeChunks(rankedNodes, kb.AccessSettings.BaseURL)
 			u.logger.Debug("documents", log.String("documents", documents))
 
