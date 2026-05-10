@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/chaitin/panda-wiki/domain"
@@ -42,6 +43,21 @@ func TestSplitCategoryCommaAttrs(t *testing.T) {
 	want := []string{"A", "B", "C"}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("got %#v want %#v", got, want)
+	}
+}
+
+func TestFormatWorkModeCandidateBriefs_TruncatesLongSummary(t *testing.T) {
+	long := strings.Repeat("X", 300)
+	c := []*domain.RankedNodeChunks{
+		{NodeName: "美国信封", NodeSummary: "白色 A4 美国"},
+		{NodeName: "日本信封", NodeSummary: long},
+	}
+	out := formatWorkModeCandidateBriefs(c)
+	if !strings.Contains(out, "美国信封") || !strings.Contains(out, "日本信封") {
+		t.Fatalf("missing names: %s", out)
+	}
+	if !strings.Contains(out, "…") {
+		t.Fatalf("expected truncation marker, got %q", out)
 	}
 }
 

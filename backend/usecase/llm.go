@@ -133,23 +133,6 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 				u.logger.Error("get rank nodes failed", log.Error(err))
 				return nil, nil, errors.New("get rank nodes failed")
 			}
-			if len(rankedNodes) == 0 {
-				r2, nodes2, err2 := u.GetRankNodes(ctx, GetRankNodesRequest{
-					DatasetID:           kb.DatasetID,
-					Question:            question,
-					GroupIDs:            groupIDs,
-					SimilarityThreshold: 0,
-					HistoryMessages:     historyMessages[:len(historyMessages)-1],
-					TopK:                topK,
-				})
-				if err2 != nil {
-					u.logger.Warn("rag fallback query failed", log.Error(err2))
-				} else if len(nodes2) > 0 {
-					u.logger.Info("rag retrieval fallback used (no results at threshold 0.2, retried at 0)",
-						log.Int("chunk_groups", len(nodes2)))
-					rewrittenQuery, rankedNodes = r2, nodes2
-				}
-			}
 			documents := domain.FormatNodeChunks(rankedNodes, kb.AccessSettings.BaseURL)
 			u.logger.Debug("documents", log.String("documents", documents))
 
@@ -430,8 +413,7 @@ func (u *LLMUsecase) ClassifyTextQuestionCategory(
 	if list == "" {
 		return nil, nil
 	}
-	system := `你是文本问题分类助手。知识库中每个文档一般对应一件物品（或一个独立对象）；工作模式下需结合用户提问与后续补充，判断其讨论对象最贴近哪一类「品类」以便检索到对应文档。
-请根据用户当前问题及必要的上一轮上下文，判断它最符合下面「品类」中的哪一种。
+	system := `你是文本问题分类助手。请根据用户当前问题及必要的上一轮上下文，判断它最符合下面「品类」中的哪一种。
 规则：
 1. 若明显属于某一类，请只输出该品类在列表中的准确名称（与列表中该行的文字完全一致），不要输出序号、标点、解释或其他文字。
 2. 若均不符合、无法判断或用户只是补充上一轮缺失属性但无法看出品类，请只输出：NONE`
@@ -500,6 +482,111 @@ func parseWorkModeMissingAttributes(raw string, attrs []string) []string {
 	return addAllowed(strings.Split(norm, ","))
 }
 
+// 工作模式：候选检索（用于差异化追问）。返回 0/1/多 个候选；调用方决定是否追问。
+const workModeGateRetrieveTopK = 5
+
+func (u *LLMUsecase) RetrieveCandidateNodesForWorkMode(
+	ctx context.Context,
+	kbID string,
+	groupIDs []int,
+	question string,
+) ([]*domain.RankedNodeChunks, error) {
+	if strings.TrimSpace(question) == "" {
+		return nil, nil
+	}
+	kb, err := u.kbRepo.GetKnowledgeBaseByID(ctx, kbID)
+	if err != nil {
+		return nil, err
+	}
+	_, ranked, err := u.GetRankNodes(ctx, GetRankNodesRequest{
+		DatasetID:           kb.DatasetID,
+		Question:            question,
+		GroupIDs:            groupIDs,
+		SimilarityThreshold: 0.2,
+		HistoryMessages:     nil,
+		TopK:                workModeGateRetrieveTopK,
+		MaxChunksPerDoc:     1,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return ranked, nil
+}
+
+// formatWorkModeCandidateBriefs 把候选文档做成「文档名 + 摘要/首段」短描述列表，供 LLM 比对差异。
+func formatWorkModeCandidateBriefs(candidates []*domain.RankedNodeChunks) string {
+	if len(candidates) == 0 {
+		return ""
+	}
+	var b strings.Builder
+	for i, c := range candidates {
+		name := strings.TrimSpace(c.NodeName)
+		brief := strings.TrimSpace(c.NodeSummary)
+		if brief == "" && len(c.Chunks) > 0 {
+			brief = strings.TrimSpace(c.Chunks[0].Content)
+		}
+		brief = strings.ReplaceAll(brief, "\n", " ")
+		if utf8RuneLen(brief) > 240 {
+			brief = string([]rune(brief)[:240]) + "…"
+		}
+		b.WriteString(fmt.Sprintf("%d. 文档名：%s\n   摘要：%s\n", i+1, name, brief))
+	}
+	return strings.TrimSpace(b.String())
+}
+
+func utf8RuneLen(s string) int { return len([]rune(s)) }
+
+// WorkModeListDistinguishingMissing 基于候选文档之间的实际差异 + 用户已陈述
+// 判断「真正需要用户补充」的属性维度（避免对所有配置属性做无差别追问）。
+func (u *LLMUsecase) WorkModeListDistinguishingMissing(
+	ctx context.Context,
+	chatModel model.BaseChatModel,
+	category domain.CategoryPromptItem,
+	candidates []*domain.RankedNodeChunks,
+	questionContext string,
+	retrievalAugment string,
+) ([]string, error) {
+	attrs := splitCategoryCommaAttrs(category.Attributes)
+	if len(attrs) == 0 || len(candidates) < 2 {
+		return nil, nil
+	}
+	briefs := formatWorkModeCandidateBriefs(candidates)
+	system := `你是工作模式下的差异化属性核对助手。后台为某品类配置了若干属性维度，知识库可能存在多份相似文档。
+请判断：在「后台属性列表」中，哪些属性同时满足以下两个条件，需要让用户补充才能定位到唯一文档：
+1. 该属性在「候选文档」之间存在差异（不同文档表述不同）；
+2. 用户尚未在问题、上下文或附图理解中明确给出该属性的具体值。
+
+规则：
+- 候选文档之间无差异（都相同或都未提及）的属性不要列出，追问无意义。
+- 用户已经明确给出的属性不要列出。
+- 输出严格 JSON：{"missing_attributes":["属性1"]}。
+- missing_attributes 中只能使用后台属性列表里的原文；若没有需要追问的，输出 {"missing_attributes":[]}。`
+	user := fmt.Sprintf(
+		"命中品类：%s\n后台属性列表：%s\n\n候选文档：\n%s\n\n对话上下文：\n%s",
+		strings.TrimSpace(category.Name),
+		strings.Join(attrs, "、"),
+		briefs,
+		strings.TrimSpace(questionContext),
+	)
+	if strings.TrimSpace(retrievalAugment) != "" {
+		user += "\n\n附图理解与属性要点：\n" + strings.TrimSpace(retrievalAugment)
+	}
+	out, err := u.Generate(ctx, chatModel, []*schema.Message{
+		{Role: "system", Content: system},
+		{Role: "user", Content: user},
+	})
+	if err != nil {
+		return nil, err
+	}
+	out = strings.TrimSpace(u.trimThinking(out))
+	u.logger.Debug("work mode distinguishing missing attrs",
+		log.String("raw", out),
+		log.String("category", category.Name),
+		log.Int("candidates", len(candidates)),
+	)
+	return parseWorkModeMissingAttributes(out, attrs), nil
+}
+
 func (u *LLMUsecase) WorkModeListMissingAttributes(
 	ctx context.Context,
 	chatModel model.BaseChatModel,
@@ -511,10 +598,10 @@ func (u *LLMUsecase) WorkModeListMissingAttributes(
 	if len(attrs) == 0 {
 		return nil, nil
 	}
-	system := `你是工作模式下的属性完备性检查助手。知识库中文档通常一件物品一条；这些属性用于把用户描述与「具体是哪一件物品」对齐，从而在检索时落到正确文档。请判断用户已陈述的信息（含附图理解中的要点）是否已能明确覆盖后台配置的全部属性维度。
+	system := `你是工作模式下的属性完备性检查助手。请判断用户已陈述的信息是否明确覆盖后台配置的所有属性维度。
 规则：
 1. 只能基于用户当前问题、最近对话上下文，以及可选的附图理解信息判断；不要臆测。
-2. 若某属性未提及、无法从上下文或附图理解中明确推出，就视为缺失（缺失则暂不进入完整检索作答）。
+2. 若某属性未提及、无法从上下文或附图理解中明确推出，就视为缺失。
 3. 输出严格 JSON，格式为：{"missing_attributes":["属性1","属性2"]}。
 4. missing_attributes 中只能使用后台属性列表里的原文；若没有缺失，输出 {"missing_attributes":[]}。`
 	user := fmt.Sprintf("命中品类：%s\n后台属性列表：%s\n\n对话上下文：\n%s",

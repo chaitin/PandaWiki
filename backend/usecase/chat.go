@@ -71,10 +71,147 @@ func (u *ChatUsecase) pickVisionModel(ctx context.Context, chatFallback *domain.
 	return chatFallback, nil
 }
 
-func formatWorkModeAttributeClarify(categoryName string, missing []string) string {
+// workModeClarifyMarker 是与前端约定的可解析标记。第一行是 HTML 注释包裹的 JSON：
+//
+//	<!-- WORK_MODE_CLARIFY {"category":"...","candidates":3,"missing":["..."]} -->
+//
+// 内容会随 assistant message 落库；前端在渲染前提取并剥离，可重建 chip 展示。
+const workModeClarifyMarker = "WORK_MODE_CLARIFY"
+
+type workModeClarifyMeta struct {
+	Category   string   `json:"category"`
+	Candidates int      `json:"candidates"`
+	Missing    []string `json:"missing"`
+}
+
+func formatWorkModeAttributeClarify(categoryName string, candidates int, missing []string) string {
 	name := strings.TrimSpace(categoryName)
 	list := strings.Join(missing, "、")
-	return "当前为「工作模式」。知识库中每个文档一般对应一件物品；为把您的描述对应到正确物品并检索到对的那篇文档，已命中品类「" + name + "」。请先补充以下信息（后台配置维度）：" + list + "。\n\n请逐条说明；若某项不适用请写明「不适用」及原因。"
+	body := "当前为「工作模式」。您的描述命中品类「" + name + "」，但与多份候选文档都吻合，仅在以下维度上存在差异：" + list + "。\n\n请逐项补充以便定位到唯一文档；若某项不适用请写明「不适用」及原因。"
+	meta := workModeClarifyMeta{Category: name, Candidates: candidates, Missing: missing}
+	if mb, err := json.Marshal(meta); err == nil {
+		return "<!-- " + workModeClarifyMarker + " " + string(mb) + " -->\n" + body
+	}
+	return body
+}
+
+// runWorkModeGate 处理工作模式：分类 → 候选检索 → 差异化追问。
+// 返回 true 表示已发送追问并 done；调用方应直接 return。
+func (u *ChatUsecase) runWorkModeGate(
+	ctx context.Context,
+	eventCh chan<- domain.SSEEvent,
+	req *domain.ChatRequest,
+	groupIds []int,
+	retrievalAugment string,
+	imageCategoryMatch *domain.CategoryPromptItem,
+	messageId, userMessageId string,
+	blockWords []string,
+) bool {
+	logger := u.logger.WithModule("work_mode_gate")
+	cats, werr := u.llmUsecase.GetWorkModeCategoryPrompts(ctx, req.KBID)
+	if werr != nil {
+		logger.Warn("load category prompts failed, skip gate", log.Error(werr))
+		return false
+	}
+	if len(cats) == 0 {
+		logger.Info("no category prompts configured, skip gate", log.String("kb_id", req.KBID))
+		return false
+	}
+
+	modelkitModel, mkErr := req.ModelInfo.ToModelkitModel()
+	if mkErr != nil {
+		logger.Warn("modelkit convert failed, skip gate", log.Error(mkErr))
+		return false
+	}
+	gateChatModel, gErr := u.modelkit.GetChatModel(ctx, modelkitModel)
+	if gErr != nil {
+		logger.Warn("get chat model failed, skip gate", log.Error(gErr))
+		return false
+	}
+	qctx, qErr := u.llmUsecase.BuildWorkModeQuestionContext(ctx, req.ConversationID, req.Message)
+	if qErr != nil {
+		logger.Warn("build question context failed, skip gate", log.Error(qErr))
+		return false
+	}
+
+	var matchedForGate *domain.CategoryPromptItem
+	if len(req.ImagePaths) > 0 {
+		if imageCategoryMatch != nil && len(splitCategoryCommaAttrs(imageCategoryMatch.Attributes)) > 0 {
+			matchedForGate = imageCategoryMatch
+			logger.Info("category matched (image path)",
+				log.String("category", matchedForGate.Name),
+				log.Int("attrs_count", len(splitCategoryCommaAttrs(matchedForGate.Attributes))),
+			)
+		} else {
+			logger.Info("image path: no usable category match, skip gate")
+			return false
+		}
+	} else {
+		var cErr error
+		matchedForGate, cErr = u.llmUsecase.ClassifyTextQuestionCategory(ctx, gateChatModel, qctx, cats)
+		if cErr != nil {
+			logger.Warn("text category classify failed, skip gate", log.Error(cErr))
+			return false
+		}
+		if matchedForGate == nil {
+			logger.Info("text category classify: NONE, skip gate")
+			return false
+		}
+		logger.Info("category matched (text path)",
+			log.String("category", matchedForGate.Name),
+			log.Int("attrs_count", len(splitCategoryCommaAttrs(matchedForGate.Attributes))),
+		)
+	}
+	if len(splitCategoryCommaAttrs(matchedForGate.Attributes)) == 0 {
+		logger.Info("category has no attributes configured, skip gate", log.String("category", matchedForGate.Name))
+		return false
+	}
+
+	gateQuery := strings.TrimSpace(req.Message)
+	if gateQuery == "" {
+		gateQuery = strings.TrimSpace(retrievalAugment)
+	}
+	candidates, rErr := u.llmUsecase.RetrieveCandidateNodesForWorkMode(ctx, req.KBID, groupIds, gateQuery)
+	if rErr != nil {
+		logger.Warn("candidate retrieval failed, skip gate", log.Error(rErr))
+		return false
+	}
+	if len(candidates) <= 1 {
+		logger.Info("candidates ≤1, skip gate (proceed to RAG)",
+			log.Int("candidates", len(candidates)),
+			log.String("category", matchedForGate.Name),
+		)
+		return false
+	}
+
+	missing, mErr := u.llmUsecase.WorkModeListDistinguishingMissing(ctx, gateChatModel, *matchedForGate, candidates, qctx, retrievalAugment)
+	if mErr != nil {
+		logger.Warn("distinguishing missing check failed, continue RAG", log.Error(mErr))
+		return false
+	}
+	if len(missing) == 0 {
+		logger.Info("no distinguishing missing attributes, proceed to RAG",
+			log.String("category", matchedForGate.Name),
+			log.Int("candidates", len(candidates)),
+		)
+		return false
+	}
+
+	logger.Info("clarify required",
+		log.String("category", matchedForGate.Name),
+		log.Int("candidates", len(candidates)),
+		log.Any("missing", missing),
+	)
+	if b, jErr := json.Marshal(map[string]any{
+		"step":   5,
+		"title":  "工作模式：候选差异核对",
+		"detail": fmt.Sprintf("品类「%s」匹配到 %d 个候选；待确认：%s", matchedForGate.Name, len(candidates), strings.Join(missing, "、")),
+	}); jErr == nil {
+		eventCh <- domain.SSEEvent{Type: "chain_step", Content: string(b)}
+	}
+	clarify := formatWorkModeAttributeClarify(matchedForGate.Name, len(candidates), missing)
+	u.sendWorkModeClarifyAndFinish(ctx, eventCh, req, messageId, userMessageId, clarify, blockWords)
+	return true
 }
 
 func (u *ChatUsecase) sendWorkModeClarifyAndFinish(
@@ -318,52 +455,8 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 		}
 
 		if strings.TrimSpace(req.QaMode) == domain.QaModeWork {
-			cats, werr := u.llmUsecase.GetWorkModeCategoryPrompts(ctx, req.KBID)
-			if werr != nil {
-				u.logger.Warn("work mode: load category prompts failed, skip gate", log.Error(werr))
-			} else if len(cats) > 0 {
-				modelkitModel, mkErr := req.ModelInfo.ToModelkitModel()
-				if mkErr != nil {
-					u.logger.Warn("work mode: modelkit convert failed, skip gate", log.Error(mkErr))
-				} else {
-					gateChatModel, gErr := u.modelkit.GetChatModel(ctx, modelkitModel)
-					if gErr != nil {
-						u.logger.Warn("work mode: get chat model failed, skip gate", log.Error(gErr))
-					} else {
-						qctx, qErr := u.llmUsecase.BuildWorkModeQuestionContext(ctx, req.ConversationID, req.Message)
-						if qErr != nil {
-							u.logger.Warn("work mode: build question context failed, skip gate", log.Error(qErr))
-						} else {
-							var matchedForGate *domain.CategoryPromptItem
-							if len(req.ImagePaths) > 0 {
-								if imageCategoryMatch != nil && len(splitCategoryCommaAttrs(imageCategoryMatch.Attributes)) > 0 {
-									matchedForGate = imageCategoryMatch
-								}
-							} else {
-								var cErr error
-								matchedForGate, cErr = u.llmUsecase.ClassifyTextQuestionCategory(ctx, gateChatModel, qctx, cats)
-								if cErr != nil {
-									u.logger.Warn("work mode: text category classify failed, skip gate", log.Error(cErr))
-									matchedForGate = nil
-								}
-							}
-							if matchedForGate != nil && len(splitCategoryCommaAttrs(matchedForGate.Attributes)) > 0 {
-								missing, mErr := u.llmUsecase.WorkModeListMissingAttributes(ctx, gateChatModel, *matchedForGate, qctx, retrievalAugment)
-								if mErr != nil {
-									u.logger.Warn("work mode: missing attributes check failed, continue RAG", log.Error(mErr))
-								} else if len(missing) > 0 {
-									clarify := formatWorkModeAttributeClarify(matchedForGate.Name, missing)
-									b, jErr := json.Marshal(map[string]any{"step": 5, "title": "工作模式：属性核对", "detail": "为对应到知识库中的具体物品（文档），品类「" + matchedForGate.Name + "」尚缺：" + strings.Join(missing, "、")})
-									if jErr == nil {
-										eventCh <- domain.SSEEvent{Type: "chain_step", Content: string(b)}
-									}
-									u.sendWorkModeClarifyAndFinish(ctx, eventCh, req, messageId, userMessageId, clarify, blockWords)
-									return
-								}
-							}
-						}
-					}
-				}
+			if u.runWorkModeGate(ctx, eventCh, req, groupIds, retrievalAugment, imageCategoryMatch, messageId, userMessageId, blockWords) {
+				return
 			}
 		}
 

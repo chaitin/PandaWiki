@@ -112,6 +112,37 @@ dayjs.locale('zh-cn');
 
 const CHAT_TOP_N_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
 
+interface WorkModeClarifyMeta {
+  category: string;
+  candidates: number;
+  missing: string[];
+}
+
+const WORK_MODE_CLARIFY_REGEX =
+  /<!--\s*WORK_MODE_CLARIFY\s+(\{[\s\S]*?\})\s*-->\s*\n?/;
+
+function extractWorkModeClarify(content: string): {
+  meta: WorkModeClarifyMeta | null;
+  text: string;
+} {
+  if (!content) return { meta: null, text: '' };
+  const match = content.match(WORK_MODE_CLARIFY_REGEX);
+  if (!match) return { meta: null, text: content };
+  try {
+    const parsed = JSON.parse(match[1]);
+    const meta: WorkModeClarifyMeta = {
+      category: typeof parsed.category === 'string' ? parsed.category : '',
+      candidates: typeof parsed.candidates === 'number' ? parsed.candidates : 0,
+      missing: Array.isArray(parsed.missing)
+        ? parsed.missing.filter((s: unknown) => typeof s === 'string')
+        : [],
+    };
+    return { meta, text: content.replace(match[0], '') };
+  } catch {
+    return { meta: null, text: content.replace(match[0], '') };
+  }
+}
+
 const AnswerStatus = {
   1: '正在搜索结果...',
   2: '思考中...',
@@ -1254,7 +1285,79 @@ const AiQaContent: React.FC<{
 
                 {/* AI回答内容 */}
                 <StyledAiBubbleContent>
-                  <MarkDown2 content={item.a} autoScroll={false} />
+                  {(() => {
+                    const { meta, text } = extractWorkModeClarify(item.a);
+                    return (
+                      <>
+                        {meta && (
+                          <Box
+                            sx={theme => ({
+                              mb: 1.5,
+                              p: 1.25,
+                              borderRadius: '10px',
+                              border: '1px solid',
+                              borderColor: alpha(
+                                theme.palette.primary.main,
+                                0.25,
+                              ),
+                              backgroundColor: alpha(
+                                theme.palette.primary.main,
+                                0.06,
+                              ),
+                            })}
+                          >
+                            <Typography
+                              variant='body2'
+                              sx={{
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: 'primary.main',
+                                mb: 0.5,
+                              }}
+                            >
+                              工作模式 · 候选差异核对
+                            </Typography>
+                            <Typography
+                              variant='body2'
+                              sx={theme => ({
+                                fontSize: 12,
+                                color: alpha(theme.palette.text.primary, 0.7),
+                                mb: 0.75,
+                              })}
+                            >
+                              品类「{meta.category}」匹配到 {meta.candidates}{' '}
+                              个候选，请补充以下区分项：
+                            </Typography>
+                            <Stack direction='row' gap={0.75} flexWrap='wrap'>
+                              {meta.missing.map(name => (
+                                <Box
+                                  key={name}
+                                  sx={theme => ({
+                                    px: 1,
+                                    py: 0.25,
+                                    borderRadius: '6px',
+                                    fontSize: 12,
+                                    fontWeight: 500,
+                                    color: 'primary.main',
+                                    backgroundColor:
+                                      theme.palette.background.default,
+                                    border: '1px solid',
+                                    borderColor: alpha(
+                                      theme.palette.primary.main,
+                                      0.4,
+                                    ),
+                                  })}
+                                >
+                                  {name}
+                                </Box>
+                              ))}
+                            </Stack>
+                          </Box>
+                        )}
+                        <MarkDown2 content={text} autoScroll={false} />
+                      </>
+                    );
+                  })()}
                 </StyledAiBubbleContent>
 
                 {/* 操作按钮 */}

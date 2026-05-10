@@ -244,7 +244,7 @@ const QaModal: React.FC<QaModalProps> = () => {
                 label={
                   <Stack direction='row' gap={0.5} alignItems='center'>
                     <IconZhinengwenda sx={{ fontSize: 16 }} />
-                    {!mobile && <span>智能问答</span>}
+                    {!mobile && <span>培训模式</span>}
                   </Stack>
                 }
                 value='chat'
@@ -253,7 +253,7 @@ const QaModal: React.FC<QaModalProps> = () => {
                 label={
                   <Stack direction='row' gap={0.5} alignItems='center'>
                     <IconJinsousuo sx={{ fontSize: 16 }} />
-                    {!mobile && <span>仅搜索文档</span>}
+                    {!mobile && <span>工作模式</span>}
                   </Stack>
                 }
                 value='search'
