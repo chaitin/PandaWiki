@@ -20,6 +20,7 @@ import SSEClient from '@/utils/fetch';
 import { message } from '@ctzhian/ui';
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import {
   Box,
   Button,
@@ -52,6 +53,10 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import {
+  extractWorkModeClarify,
+  removeWorkModeClarifyFromAnswer,
+} from '@/utils/workModeClarifyParse';
 import { v4 as uuidv4 } from 'uuid';
 import ChatLoading from '../../views/chat/ChatLoading';
 import {
@@ -105,37 +110,6 @@ dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
 const CHAT_TOP_N_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
-
-interface WorkModeClarifyMeta {
-  category: string;
-  candidates: number;
-  missing: string[];
-}
-
-const WORK_MODE_CLARIFY_REGEX =
-  /<!--\s*WORK_MODE_CLARIFY\s+(\{[\s\S]*?\})\s*-->\s*\n?/;
-
-function extractWorkModeClarify(content: string): {
-  meta: WorkModeClarifyMeta | null;
-  text: string;
-} {
-  if (!content) return { meta: null, text: '' };
-  const match = content.match(WORK_MODE_CLARIFY_REGEX);
-  if (!match) return { meta: null, text: content };
-  try {
-    const parsed = JSON.parse(match[1]);
-    const meta: WorkModeClarifyMeta = {
-      category: typeof parsed.category === 'string' ? parsed.category : '',
-      candidates: typeof parsed.candidates === 'number' ? parsed.candidates : 0,
-      missing: Array.isArray(parsed.missing)
-        ? parsed.missing.filter((s: unknown) => typeof s === 'string')
-        : [],
-    };
-    return { meta, text: content.replace(match[0], '') };
-  } catch {
-    return { meta: null, text: content.replace(match[0], '') };
-  }
-}
 
 const AnswerStatus = {
   1: '正在搜索结果...',
@@ -1072,19 +1046,49 @@ const AiQaContent: React.FC<{
                               ),
                             })}
                           >
-                            <Typography
-                              variant='body2'
-                              sx={{
-                                fontSize: 12,
-                                fontWeight: 600,
-                                color: 'primary.main',
-                                mb: 0.5,
-                              }}
+                            <Stack
+                              direction='row'
+                              alignItems='flex-start'
+                              justifyContent='space-between'
+                              gap={0.5}
+                              sx={{ mb: 0.5 }}
                             >
-                              {meta.candidates >= 2
-                                ? '工作模式 · 候选差异核对'
-                                : '工作模式 · 信息完备性核对'}
-                            </Typography>
+                              <Typography
+                                variant='body2'
+                                sx={{
+                                  fontSize: 12,
+                                  fontWeight: 600,
+                                  color: 'primary.main',
+                                  flex: 1,
+                                  minWidth: 0,
+                                }}
+                              >
+                                {meta.candidates >= 2
+                                  ? '工作模式 · 候选差异核对'
+                                  : '工作模式 · 信息完备性核对'}
+                              </Typography>
+                              <Tooltip title='删除追问内容'>
+                                <IconButton
+                                  size='small'
+                                  aria-label='删除追问内容'
+                                  sx={{ mt: -0.5, mr: -0.5, flexShrink: 0 }}
+                                  onClick={() => {
+                                    const next =
+                                      removeWorkModeClarifyFromAnswer(item.a);
+                                    if (next === null) return;
+                                    setConversation(prev =>
+                                      prev.map(c =>
+                                        c.id === item.id
+                                          ? { ...c, a: next }
+                                          : c,
+                                      ),
+                                    );
+                                  }}
+                                >
+                                  <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                                </IconButton>
+                              </Tooltip>
+                            </Stack>
                             <Typography
                               variant='body2'
                               sx={theme => ({
