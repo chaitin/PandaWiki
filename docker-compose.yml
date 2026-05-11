@@ -83,6 +83,9 @@ services:
     networks:
       panda-wiki:
         ipv4_address: "${SUBNET_PREFIX:-169.254.15}.3"
+    volumes:
+      - ./backend/store/pg/migration:/app/migration
+      - ./backend/store/pg/migration:/src/store/pg/migration
   postgres:
     container_name: panda-wiki-postgres
     image: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin/postgres-zhparser:17.6-bookworm
