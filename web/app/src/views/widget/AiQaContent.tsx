@@ -45,7 +45,6 @@ import {
   getInitialChatTopN,
   getInitialQaAppMode,
   persistChatTopN,
-  WORK_MODE_CHROME,
 } from '@panda-wiki/ui';
 import dayjs from 'dayjs';
 import 'dayjs/locale/zh-cn';
@@ -1058,21 +1057,27 @@ const AiQaContent: React.FC<{
                       <>
                         {meta && (
                           <Box
-                            sx={{
+                            sx={theme => ({
                               mb: 1.5,
                               p: 1.25,
                               borderRadius: '10px',
-                              border: `1px solid ${WORK_MODE_CHROME.borderGold}`,
-                              backgroundColor: 'rgba(8, 8, 7, 0.88)',
-                              boxShadow: `inset 0 1px 0 ${alpha(WORK_MODE_CHROME.gold, 0.14)}`,
-                            }}
+                              border: '1px solid',
+                              borderColor: alpha(
+                                theme.palette.primary.main,
+                                0.25,
+                              ),
+                              backgroundColor: alpha(
+                                theme.palette.primary.main,
+                                0.06,
+                              ),
+                            })}
                           >
                             <Typography
                               variant='body2'
                               sx={{
                                 fontSize: 12,
                                 fontWeight: 600,
-                                color: WORK_MODE_CHROME.goldBright,
+                                color: 'primary.main',
                                 mb: 0.5,
                               }}
                             >
@@ -1082,11 +1087,11 @@ const AiQaContent: React.FC<{
                             </Typography>
                             <Typography
                               variant='body2'
-                              sx={{
+                              sx={theme => ({
                                 fontSize: 12,
-                                color: WORK_MODE_CHROME.textMuted,
+                                color: alpha(theme.palette.text.primary, 0.7),
                                 mb: 0.75,
-                              }}
+                              })}
                             >
                               {meta.candidates >= 2
                                 ? `品类「${meta.category}」匹配到 ${meta.candidates} 个候选，请补充以下区分项：`
@@ -1096,16 +1101,21 @@ const AiQaContent: React.FC<{
                               {meta.missing.map(name => (
                                 <Box
                                   key={name}
-                                  sx={{
+                                  sx={theme => ({
                                     px: 1,
                                     py: 0.25,
                                     borderRadius: '6px',
                                     fontSize: 12,
                                     fontWeight: 500,
-                                    color: WORK_MODE_CHROME.gold,
-                                    backgroundColor: WORK_MODE_CHROME.panelHi,
-                                    border: `1px solid ${WORK_MODE_CHROME.borderGoldDim}`,
-                                  }}
+                                    color: 'primary.main',
+                                    backgroundColor:
+                                      theme.palette.background.default,
+                                    border: '1px solid',
+                                    borderColor: alpha(
+                                      theme.palette.primary.main,
+                                      0.4,
+                                    ),
+                                  })}
                                 >
                                   {name}
                                 </Box>

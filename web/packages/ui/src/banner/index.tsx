@@ -10,7 +10,6 @@ import {
   persistQaAppMode,
   type QaAppMode,
 } from '../chatQaModeStorage';
-import { WORK_MODE_CHROME } from '../workModeChrome';
 import { useTextAnimation } from '../hooks/useGsapAnimation';
 import {
   ButtonProps,
@@ -657,18 +656,6 @@ const Banner = React.memo(
                       persistQaAppMode(m);
                     }}
                     inputProps={{ 'aria-label': '培训模式与工作模式切换' }}
-                    sx={{
-                      '& .MuiSwitch-switchBase.Mui-checked': {
-                        color: WORK_MODE_CHROME.gold,
-                        '&:hover': {
-                          backgroundColor: alpha(WORK_MODE_CHROME.gold, 0.12),
-                        },
-                      },
-                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track':
-                        {
-                          backgroundColor: alpha(WORK_MODE_CHROME.gold, 0.55),
-                        },
-                    }}
                   />
                   <Typography
                     variant='body2'
@@ -677,7 +664,7 @@ const Banner = React.memo(
                       fontWeight: qaAppMode === 'work' ? 600 : 400,
                       color:
                         qaAppMode === 'work'
-                          ? WORK_MODE_CHROME.gold
+                          ? 'primary.main'
                           : 'text.secondary',
                       whiteSpace: 'nowrap',
                     }}

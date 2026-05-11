@@ -54,7 +54,6 @@ import {
   getInitialChatTopN,
   getInitialQaAppMode,
   persistChatTopN,
-  WORK_MODE_CHROME,
 } from '@panda-wiki/ui';
 import CloseIcon from '@mui/icons-material/Close';
 import Image from 'next/image';
@@ -184,7 +183,7 @@ const AiQaContent: React.FC<{
   hotSearch: string[];
   placeholder: string;
   inputRef: React.RefObject<HTMLInputElement | null>;
-  /** 工作模式：问答区采用黑金配色 */
+  /** 工作模式：问答区采用偏商务的冷灰 / 藏青配色 */
   qaWorkMode?: boolean;
 }> = ({ hotSearch, placeholder, inputRef, qaWorkMode = false }) => {
   const sseClientRef = useRef<SSEClient<{
@@ -197,33 +196,48 @@ const AiQaContent: React.FC<{
 
   const workChrome = useMemo(() => {
     if (!qaWorkMode) return null;
-    const W = WORK_MODE_CHROME;
+    const L = theme.palette.mode === 'light';
     return {
-      inputWrapper: {
-        bgcolor: W.panel,
-        borderColor: W.borderGoldDim,
-        boxShadow: `0 2px 22px ${W.glow}`,
-        '&:hover': { borderColor: W.borderGold },
-        '&:focus-within': {
-          borderColor: W.gold,
-          boxShadow: `0 0 0 1px ${alpha(W.gold, 0.5)}, 0 0 28px ${W.glow}`,
-        },
-      },
-      textFieldBg: W.deepBlack,
-      userBubble: {
-        bgcolor: W.panelHi,
-        color: W.text,
-        border: `1px solid ${W.borderGoldDim}`,
-      },
-      accent: W.gold,
-      hotTitle: W.goldSoft,
-      title: W.text,
-      hotColBorder: 'rgba(212, 175, 55, 0.22)',
-      hotItemHover: W.goldBright,
-      fuzzySuggestHoverBg: 'rgba(212, 175, 55, 0.1)',
-      newConvHover: { borderColor: W.gold, color: W.text },
+      inputWrapper: L
+        ? {
+            bgcolor: '#ffffff',
+            borderColor: '#cbd5e1',
+            boxShadow: '0 2px 14px rgba(15, 23, 42, 0.07)',
+            '&:hover': { borderColor: 'rgba(30, 41, 59, 0.38)' },
+            '&:focus-within': {
+              borderColor: '#1e40af',
+              boxShadow: '0 0 0 1px rgba(30, 64, 175, 0.22)',
+            },
+          }
+        : {
+            bgcolor: 'rgba(15, 23, 42, 0.55)',
+            borderColor: 'rgba(148, 163, 184, 0.28)',
+            boxShadow: 'none',
+            '&:hover': { borderColor: 'rgba(148, 163, 184, 0.42)' },
+            '&:focus-within': {
+              borderColor: '#94a3b8',
+              boxShadow: '0 0 0 1px rgba(148, 163, 184, 0.22)',
+            },
+          },
+      textFieldBg: L ? '#fafafa' : 'rgba(15, 23, 42, 0.35)',
+      userBubble: L
+        ? { bgcolor: '#0f172a', color: '#f8fafc' }
+        : { bgcolor: '#334155', color: '#f1f5f9' },
+      accent: L ? '#1e3a8a' : '#94a3b8',
+      hotTitle: L ? '#334155' : '#cbd5e1',
+      title: L ? '#0f172a' : '#f1f5f9',
+      hotColBorder: L
+        ? 'rgba(148, 163, 184, 0.4)'
+        : 'rgba(148, 163, 184, 0.16)',
+      hotItemHover: L ? '#1e3a8a' : '#94a3b8',
+      fuzzySuggestHoverBg: L
+        ? 'rgba(15, 23, 42, 0.06)'
+        : 'rgba(248, 250, 252, 0.08)',
+      newConvHover: L
+        ? { borderColor: '#475569', color: '#0f172a' }
+        : { borderColor: '#94a3b8', color: '#e2e8f0' },
     };
-  }, [qaWorkMode]);
+  }, [qaWorkMode, theme]);
   const messageIdRef = useRef('');
   const lastResultExpendRef = useRef(false);
   const [fullAnswer, setFullAnswer] = useState<string>('');
@@ -1277,21 +1291,27 @@ const AiQaContent: React.FC<{
                       <>
                         {meta && (
                           <Box
-                            sx={{
+                            sx={theme => ({
                               mb: 1.5,
                               p: 1.25,
                               borderRadius: '10px',
-                              border: `1px solid ${WORK_MODE_CHROME.borderGold}`,
-                              backgroundColor: 'rgba(8, 8, 7, 0.88)',
-                              boxShadow: `inset 0 1px 0 ${alpha(WORK_MODE_CHROME.gold, 0.14)}`,
-                            }}
+                              border: '1px solid',
+                              borderColor: alpha(
+                                theme.palette.primary.main,
+                                0.25,
+                              ),
+                              backgroundColor: alpha(
+                                theme.palette.primary.main,
+                                0.06,
+                              ),
+                            })}
                           >
                             <Typography
                               variant='body2'
                               sx={{
                                 fontSize: 12,
                                 fontWeight: 600,
-                                color: WORK_MODE_CHROME.goldBright,
+                                color: 'primary.main',
                                 mb: 0.5,
                               }}
                             >
@@ -1301,11 +1321,11 @@ const AiQaContent: React.FC<{
                             </Typography>
                             <Typography
                               variant='body2'
-                              sx={{
+                              sx={theme => ({
                                 fontSize: 12,
-                                color: WORK_MODE_CHROME.textMuted,
+                                color: alpha(theme.palette.text.primary, 0.7),
                                 mb: 0.75,
-                              }}
+                              })}
                             >
                               {meta.candidates >= 2
                                 ? `品类「${meta.category}」匹配到 ${meta.candidates} 个候选，请补充以下区分项：`
@@ -1315,16 +1335,21 @@ const AiQaContent: React.FC<{
                               {meta.missing.map(name => (
                                 <Box
                                   key={name}
-                                  sx={{
+                                  sx={theme => ({
                                     px: 1,
                                     py: 0.25,
                                     borderRadius: '6px',
                                     fontSize: 12,
                                     fontWeight: 500,
-                                    color: WORK_MODE_CHROME.gold,
-                                    backgroundColor: WORK_MODE_CHROME.panelHi,
-                                    border: `1px solid ${WORK_MODE_CHROME.borderGoldDim}`,
-                                  }}
+                                    color: 'primary.main',
+                                    backgroundColor:
+                                      theme.palette.background.default,
+                                    border: '1px solid',
+                                    borderColor: alpha(
+                                      theme.palette.primary.main,
+                                      0.4,
+                                    ),
+                                  })}
                                 >
                                   {name}
                                 </Box>
