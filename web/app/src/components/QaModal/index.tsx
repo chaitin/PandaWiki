@@ -17,6 +17,7 @@ import { useStore } from '@/provider';
 import {
   getInitialQaAppMode,
   QA_APP_MODE_CHANGE_EVENT,
+  WORK_MODE_CHROME,
   type QaAppMode,
 } from '@panda-wiki/ui';
 
@@ -118,21 +119,14 @@ const QaModal: React.FC<QaModalProps> = () => {
           outline: 'none',
           pb: 2,
           ...(qaWorkMode
-            ? theme.palette.mode === 'light'
-              ? {
-                  backgroundColor: '#f8fafc',
-                  backgroundImage:
-                    'linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%)',
-                  border: '1px solid rgba(148, 163, 184, 0.45)',
-                  boxShadow: '0 16px 48px rgba(15, 23, 42, 0.12)',
-                }
-              : {
-                  backgroundColor: 'rgba(15, 23, 42, 0.75)',
-                  backgroundImage:
-                    'linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%)',
-                  border: '1px solid rgba(148, 163, 184, 0.18)',
-                  boxShadow: '0 16px 48px rgba(0, 0, 0, 0.5)',
-                }
+            ? {
+                backgroundColor: WORK_MODE_CHROME.panel,
+                backgroundImage:
+                  'linear-gradient(165deg, #1a1610 0%, #0a0a0a 42%, #0f0e0c 100%)',
+                border: `1px solid ${WORK_MODE_CHROME.borderGold}`,
+                boxShadow:
+                  '0 24px 64px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(212, 175, 55, 0.08)',
+              }
             : {
                 backgroundColor: lighten(
                   theme.palette.background.default,
@@ -164,16 +158,27 @@ const QaModal: React.FC<QaModalProps> = () => {
               borderRadius: '10px',
               border: '1px solid',
               borderColor: qaWorkMode
-                ? theme.palette.mode === 'light'
-                  ? 'rgba(148, 163, 184, 0.55)'
-                  : 'rgba(148, 163, 184, 0.22)'
+                ? WORK_MODE_CHROME.borderGold
                 : alpha(theme.palette.text.primary, 0.1),
+              ...(qaWorkMode && {
+                backgroundColor: alpha(WORK_MODE_CHROME.gold, 0.06),
+              }),
             }}
           >
-            <IconZhinengwenda sx={{ fontSize: 16, color: 'primary.main' }} />
+            <IconZhinengwenda
+              sx={{
+                fontSize: 16,
+                color: qaWorkMode ? WORK_MODE_CHROME.gold : 'primary.main',
+              }}
+            />
             <Typography
               variant='body2'
-              sx={{ fontSize: 13, fontWeight: 500, lineHeight: 1 }}
+              sx={{
+                fontSize: 13,
+                fontWeight: 500,
+                lineHeight: 1,
+                color: qaWorkMode ? WORK_MODE_CHROME.text : 'text.primary',
+              }}
             >
               智能问答
             </Typography>
@@ -184,18 +189,17 @@ const QaModal: React.FC<QaModalProps> = () => {
                 px: 0.75,
                 py: 0.25,
                 borderRadius: '4px',
+                border: qaWorkMode
+                  ? `1px solid ${WORK_MODE_CHROME.borderGoldDim}`
+                  : 'none',
                 backgroundColor: alpha(
                   qaWorkMode
-                    ? theme.palette.mode === 'light'
-                      ? '#0f172a'
-                      : '#64748b'
+                    ? WORK_MODE_CHROME.gold
                     : theme.palette.primary.main,
-                  0.1,
+                  qaWorkMode ? 0.18 : 0.1,
                 ),
                 color: qaWorkMode
-                  ? theme.palette.mode === 'light'
-                    ? '#0f172a'
-                    : '#cbd5e1'
+                  ? WORK_MODE_CHROME.goldBright
                   : 'primary.main',
                 fontWeight: 600,
               })}
@@ -218,12 +222,10 @@ const QaModal: React.FC<QaModalProps> = () => {
                 fontSize: 12,
                 fontWeight: 500,
                 textTransform: 'none',
-                color: 'text.secondary',
                 borderColor: qaWorkMode
-                  ? theme.palette.mode === 'light'
-                    ? 'rgba(148, 163, 184, 0.65)'
-                    : 'rgba(148, 163, 184, 0.28)'
+                  ? WORK_MODE_CHROME.borderGold
                   : alpha(theme.palette.text.primary, 0.1),
+                color: qaWorkMode ? WORK_MODE_CHROME.gold : 'text.secondary',
               })}
             >
               Esc
@@ -264,7 +266,9 @@ const QaModal: React.FC<QaModalProps> = () => {
           <Typography
             variant='caption'
             sx={{
-              color: 'text.disabled',
+              color: qaWorkMode
+                ? alpha(WORK_MODE_CHROME.text, 0.38)
+                : 'text.disabled',
               fontSize: 12,
               display: 'flex',
               alignItems: 'center',
