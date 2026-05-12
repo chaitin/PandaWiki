@@ -121,13 +121,23 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 				u.logger.Error("get kb failed", log.Error(err))
 				return nil, nil, errors.New("get kb failed")
 			}
+			var workModeDirRoots []string
+			if strings.TrimSpace(qaMode) == domain.QaModeWork {
+				var rerr error
+				workModeDirRoots, rerr = u.nodeRepo.GetWorkModeDirectoryRootNodeIDs(ctx, kbID)
+				if rerr != nil {
+					u.logger.Warn("get work mode directory roots failed, skip path filter", log.Error(rerr))
+					workModeDirRoots = nil
+				}
+			}
 			rewrittenQuery, rankedNodes, err = u.GetRankNodes(ctx, GetRankNodesRequest{
-				DatasetID:           kb.DatasetID,
-				Question:            question,
-				GroupIDs:            groupIDs,
-				SimilarityThreshold: 0.2,
-				HistoryMessages:     historyMessages[:len(historyMessages)-1],
-				TopK:                topK,
+				DatasetID:                  kb.DatasetID,
+				Question:                   question,
+				GroupIDs:                   groupIDs,
+				SimilarityThreshold:        0.2,
+				HistoryMessages:            historyMessages[:len(historyMessages)-1],
+				TopK:                       topK,
+				WorkModeDirectoryRootIDs:   workModeDirRoots,
 			})
 			if err != nil {
 				u.logger.Error("get rank nodes failed", log.Error(err))
@@ -504,14 +514,20 @@ func (u *LLMUsecase) RetrieveCandidateNodesForWorkMode(
 	if err != nil {
 		return nil, err
 	}
+	workModeDirRoots, werr := u.nodeRepo.GetWorkModeDirectoryRootNodeIDs(ctx, kbID)
+	if werr != nil {
+		u.logger.Warn("get work mode directory roots failed, skip path filter", log.Error(werr))
+		workModeDirRoots = nil
+	}
 	_, ranked, err := u.GetRankNodes(ctx, GetRankNodesRequest{
-		DatasetID:           kb.DatasetID,
-		Question:            question,
-		GroupIDs:            groupIDs,
-		SimilarityThreshold: workModeGateSimilarityThreshold,
-		HistoryMessages:     nil,
-		TopK:                workModeGateRetrieveTopK,
-		MaxChunksPerDoc:     1,
+		DatasetID:                  kb.DatasetID,
+		Question:                   question,
+		GroupIDs:                   groupIDs,
+		SimilarityThreshold:        workModeGateSimilarityThreshold,
+		HistoryMessages:          nil,
+		TopK:                       workModeGateRetrieveTopK,
+		MaxChunksPerDoc:            1,
+		WorkModeDirectoryRootIDs:   workModeDirRoots,
 	})
 	if err != nil {
 		return nil, err
@@ -826,6 +842,24 @@ func (u *LLMUsecase) SplitByTokenLimit(text string, maxTokens int) ([]string, er
 	return result, nil
 }
 
+// filterRankedNodesByWorkModeDirectoryRoots 仅保留从根路径到文档节点链中包含任一指定文件夹 id 的检索结果。
+func filterRankedNodesByWorkModeDirectoryRoots(ranked []*domain.RankedNodeChunks, rootIDs []string) []*domain.RankedNodeChunks {
+	if len(ranked) == 0 || len(rootIDs) == 0 {
+		return ranked
+	}
+	rootSet := lo.SliceToMap(rootIDs, func(id string) (string, struct{}) { return id, struct{}{} })
+	out := make([]*domain.RankedNodeChunks, 0, len(ranked))
+	for _, n := range ranked {
+		for _, pid := range n.NodePathIDs {
+			if _, ok := rootSet[pid]; ok {
+				out = append(out, n)
+				break
+			}
+		}
+	}
+	return out
+}
+
 type GetRankNodesRequest struct {
 	DatasetID           string
 	Question            string
@@ -834,6 +868,8 @@ type GetRankNodesRequest struct {
 	HistoryMessages     []*schema.Message
 	MaxChunksPerDoc     int
 	TopK                int
+	// WorkModeDirectoryRootIDs 非空时，仅保留路径上包含任一该文件夹 node_id 的文档（工作模式问答目录范围）。
+	WorkModeDirectoryRootIDs []string
 }
 
 func (u *LLMUsecase) GetRankNodes(ctx context.Context, req GetRankNodesRequest) (string, []*domain.RankedNodeChunks, error) {
@@ -877,6 +913,7 @@ func (u *LLMUsecase) GetRankNodes(ctx context.Context, req GetRankNodesRequest) 
 						NodeSummary:   docNode.Meta.Summary,
 						NodeEmoji:     docNode.Meta.Emoji,
 						NodePathNames: docNode.PathNames,
+						NodePathIDs:   docNode.PathIDs,
 						Chunks:        []*domain.NodeContentChunk{record},
 					}
 					rankedNodes = append(rankedNodes, rankNodeChunk)
@@ -886,6 +923,9 @@ func (u *LLMUsecase) GetRankNodes(ctx context.Context, req GetRankNodesRequest) 
 				nodeChunk.Chunks = append(nodeChunk.Chunks, record)
 			}
 		}
+	}
+	if len(req.WorkModeDirectoryRootIDs) > 0 {
+		rankedNodes = filterRankedNodesByWorkModeDirectoryRoots(rankedNodes, req.WorkModeDirectoryRootIDs)
 	}
 	return rewrittenQuery, rankedNodes, nil
 }

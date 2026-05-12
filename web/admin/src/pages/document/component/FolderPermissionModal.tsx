@@ -1,4 +1,5 @@
 import { Form, FormItem } from '@/pages/setting/component/Common';
+import { getApiV1NodeDetail, putApiV1NodeDetail } from '@/request/Node';
 import { patchApiV1NodePermissionEdit } from '@/request/NodePermission';
 import { getApiProV1AuthGroupList } from '@/request/pro/AuthGroup';
 import type { GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem } from '@/request/pro/types';
@@ -6,10 +7,13 @@ import { ConstsNodeAccessPerm } from '@/request/types';
 import { Modal, message } from '@ctzhian/ui';
 import {
   Autocomplete,
+  Checkbox,
   FormControlLabel,
   Radio,
   RadioGroup,
+  Stack,
   TextField,
+  Typography,
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -27,6 +31,7 @@ type FormValues = {
   perm: ConstsNodeAccessPerm | null;
   groups: GithubComChaitinPandaWikiProApiAuthV1AuthGroupListItem[];
   apply_children: string;
+  work_mode_directory: boolean;
 };
 
 const FolderPermissionModal = ({
@@ -48,6 +53,7 @@ const FolderPermissionModal = ({
         perm: ConstsNodeAccessPerm.NodeAccessPermOpen,
         groups: [],
         apply_children: 'true',
+        work_mode_directory: false,
       },
     },
   );
@@ -66,6 +72,13 @@ const FolderPermissionModal = ({
     setValue('perm', ConstsNodeAccessPerm.NodeAccessPermOpen);
     setValue('groups', []);
     setValue('apply_children', 'true');
+    setValue('work_mode_directory', false);
+
+    getApiV1NodeDetail({ kb_id: kbId, id: nodeId })
+      .then(res => {
+        setValue('work_mode_directory', !!res.meta?.work_mode_directory);
+      })
+      .catch(() => setValue('work_mode_directory', false));
   }, [open, nodeId, kbId, setValue]);
 
   useEffect(() => {
@@ -80,19 +93,26 @@ const FolderPermissionModal = ({
         ? (values.groups || []).map(g => g.id!)
         : [];
 
-    patchApiV1NodePermissionEdit({
-      kb_id: kbId,
-      ids: [nodeId],
-      permissions: {
-        answerable: permValue,
-        visitable: permValue,
-        visible: permValue,
-      },
-      answerable_groups: groupIds,
-      visitable_groups: groupIds,
-      visible_groups: groupIds,
-      apply_children: values.apply_children === 'true',
-    })
+    Promise.all([
+      patchApiV1NodePermissionEdit({
+        kb_id: kbId,
+        ids: [nodeId],
+        permissions: {
+          answerable: permValue,
+          visitable: permValue,
+          visible: permValue,
+        },
+        answerable_groups: groupIds,
+        visitable_groups: groupIds,
+        visible_groups: groupIds,
+        apply_children: values.apply_children === 'true',
+      }),
+      putApiV1NodeDetail({
+        id: nodeId,
+        kb_id: kbId,
+        work_mode_directory: values.work_mode_directory,
+      }),
+    ])
       .then(() => {
         message.success('保存成功');
         onSuccess();
@@ -164,6 +184,29 @@ const FolderPermissionModal = ({
             />
           </FormItem>
         )}
+        <FormItem label='工作模式问答'>
+          <Stack spacing={0.5}>
+            <Controller
+              control={control}
+              name='work_mode_directory'
+              render={({ field }) => (
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size='small'
+                      checked={field.value}
+                      onChange={(_, c) => field.onChange(c)}
+                    />
+                  }
+                  label='将本目录及子目录纳入前台「工作模式」检索范围'
+                />
+              )}
+            />
+            <Typography variant='caption' color='text.secondary'>
+              未勾选任何目录时，工作模式仍检索全库；可多选文件夹分别圈定范围。
+            </Typography>
+          </Stack>
+        </FormItem>
         <FormItem label='应用范围' required>
           <Controller
             control={control}

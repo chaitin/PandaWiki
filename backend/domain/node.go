@@ -122,6 +122,8 @@ type NodeMeta struct {
 	Summary     string `json:"summary"`
 	Emoji       string `json:"emoji"`
 	ContentType string `json:"content_type"`
+	// WorkModeDirectory 为 true 时，该文件夹及其子目录下的已发布文档纳入「工作模式」问答检索范围（可多选根目录）。
+	WorkModeDirectory bool `json:"work_mode_directory"`
 }
 
 // NodeDocVisualKind 与后台文档图标（文本 / 图片 / 视频）对应，用于摘要生成策略。
@@ -186,8 +188,9 @@ type NodeListItemResp struct {
 	Name        string          `json:"name"`
 	Summary     string          `json:"summary"`
 	Emoji       string          `json:"emoji"`
-	ContentType string          `json:"content_type"`
-	Position    float64         `json:"position"`
+	ContentType          string          `json:"content_type"`
+	WorkModeDirectory    bool            `json:"work_mode_directory"`
+	Position             float64         `json:"position"`
 	ParentID    string          `json:"parent_id"`
 	CreatedAt   time.Time       `json:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at"`
@@ -215,6 +218,8 @@ type RankedNodeChunks struct {
 	NodeSummary   string
 	NodeEmoji     string
 	NodePathNames []string
+	// NodePathIDs 自根到当前文档的 node_id 链（含文档自身），用于工作模式按目录过滤等。
+	NodePathIDs   []string
 	Chunks        []*NodeContentChunk
 }
 
@@ -269,6 +274,8 @@ type UpdateNodeReq struct {
 	Summary     *string  `json:"summary"`
 	Position    *float64 `json:"position"`
 	ContentType *string  `json:"content_type"`
+	// WorkModeDirectory 仅对文件夹（type=1）生效：为 true 时本目录及子目录纳入工作模式问答检索范围。
+	WorkModeDirectory *bool `json:"work_mode_directory"`
 }
 
 type ShareNodeListItemResp struct {

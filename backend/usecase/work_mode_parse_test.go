@@ -74,3 +74,17 @@ func TestPickCategoryFromClassifyOutput(t *testing.T) {
 		t.Fatal("expected nil for NONE")
 	}
 }
+
+func TestFilterRankedNodesByWorkModeDirectoryRoots(t *testing.T) {
+	ranked := []*domain.RankedNodeChunks{
+		{NodeID: "d1", NodePathIDs: []string{"root", "f1", "d1"}},
+		{NodeID: "d2", NodePathIDs: []string{"root", "d2"}},
+	}
+	out := filterRankedNodesByWorkModeDirectoryRoots(ranked, []string{"f1"})
+	if len(out) != 1 || out[0].NodeID != "d1" {
+		t.Fatalf("expected one doc under f1, got %#v", out)
+	}
+	if len(filterRankedNodesByWorkModeDirectoryRoots(ranked, nil)) != 2 {
+		t.Fatal("nil roots should not filter")
+	}
+}

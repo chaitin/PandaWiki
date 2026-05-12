@@ -6704,6 +6704,10 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "work_mode_directory": {
+                    "description": "文件夹：是否为工作模式检索根目录",
+                    "type": "boolean"
                 }
             }
         },
@@ -6718,6 +6722,10 @@ const docTemplate = `{
                 },
                 "summary": {
                     "type": "string"
+                },
+                "work_mode_directory": {
+                    "description": "文件夹：工作模式检索根目录标记",
+                    "type": "boolean"
                 }
             }
         },
@@ -7646,6 +7654,10 @@ const docTemplate = `{
                 },
                 "summary": {
                     "type": "string"
+                },
+                "work_mode_directory": {
+                    "description": "仅文件夹：为 true 时本目录及子目录纳入工作模式问答检索",
+                    "type": "boolean"
                 }
             }
         },

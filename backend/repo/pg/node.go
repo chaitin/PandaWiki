@@ -134,7 +134,7 @@ func (r *NodeRepository) GetList(ctx context.Context, req *domain.GetNodeListReq
 		Joins("LEFT JOIN users cu ON nodes.creator_id = cu.id").
 		Joins("LEFT JOIN users eu ON nodes.editor_id = eu.id").
 		Where("nodes.kb_id = ?", req.KBID).
-		Select("cu.account AS creator, eu.account AS editor, nodes.editor_id, nodes.rag_info, nodes.creator_id, nodes.id, nodes.permissions, nodes.type, nodes.status, nodes.name, nodes.parent_id, nodes.position, nodes.created_at, nodes.edit_time as updated_at, nodes.meta->>'summary' as summary, nodes.meta->>'emoji' as emoji, nodes.meta->>'content_type' as content_type")
+		Select("cu.account AS creator, eu.account AS editor, nodes.editor_id, nodes.rag_info, nodes.creator_id, nodes.id, nodes.permissions, nodes.type, nodes.status, nodes.name, nodes.parent_id, nodes.position, nodes.created_at, nodes.edit_time as updated_at, nodes.meta->>'summary' as summary, nodes.meta->>'emoji' as emoji, nodes.meta->>'content_type' as content_type, COALESCE((nodes.meta->>'work_mode_directory')::boolean, false) as work_mode_directory")
 	if req.Search != "" {
 		searchPattern := "%" + req.Search + "%"
 		query = query.Where("name LIKE ? OR content LIKE ?", searchPattern, searchPattern)
@@ -143,6 +143,21 @@ func (r *NodeRepository) GetList(ctx context.Context, req *domain.GetNodeListReq
 		return nil, err
 	}
 	return nodes, nil
+}
+
+// GetWorkModeDirectoryRootNodeIDs 返回标记为「工作模式检索根目录」的文件夹 node id（可多根）。
+func (r *NodeRepository) GetWorkModeDirectoryRootNodeIDs(ctx context.Context, kbID string) ([]string, error) {
+	var ids []string
+	err := r.db.WithContext(ctx).Model(&domain.Node{}).
+		Select("id").
+		Where("kb_id = ?", kbID).
+		Where("type = ?", domain.NodeTypeFolder).
+		Where("COALESCE((meta->>'work_mode_directory')::boolean, false) = ?", true).
+		Pluck("id", &ids).Error
+	if err != nil {
+		return nil, err
+	}
+	return ids, nil
 }
 
 func (r *NodeRepository) GetLatestNodeReleaseByNodeIDs(ctx context.Context, kbID string, ids []string) ([]*domain.NodeRelease, error) {
@@ -232,7 +247,7 @@ func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.Upda
 		}
 
 		// Handle multiple meta field updates
-		if req.Emoji != nil || req.Summary != nil || req.ContentType != nil {
+		if req.Emoji != nil || req.Summary != nil || req.ContentType != nil || (req.WorkModeDirectory != nil && currentNode.Type == domain.NodeTypeFolder) {
 			metaExpr := "meta"
 			var args []any
 			metaUpdated := false
@@ -259,6 +274,14 @@ func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.Upda
 					// Second jsonb_set: jsonb_set(previous_expr, '{content_type}', to_jsonb(?::text))
 					metaExpr = "jsonb_set(" + metaExpr + ", '{content_type}', to_jsonb(?::text))"
 					args = append(args, *req.ContentType) // Second parameter for content_type
+					metaUpdated = true
+				}
+			}
+
+			if req.WorkModeDirectory != nil && currentNode.Type == domain.NodeTypeFolder {
+				if *req.WorkModeDirectory != currentNode.Meta.WorkModeDirectory {
+					metaExpr = "jsonb_set(" + metaExpr + ", '{work_mode_directory}', to_jsonb(?::boolean))"
+					args = append(args, *req.WorkModeDirectory)
 					metaUpdated = true
 				}
 			}

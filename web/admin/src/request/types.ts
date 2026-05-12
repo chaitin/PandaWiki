@@ -1016,12 +1016,16 @@ export interface DomainNodeListItemResp {
   summary?: string;
   type?: DomainNodeType;
   updated_at?: string;
+  /** 文件夹：是否为工作模式检索根目录 */
+  work_mode_directory?: boolean;
 }
 
 export interface DomainNodeMeta {
   content_type?: string;
   emoji?: string;
   summary?: string;
+  /** 文件夹：标记为工作模式检索根目录（本目录及子目录文档） */
+  work_mode_directory?: boolean;
 }
 
 export interface DomainNodePermissions {
@@ -1338,6 +1342,8 @@ export interface DomainUpdateNodeReq {
   name?: string;
   position?: number;
   summary?: string;
+  /** 仅文件夹：是否将本目录及子目录纳入前台工作模式问答检索 */
+  work_mode_directory?: boolean;
 }
 
 export interface DomainUserInfo {
