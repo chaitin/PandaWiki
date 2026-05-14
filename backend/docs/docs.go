@@ -6714,6 +6714,13 @@ const docTemplate = `{
         "domain.NodeMeta": {
             "type": "object",
             "properties": {
+                "attributes": {
+                    "description": "工作模式识别用的结构化属性键值对",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "content_type": {
                     "type": "string"
                 },
@@ -6721,6 +6728,10 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "summary": {
+                    "type": "string"
+                },
+                "work_mode_category": {
+                    "description": "文档：所属工作模式品类名",
                     "type": "string"
                 },
                 "work_mode_directory": {
@@ -7631,6 +7642,13 @@ const docTemplate = `{
                 "kb_id"
             ],
             "properties": {
+                "attributes": {
+                    "description": "仅文档：工作模式识别用属性键值对；nil 表示不修改，{} 表示清空",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
+                },
                 "content": {
                     "type": "string"
                 },
@@ -7653,6 +7671,10 @@ const docTemplate = `{
                     "type": "number"
                 },
                 "summary": {
+                    "type": "string"
+                },
+                "work_mode_category": {
+                    "description": "仅文档：所属工作模式品类名；空字符串表示清空",
                     "type": "string"
                 },
                 "work_mode_directory": {

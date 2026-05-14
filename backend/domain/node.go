@@ -124,6 +124,10 @@ type NodeMeta struct {
 	ContentType string `json:"content_type"`
 	// WorkModeDirectory 为 true 时，该文件夹及其子目录下的已发布文档纳入「工作模式」问答检索范围（可多选根目录）。
 	WorkModeDirectory bool `json:"work_mode_directory"`
+	// WorkModeCategory 该文档所属「工作模式」品类名（与后台「提示词管理」中的品类对齐）。
+	WorkModeCategory string `json:"work_mode_category,omitempty"`
+	// Attributes 工作模式识别用的结构化属性键值对，键必须是该品类「属性维护」中配置过的项。
+	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
 // NodeDocVisualKind 与后台文档图标（文本 / 图片 / 视频）对应，用于摘要生成策略。
@@ -276,6 +280,10 @@ type UpdateNodeReq struct {
 	ContentType *string  `json:"content_type"`
 	// WorkModeDirectory 仅对文件夹（type=1）生效：为 true 时本目录及子目录纳入工作模式问答检索范围。
 	WorkModeDirectory *bool `json:"work_mode_directory"`
+	// WorkModeCategory 仅对文档（type=2）生效：所属工作模式品类名；空字符串表示清空。
+	WorkModeCategory *string `json:"work_mode_category"`
+	// Attributes 仅对文档（type=2）生效：工作模式识别用的属性键值对；nil 表示不修改，{} 表示清空。
+	Attributes *map[string]string `json:"attributes"`
 }
 
 type ShareNodeListItemResp struct {

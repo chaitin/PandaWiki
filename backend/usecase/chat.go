@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -73,36 +74,133 @@ func (u *ChatUsecase) pickVisionModel(ctx context.Context, chatFallback *domain.
 
 // workModeClarifyMarker 是与前端约定的可解析标记。第一行是 HTML 注释包裹的 JSON：
 //
-//	<!-- WORK_MODE_CLARIFY {"category":"...","candidates":3,"missing":["..."]} -->
+//	<!-- WORK_MODE_CLARIFY {"category":"...","candidates":3,"missing":["..."],"collected":{...},"round":1,"max_rounds":3,"identified_doc_id":""} -->
 //
 // 内容会随 assistant message 落库；前端在渲染前提取并剥离，可重建 chip 展示。
-const workModeClarifyMarker = "WORK_MODE_CLARIFY"
+// 老版本仅含前三个字段；新增字段对老前端兼容（解析忽略未知字段即可）。
+const (
+	workModeClarifyMarker = "WORK_MODE_CLARIFY"
+	workModeMaxRounds     = 3
+)
 
 type workModeClarifyMeta struct {
-	Category   string   `json:"category"`
-	Candidates int      `json:"candidates"`
-	Missing    []string `json:"missing"`
+	Category        string            `json:"category"`
+	Candidates      int               `json:"candidates"`
+	Missing         []string          `json:"missing"`
+	Collected       map[string]string `json:"collected,omitempty"`
+	Round           int               `json:"round,omitempty"`
+	MaxRounds       int               `json:"max_rounds,omitempty"`
+	IdentifiedDocID string            `json:"identified_doc_id,omitempty"`
 }
 
-func formatWorkModeAttributeClarify(categoryName string, candidates int, missing []string) string {
-	name := strings.TrimSpace(categoryName)
-	list := strings.Join(missing, "、")
+var workModeClarifyRegex = regexp.MustCompile(`<!--\s*WORK_MODE_CLARIFY\s+(\{[\s\S]*?\})\s*-->`)
+
+// extractLatestWorkModeClarifyMeta 从历史 assistant 消息里取最近一条带工作模式追问标记的 meta。
+// 没有则返回 nil；JSON 解析失败也返回 nil。
+func extractLatestWorkModeClarifyMeta(msgs []*domain.ConversationMessage) *workModeClarifyMeta {
+	for i := len(msgs) - 1; i >= 0; i-- {
+		m := msgs[i]
+		if m == nil || m.Role != schema.Assistant {
+			continue
+		}
+		match := workModeClarifyRegex.FindStringSubmatch(m.Content)
+		if len(match) < 2 {
+			continue
+		}
+		var meta workModeClarifyMeta
+		if err := json.Unmarshal([]byte(match[1]), &meta); err != nil {
+			return nil
+		}
+		return &meta
+	}
+	return nil
+}
+
+func formatWorkModeAttributeClarify(meta workModeClarifyMeta) string {
+	name := strings.TrimSpace(meta.Category)
+	list := strings.Join(meta.Missing, "、")
 	var body string
-	if candidates >= 2 {
+	if meta.Candidates >= 2 {
 		body = "当前为「工作模式」。您的描述命中品类「" + name + "」，但与多份候选文档都吻合，仅在以下维度上存在差异：" + list + "。\n\n请逐项补充以便定位到唯一文档；若某项不适用请写明「不适用」及原因。"
 	} else {
 		body = "当前为「工作模式」。您的描述命中品类「" + name + "」，但所提供的信息不足以确定具体文档，请补充以下信息：" + list + "。\n\n请逐项说明；若某项不适用请写明「不适用」及原因。"
 	}
-	meta := workModeClarifyMeta{Category: name, Candidates: candidates, Missing: missing}
+	if meta.MaxRounds > 0 && meta.Round > 0 {
+		body += "\n\n（追问轮次 " + fmt.Sprint(meta.Round) + "/" + fmt.Sprint(meta.MaxRounds) + "）"
+	}
 	if mb, err := json.Marshal(meta); err == nil {
 		return "<!-- " + workModeClarifyMarker + " " + string(mb) + " -->\n" + body
 	}
 	return body
 }
 
-// runWorkModeGate 处理工作模式：分类 → 候选检索 → 差异化追问。
-// 返回 true 表示已发送追问并 done；调用方应直接 return。
-func (u *ChatUsecase) runWorkModeGate(
+// formatWorkModeNotFound 终态：候选为零，礼貌兜底。
+func formatWorkModeNotFound(category string, collected map[string]string) string {
+	body := "当前为「工作模式」。根据您提供的描述与已补充的属性，未能在知识库的工作模式范围内匹配到「" + strings.TrimSpace(category) + "」相关文档。\n\n您可以：补充更具体的信息再问一次；或在管理后台核对该品类下是否已收录对应文档与属性。"
+	meta := workModeClarifyMeta{
+		Category:  strings.TrimSpace(category),
+		Missing:   nil,
+		Collected: collected,
+	}
+	if mb, err := json.Marshal(meta); err == nil {
+		return "<!-- " + workModeClarifyMarker + " " + string(mb) + " -->\n" + body
+	}
+	return body
+}
+
+// formatWorkModeDisambiguate 终态：超过最大轮次仍多候选，让用户选。
+func formatWorkModeDisambiguate(category string, collected map[string]string, candidates []*domain.RankedNodeChunks, maxRounds int) string {
+	names := make([]string, 0, len(candidates))
+	for i, c := range candidates {
+		if i >= 5 {
+			names = append(names, "…")
+			break
+		}
+		names = append(names, "「"+strings.TrimSpace(c.NodeName)+"」")
+	}
+	body := "当前为「工作模式」。已追问 " + fmt.Sprint(maxRounds) + " 轮仍未能将候选收敛到唯一文档。剩余候选：" + strings.Join(names, "、") + "。\n\n请选择其中一项，或换一种更具识别度的描述再问一次。"
+	meta := workModeClarifyMeta{
+		Category:  strings.TrimSpace(category),
+		Collected: collected,
+		Round:     maxRounds,
+		MaxRounds: maxRounds,
+	}
+	if mb, err := json.Marshal(meta); err == nil {
+		return "<!-- " + workModeClarifyMarker + " " + string(mb) + " -->\n" + body
+	}
+	return body
+}
+
+// formatWorkModeIdentified 在识别成功且即将进入 RAG 之前，把识别 meta 通过 chain_step 暴露给前端。
+// 注意：识别成功后，正常 RAG 流程会写一条新的 assistant 消息，meta 会随其落库（chat.go 里写）。
+func buildIdentifiedClarifyMeta(category, docID, docName string, collected map[string]string, round, maxRounds int) workModeClarifyMeta {
+	return workModeClarifyMeta{
+		Category:        strings.TrimSpace(category),
+		Collected:       collected,
+		Round:           round,
+		MaxRounds:       maxRounds,
+		IdentifiedDocID: strings.TrimSpace(docID),
+		Missing:         nil,
+	}
+}
+
+
+// workModeGateResult 状态机结果。
+//   - handled 为 true 表示已发送回答（追问 / 未找到 / 超轮选择）并 done，调用方直接 return。
+//   - 否则若 IdentifiedNodeID 非空，调用方在 RAG 阶段需把检索锚定到该文档；
+//     IdentifiedClarifyMeta 用于注入到最终回答的 HTML 注释里供前端展示。
+type workModeGateResult struct {
+	Handled               bool
+	IdentifiedNodeID      string
+	IdentifiedNodeName    string
+	IdentifiedClarifyMeta workModeClarifyMeta
+	HasIdentifiedMeta     bool
+}
+
+// runWorkModeStateMachine：N1 分类 → N2 抽属性 → N3 候选检索 → N4 按属性收敛 → N5 决策路由。
+// 决策路由：1 个候选 → 识别（落到 RAG，由调用方继续）；0 个候选 → 终态「未找到」；
+// ≥2 候选且 round < max → 终态「追问」；≥2 候选且 round ≥ max → 终态「让用户挑」。
+func (u *ChatUsecase) runWorkModeStateMachine(
 	ctx context.Context,
 	eventCh chan<- domain.SSEEvent,
 	req *domain.ChatRequest,
@@ -111,67 +209,110 @@ func (u *ChatUsecase) runWorkModeGate(
 	imageCategoryMatch *domain.CategoryPromptItem,
 	messageId, userMessageId string,
 	blockWords []string,
-) bool {
-	logger := u.logger.WithModule("work_mode_gate")
+) workModeGateResult {
+	logger := u.logger.WithModule("work_mode_state_machine")
+	skip := workModeGateResult{Handled: false}
+
 	cats, werr := u.llmUsecase.GetWorkModeCategoryPrompts(ctx, req.KBID)
 	if werr != nil {
 		logger.Warn("load category prompts failed, skip gate", log.Error(werr))
-		return false
+		return skip
 	}
 	if len(cats) == 0 {
 		logger.Info("no category prompts configured, skip gate", log.String("kb_id", req.KBID))
-		return false
+		return skip
 	}
 
 	modelkitModel, mkErr := req.ModelInfo.ToModelkitModel()
 	if mkErr != nil {
 		logger.Warn("modelkit convert failed, skip gate", log.Error(mkErr))
-		return false
+		return skip
 	}
 	gateChatModel, gErr := u.modelkit.GetChatModel(ctx, modelkitModel)
 	if gErr != nil {
 		logger.Warn("get chat model failed, skip gate", log.Error(gErr))
-		return false
+		return skip
 	}
 	qctx, qErr := u.llmUsecase.BuildWorkModeQuestionContext(ctx, req.ConversationID, req.Message)
 	if qErr != nil {
 		logger.Warn("build question context failed, skip gate", log.Error(qErr))
-		return false
+		return skip
 	}
 
+	// 加载上一轮 clarify meta（含 category / collected / round）
+	histMsgs, hErr := u.llmUsecase.GetConversationMessages(ctx, req.ConversationID)
+	if hErr != nil {
+		logger.Warn("load history failed, treat as fresh round", log.Error(hErr))
+	}
+	prevMeta := extractLatestWorkModeClarifyMeta(histMsgs)
+	prevCollected := map[string]string{}
+	prevRound := 0
+	prevCategoryName := ""
+	if prevMeta != nil {
+		prevCollected = prevMeta.Collected
+		prevRound = prevMeta.Round
+		prevCategoryName = strings.TrimSpace(prevMeta.Category)
+	}
+
+	// N1 ClassifyCategory：优先复用上一轮已确定的品类，避免用户只回属性时被重新分类成 NONE。
 	var matchedForGate *domain.CategoryPromptItem
-	if len(req.ImagePaths) > 0 {
-		if imageCategoryMatch != nil && len(splitCategoryCommaAttrs(imageCategoryMatch.Attributes)) > 0 {
-			matchedForGate = imageCategoryMatch
-			logger.Info("category matched (image path)",
+	if prevCategoryName != "" {
+		for i := range cats {
+			if strings.TrimSpace(cats[i].Name) == prevCategoryName {
+				matchedForGate = &cats[i]
+				logger.Info("category reused from prev clarify meta", log.String("category", prevCategoryName))
+				break
+			}
+		}
+	}
+	if matchedForGate == nil {
+		if len(req.ImagePaths) > 0 {
+			if imageCategoryMatch != nil && len(splitCategoryCommaAttrs(imageCategoryMatch.Attributes)) > 0 {
+				matchedForGate = imageCategoryMatch
+				logger.Info("category matched (image path)",
+					log.String("category", matchedForGate.Name),
+					log.Int("attrs_count", len(splitCategoryCommaAttrs(matchedForGate.Attributes))),
+				)
+			} else {
+				logger.Info("image path: no usable category match, skip gate")
+				return skip
+			}
+		} else {
+			var cErr error
+			matchedForGate, cErr = u.llmUsecase.ClassifyTextQuestionCategory(ctx, gateChatModel, qctx, cats)
+			if cErr != nil {
+				logger.Warn("text category classify failed, skip gate", log.Error(cErr))
+				return skip
+			}
+			if matchedForGate == nil {
+				logger.Info("text category classify: NONE, skip gate")
+				return skip
+			}
+			logger.Info("category matched (text path)",
 				log.String("category", matchedForGate.Name),
 				log.Int("attrs_count", len(splitCategoryCommaAttrs(matchedForGate.Attributes))),
 			)
-		} else {
-			logger.Info("image path: no usable category match, skip gate")
-			return false
 		}
-	} else {
-		var cErr error
-		matchedForGate, cErr = u.llmUsecase.ClassifyTextQuestionCategory(ctx, gateChatModel, qctx, cats)
-		if cErr != nil {
-			logger.Warn("text category classify failed, skip gate", log.Error(cErr))
-			return false
-		}
-		if matchedForGate == nil {
-			logger.Info("text category classify: NONE, skip gate")
-			return false
-		}
-		logger.Info("category matched (text path)",
-			log.String("category", matchedForGate.Name),
-			log.Int("attrs_count", len(splitCategoryCommaAttrs(matchedForGate.Attributes))),
-		)
 	}
-	if len(splitCategoryCommaAttrs(matchedForGate.Attributes)) == 0 {
+	attrs := splitCategoryCommaAttrs(matchedForGate.Attributes)
+	if len(attrs) == 0 {
 		logger.Info("category has no attributes configured, skip gate", log.String("category", matchedForGate.Name))
-		return false
+		return skip
 	}
 
+	// N2 ExtractCollectedAttributes：在上一轮 collected 基础上合并本轮信息。
+	collected, ceErr := u.llmUsecase.ExtractCollectedAttributes(ctx, gateChatModel, *matchedForGate, qctx, retrievalAugment, prevCollected)
+	if ceErr != nil {
+		logger.Warn("extract collected attrs failed, fallback to prev only", log.Error(ceErr))
+		collected = prevCollected
+	}
+	logger.Info("collected attrs after merge",
+		log.String("category", matchedForGate.Name),
+		log.Int("attrs_total", len(attrs)),
+		log.Any("collected", collected),
+	)
+
+	// N3 RetrieveCandidates
 	gateQuery := strings.TrimSpace(req.Message)
 	if gateQuery == "" {
 		gateQuery = strings.TrimSpace(retrievalAugment)
@@ -179,70 +320,163 @@ func (u *ChatUsecase) runWorkModeGate(
 	candidates, rErr := u.llmUsecase.RetrieveCandidateNodesForWorkMode(ctx, req.KBID, groupIds, gateQuery)
 	if rErr != nil {
 		logger.Warn("candidate retrieval failed, skip gate", log.Error(rErr))
-		return false
+		return skip
 	}
+	// N3.1 兜底：vector top-K 只看正文/摘要，不会命中只在 meta.attributes 里出现的关键词。
+	// 把所有"打了该品类标签"的文档全量并入候选，确保结构化打标的文档不会被漏。
+	if catDocs, cdErr := u.llmUsecase.GetCategoryTaggedDocs(ctx, req.KBID, matchedForGate.Name); cdErr == nil {
+		before := len(candidates)
+		candidates = MergeRankedNodesByID(candidates, catDocs)
+		logger.Info("union with category-tagged docs",
+			log.String("category", matchedForGate.Name),
+			log.Int("vector_candidates", before),
+			log.Int("category_tagged_docs", len(catDocs)),
+			log.Int("after_union", len(candidates)),
+		)
+	} else {
+		logger.Warn("get category-tagged docs failed, fall back to vector candidates only", log.Error(cdErr))
+	}
+
+	// N4 NarrowByAttributes：先用 meta.attributes 精确匹配收敛。
+	if narrowed, nErr := u.llmUsecase.NarrowCandidatesByAttributes(ctx, req.KBID, candidates, collected); nErr == nil {
+		candidates = narrowed
+	} else {
+		logger.Warn("narrow by attributes failed, keep original", log.Error(nErr))
+	}
+
 	candidateNames := make([]string, 0, len(candidates))
 	for _, c := range candidates {
 		candidateNames = append(candidateNames, c.NodeName)
 	}
-	logger.Info("candidate retrieval result",
+	logger.Info("candidates after narrow",
 		log.String("category", matchedForGate.Name),
 		log.Int("candidates", len(candidates)),
 		log.Any("doc_names", candidateNames),
 	)
 
-	var (
-		missing []string
-		mErr    error
-		mode    string
-	)
-	if len(candidates) >= 2 {
-		mode = "candidate_diff"
-		missing, mErr = u.llmUsecase.WorkModeListDistinguishingMissing(ctx, gateChatModel, *matchedForGate, candidates, qctx, retrievalAugment)
-	} else {
-		// 候选 ≤ 1（含检索为空）：仍按「全部配置属性中用户没明确说的都问」做兜底，
-		// 这样描述不完整时也能让用户补充必要的定位信息。
-		mode = "complete_attrs"
-		missing, mErr = u.llmUsecase.WorkModeListMissingAttributes(ctx, gateChatModel, *matchedForGate, qctx, retrievalAugment)
-	}
-	if mErr != nil {
-		logger.Warn("missing-attribute check failed, continue RAG",
-			log.String("mode", mode),
-			log.Error(mErr),
-		)
-		return false
-	}
-	if len(missing) == 0 {
-		logger.Info("no missing attributes, proceed to RAG",
-			log.String("mode", mode),
-			log.String("category", matchedForGate.Name),
-			log.Int("candidates", len(candidates)),
-		)
-		return false
-	}
+	round := prevRound + 1
 
-	logger.Info("clarify required",
-		log.String("mode", mode),
-		log.String("category", matchedForGate.Name),
-		log.Int("candidates", len(candidates)),
-		log.Any("missing", missing),
-	)
-	chainTitle := "工作模式：候选差异核对"
-	chainDetail := fmt.Sprintf("品类「%s」匹配到 %d 个候选；待确认：%s", matchedForGate.Name, len(candidates), strings.Join(missing, "、"))
-	if mode == "complete_attrs" {
-		chainTitle = "工作模式：信息完备性核对"
-		chainDetail = fmt.Sprintf("品类「%s」需要补充：%s", matchedForGate.Name, strings.Join(missing, "、"))
+	// N5 决策路由
+	switch {
+	case len(candidates) == 1:
+		// Identified：交给 RAG 阶段锚定回答
+		c := candidates[0]
+		meta := buildIdentifiedClarifyMeta(matchedForGate.Name, c.NodeID, c.NodeName, collected, round, workModeMaxRounds)
+		if b, jErr := json.Marshal(map[string]any{
+			"step":   5,
+			"title":  "工作模式：已识别",
+			"detail": fmt.Sprintf("品类「%s」收敛到唯一文档「%s」，将仅基于该文档作答。", matchedForGate.Name, c.NodeName),
+		}); jErr == nil {
+			eventCh <- domain.SSEEvent{Type: "chain_step", Content: string(b)}
+		}
+		return workModeGateResult{
+			Handled:               false,
+			IdentifiedNodeID:      c.NodeID,
+			IdentifiedNodeName:    c.NodeName,
+			IdentifiedClarifyMeta: meta,
+			HasIdentifiedMeta:     true,
+		}
+
+	case len(candidates) == 0:
+		// NotFound 终态
+		if b, jErr := json.Marshal(map[string]any{
+			"step":   5,
+			"title":  "工作模式：未找到匹配文档",
+			"detail": fmt.Sprintf("品类「%s」在工作模式范围内没有命中任何候选。", matchedForGate.Name),
+		}); jErr == nil {
+			eventCh <- domain.SSEEvent{Type: "chain_step", Content: string(b)}
+		}
+		clarify := formatWorkModeNotFound(matchedForGate.Name, collected)
+		u.sendWorkModeClarifyAndFinish(ctx, eventCh, req, messageId, userMessageId, clarify, blockWords)
+		return workModeGateResult{Handled: true}
+
+	case round >= workModeMaxRounds:
+		// 超轮终态：让用户从剩余候选挑
+		if b, jErr := json.Marshal(map[string]any{
+			"step":   5,
+			"title":  "工作模式：达到最大追问轮次",
+			"detail": fmt.Sprintf("品类「%s」已追问 %d 轮，仍剩 %d 个候选。", matchedForGate.Name, workModeMaxRounds, len(candidates)),
+		}); jErr == nil {
+			eventCh <- domain.SSEEvent{Type: "chain_step", Content: string(b)}
+		}
+		clarify := formatWorkModeDisambiguate(matchedForGate.Name, collected, candidates, workModeMaxRounds)
+		u.sendWorkModeClarifyAndFinish(ctx, eventCh, req, messageId, userMessageId, clarify, blockWords)
+		return workModeGateResult{Handled: true}
+
+	default:
+		// 多候选 + 还有轮次 → 追问差异化属性
+		var (
+			missing []string
+			mErr    error
+			mode    string
+		)
+		if len(candidates) >= 2 {
+			mode = "candidate_diff"
+			missing, mErr = u.llmUsecase.WorkModeListDistinguishingMissing(ctx, gateChatModel, *matchedForGate, candidates, qctx, retrievalAugment)
+		} else {
+			mode = "complete_attrs"
+			missing, mErr = u.llmUsecase.WorkModeListMissingAttributes(ctx, gateChatModel, *matchedForGate, qctx, retrievalAugment)
+		}
+		if mErr != nil {
+			logger.Warn("missing-attribute check failed, continue RAG",
+				log.String("mode", mode),
+				log.Error(mErr),
+			)
+			return skip
+		}
+		// 已收集到的属性即使被 LLM 列为 missing，也应过滤掉（避免重复追问同一属性）。
+		missing = filterAlreadyCollected(missing, collected)
+		if len(missing) == 0 {
+			logger.Info("no missing attributes, proceed to RAG",
+				log.String("mode", mode),
+				log.String("category", matchedForGate.Name),
+				log.Int("candidates", len(candidates)),
+			)
+			return skip
+		}
+
+		chainTitle := "工作模式：候选差异核对"
+		chainDetail := fmt.Sprintf("品类「%s」匹配到 %d 个候选；待确认：%s（第 %d/%d 轮）",
+			matchedForGate.Name, len(candidates), strings.Join(missing, "、"), round, workModeMaxRounds)
+		if mode == "complete_attrs" {
+			chainTitle = "工作模式：信息完备性核对"
+			chainDetail = fmt.Sprintf("品类「%s」需要补充：%s（第 %d/%d 轮）",
+				matchedForGate.Name, strings.Join(missing, "、"), round, workModeMaxRounds)
+		}
+		if b, jErr := json.Marshal(map[string]any{
+			"step":   5,
+			"title":  chainTitle,
+			"detail": chainDetail,
+		}); jErr == nil {
+			eventCh <- domain.SSEEvent{Type: "chain_step", Content: string(b)}
+		}
+		clarifyMeta := workModeClarifyMeta{
+			Category:   matchedForGate.Name,
+			Candidates: len(candidates),
+			Missing:    missing,
+			Collected:  collected,
+			Round:      round,
+			MaxRounds:  workModeMaxRounds,
+		}
+		clarify := formatWorkModeAttributeClarify(clarifyMeta)
+		u.sendWorkModeClarifyAndFinish(ctx, eventCh, req, messageId, userMessageId, clarify, blockWords)
+		return workModeGateResult{Handled: true}
 	}
-	if b, jErr := json.Marshal(map[string]any{
-		"step":   5,
-		"title":  chainTitle,
-		"detail": chainDetail,
-	}); jErr == nil {
-		eventCh <- domain.SSEEvent{Type: "chain_step", Content: string(b)}
+}
+
+// filterAlreadyCollected 从 missing 中剔除已收集到值的属性，避免重复追问。
+func filterAlreadyCollected(missing []string, collected map[string]string) []string {
+	if len(missing) == 0 || len(collected) == 0 {
+		return missing
 	}
-	clarify := formatWorkModeAttributeClarify(matchedForGate.Name, len(candidates), missing)
-	u.sendWorkModeClarifyAndFinish(ctx, eventCh, req, messageId, userMessageId, clarify, blockWords)
-	return true
+	out := make([]string, 0, len(missing))
+	for _, m := range missing {
+		v := strings.TrimSpace(collected[strings.TrimSpace(m)])
+		if v == "" {
+			out = append(out, m)
+		}
+	}
+	return out
 }
 
 func (u *ChatUsecase) sendWorkModeClarifyAndFinish(
@@ -485,13 +719,22 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 			sendChainStep(4, "向量检索", "正在根据上述理解与知识库进行关联检索…")
 		}
 
+		var workModeRes workModeGateResult
 		if strings.TrimSpace(req.QaMode) == domain.QaModeWork {
-			if u.runWorkModeGate(ctx, eventCh, req, groupIds, retrievalAugment, imageCategoryMatch, messageId, userMessageId, blockWords) {
+			workModeRes = u.runWorkModeStateMachine(ctx, eventCh, req, groupIds, retrievalAugment, imageCategoryMatch, messageId, userMessageId, blockWords)
+			if workModeRes.Handled {
 				return
 			}
 		}
 
-		messages, rankedNodes, err := u.llmUsecase.BuildConversationMessageWithRAG(ctx, req.ConversationID, req.KBID, groupIds, req.Prompt, topN, retrievalAugment, req.QaMode)
+		ragOpts := []BuildRAGOption{}
+		if workModeRes.IdentifiedNodeID != "" {
+			ragOpts = append(ragOpts, BuildRAGOption{
+				PinnedNodeIDs:     []string{workModeRes.IdentifiedNodeID},
+				IdentifiedDocName: workModeRes.IdentifiedNodeName,
+			})
+		}
+		messages, rankedNodes, err := u.llmUsecase.BuildConversationMessageWithRAG(ctx, req.ConversationID, req.KBID, groupIds, req.Prompt, topN, retrievalAugment, req.QaMode, ragOpts...)
 		if err != nil {
 			u.logger.Error("build messages failed", log.Error(err))
 			eventCh <- domain.SSEEvent{Type: "error", Content: err.Error()}
@@ -529,12 +772,26 @@ func (u *ChatUsecase) Chat(ctx context.Context, req *domain.ChatRequest) (<-chan
 		// get words
 		onChunkAC, flushBuffer := u.CreateAcOnChunk(ctx, req.KBID, &answer, eventCh, blockWords)
 
+		// 工作模式识别成功时，先把识别 meta 注释推到流里，让前端在收到首段回答前就能展示已识别 chip
+		if workModeRes.HasIdentifiedMeta {
+			if mb, jErr := json.Marshal(workModeRes.IdentifiedClarifyMeta); jErr == nil {
+				prefix := "<!-- " + workModeClarifyMarker + " " + string(mb) + " -->\n"
+				if name := strings.TrimSpace(workModeRes.IdentifiedNodeName); name != "" {
+					prefix += "（已识别为「" + name + "」，仅基于该文档作答）\n\n"
+				}
+				_ = onChunkAC(ctx, "data", prefix)
+			}
+		}
+
 		chatErr := u.llmUsecase.ChatWithAgent(ctx, chatModel, messages, &usage, onChunkAC)
 
 		// 处理缓冲区中剩余的内容
 		if flushBuffer != nil {
 			flushBuffer(ctx, "data")
 		}
+
+		// 注：识别成功时 meta 注释已通过 onChunkAC 流式发出并累加到 answer 开头，
+		// 这里直接落库即可（跨轮恢复时会从历史消息里解析这段 marker）。
 
 		// save assistant answer to conversation message
 

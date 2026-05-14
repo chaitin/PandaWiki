@@ -2,6 +2,7 @@ package pg
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -247,7 +248,12 @@ func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.Upda
 		}
 
 		// Handle multiple meta field updates
-		if req.Emoji != nil || req.Summary != nil || req.ContentType != nil || (req.WorkModeDirectory != nil && currentNode.Type == domain.NodeTypeFolder) {
+		isFolder := currentNode.Type == domain.NodeTypeFolder
+		isDoc := currentNode.Type == domain.NodeTypeDocument
+		if req.Emoji != nil || req.Summary != nil || req.ContentType != nil ||
+			(req.WorkModeDirectory != nil && isFolder) ||
+			(req.WorkModeCategory != nil && isDoc) ||
+			(req.Attributes != nil && isDoc) {
 			metaExpr := "meta"
 			var args []any
 			metaUpdated := false
@@ -278,12 +284,30 @@ func (r *NodeRepository) UpdateNodeContent(ctx context.Context, req *domain.Upda
 				}
 			}
 
-			if req.WorkModeDirectory != nil && currentNode.Type == domain.NodeTypeFolder {
+			if req.WorkModeDirectory != nil && isFolder {
 				if *req.WorkModeDirectory != currentNode.Meta.WorkModeDirectory {
 					metaExpr = "jsonb_set(" + metaExpr + ", '{work_mode_directory}', to_jsonb(?::boolean))"
 					args = append(args, *req.WorkModeDirectory)
 					metaUpdated = true
 				}
+			}
+
+			if req.WorkModeCategory != nil && isDoc {
+				if *req.WorkModeCategory != currentNode.Meta.WorkModeCategory {
+					metaExpr = "jsonb_set(" + metaExpr + ", '{work_mode_category}', to_jsonb(?::text))"
+					args = append(args, *req.WorkModeCategory)
+					metaUpdated = true
+				}
+			}
+
+			if req.Attributes != nil && isDoc {
+				attrJSON, mErr := json.Marshal(*req.Attributes)
+				if mErr != nil {
+					return mErr
+				}
+				metaExpr = "jsonb_set(" + metaExpr + ", '{attributes}', ?::jsonb)"
+				args = append(args, string(attrJSON))
+				metaUpdated = true
 			}
 
 			if metaUpdated {
@@ -466,6 +490,79 @@ func (r *NodeRepository) buildNodePath(ctx context.Context, kbID string, nodeRel
 	mutable.Reverse(pathParts)
 	path := "/" + strings.Join(pathParts, "/") + "/"
 	return path, nil
+}
+
+// GetWorkModeDocsByCategory 枚举打了某「工作模式品类」标签的所有文档，便于在工作模式状态机里
+// 兜底向量 top-K 漏掉的结构化文档。返回的 RankedNodeChunks 只填 NodeID/NodeName/NodeSummary/NodeEmoji，
+// Chunks 与 NodePathIDs 留空（属性收敛阶段不需要）。
+func (r *NodeRepository) GetWorkModeDocsByCategory(
+	ctx context.Context, kbID, categoryName string,
+) ([]*domain.RankedNodeChunks, error) {
+	if strings.TrimSpace(kbID) == "" || strings.TrimSpace(categoryName) == "" {
+		return nil, nil
+	}
+	type row struct {
+		ID      string `gorm:"column:id"`
+		Name    string `gorm:"column:name"`
+		Summary string `gorm:"column:summary"`
+		Emoji   string `gorm:"column:emoji"`
+	}
+	var rows []row
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Node{}).
+		Where("kb_id = ?", kbID).
+		Where("type = ?", domain.NodeTypeDocument).
+		Where("meta->>'work_mode_category' = ?", categoryName).
+		Select("id, name, COALESCE(meta->>'summary','') AS summary, COALESCE(meta->>'emoji','') AS emoji").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	out := make([]*domain.RankedNodeChunks, 0, len(rows))
+	for _, rr := range rows {
+		out = append(out, &domain.RankedNodeChunks{
+			NodeID:      rr.ID,
+			NodeName:    rr.Name,
+			NodeSummary: rr.Summary,
+			NodeEmoji:   rr.Emoji,
+		})
+	}
+	return out, nil
+}
+
+// GetNodeMetaByNodeIDs 批量读取 nodes.meta，仅取本工作模式识别需要的字段。
+// 返回的 NodeMeta 仅保证 WorkModeCategory 与 Attributes 可用。
+func (r *NodeRepository) GetNodeMetaByNodeIDs(ctx context.Context, kbID string, ids []string) (map[string]domain.NodeMeta, error) {
+	if len(ids) == 0 {
+		return map[string]domain.NodeMeta{}, nil
+	}
+	type row struct {
+		ID    string `gorm:"column:id"`
+		Cat   string `gorm:"column:cat"`
+		Attrs []byte `gorm:"column:attrs"`
+	}
+	out := make(map[string]domain.NodeMeta, len(ids))
+	for _, chunk := range lo.Chunk(ids, 1000) {
+		var rows []row
+		if err := r.db.WithContext(ctx).
+			Model(&domain.Node{}).
+			Where("kb_id = ?", kbID).
+			Where("id IN ?", chunk).
+			Select("id, COALESCE(meta->>'work_mode_category', '') AS cat, COALESCE((meta->'attributes')::text, '{}') AS attrs").
+			Scan(&rows).Error; err != nil {
+			return nil, err
+		}
+		for _, r := range rows {
+			meta := domain.NodeMeta{WorkModeCategory: r.Cat}
+			if len(r.Attrs) > 0 {
+				var m map[string]string
+				if err := json.Unmarshal(r.Attrs, &m); err == nil {
+					meta.Attributes = m
+				}
+			}
+			out[r.ID] = meta
+		}
+	}
+	return out, nil
 }
 
 func (r *NodeRepository) GetNodeNameByNodeIDs(ctx context.Context, ids []string) (map[string]string, error) {

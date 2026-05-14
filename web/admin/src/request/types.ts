@@ -1021,9 +1021,13 @@ export interface DomainNodeListItemResp {
 }
 
 export interface DomainNodeMeta {
+  /** 工作模式识别用的结构化属性键值对 */
+  attributes?: Record<string, string>;
   content_type?: string;
   emoji?: string;
   summary?: string;
+  /** 文档：所属工作模式品类名 */
+  work_mode_category?: string;
   /** 文件夹：标记为工作模式检索根目录（本目录及子目录文档） */
   work_mode_directory?: boolean;
 }
@@ -1334,6 +1338,8 @@ export interface DomainUpdateModelReq {
 }
 
 export interface DomainUpdateNodeReq {
+  /** 仅文档：工作模式识别用属性键值对；undefined 表示不修改，{} 表示清空 */
+  attributes?: Record<string, string>;
   content?: string;
   content_type?: string;
   emoji?: string;
@@ -1342,6 +1348,8 @@ export interface DomainUpdateNodeReq {
   name?: string;
   position?: number;
   summary?: string;
+  /** 仅文档：所属工作模式品类名；空字符串表示清空 */
+  work_mode_category?: string;
   /** 仅文件夹：是否将本目录及子目录纳入前台工作模式问答检索 */
   work_mode_directory?: boolean;
 }

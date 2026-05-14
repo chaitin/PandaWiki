@@ -61,6 +61,14 @@ func NewLLMUsecase(config *config.Config, rag rag.RAGService, conversationRepo *
 	}
 }
 
+// BuildRAGOption 可选行为开关；零值即旧行为。
+type BuildRAGOption struct {
+	// PinnedNodeIDs 非空时，把 RAG 限定到这些文档（工作模式识别成功后传入）。
+	PinnedNodeIDs []string
+	// IdentifiedDocName 非空时，会注入到 system prompt 末尾，提示模型仅依据该文档作答。
+	IdentifiedDocName string
+}
+
 func (u *LLMUsecase) BuildConversationMessageWithRAG(
 	ctx context.Context,
 	conversationID string,
@@ -70,7 +78,12 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 	topK int,
 	retrievalAugment string,
 	qaMode string,
+	opts ...BuildRAGOption,
 ) ([]*schema.Message, []*domain.RankedNodeChunks, error) {
+	var opt BuildRAGOption
+	if len(opts) > 0 {
+		opt = opts[0]
+	}
 	messages := make([]*schema.Message, 0)
 	rankedNodes := make([]*domain.RankedNodeChunks, 0)
 
@@ -111,6 +124,10 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 			}
 
 			systemPrompt = domain.AugmentSystemPromptWithQaMode(systemPrompt, qaMode)
+			if name := strings.TrimSpace(opt.IdentifiedDocName); name != "" {
+				systemPrompt = strings.TrimSpace(systemPrompt) +
+					"\n\n【已识别文档】用户在工作模式中已收敛到唯一文档「" + name + "」，回答时请仅基于该文档的内容，不要引用知识库中其他文档。"
+			}
 
 			template := prompt.FromMessages(schema.GoTemplate,
 				schema.SystemMessage(systemPrompt),
@@ -130,15 +147,24 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 					workModeDirRoots = nil
 				}
 			}
-			rewrittenQuery, rankedNodes, err = u.GetRankNodes(ctx, GetRankNodesRequest{
-				DatasetID:                  kb.DatasetID,
-				Question:                   question,
-				GroupIDs:                   groupIDs,
-				SimilarityThreshold:        0.2,
-				HistoryMessages:            historyMessages[:len(historyMessages)-1],
-				TopK:                       topK,
-				WorkModeDirectoryRootIDs:   workModeDirRoots,
-			})
+			rankReq := GetRankNodesRequest{
+				DatasetID:                kb.DatasetID,
+				Question:                 question,
+				GroupIDs:                 groupIDs,
+				SimilarityThreshold:      0.2,
+				HistoryMessages:          historyMessages[:len(historyMessages)-1],
+				TopK:                     topK,
+				WorkModeDirectoryRootIDs: workModeDirRoots,
+				PinnedNodeIDs:            opt.PinnedNodeIDs,
+			}
+			// 锚定文档时放宽 TopK 与相似度阈值，确保该文档命中
+			if len(opt.PinnedNodeIDs) > 0 {
+				rankReq.SimilarityThreshold = 0.0
+				if rankReq.TopK < 20 {
+					rankReq.TopK = 20
+				}
+			}
+			rewrittenQuery, rankedNodes, err = u.GetRankNodes(ctx, rankReq)
 			if err != nil {
 				u.logger.Error("get rank nodes failed", log.Error(err))
 				return nil, nil, errors.New("get rank nodes failed")
@@ -383,6 +409,14 @@ func (u *LLMUsecase) GetWorkModeCategoryPrompts(ctx context.Context, kbID string
 	}), nil
 }
 
+// GetConversationMessages 转发到 conversationRepo，便于 chat.go 在工作模式状态机中读取历史。
+func (u *LLMUsecase) GetConversationMessages(ctx context.Context, conversationID string) ([]*domain.ConversationMessage, error) {
+	if u.conversationRepo == nil || strings.TrimSpace(conversationID) == "" {
+		return nil, nil
+	}
+	return u.conversationRepo.GetConversationMessagesByID(ctx, conversationID)
+}
+
 func (u *LLMUsecase) BuildWorkModeQuestionContext(ctx context.Context, conversationID, currentQuestion string) (string, error) {
 	msgs, err := u.conversationRepo.GetConversationMessagesByID(ctx, conversationID)
 	if err != nil {
@@ -501,6 +535,36 @@ const (
 	workModeGateSimilarityThreshold = 0.0
 )
 
+// GetCategoryTaggedDocs 枚举所有 meta.work_mode_category 与给定品类匹配的文档。
+// 用于补齐向量 top-K 可能漏掉的结构化打标候选。
+func (u *LLMUsecase) GetCategoryTaggedDocs(ctx context.Context, kbID, categoryName string) ([]*domain.RankedNodeChunks, error) {
+	if u.nodeRepo == nil {
+		return nil, nil
+	}
+	return u.nodeRepo.GetWorkModeDocsByCategory(ctx, kbID, categoryName)
+}
+
+// MergeRankedNodesByID 按 NodeID 去重合并两组候选，保持 a 的顺序在前、b 的补齐在后。
+func MergeRankedNodesByID(a, b []*domain.RankedNodeChunks) []*domain.RankedNodeChunks {
+	seen := make(map[string]struct{}, len(a)+len(b))
+	out := make([]*domain.RankedNodeChunks, 0, len(a)+len(b))
+	push := func(list []*domain.RankedNodeChunks) {
+		for _, n := range list {
+			if n == nil || n.NodeID == "" {
+				continue
+			}
+			if _, ok := seen[n.NodeID]; ok {
+				continue
+			}
+			seen[n.NodeID] = struct{}{}
+			out = append(out, n)
+		}
+	}
+	push(a)
+	push(b)
+	return out
+}
+
 func (u *LLMUsecase) RetrieveCandidateNodesForWorkMode(
 	ctx context.Context,
 	kbID string,
@@ -533,6 +597,91 @@ func (u *LLMUsecase) RetrieveCandidateNodesForWorkMode(
 		return nil, err
 	}
 	return ranked, nil
+}
+
+// attrValueMatches 对 candidate 的某属性值与用户已收集的值做宽松匹配。
+// 任一为空视为不冲突；忽略大小写与首尾空白；包含关系也视为匹配（容忍单位等口语差异）。
+func attrValueMatches(candidateVal, userVal string) bool {
+	a := strings.ToLower(strings.TrimSpace(candidateVal))
+	b := strings.ToLower(strings.TrimSpace(userVal))
+	if a == "" || b == "" {
+		return true
+	}
+	if a == b {
+		return true
+	}
+	return strings.Contains(a, b) || strings.Contains(b, a)
+}
+
+// NarrowCandidatesByAttributes 用「meta.attributes 精确匹配」收敛候选文档：
+//   - 已收集属性为空时，原样返回；
+//   - 当全部候选都未填写结构化属性时，回退到原候选（让上层走文本差异判别）；
+//   - 至少有候选有结构化属性时，过滤掉与已收集值冲突的候选；
+//
+// 二次保留（无结构化属性的候选）按以下策略：若过滤后仍有命中结构化匹配的候选，
+// 则只保留命中结构化匹配的；若全部被过滤，回退到原候选避免错杀。
+func (u *LLMUsecase) NarrowCandidatesByAttributes(
+	ctx context.Context,
+	kbID string,
+	candidates []*domain.RankedNodeChunks,
+	collected map[string]string,
+) ([]*domain.RankedNodeChunks, error) {
+	if len(candidates) == 0 || len(collected) == 0 {
+		return candidates, nil
+	}
+	if u.nodeRepo == nil {
+		return candidates, nil
+	}
+	ids := make([]string, 0, len(candidates))
+	for _, c := range candidates {
+		if c != nil && c.NodeID != "" {
+			ids = append(ids, c.NodeID)
+		}
+	}
+	metaMap, err := u.nodeRepo.GetNodeMetaByNodeIDs(ctx, kbID, ids)
+	if err != nil {
+		return candidates, err
+	}
+	hasAnyStructured := false
+	for _, m := range metaMap {
+		if len(m.Attributes) > 0 {
+			hasAnyStructured = true
+			break
+		}
+	}
+	if !hasAnyStructured {
+		return candidates, nil
+	}
+	kept := make([]*domain.RankedNodeChunks, 0, len(candidates))
+	for _, c := range candidates {
+		if c == nil {
+			continue
+		}
+		meta, ok := metaMap[c.NodeID]
+		if !ok || len(meta.Attributes) == 0 {
+			continue
+		}
+		conflict := false
+		for k, v := range collected {
+			if cv, has := meta.Attributes[k]; has {
+				if !attrValueMatches(cv, v) {
+					conflict = true
+					break
+				}
+			}
+		}
+		if !conflict {
+			kept = append(kept, c)
+		}
+	}
+	if len(kept) == 0 {
+		u.logger.Debug("narrow by attributes: zero match, fallback to original candidates",
+			log.Int("collected", len(collected)),
+			log.Int("origin", len(candidates)),
+		)
+		return candidates, nil
+	}
+	return kept, nil
 }
 
 // formatWorkModeCandidateBriefs 把候选文档做成「文档名 + 摘要/首段」短描述列表，供 LLM 比对差异。
@@ -644,6 +793,129 @@ func (u *LLMUsecase) WorkModeListMissingAttributes(
 	out = strings.TrimSpace(u.trimThinking(out))
 	u.logger.Debug("work mode missing attrs", log.String("raw", out), log.String("category", category.Name))
 	return parseWorkModeMissingAttributes(out, attrs), nil
+}
+
+// workModeCollectedAttributesResp LLM 抽取已收集属性时的输出形式。
+type workModeCollectedAttributesResp struct {
+	Collected map[string]string `json:"collected"`
+}
+
+// parseWorkModeCollectedAttributes 解析 LLM 输出的 {"collected": {...}}，
+// 仅保留 attrs 集合内的键，且去掉空值；非法 JSON 时返回 nil。
+func parseWorkModeCollectedAttributes(raw string, attrs []string) map[string]string {
+	raw = extractJSONObject(strings.TrimSpace(raw))
+	if raw == "" {
+		return nil
+	}
+	allowed := make(map[string]struct{}, len(attrs))
+	for _, a := range attrs {
+		allowed[strings.TrimSpace(a)] = struct{}{}
+	}
+	var obj workModeCollectedAttributesResp
+	if err := json.Unmarshal([]byte(raw), &obj); err != nil || obj.Collected == nil {
+		// 兼容直接给出 {"尺寸":"500ml"} 的简化形式
+		var flat map[string]string
+		if jErr := json.Unmarshal([]byte(raw), &flat); jErr != nil {
+			return nil
+		}
+		obj.Collected = flat
+	}
+	out := make(map[string]string, len(obj.Collected))
+	for k, v := range obj.Collected {
+		k = strings.TrimSpace(k)
+		v = strings.TrimSpace(v)
+		if k == "" || v == "" {
+			continue
+		}
+		if _, ok := allowed[k]; !ok {
+			continue
+		}
+		out[k] = v
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
+}
+
+// MergeCollectedAttributes 将 LLM 新抽取出的属性与历史已收集属性合并；
+// 仅 attrs 内键有效，新值非空时覆盖旧值，旧值在新输入未给出时保留。
+func MergeCollectedAttributes(prev, fresh map[string]string, attrs []string) map[string]string {
+	allowed := make(map[string]struct{}, len(attrs))
+	for _, a := range attrs {
+		allowed[strings.TrimSpace(a)] = struct{}{}
+	}
+	merged := make(map[string]string, len(prev)+len(fresh))
+	for k, v := range prev {
+		k = strings.TrimSpace(k)
+		v = strings.TrimSpace(v)
+		if k == "" || v == "" {
+			continue
+		}
+		if _, ok := allowed[k]; !ok {
+			continue
+		}
+		merged[k] = v
+	}
+	for k, v := range fresh {
+		k = strings.TrimSpace(k)
+		v = strings.TrimSpace(v)
+		if k == "" || v == "" {
+			continue
+		}
+		if _, ok := allowed[k]; !ok {
+			continue
+		}
+		merged[k] = v
+	}
+	return merged
+}
+
+// ExtractCollectedAttributes 让 LLM 从对话上下文 + 附图理解中抽取「用户已明确给出」的属性键值对，
+// 仅允许后台为该品类配置过的属性键，并与上一轮已收集的属性合并返回。
+func (u *LLMUsecase) ExtractCollectedAttributes(
+	ctx context.Context,
+	chatModel model.BaseChatModel,
+	category domain.CategoryPromptItem,
+	questionContext string,
+	retrievalAugment string,
+	prevCollected map[string]string,
+) (map[string]string, error) {
+	attrs := splitCategoryCommaAttrs(category.Attributes)
+	if len(attrs) == 0 {
+		return nil, nil
+	}
+	system := `你是工作模式下的属性抽取助手。请仅基于用户陈述与可选的附图理解，抽取「明确给出」的属性键值对。
+规则：
+1. 仅允许使用「后台属性列表」中的键名作为 key，键名需与列表中的原文完全一致。
+2. value 取用户陈述/附图中的具体值，单值（如 "500ml"、"马口铁"），不要带单位说明或解释。
+3. 用户没明确说明的属性请不要列出，不要臆测。
+4. 输出严格 JSON：{"collected":{"键":"值"}}；若没有任何明确属性，输出 {"collected":{}}。`
+	user := fmt.Sprintf("命中品类：%s\n后台属性列表：%s\n\n对话上下文：\n%s",
+		strings.TrimSpace(category.Name),
+		strings.Join(attrs, "、"),
+		strings.TrimSpace(questionContext),
+	)
+	if strings.TrimSpace(retrievalAugment) != "" {
+		user += "\n\n附图理解与属性要点：\n" + strings.TrimSpace(retrievalAugment)
+	}
+	out, err := u.Generate(ctx, chatModel, []*schema.Message{
+		{Role: "system", Content: system},
+		{Role: "user", Content: user},
+	})
+	if err != nil {
+		return MergeCollectedAttributes(prevCollected, nil, attrs), err
+	}
+	out = strings.TrimSpace(u.trimThinking(out))
+	fresh := parseWorkModeCollectedAttributes(out, attrs)
+	merged := MergeCollectedAttributes(prevCollected, fresh, attrs)
+	u.logger.Debug("work mode collected attrs",
+		log.String("raw", out),
+		log.String("category", category.Name),
+		log.Any("fresh", fresh),
+		log.Any("merged", merged),
+	)
+	return merged, nil
 }
 
 func (u *LLMUsecase) classifyImageDocCategory(
@@ -870,6 +1142,8 @@ type GetRankNodesRequest struct {
 	TopK                int
 	// WorkModeDirectoryRootIDs 非空时，仅保留路径上包含任一该文件夹 node_id 的文档（工作模式问答目录范围）。
 	WorkModeDirectoryRootIDs []string
+	// PinnedNodeIDs 非空时，最终结果仅保留 NodeID ∈ 该集合的文档（工作模式识别成功后强制锚定到唯一文档）。
+	PinnedNodeIDs []string
 }
 
 func (u *LLMUsecase) GetRankNodes(ctx context.Context, req GetRankNodesRequest) (string, []*domain.RankedNodeChunks, error) {
@@ -927,7 +1201,29 @@ func (u *LLMUsecase) GetRankNodes(ctx context.Context, req GetRankNodesRequest) 
 	if len(req.WorkModeDirectoryRootIDs) > 0 {
 		rankedNodes = filterRankedNodesByWorkModeDirectoryRoots(rankedNodes, req.WorkModeDirectoryRootIDs)
 	}
+	if len(req.PinnedNodeIDs) > 0 {
+		rankedNodes = filterRankedNodesByPinnedNodeIDs(rankedNodes, req.PinnedNodeIDs)
+	}
 	return rewrittenQuery, rankedNodes, nil
+}
+
+// filterRankedNodesByPinnedNodeIDs 仅保留 NodeID ∈ pinnedIDs 的检索结果。
+// 用于「工作模式识别已锚定唯一文档」时把 RAG 上下文限制到该文档。
+func filterRankedNodesByPinnedNodeIDs(ranked []*domain.RankedNodeChunks, pinnedIDs []string) []*domain.RankedNodeChunks {
+	if len(ranked) == 0 || len(pinnedIDs) == 0 {
+		return ranked
+	}
+	pinSet := lo.SliceToMap(pinnedIDs, func(id string) (string, struct{}) { return id, struct{}{} })
+	out := make([]*domain.RankedNodeChunks, 0, len(ranked))
+	for _, n := range ranked {
+		if n == nil {
+			continue
+		}
+		if _, ok := pinSet[n.NodeID]; ok {
+			out = append(out, n)
+		}
+	}
+	return out
 }
 
 // ChainStepEmitter 附图理解各阶段回调（用于 SSE 思维链展示）

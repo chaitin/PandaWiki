@@ -1027,6 +1027,20 @@ const AiQaContent: React.FC<{
                 <StyledAiBubbleContent>
                   {(() => {
                     const { meta, text } = extractWorkModeClarify(item.a);
+                    const identified = !!meta && !!meta.identified_doc_id;
+                    const isAsking =
+                      !!meta && !identified && (meta.missing?.length ?? 0) > 0;
+                    const isTerminal =
+                      !!meta &&
+                      !identified &&
+                      (meta.missing?.length ?? 0) === 0;
+                    const headerLabel = identified
+                      ? '工作模式 · 已识别文档'
+                      : isTerminal
+                        ? '工作模式 · 终态'
+                        : meta && meta.candidates >= 2
+                          ? '工作模式 · 候选差异核对'
+                          : '工作模式 · 信息完备性核对';
                     return (
                       <>
                         {meta && (
@@ -1063,68 +1077,167 @@ const AiQaContent: React.FC<{
                                   minWidth: 0,
                                 }}
                               >
-                                {meta.candidates >= 2
-                                  ? '工作模式 · 候选差异核对'
-                                  : '工作模式 · 信息完备性核对'}
+                                {headerLabel}
+                                {meta.round && meta.max_rounds
+                                  ? `（第 ${meta.round}/${meta.max_rounds} 轮）`
+                                  : ''}
                               </Typography>
-                              <Tooltip title='删除追问内容'>
-                                <IconButton
-                                  size='small'
-                                  aria-label='删除追问内容'
-                                  sx={{ mt: -0.5, mr: -0.5, flexShrink: 0 }}
-                                  onClick={() => {
-                                    const next =
-                                      removeWorkModeClarifyFromAnswer(item.a);
-                                    if (next === null) return;
-                                    setConversation(prev =>
-                                      prev.map(c =>
-                                        c.id === item.id
-                                          ? { ...c, a: next }
-                                          : c,
-                                      ),
-                                    );
-                                  }}
-                                >
-                                  <DeleteOutlineIcon sx={{ fontSize: 18 }} />
-                                </IconButton>
-                              </Tooltip>
+                              {isAsking && (
+                                <Tooltip title='删除追问内容'>
+                                  <IconButton
+                                    size='small'
+                                    aria-label='删除追问内容'
+                                    sx={{ mt: -0.5, mr: -0.5, flexShrink: 0 }}
+                                    onClick={() => {
+                                      const next =
+                                        removeWorkModeClarifyFromAnswer(item.a);
+                                      if (next === null) return;
+                                      setConversation(prev =>
+                                        prev.map(c =>
+                                          c.id === item.id
+                                            ? { ...c, a: next }
+                                            : c,
+                                        ),
+                                      );
+                                    }}
+                                  >
+                                    <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
                             </Stack>
-                            <Typography
-                              variant='body2'
-                              sx={theme => ({
-                                fontSize: 12,
-                                color: alpha(theme.palette.text.primary, 0.7),
-                                mb: 0.75,
-                              })}
-                            >
-                              {meta.candidates >= 2
-                                ? `品类「${meta.category}」匹配到 ${meta.candidates} 个候选，请补充以下区分项：`
-                                : `品类「${meta.category}」需要补充以下信息以定位文档：`}
-                            </Typography>
-                            <Stack direction='row' gap={0.75} flexWrap='wrap'>
-                              {meta.missing.map(name => (
-                                <Box
-                                  key={name}
+                            {identified && (
+                              <Typography
+                                variant='body2'
+                                sx={theme => ({
+                                  fontSize: 12,
+                                  color: alpha(theme.palette.text.primary, 0.7),
+                                  mb: 0.75,
+                                })}
+                              >
+                                品类「{meta.category}
+                                」已收敛到唯一文档，回答仅基于该文档。
+                              </Typography>
+                            )}
+                            {isAsking && (
+                              <Typography
+                                variant='body2'
+                                sx={theme => ({
+                                  fontSize: 12,
+                                  color: alpha(theme.palette.text.primary, 0.7),
+                                  mb: 0.75,
+                                })}
+                              >
+                                {meta.candidates >= 2
+                                  ? `品类「${meta.category}」匹配到 ${meta.candidates} 个候选，请补充以下区分项：`
+                                  : `品类「${meta.category}」需要补充以下信息以定位文档：`}
+                              </Typography>
+                            )}
+                            {isTerminal && (
+                              <Typography
+                                variant='body2'
+                                sx={theme => ({
+                                  fontSize: 12,
+                                  color: alpha(theme.palette.text.primary, 0.7),
+                                  mb: 0.75,
+                                })}
+                              >
+                                品类「{meta.category}
+                                」未能继续收敛，请参考下方说明换种描述或在剩余候选中选择。
+                              </Typography>
+                            )}
+                            {meta.collected &&
+                              Object.keys(meta.collected).length > 0 && (
+                                <Stack gap={0.5} sx={{ mb: 0.75 }}>
+                                  <Typography
+                                    variant='caption'
+                                    sx={theme => ({
+                                      fontSize: 11,
+                                      color: alpha(
+                                        theme.palette.text.primary,
+                                        0.6,
+                                      ),
+                                    })}
+                                  >
+                                    已收集
+                                  </Typography>
+                                  <Stack
+                                    direction='row'
+                                    gap={0.5}
+                                    flexWrap='wrap'
+                                  >
+                                    {Object.entries(meta.collected).map(
+                                      ([k, v]) => (
+                                        <Box
+                                          key={k}
+                                          sx={theme => ({
+                                            px: 1,
+                                            py: 0.25,
+                                            borderRadius: '6px',
+                                            fontSize: 12,
+                                            color: theme.palette.success.main,
+                                            backgroundColor: alpha(
+                                              theme.palette.success.main,
+                                              0.08,
+                                            ),
+                                            border: '1px solid',
+                                            borderColor: alpha(
+                                              theme.palette.success.main,
+                                              0.4,
+                                            ),
+                                          })}
+                                        >
+                                          {k}: {v}
+                                        </Box>
+                                      ),
+                                    )}
+                                  </Stack>
+                                </Stack>
+                              )}
+                            {isAsking && meta.missing.length > 0 && (
+                              <Stack gap={0.5}>
+                                <Typography
+                                  variant='caption'
                                   sx={theme => ({
-                                    px: 1,
-                                    py: 0.25,
-                                    borderRadius: '6px',
-                                    fontSize: 12,
-                                    fontWeight: 500,
-                                    color: 'primary.main',
-                                    backgroundColor:
-                                      theme.palette.background.default,
-                                    border: '1px solid',
-                                    borderColor: alpha(
-                                      theme.palette.primary.main,
-                                      0.4,
+                                    fontSize: 11,
+                                    color: alpha(
+                                      theme.palette.text.primary,
+                                      0.6,
                                     ),
                                   })}
                                 >
-                                  {name}
-                                </Box>
-                              ))}
-                            </Stack>
+                                  待补充
+                                </Typography>
+                                <Stack
+                                  direction='row'
+                                  gap={0.75}
+                                  flexWrap='wrap'
+                                >
+                                  {meta.missing.map(name => (
+                                    <Box
+                                      key={name}
+                                      sx={theme => ({
+                                        px: 1,
+                                        py: 0.25,
+                                        borderRadius: '6px',
+                                        fontSize: 12,
+                                        fontWeight: 500,
+                                        color: 'primary.main',
+                                        backgroundColor:
+                                          theme.palette.background.default,
+                                        border: '1px solid',
+                                        borderColor: alpha(
+                                          theme.palette.primary.main,
+                                          0.4,
+                                        ),
+                                      })}
+                                    >
+                                      {name}
+                                    </Box>
+                                  ))}
+                                </Stack>
+                              </Stack>
+                            )}
                           </Box>
                         )}
                         <MarkDown2 content={text} autoScroll={false} />
