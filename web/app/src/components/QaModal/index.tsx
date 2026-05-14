@@ -8,15 +8,20 @@ import {
   Typography,
   Modal,
   Stack,
+  Switch,
   lighten,
   alpha,
   useTheme,
+  ThemeProvider,
 } from '@mui/material';
 import AiQaContent from './AiQaContent';
 import { useStore } from '@/provider';
 import {
+  buildWorkModeTheme,
   getInitialQaAppMode,
+  persistQaAppMode,
   QA_APP_MODE_CHANGE_EVENT,
+  WORK_MODE_PALETTE,
   type QaAppMode,
 } from '@panda-wiki/ui';
 
@@ -44,6 +49,10 @@ const QaModal: React.FC<QaModalProps> = () => {
   const aiQaInputRef = useRef<HTMLInputElement>(null);
   const searchParams = useSearchParams();
   const qaWorkMode = qaAppMode === 'work';
+  const workModeTheme = useMemo(
+    () => (qaWorkMode ? buildWorkModeTheme(theme) : null),
+    [qaWorkMode, theme],
+  );
   const onClose = () => {
     setQaModalOpen?.(false);
   };
@@ -106,180 +115,268 @@ const QaModal: React.FC<QaModalProps> = () => {
         p: 2,
       }}
     >
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          flex: 1,
-          maxWidth: 800,
-          maxHeight: '100%',
-          borderRadius: '10px',
-          overflow: 'hidden',
-          outline: 'none',
-          pb: 2,
-          ...(qaWorkMode
-            ? theme.palette.mode === 'light'
-              ? {
-                  backgroundColor: '#f8fafc',
-                  backgroundImage:
-                    'linear-gradient(180deg, #ffffff 0%, #f1f5f9 100%)',
-                  border: '1px solid rgba(148, 163, 184, 0.45)',
-                  boxShadow: '0 16px 48px rgba(15, 23, 42, 0.12)',
-                }
-              : {
-                  backgroundColor: 'rgba(15, 23, 42, 0.75)',
-                  backgroundImage:
-                    'linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.98) 100%)',
-                  border: '1px solid rgba(148, 163, 184, 0.18)',
-                  boxShadow: '0 16px 48px rgba(0, 0, 0, 0.5)',
-                }
-            : {
-                backgroundColor: lighten(
-                  theme.palette.background.default,
-                  0.05,
-                ),
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-              }),
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* 顶部标签栏 */}
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            px: 2,
-            pt: 2,
-            pb: 2.5,
-          }}
-        >
-          <Stack
-            direction='row'
-            alignItems='center'
-            gap={1}
+      {(() => {
+        const modalBox = (
+          <Box
             sx={{
-              px: 1.5,
-              py: 0.75,
-              borderRadius: '10px',
-              border: '1px solid',
-              borderColor: qaWorkMode
-                ? theme.palette.mode === 'light'
-                  ? 'rgba(148, 163, 184, 0.55)'
-                  : 'rgba(148, 163, 184, 0.22)'
-                : alpha(theme.palette.text.primary, 0.1),
-            }}
-          >
-            <IconZhinengwenda sx={{ fontSize: 16, color: 'primary.main' }} />
-            <Typography
-              variant='body2'
-              sx={{ fontSize: 13, fontWeight: 500, lineHeight: 1 }}
-            >
-              智能问答
-            </Typography>
-            <Typography
-              variant='caption'
-              sx={theme => ({
-                fontSize: 11,
-                px: 0.75,
-                py: 0.25,
-                borderRadius: '4px',
-                backgroundColor: alpha(
-                  qaWorkMode
-                    ? theme.palette.mode === 'light'
-                      ? '#0f172a'
-                      : '#64748b'
-                    : theme.palette.primary.main,
-                  0.1,
-                ),
-                color: qaWorkMode
-                  ? theme.palette.mode === 'light'
-                    ? '#0f172a'
-                    : '#cbd5e1'
-                  : 'primary.main',
-                fontWeight: 600,
-              })}
-            >
-              {qaWorkMode ? '工作模式' : '培训模式'}
-            </Typography>
-          </Stack>
-
-          {/* Esc按钮 */}
-          {!mobile && (
-            <Button
-              variant='outlined'
-              color='primary'
-              onClick={onClose}
-              size='small'
-              sx={theme => ({
-                minWidth: 'auto',
-                px: 1,
-                py: '1px',
-                fontSize: 12,
-                fontWeight: 500,
-                textTransform: 'none',
-                color: 'text.secondary',
-                borderColor: qaWorkMode
-                  ? theme.palette.mode === 'light'
-                    ? 'rgba(148, 163, 184, 0.65)'
-                    : 'rgba(148, 163, 184, 0.28)'
-                  : alpha(theme.palette.text.primary, 0.1),
-              })}
-            >
-              Esc
-            </Button>
-          )}
-        </Box>
-
-        {/* 主内容区域 - 智能问答 */}
-        <Box
-          sx={{
-            px: 3,
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <AiQaContent
-            hotSearch={hotSearch}
-            placeholder={placeholder}
-            inputRef={aiQaInputRef}
-            qaWorkMode={qaWorkMode}
-          />
-        </Box>
-
-        {/* 底部AI生成提示 */}
-        <Box
-          sx={{
-            px: 3,
-            pt: !kbDetail?.settings?.conversation_setting
-              ?.copyright_hide_enabled
-              ? 2
-              : 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Typography
-            variant='caption'
-            sx={{
-              color: 'text.disabled',
-              fontSize: 12,
               display: 'flex',
-              alignItems: 'center',
-              gap: 1,
+              flexDirection: 'column',
+              flex: 1,
+              maxWidth: 800,
+              maxHeight: '100%',
+              borderRadius: '10px',
+              overflow: 'hidden',
+              outline: 'none',
+              pb: 2,
+              ...(qaWorkMode
+                ? {
+                    backgroundColor: WORK_MODE_PALETTE.bgDeep,
+                    // 顶部一抹橙红高光 + 自上而下的暖白渐变，体现"淘宝橙"主色
+                    backgroundImage: `radial-gradient(120% 80% at 50% -10%, rgba(255, 68, 0, 0.12) 0%, rgba(255, 68, 0, 0) 55%), linear-gradient(180deg, ${WORK_MODE_PALETTE.bgMid} 0%, ${WORK_MODE_PALETTE.bgDeep} 60%, #ffebe0 100%)`,
+                    border: `1px solid ${WORK_MODE_PALETTE.borderStrong}`,
+                    boxShadow: WORK_MODE_PALETTE.shadow,
+                    color: WORK_MODE_PALETTE.textPrimary,
+                  }
+                : {
+                    backgroundColor: lighten(
+                      theme.palette.background.default,
+                      0.05,
+                    ),
+                    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+                  }),
             }}
+            onClick={e => e.stopPropagation()}
           >
-            <Box>
-              {!kbDetail?.settings?.conversation_setting
-                ?.copyright_hide_enabled &&
-                (kbDetail?.settings?.conversation_setting?.copyright_info ||
-                  '本网站由 PandaWiki 提供技术支持')}
+            {/* 顶部标签栏 */}
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                px: 2,
+                pt: 2,
+                pb: 2.5,
+              }}
+            >
+              <Stack
+                direction='row'
+                alignItems='center'
+                gap={1}
+                sx={{
+                  px: 1.5,
+                  py: 0.75,
+                  borderRadius: '10px',
+                  border: '1px solid',
+                  borderColor: qaWorkMode
+                    ? WORK_MODE_PALETTE.borderStrong
+                    : alpha(theme.palette.text.primary, 0.1),
+                  backgroundColor: qaWorkMode
+                    ? WORK_MODE_PALETTE.bgRaised
+                    : 'transparent',
+                }}
+              >
+                <IconZhinengwenda
+                  sx={{
+                    fontSize: 16,
+                    color: qaWorkMode
+                      ? WORK_MODE_PALETTE.accentPrimary
+                      : 'primary.main',
+                  }}
+                />
+                <Typography
+                  variant='body2'
+                  sx={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    lineHeight: 1,
+                    mr: 0.5,
+                    color: qaWorkMode
+                      ? WORK_MODE_PALETTE.textPrimary
+                      : 'inherit',
+                    letterSpacing: qaWorkMode ? '0.02em' : 'normal',
+                  }}
+                >
+                  智能问答
+                </Typography>
+                <Stack
+                  direction='row'
+                  alignItems='center'
+                  spacing={0.5}
+                  sx={{
+                    pl: 1,
+                    ml: 0.5,
+                    borderLeft: '1px solid',
+                    borderColor: qaWorkMode
+                      ? WORK_MODE_PALETTE.borderSoft
+                      : alpha(theme.palette.text.primary, 0.12),
+                  }}
+                >
+                  <Typography
+                    variant='body2'
+                    sx={{
+                      fontSize: 12,
+                      fontWeight: !qaWorkMode ? 600 : 400,
+                      color: qaWorkMode
+                        ? WORK_MODE_PALETTE.textMuted
+                        : 'primary.main',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                    }}
+                    onClick={() => {
+                      setQaAppMode('training');
+                      persistQaAppMode('training');
+                    }}
+                  >
+                    培训模式
+                  </Typography>
+                  <Switch
+                    size='small'
+                    checked={qaWorkMode}
+                    onChange={(_, checked) => {
+                      const m: QaAppMode = checked ? 'work' : 'training';
+                      setQaAppMode(m);
+                      persistQaAppMode(m);
+                    }}
+                    inputProps={{ 'aria-label': '培训模式与工作模式切换' }}
+                    sx={
+                      qaWorkMode
+                        ? {
+                            '& .MuiSwitch-switchBase.Mui-checked': {
+                              color: WORK_MODE_PALETTE.accentBright,
+                            },
+                            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track':
+                              {
+                                backgroundColor:
+                                  WORK_MODE_PALETTE.accentPrimary,
+                                opacity: 0.65,
+                              },
+                            '& .MuiSwitch-track': {
+                              backgroundColor: WORK_MODE_PALETTE.switchTrack,
+                            },
+                          }
+                        : undefined
+                    }
+                  />
+                  <Typography
+                    variant='body2'
+                    sx={{
+                      fontSize: 12,
+                      fontWeight: qaWorkMode ? 600 : 400,
+                      color: qaWorkMode
+                        ? WORK_MODE_PALETTE.accentPrimary
+                        : 'text.secondary',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                      letterSpacing: qaWorkMode ? '0.04em' : 'normal',
+                    }}
+                    onClick={() => {
+                      setQaAppMode('work');
+                      persistQaAppMode('work');
+                    }}
+                  >
+                    工作模式
+                  </Typography>
+                </Stack>
+              </Stack>
+
+              {/* Esc按钮 */}
+              {!mobile && (
+                <Button
+                  variant='outlined'
+                  color='primary'
+                  onClick={onClose}
+                  size='small'
+                  sx={theme => ({
+                    minWidth: 'auto',
+                    px: 1,
+                    py: '1px',
+                    fontSize: 12,
+                    fontWeight: 500,
+                    textTransform: 'none',
+                    color: qaWorkMode
+                      ? WORK_MODE_PALETTE.textSecondary
+                      : 'text.secondary',
+                    borderColor: qaWorkMode
+                      ? WORK_MODE_PALETTE.borderStrong
+                      : alpha(theme.palette.text.primary, 0.1),
+                    backgroundColor: qaWorkMode
+                      ? WORK_MODE_PALETTE.bgRaised
+                      : 'transparent',
+                    '&:hover': qaWorkMode
+                      ? {
+                          backgroundColor: 'rgba(255, 68, 0, 0.08)',
+                          borderColor: WORK_MODE_PALETTE.accentPrimary,
+                          color: WORK_MODE_PALETTE.accentPrimary,
+                        }
+                      : undefined,
+                  })}
+                >
+                  Esc
+                </Button>
+              )}
             </Box>
-          </Typography>
-        </Box>
-      </Box>
+
+            {/* 主内容区域 - 智能问答 */}
+            <Box
+              sx={{
+                px: 3,
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+              }}
+            >
+              <AiQaContent
+                hotSearch={hotSearch}
+                placeholder={placeholder}
+                inputRef={aiQaInputRef}
+                qaWorkMode={qaWorkMode}
+              />
+            </Box>
+
+            {/* 底部AI生成提示 */}
+            <Box
+              sx={{
+                px: 3,
+                pt: !kbDetail?.settings?.conversation_setting
+                  ?.copyright_hide_enabled
+                  ? 2
+                  : 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Typography
+                variant='caption'
+                sx={{
+                  color: qaWorkMode
+                    ? WORK_MODE_PALETTE.textMuted
+                    : 'text.disabled',
+                  fontSize: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  letterSpacing: qaWorkMode ? '0.04em' : 'normal',
+                }}
+              >
+                <Box>
+                  {!kbDetail?.settings?.conversation_setting
+                    ?.copyright_hide_enabled &&
+                    (kbDetail?.settings?.conversation_setting?.copyright_info ||
+                      '本网站由 PandaWiki 提供技术支持')}
+                </Box>
+              </Typography>
+            </Box>
+          </Box>
+        );
+        return workModeTheme ? (
+          <ThemeProvider theme={workModeTheme}>{modalBox}</ThemeProvider>
+        ) : (
+          modalBox
+        );
+      })()}
     </Modal>
   );
 };

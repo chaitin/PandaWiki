@@ -1,7 +1,15 @@
 'use client';
 
-import { Banner } from '@panda-wiki/ui';
+import {
+  Banner,
+  buildWorkModeTheme,
+  getInitialQaAppMode,
+  QA_APP_MODE_CHANGE_EVENT,
+  type QaAppMode,
+} from '@panda-wiki/ui';
 import dynamic from 'next/dynamic';
+import { useEffect, useMemo, useState } from 'react';
+import { ThemeProvider, useTheme } from '@mui/material';
 import { DomainRecommendNodeListResp } from '@/request/types';
 
 import { useStore } from '@/provider';
@@ -356,7 +364,7 @@ const Welcome = () => {
     }
   };
   return (
-    <>
+    <WelcomeThemeWrap>
       {settings?.web_app_landing_configs?.map((item, index) => {
         const Component = componentMap[item.type as keyof typeof componentMap];
         const props = handleComponentProps(item);
@@ -365,8 +373,32 @@ const Welcome = () => {
           <Component key={index} mobile={mobile} {...props} />
         ) : null;
       })}
-    </>
+    </WelcomeThemeWrap>
   );
+};
+
+/**
+ * 工作模式下用淘宝橙子主题包整个欢迎页（Banner / 文档卡片 / FAQ 等），
+ * 让所有 styled 组件里 theme.palette.primary.main 等自动切换为橙红主色。
+ * 通过 QA_APP_MODE_CHANGE_EVENT 与其它入口（顶部弹窗、Banner 自带的开关）保持同步。
+ */
+const WelcomeThemeWrap = ({ children }: { children: React.ReactNode }) => {
+  const parent = useTheme();
+  const [mode, setMode] = useState<QaAppMode>(() => getInitialQaAppMode());
+  useEffect(() => {
+    const onChange = (e: Event) => {
+      const d = (e as CustomEvent<QaAppMode>).detail;
+      if (d === 'training' || d === 'work') setMode(d);
+    };
+    window.addEventListener(QA_APP_MODE_CHANGE_EVENT, onChange);
+    return () => window.removeEventListener(QA_APP_MODE_CHANGE_EVENT, onChange);
+  }, []);
+  const workTheme = useMemo(
+    () => (mode === 'work' ? buildWorkModeTheme(parent) : null),
+    [mode, parent],
+  );
+  if (!workTheme) return <>{children}</>;
+  return <ThemeProvider theme={workTheme}>{children}</ThemeProvider>;
 };
 
 export default Welcome;

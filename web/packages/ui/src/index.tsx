@@ -35,6 +35,8 @@ export {
 } from './chatQaModeStorage';
 export type { QaAppMode } from './chatQaModeStorage';
 
+export { WORK_MODE_PALETTE, buildWorkModeTheme } from './workModeTheme';
+
 // 导出动画 hooks
 export {
   useTextAnimation,

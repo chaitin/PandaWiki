@@ -8,8 +8,10 @@ import {
 import {
   getInitialQaAppMode,
   persistQaAppMode,
+  QA_APP_MODE_CHANGE_EVENT,
   type QaAppMode,
 } from '../chatQaModeStorage';
+import { buildWorkModeTheme } from '../workModeTheme';
 import { useTextAnimation } from '../hooks/useGsapAnimation';
 import {
   ButtonProps,
@@ -28,6 +30,8 @@ import {
   Tooltip,
   Switch,
   Typography,
+  ThemeProvider,
+  useTheme,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import { StyledTopicBox } from '../component/styledCommon';
@@ -278,6 +282,17 @@ const Banner = React.memo(
       persistChatTopN(topN);
     }, [topN]);
 
+    // 同步其它入口（如顶部栏问答弹窗）切换的 qa 模式
+    useEffect(() => {
+      const onModeChange = (e: Event) => {
+        const d = (e as CustomEvent<QaAppMode>).detail;
+        if (d === 'training' || d === 'work') setQaAppMode(d);
+      };
+      window.addEventListener(QA_APP_MODE_CHANGE_EVENT, onModeChange);
+      return () =>
+        window.removeEventListener(QA_APP_MODE_CHANGE_EVENT, onModeChange);
+    }, []);
+
     // 添加文字动画效果
     const titleRef = useTextAnimation(0, 0.1);
     const subtitleRef = useTextAnimation(0.2, 0.1);
@@ -440,299 +455,329 @@ const Banner = React.memo(
     }, []);
 
     return (
-      <StyledBanner
-        sx={{
-          ...(bg_url
-            ? {
-                backgroundImage: `url(${bg_url})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-              }
-            : {}),
-        }}
-      >
-        <StyledTopicBox
+      <BannerThemeWrap qaWorkMode={qaAppMode === 'work'}>
+        <StyledBanner
           sx={{
-            alignItems: 'flex-start',
-            gap: 0,
-            py: { xs: 8, md: '200px' },
-            pt: { xs: 16 },
+            ...(bg_url
+              ? {
+                  backgroundImage: `url(${bg_url})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                }
+              : {}),
           }}
         >
-          <StyledTitle ref={titleRef}>{title.text}</StyledTitle>
-          {/* {subtitle.text && ( */}
-          <StyledSubTitle
-            ref={subtitleRef}
+          <StyledTopicBox
             sx={{
-              fontSize: `${subtitle.fontSize || 16}px`,
+              alignItems: 'flex-start',
+              gap: 0,
+              py: { xs: 8, md: '200px' },
+              pt: { xs: 16 },
             }}
           >
-            {subtitle.text}
-          </StyledSubTitle>
-          {/* )} */}
+            <StyledTitle ref={titleRef}>{title.text}</StyledTitle>
+            {/* {subtitle.text && ( */}
+            <StyledSubTitle
+              ref={subtitleRef}
+              sx={{
+                fontSize: `${subtitle.fontSize || 16}px`,
+              }}
+            >
+              {subtitle.text}
+            </StyledSubTitle>
+            {/* )} */}
 
-          <StyledSearchBox>
-            {uploadedImages.length > 0 && (
-              <Stack direction='row' gap={1} flexWrap='wrap' sx={{ mb: 1 }}>
-                {uploadedImages.map(image => (
-                  <Box
-                    key={image.id}
-                    sx={{
-                      position: 'relative',
-                      width: 56,
-                      height: 56,
-                      borderRadius: '8px',
-                      overflow: 'hidden',
-                      border: theme =>
-                        `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
-                    }}
-                  >
-                    <img
-                      src={image.url}
-                      alt=''
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                      }}
-                    />
-                    <IconButton
-                      size='small'
-                      onClick={() => handleRemoveImage(image.id)}
+            <StyledSearchBox>
+              {uploadedImages.length > 0 && (
+                <Stack direction='row' gap={1} flexWrap='wrap' sx={{ mb: 1 }}>
+                  {uploadedImages.map(image => (
+                    <Box
+                      key={image.id}
                       sx={{
-                        position: 'absolute',
-                        top: -4,
-                        right: -4,
-                        width: 18,
-                        height: 18,
-                        bgcolor: 'rgba(0,0,0,0.5)',
-                        color: '#fff',
-                        '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                        position: 'relative',
+                        width: 56,
+                        height: 56,
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        border: theme =>
+                          `1px solid ${alpha(theme.palette.text.primary, 0.1)}`,
                       }}
                     >
-                      <CloseIcon sx={{ fontSize: 12 }} />
-                    </IconButton>
-                  </Box>
+                      <img
+                        src={image.url}
+                        alt=''
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                      <IconButton
+                        size='small'
+                        onClick={() => handleRemoveImage(image.id)}
+                        sx={{
+                          position: 'absolute',
+                          top: -4,
+                          right: -4,
+                          width: 18,
+                          height: 18,
+                          bgcolor: 'rgba(0,0,0,0.5)',
+                          color: '#fff',
+                          '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' },
+                        }}
+                      >
+                        <CloseIcon sx={{ fontSize: 12 }} />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+              <Box sx={{ position: 'relative' }}>
+                <style>{blinkAnimation}</style>
+                {!isFocused &&
+                  !searchText &&
+                  typedText &&
+                  uploadedImages.length === 0 && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        pointerEvents: 'none',
+                        color: theme => alpha(theme.palette.text.primary, 0.85),
+                        fontSize: '16px',
+                        lineHeight: 1.5,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      <span>{typedText}</span>
+                      <StyledCursor />
+                    </Box>
+                  )}
+                <StyledTextField
+                  fullWidth
+                  placeholder={
+                    isFocused || searchText ? search.placeholder : ''
+                  }
+                  value={searchText}
+                  onChange={handleInputChange}
+                  onKeyDown={handleKeyDown}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  onPaste={handlePaste}
+                  multiline
+                  rows={3}
+                />
+              </Box>
+              <input
+                ref={fileInputRef}
+                type='file'
+                accept='image/*'
+                multiple
+                style={{ display: 'none' }}
+                onChange={e => {
+                  handleImageSelect(e.target.files);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+              />
+              <Stack
+                direction='row'
+                alignItems='center'
+                gap={1}
+                flexWrap='wrap'
+              >
+                <Stack direction='row' gap='8px 16px' flexWrap='wrap'>
+                  {search.hot?.map(hot => (
+                    <StyledHotItem
+                      key={hot}
+                      onClick={() => onSearch?.(hot, 'chat', undefined, topN)}
+                    >
+                      {hot}
+                    </StyledHotItem>
+                  ))}
+                </Stack>
+                <Stack
+                  direction='row'
+                  gap={1}
+                  sx={{ ml: 'auto' }}
+                  alignItems='center'
+                >
+                  <IconButton
+                    size='small'
+                    onClick={() => fileInputRef.current?.click()}
+                    sx={{ flexShrink: 0 }}
+                  >
+                    <ImageIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
+                  </IconButton>
+                  <Tooltip
+                    title='知识库检索返回的片段数量上限（1～10）'
+                    placement='top'
+                  >
+                    <FormControl
+                      size='small'
+                      sx={{ minWidth: 76, flexShrink: 0 }}
+                    >
+                      <Select
+                        value={topN}
+                        onChange={e => setTopN(Number(e.target.value))}
+                        sx={{ fontSize: 12, height: 32 }}
+                      >
+                        {BANNER_TOP_N_OPTIONS.map(n => (
+                          <MenuItem key={n} value={n} sx={{ fontSize: 12 }}>
+                            Top {n}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Tooltip>
+                  <Button
+                    variant='contained'
+                    size='medium'
+                    sx={{
+                      fontSize: 15,
+                      fontWeight: 600,
+                      borderRadius: 2,
+                      minHeight: 40,
+                      px: 2.5,
+                      flexShrink: 0,
+                    }}
+                    onClick={() => doSearch('chat')}
+                  >
+                    智能问答
+                  </Button>
+                  <Stack
+                    direction='row'
+                    alignItems='center'
+                    spacing={0.75}
+                    sx={{ flexShrink: 0 }}
+                  >
+                    <Typography
+                      variant='body2'
+                      sx={{
+                        fontSize: 13,
+                        fontWeight: qaAppMode === 'training' ? 600 : 400,
+                        color:
+                          qaAppMode === 'training'
+                            ? 'primary.main'
+                            : 'text.secondary',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      培训模式
+                    </Typography>
+                    <Switch
+                      size='medium'
+                      checked={qaAppMode === 'work'}
+                      onChange={(_, checked) => {
+                        const m: QaAppMode = checked ? 'work' : 'training';
+                        setQaAppMode(m);
+                        persistQaAppMode(m);
+                      }}
+                      inputProps={{ 'aria-label': '培训模式与工作模式切换' }}
+                    />
+                    <Typography
+                      variant='body2'
+                      sx={{
+                        fontSize: 13,
+                        fontWeight: qaAppMode === 'work' ? 600 : 400,
+                        color:
+                          qaAppMode === 'work'
+                            ? 'primary.main'
+                            : 'text.secondary',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      工作模式
+                    </Typography>
+                  </Stack>
+                </Stack>
+              </Stack>
+            </StyledSearchBox>
+
+            {btns.length > 0 && (
+              <Stack
+                direction='row'
+                gap={{
+                  xs: '16px 24px',
+                  md: '16px 40px',
+                }}
+                sx={{ mt: 5 }}
+                flexWrap='wrap'
+              >
+                {btns.map(btn => (
+                  <Button
+                    key={btn.text}
+                    variant={btn.type}
+                    {...(onActionButtonNavigate
+                      ? {
+                          onClick: () => onActionButtonNavigate(btn.href),
+                        }
+                      : {
+                          href: btn.href,
+                          target: '_blank' as const,
+                        })}
+                    size='large'
+                    color='primary'
+                    sx={theme => ({
+                      ...(btn.type === 'outlined' && {
+                        borderWidth: 2,
+                        bgcolor: theme.palette.background.default,
+                        borderColor: alpha(theme.palette.primary.main, 0.8),
+                        '&:hover': {
+                          borderColor: theme.palette.primary.main,
+                        },
+                      }),
+                      lineHeight: 1.5,
+                      fontSize: {
+                        xs: 14,
+                        md: 18,
+                      },
+                      px: {
+                        xs: 3,
+                        md: '69px',
+                      },
+                      py: {
+                        xs: 1,
+                        md: '12px',
+                      },
+                    })}
+                  >
+                    {btn.text}
+                  </Button>
                 ))}
               </Stack>
             )}
-            <Box sx={{ position: 'relative' }}>
-              <style>{blinkAnimation}</style>
-              {!isFocused &&
-                !searchText &&
-                typedText &&
-                uploadedImages.length === 0 && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      pointerEvents: 'none',
-                      color: theme => alpha(theme.palette.text.primary, 0.85),
-                      fontSize: '16px',
-                      lineHeight: 1.5,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      whiteSpace: 'pre-wrap',
-                      wordBreak: 'break-word',
-                    }}
-                  >
-                    <span>{typedText}</span>
-                    <StyledCursor />
-                  </Box>
-                )}
-              <StyledTextField
-                fullWidth
-                placeholder={isFocused || searchText ? search.placeholder : ''}
-                value={searchText}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                onFocus={handleInputFocus}
-                onBlur={handleInputBlur}
-                onPaste={handlePaste}
-                multiline
-                rows={3}
-              />
-            </Box>
-            <input
-              ref={fileInputRef}
-              type='file'
-              accept='image/*'
-              multiple
-              style={{ display: 'none' }}
-              onChange={e => {
-                handleImageSelect(e.target.files);
-                if (fileInputRef.current) fileInputRef.current.value = '';
-              }}
-            />
-            <Stack direction='row' alignItems='center' gap={1} flexWrap='wrap'>
-              <Stack direction='row' gap='8px 16px' flexWrap='wrap'>
-                {search.hot?.map(hot => (
-                  <StyledHotItem
-                    key={hot}
-                    onClick={() => onSearch?.(hot, 'chat', undefined, topN)}
-                  >
-                    {hot}
-                  </StyledHotItem>
-                ))}
-              </Stack>
-              <Stack
-                direction='row'
-                gap={1}
-                sx={{ ml: 'auto' }}
-                alignItems='center'
-              >
-                <IconButton
-                  size='small'
-                  onClick={() => fileInputRef.current?.click()}
-                  sx={{ flexShrink: 0 }}
-                >
-                  <ImageIcon sx={{ fontSize: 20, color: 'text.secondary' }} />
-                </IconButton>
-                <Tooltip
-                  title='知识库检索返回的片段数量上限（1～10）'
-                  placement='top'
-                >
-                  <FormControl
-                    size='small'
-                    sx={{ minWidth: 76, flexShrink: 0 }}
-                  >
-                    <Select
-                      value={topN}
-                      onChange={e => setTopN(Number(e.target.value))}
-                      sx={{ fontSize: 12, height: 32 }}
-                    >
-                      {BANNER_TOP_N_OPTIONS.map(n => (
-                        <MenuItem key={n} value={n} sx={{ fontSize: 12 }}>
-                          Top {n}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Tooltip>
-                <Button
-                  variant='contained'
-                  size='medium'
-                  sx={{
-                    fontSize: 15,
-                    fontWeight: 600,
-                    borderRadius: 2,
-                    minHeight: 40,
-                    px: 2.5,
-                    flexShrink: 0,
-                  }}
-                  onClick={() => doSearch('chat')}
-                >
-                  智能问答
-                </Button>
-                <Stack
-                  direction='row'
-                  alignItems='center'
-                  spacing={0.75}
-                  sx={{ flexShrink: 0 }}
-                >
-                  <Typography
-                    variant='body2'
-                    sx={{
-                      fontSize: 13,
-                      fontWeight: qaAppMode === 'training' ? 600 : 400,
-                      color:
-                        qaAppMode === 'training'
-                          ? 'primary.main'
-                          : 'text.secondary',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    培训模式
-                  </Typography>
-                  <Switch
-                    size='medium'
-                    checked={qaAppMode === 'work'}
-                    onChange={(_, checked) => {
-                      const m: QaAppMode = checked ? 'work' : 'training';
-                      setQaAppMode(m);
-                      persistQaAppMode(m);
-                    }}
-                    inputProps={{ 'aria-label': '培训模式与工作模式切换' }}
-                  />
-                  <Typography
-                    variant='body2'
-                    sx={{
-                      fontSize: 13,
-                      fontWeight: qaAppMode === 'work' ? 600 : 400,
-                      color:
-                        qaAppMode === 'work'
-                          ? 'primary.main'
-                          : 'text.secondary',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    工作模式
-                  </Typography>
-                </Stack>
-              </Stack>
-            </Stack>
-          </StyledSearchBox>
-
-          {btns.length > 0 && (
-            <Stack
-              direction='row'
-              gap={{
-                xs: '16px 24px',
-                md: '16px 40px',
-              }}
-              sx={{ mt: 5 }}
-              flexWrap='wrap'
-            >
-              {btns.map(btn => (
-                <Button
-                  key={btn.text}
-                  variant={btn.type}
-                  {...(onActionButtonNavigate
-                    ? {
-                        onClick: () => onActionButtonNavigate(btn.href),
-                      }
-                    : {
-                        href: btn.href,
-                        target: '_blank' as const,
-                      })}
-                  size='large'
-                  color='primary'
-                  sx={theme => ({
-                    ...(btn.type === 'outlined' && {
-                      borderWidth: 2,
-                      bgcolor: theme.palette.background.default,
-                      borderColor: alpha(theme.palette.primary.main, 0.8),
-                      '&:hover': {
-                        borderColor: theme.palette.primary.main,
-                      },
-                    }),
-                    lineHeight: 1.5,
-                    fontSize: {
-                      xs: 14,
-                      md: 18,
-                    },
-                    px: {
-                      xs: 3,
-                      md: '69px',
-                    },
-                    py: {
-                      xs: 1,
-                      md: '12px',
-                    },
-                  })}
-                >
-                  {btn.text}
-                </Button>
-              ))}
-            </Stack>
-          )}
-        </StyledTopicBox>
-      </StyledBanner>
+          </StyledTopicBox>
+        </StyledBanner>
+      </BannerThemeWrap>
     );
   },
 );
+
+/**
+ * 在 work 模式下用淘宝橙子主题包一层，让 Banner 内 styled 组件
+ * （StyledBanner 背景点纹、StyledTitle 颜色、StyledSearchBox 边框、
+ * StyledHotItem hover、智能问答按钮等）一起切换到橙红主色。
+ */
+const BannerThemeWrap = ({
+  qaWorkMode,
+  children,
+}: {
+  qaWorkMode: boolean;
+  children: React.ReactNode;
+}) => {
+  const parent = useTheme();
+  const workTheme = React.useMemo(
+    () => (qaWorkMode ? buildWorkModeTheme(parent) : null),
+    [qaWorkMode, parent],
+  );
+  if (!workTheme) return <>{children}</>;
+  return <ThemeProvider theme={workTheme}>{children}</ThemeProvider>;
+};
 
 export default Banner;

@@ -170,46 +170,55 @@ const AiQaContent: React.FC<{
 
   const workChrome = useMemo(() => {
     if (!qaWorkMode) return null;
-    const L = theme.palette.mode === 'light';
+    // 工作模式：淘宝橙风格，浅暖白底 + 橙红主色，与培训模式形成清晰差异
+    const ACCENT = '#ff4400'; // 淘宝主色橙红
+    const ACCENT_BRIGHT = '#ff6a00'; // 高亮橙
+    const ACCENT_DEEP = '#cc3300'; // 深橙红
+    const TEXT_PRIMARY = '#1f1612'; // 暖调深灰
+    const TEXT_SECONDARY = 'rgba(31, 22, 18, 0.7)';
+    const TEXT_MUTED = 'rgba(31, 22, 18, 0.5)';
+    const BORDER = 'rgba(255, 68, 0, 0.18)';
+    const BORDER_STRONG = 'rgba(255, 68, 0, 0.42)';
+    const BORDER_SOFT = 'rgba(255, 68, 0, 0.1)';
+    const BG_INPUT = '#ffffff';
+    const BG_RAISED = '#ffffff';
     return {
-      inputWrapper: L
-        ? {
-            bgcolor: '#ffffff',
-            borderColor: '#cbd5e1',
-            boxShadow: '0 2px 14px rgba(15, 23, 42, 0.07)',
-            '&:hover': { borderColor: 'rgba(30, 41, 59, 0.38)' },
-            '&:focus-within': {
-              borderColor: '#1e40af',
-              boxShadow: '0 0 0 1px rgba(30, 64, 175, 0.22)',
-            },
-          }
-        : {
-            bgcolor: 'rgba(15, 23, 42, 0.55)',
-            borderColor: 'rgba(148, 163, 184, 0.28)',
-            boxShadow: 'none',
-            '&:hover': { borderColor: 'rgba(148, 163, 184, 0.42)' },
-            '&:focus-within': {
-              borderColor: '#94a3b8',
-              boxShadow: '0 0 0 1px rgba(148, 163, 184, 0.22)',
-            },
-          },
-      textFieldBg: L ? '#fafafa' : 'rgba(15, 23, 42, 0.35)',
-      userBubble: L
-        ? { bgcolor: '#0f172a', color: '#f8fafc' }
-        : { bgcolor: '#334155', color: '#f1f5f9' },
-      accent: L ? '#1e3a8a' : '#94a3b8',
-      hotTitle: L ? '#334155' : '#cbd5e1',
-      title: L ? '#0f172a' : '#f1f5f9',
-      hotColBorder: L
-        ? 'rgba(148, 163, 184, 0.4)'
-        : 'rgba(148, 163, 184, 0.16)',
-      hotItemHover: L ? '#1e3a8a' : '#94a3b8',
-      fuzzySuggestHoverBg: L
-        ? 'rgba(15, 23, 42, 0.06)'
-        : 'rgba(248, 250, 252, 0.08)',
-      newConvHover: L
-        ? { borderColor: '#475569', color: '#0f172a' }
-        : { borderColor: '#94a3b8', color: '#e2e8f0' },
+      // 公共颜色，供后面 chips / clarify box 复用
+      // 注：保留 gold/goldBright/goldDeep 命名以减少其它地方改动，实际值已切换为淘宝橙
+      gold: ACCENT,
+      goldBright: ACCENT_BRIGHT,
+      goldDeep: ACCENT_DEEP,
+      textPrimary: TEXT_PRIMARY,
+      textSecondary: TEXT_SECONDARY,
+      textMuted: TEXT_MUTED,
+      border: BORDER,
+      borderStrong: BORDER_STRONG,
+      borderSoft: BORDER_SOFT,
+      bgInput: BG_INPUT,
+      bgRaised: BG_RAISED,
+      inputWrapper: {
+        bgcolor: BG_INPUT,
+        borderColor: BORDER,
+        boxShadow: '0 1px 8px rgba(255, 68, 0, 0.08)',
+        '&:hover': { borderColor: BORDER_STRONG },
+        '&:focus-within': {
+          borderColor: ACCENT,
+          boxShadow: `0 0 0 1px ${ACCENT}, 0 2px 12px rgba(255, 68, 0, 0.18)`,
+        },
+      },
+      textFieldBg: '#ffffff',
+      userBubble: {
+        bgcolor: ACCENT,
+        color: '#ffffff',
+        border: `1px solid ${ACCENT_DEEP}`,
+      },
+      accent: ACCENT,
+      hotTitle: TEXT_SECONDARY,
+      title: TEXT_PRIMARY,
+      hotColBorder: BORDER,
+      hotItemHover: ACCENT,
+      fuzzySuggestHoverBg: 'rgba(255, 68, 0, 0.08)',
+      newConvHover: { borderColor: ACCENT, color: ACCENT },
     };
   }, [qaWorkMode, theme]);
   const messageIdRef = useRef('');
@@ -991,6 +1000,7 @@ const AiQaContent: React.FC<{
                         sx={
                           workChrome
                             ? {
+                                color: workChrome.textSecondary,
                                 '&:hover': { color: workChrome.hotItemHover },
                               }
                             : undefined
@@ -1018,6 +1028,7 @@ const AiQaContent: React.FC<{
                         sx={
                           workChrome
                             ? {
+                                color: workChrome.textSecondary,
                                 '&:hover': { color: workChrome.hotItemHover },
                               }
                             : undefined
@@ -1284,14 +1295,12 @@ const AiQaContent: React.FC<{
                               p: 1.25,
                               borderRadius: '10px',
                               border: '1px solid',
-                              borderColor: alpha(
-                                theme.palette.primary.main,
-                                0.25,
-                              ),
-                              backgroundColor: alpha(
-                                theme.palette.primary.main,
-                                0.06,
-                              ),
+                              borderColor: workChrome
+                                ? workChrome.borderStrong
+                                : alpha(theme.palette.primary.main, 0.25),
+                              backgroundColor: workChrome
+                                ? workChrome.bgRaised
+                                : alpha(theme.palette.primary.main, 0.06),
                             })}
                           >
                             <Stack
@@ -1306,7 +1315,12 @@ const AiQaContent: React.FC<{
                                 sx={{
                                   fontSize: 12,
                                   fontWeight: 600,
-                                  color: 'primary.main',
+                                  color: workChrome
+                                    ? workChrome.goldBright
+                                    : 'primary.main',
+                                  letterSpacing: workChrome
+                                    ? '0.04em'
+                                    : 'normal',
                                   flex: 1,
                                   minWidth: 0,
                                 }}
@@ -1321,7 +1335,21 @@ const AiQaContent: React.FC<{
                                   <IconButton
                                     size='small'
                                     aria-label='删除追问内容'
-                                    sx={{ mt: -0.5, mr: -0.5, flexShrink: 0 }}
+                                    sx={{
+                                      mt: -0.5,
+                                      mr: -0.5,
+                                      flexShrink: 0,
+                                      color: workChrome
+                                        ? workChrome.textSecondary
+                                        : undefined,
+                                      '&:hover': workChrome
+                                        ? {
+                                            color: workChrome.goldBright,
+                                            backgroundColor:
+                                              'rgba(255, 68, 0, 0.1)',
+                                          }
+                                        : undefined,
+                                    }}
                                     onClick={() => {
                                       const next =
                                         removeWorkModeClarifyFromAnswer(item.a);
@@ -1345,7 +1373,9 @@ const AiQaContent: React.FC<{
                                 variant='body2'
                                 sx={theme => ({
                                   fontSize: 12,
-                                  color: alpha(theme.palette.text.primary, 0.7),
+                                  color: workChrome
+                                    ? workChrome.textSecondary
+                                    : alpha(theme.palette.text.primary, 0.7),
                                   mb: 0.75,
                                 })}
                               >
@@ -1358,7 +1388,9 @@ const AiQaContent: React.FC<{
                                 variant='body2'
                                 sx={theme => ({
                                   fontSize: 12,
-                                  color: alpha(theme.palette.text.primary, 0.7),
+                                  color: workChrome
+                                    ? workChrome.textSecondary
+                                    : alpha(theme.palette.text.primary, 0.7),
                                   mb: 0.75,
                                 })}
                               >
@@ -1372,7 +1404,9 @@ const AiQaContent: React.FC<{
                                 variant='body2'
                                 sx={theme => ({
                                   fontSize: 12,
-                                  color: alpha(theme.palette.text.primary, 0.7),
+                                  color: workChrome
+                                    ? workChrome.textSecondary
+                                    : alpha(theme.palette.text.primary, 0.7),
                                   mb: 0.75,
                                 })}
                               >
@@ -1387,10 +1421,12 @@ const AiQaContent: React.FC<{
                                     variant='caption'
                                     sx={theme => ({
                                       fontSize: 11,
-                                      color: alpha(
-                                        theme.palette.text.primary,
-                                        0.6,
-                                      ),
+                                      color: workChrome
+                                        ? workChrome.textMuted
+                                        : alpha(
+                                            theme.palette.text.primary,
+                                            0.6,
+                                          ),
                                     })}
                                   >
                                     已收集
@@ -1409,16 +1445,22 @@ const AiQaContent: React.FC<{
                                             py: 0.25,
                                             borderRadius: '6px',
                                             fontSize: 12,
-                                            color: theme.palette.success.main,
-                                            backgroundColor: alpha(
-                                              theme.palette.success.main,
-                                              0.08,
-                                            ),
+                                            color: workChrome
+                                              ? workChrome.goldBright
+                                              : theme.palette.success.main,
+                                            backgroundColor: workChrome
+                                              ? 'rgba(255, 68, 0, 0.1)'
+                                              : alpha(
+                                                  theme.palette.success.main,
+                                                  0.08,
+                                                ),
                                             border: '1px solid',
-                                            borderColor: alpha(
-                                              theme.palette.success.main,
-                                              0.4,
-                                            ),
+                                            borderColor: workChrome
+                                              ? workChrome.borderStrong
+                                              : alpha(
+                                                  theme.palette.success.main,
+                                                  0.4,
+                                                ),
                                           })}
                                         >
                                           {k}: {v}
@@ -1434,10 +1476,9 @@ const AiQaContent: React.FC<{
                                   variant='caption'
                                   sx={theme => ({
                                     fontSize: 11,
-                                    color: alpha(
-                                      theme.palette.text.primary,
-                                      0.6,
-                                    ),
+                                    color: workChrome
+                                      ? workChrome.textMuted
+                                      : alpha(theme.palette.text.primary, 0.6),
                                   })}
                                 >
                                   待补充
@@ -1456,14 +1497,19 @@ const AiQaContent: React.FC<{
                                         borderRadius: '6px',
                                         fontSize: 12,
                                         fontWeight: 500,
-                                        color: 'primary.main',
-                                        backgroundColor:
-                                          theme.palette.background.default,
+                                        color: workChrome
+                                          ? workChrome.goldBright
+                                          : 'primary.main',
+                                        backgroundColor: workChrome
+                                          ? '#ffffff'
+                                          : theme.palette.background.default,
                                         border: '1px solid',
-                                        borderColor: alpha(
-                                          theme.palette.primary.main,
-                                          0.4,
-                                        ),
+                                        borderColor: workChrome
+                                          ? workChrome.borderStrong
+                                          : alpha(
+                                              theme.palette.primary.main,
+                                              0.4,
+                                            ),
                                       })}
                                     >
                                       {name}
@@ -1551,15 +1597,22 @@ const AiQaContent: React.FC<{
             py: '2px',
             gap: 0.5,
             fontSize: 12,
-            backgroundColor: 'background.default',
-            color: 'text.primary',
-            boxShadow: `0px 1px 2px 0px ${alpha(theme.palette.text.primary, 0.06)}`,
+            backgroundColor: workChrome
+              ? workChrome.bgRaised
+              : 'background.default',
+            color: workChrome ? workChrome.textPrimary : 'text.primary',
+            boxShadow: workChrome
+              ? '0 2px 12px rgba(0, 0, 0, 0.4)'
+              : `0px 1px 2px 0px ${alpha(theme.palette.text.primary, 0.06)}`,
             border: '1px solid',
-            borderColor: alpha(theme.palette.text.primary, 0.1),
+            borderColor: workChrome
+              ? workChrome.border
+              : alpha(theme.palette.text.primary, 0.1),
             cursor: 'pointer',
             '&:hover': workChrome
               ? {
-                  boxShadow: `0px 1px 2px 0px ${alpha(theme.palette.text.primary, 0.06)}`,
+                  boxShadow: '0 2px 12px rgba(255, 68, 0, 0.18)',
+                  backgroundColor: 'rgba(255, 68, 0, 0.08)',
                   ...workChrome.newConvHover,
                 }
               : {
@@ -1620,6 +1673,15 @@ const AiQaContent: React.FC<{
                     backgroundColor: workChrome.textFieldBg,
                     '.MuiInputBase-root': {
                       backgroundColor: workChrome.textFieldBg,
+                      color: workChrome.textPrimary,
+                    },
+                    '& textarea, & input': {
+                      color: workChrome.textPrimary,
+                      caretColor: workChrome.gold,
+                      '&::placeholder': {
+                        color: workChrome.textMuted,
+                        opacity: 1,
+                      },
                     },
                   }
                 : undefined
@@ -1660,9 +1722,19 @@ const AiQaContent: React.FC<{
                 disabled={loading}
                 sx={{
                   flexShrink: 0,
+                  '&:hover': workChrome
+                    ? { backgroundColor: 'rgba(255, 68, 0, 0.08)' }
+                    : undefined,
                 }}
               >
-                <IconTupian sx={{ fontSize: 20, color: 'text.secondary' }} />
+                <IconTupian
+                  sx={{
+                    fontSize: 20,
+                    color: workChrome
+                      ? workChrome.textSecondary
+                      : 'text.secondary',
+                  }}
+                />
               </IconButton>
 
               <Tooltip
@@ -1674,7 +1746,28 @@ const AiQaContent: React.FC<{
                     value={topN}
                     onChange={e => setTopN(Number(e.target.value))}
                     disabled={loading}
-                    sx={{ fontSize: 12, height: 32 }}
+                    sx={
+                      workChrome
+                        ? {
+                            fontSize: 12,
+                            height: 32,
+                            color: workChrome.textPrimary,
+                            backgroundColor: workChrome.bgInput,
+                            '& .MuiOutlinedInput-notchedOutline': {
+                              borderColor: workChrome.border,
+                            },
+                            '&:hover .MuiOutlinedInput-notchedOutline': {
+                              borderColor: workChrome.borderStrong,
+                            },
+                            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                              borderColor: workChrome.gold,
+                            },
+                            '& .MuiSvgIcon-root': {
+                              color: workChrome.textSecondary,
+                            },
+                          }
+                        : { fontSize: 12, height: 32 }
+                    }
                   >
                     {CHAT_TOP_N_OPTIONS.map(n => (
                       <MenuItem key={n} value={n} sx={{ fontSize: 12 }}>
@@ -1742,9 +1835,13 @@ const AiQaContent: React.FC<{
                 sx={
                   workChrome
                     ? {
+                        color: workChrome.textPrimary,
+                        backgroundColor: workChrome.bgRaised,
+                        border: `1px solid ${workChrome.border}`,
                         '&:hover': {
                           backgroundColor: workChrome.fuzzySuggestHoverBg,
                           color: workChrome.hotItemHover,
+                          borderColor: workChrome.borderStrong,
                         },
                       }
                     : undefined

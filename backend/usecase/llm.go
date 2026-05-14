@@ -169,6 +169,11 @@ func (u *LLMUsecase) BuildConversationMessageWithRAG(
 				u.logger.Error("get rank nodes failed", log.Error(err))
 				return nil, nil, errors.New("get rank nodes failed")
 			}
+			// 锚定文档若未在 vector top-K 中（常见原因：正文/摘要里没有用户问句关键词），
+			// 直接从 node_releases 抓全文注入为单 chunk，避免上下文为空。
+			if len(opt.PinnedNodeIDs) > 0 {
+				rankedNodes = u.ensurePinnedDocsInRanked(ctx, rankedNodes, opt.PinnedNodeIDs)
+			}
 			documents := domain.FormatNodeChunks(rankedNodes, kb.AccessSettings.BaseURL)
 			u.logger.Debug("documents", log.String("documents", documents))
 
@@ -1205,6 +1210,80 @@ func (u *LLMUsecase) GetRankNodes(ctx context.Context, req GetRankNodesRequest) 
 		rankedNodes = filterRankedNodesByPinnedNodeIDs(rankedNodes, req.PinnedNodeIDs)
 	}
 	return rewrittenQuery, rankedNodes, nil
+}
+
+// ensurePinnedDocsInRanked 保证 pinnedIDs 中的每个文档都在最终上下文里。
+// 缺失时直接从 node_releases 抓最新一版的 name/content/summary 拼成一个伪 chunk，
+// 让 LLM 在「锚定回答」场景下不会因为 vector 没命中而拿不到任何上下文。
+func (u *LLMUsecase) ensurePinnedDocsInRanked(
+	ctx context.Context,
+	ranked []*domain.RankedNodeChunks,
+	pinnedIDs []string,
+) []*domain.RankedNodeChunks {
+	if len(pinnedIDs) == 0 || u.nodeRepo == nil {
+		return ranked
+	}
+	present := make(map[string]struct{}, len(ranked))
+	for _, n := range ranked {
+		if n != nil && n.NodeID != "" {
+			present[n.NodeID] = struct{}{}
+		}
+	}
+	for _, pid := range pinnedIDs {
+		if _, ok := present[pid]; ok {
+			continue
+		}
+		release, err := u.nodeRepo.GetLatestNodeReleaseByNodeID(ctx, pid)
+		if err != nil || release == nil {
+			u.logger.Warn("ensurePinnedDocsInRanked: load release failed",
+				log.String("node_id", pid), log.Error(err))
+			continue
+		}
+		// 拼正文+属性，确保即便正文为空也能让 LLM 拿到文档名和结构化属性回答。
+		content := strings.TrimSpace(release.Content)
+		if release.Meta.Attributes != nil && len(release.Meta.Attributes) > 0 {
+			var b strings.Builder
+			b.WriteString("【文档结构化属性】\n")
+			for k, v := range release.Meta.Attributes {
+				b.WriteString("- ")
+				b.WriteString(k)
+				b.WriteString(": ")
+				b.WriteString(v)
+				b.WriteString("\n")
+			}
+			if content != "" {
+				b.WriteString("\n【文档正文】\n")
+				b.WriteString(content)
+			}
+			content = strings.TrimSpace(b.String())
+		}
+		if content == "" {
+			content = "（该文档暂无正文，请基于文档名与属性作答）"
+		}
+		ranked = append(ranked, &domain.RankedNodeChunks{
+			NodeID:      release.NodeID,
+			NodeName:    release.Name,
+			NodeSummary: release.Meta.Summary,
+			NodeEmoji:   release.Meta.Emoji,
+			Chunks: []*domain.NodeContentChunk{
+				{
+					ID:      release.ID,
+					KBID:    release.KBID,
+					DocID:   release.DocID,
+					Seq:     0,
+					Name:    release.Name,
+					Content: content,
+				},
+			},
+		})
+		u.logger.Info("ensurePinnedDocsInRanked: injected pinned doc",
+			log.String("node_id", pid),
+			log.String("name", release.Name),
+			log.Int("attrs", len(release.Meta.Attributes)),
+			log.Int("content_len", len(release.Content)),
+		)
+	}
+	return ranked
 }
 
 // filterRankedNodesByPinnedNodeIDs 仅保留 NodeID ∈ pinnedIDs 的检索结果。
