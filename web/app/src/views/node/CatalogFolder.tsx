@@ -1,5 +1,6 @@
 import { ITreeItem } from '@/assets/type';
 import { IconXiajiantou, IconWenjianjia, IconWenjian } from '@panda-wiki/icons';
+import Twemoji from '@/components/emoji/Twemoji';
 import { useStore } from '@/provider';
 import { useBasePath } from '@/hooks';
 import { addOpacityToColor } from '@/utils';
@@ -61,7 +62,9 @@ const CatalogFolder = ({
               <Box sx={{ pl: depth * 2, pr: 1 }}>
                 <Stack direction='row' alignItems='center' gap={1}>
                   {item.emoji ? (
-                    <Box sx={{ flexShrink: 0, fontSize: 14 }}>{item.emoji}</Box>
+                    <Box sx={{ flexShrink: 0 }}>
+                      <Twemoji text={item.emoji} size={14} />
+                    </Box>
                   ) : (
                     <IconWenjian sx={{ flexShrink: 0, fontSize: 12 }} />
                   )}
@@ -91,7 +94,9 @@ const CatalogFolder = ({
                 sx={{ flex: 1 }}
               >
                 {item.emoji ? (
-                  <Box sx={{ flexShrink: 0, fontSize: 12 }}>{item.emoji}</Box>
+                  <Box sx={{ flexShrink: 0 }}>
+                    <Twemoji text={item.emoji} size={12} />
+                  </Box>
                 ) : item.type === 1 ? (
                   <IconWenjianjia sx={{ flexShrink: 0, fontSize: 12 }} />
                 ) : (

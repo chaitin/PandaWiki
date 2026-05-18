@@ -88,6 +88,7 @@ import {
 } from './StyledComponents';
 
 import { getImagePath } from '@/utils/getImagePath';
+import Twemoji from '@/components/emoji/Twemoji';
 import {
   extractWorkModeClarify,
   removeWorkModeClarifyFromAnswer,
@@ -1189,7 +1190,9 @@ const AiQaContent: React.FC<{
                                   lineHeight: 1,
                                 }}
                               >
-                                {chunk.emoji || (
+                                {chunk.emoji ? (
+                                  <Twemoji text={chunk.emoji} size={14} />
+                                ) : (
                                   <IconWenjian
                                     sx={{ fontSize: 14, color: 'inherit' }}
                                   />

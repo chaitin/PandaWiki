@@ -3,6 +3,9 @@
   "version": "2.9.0",
   "private": true,
   "scripts": {
+    "copy-twemoji": "node scripts/copy-twemoji.mjs",
+    "predev": "pnpm run copy-twemoji",
+    "prebuild": "pnpm run copy-twemoji",
     "dev": "next dev -p 3010",
     "build": "next build",
     "start": "next start",
@@ -18,6 +21,8 @@
     "@emotion/cache": "^11.14.0",
     "@mui/material-nextjs": "^7.3.5",
     "@sentry/nextjs": "^10.8.0",
+    "@twemoji/api": "^17.0.2",
+    "@twemoji/svg": "^15.0.0",
     "@types/markdown-it": "13.0.1",
     "@vscode/markdown-it-katex": "^1.1.2",
     "ahooks": "^3.9.0",

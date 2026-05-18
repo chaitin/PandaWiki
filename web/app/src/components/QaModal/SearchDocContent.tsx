@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import Logo from '@/assets/images/logo.png';
 import noDocImage from '@/assets/images/no-doc.png';
+import Twemoji from '@/components/emoji/Twemoji';
 import Image from 'next/image';
 import { IconJinsousuo, IconFasong, IconMianbaoxie } from '@panda-wiki/icons';
 import { postShareV1ChatSearch } from '@/request/ShareChatSearch';
@@ -384,7 +385,12 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {result.emoji || <IconWenjian />} {result.name}
+                    {result.emoji ? (
+                      <Twemoji text={result.emoji} size={14} />
+                    ) : (
+                      <IconWenjian />
+                    )}{' '}
+                    {result.name}
                   </Typography>
 
                   {/* 描述 */}

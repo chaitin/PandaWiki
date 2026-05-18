@@ -5,6 +5,7 @@ import CommentInput, {
   ImageItem,
 } from '@/components/commentInput';
 import { IconWenjianjia, IconWenjian } from '@panda-wiki/icons';
+import Twemoji from '@/components/emoji/Twemoji';
 import FolderList from './folderList';
 import { DocWidth } from '@/constant';
 import { useStore } from '@/provider';
@@ -195,7 +196,9 @@ const DocContent = ({
         }}
       >
         {info?.meta?.emoji ? (
-          <Box sx={{ flexShrink: 0 }}>{info?.meta?.emoji}</Box>
+          <Box sx={{ flexShrink: 0 }}>
+            <Twemoji text={info.meta.emoji} size={24} />
+          </Box>
         ) : info?.type === 1 ? (
           <IconWenjianjia sx={{ flexShrink: 0, mt: 0.5 }} />
         ) : (

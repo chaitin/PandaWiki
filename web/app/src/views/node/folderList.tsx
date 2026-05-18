@@ -1,6 +1,7 @@
 'use client';
 
 import { IconWenjianjia, IconWenjian } from '@panda-wiki/icons';
+import Twemoji from '@/components/emoji/Twemoji';
 import { DomainShareNodeDetailItem } from '@/request/types';
 import { useStore } from '@/provider';
 import { ITreeItem } from '@/assets/type';
@@ -272,7 +273,11 @@ const FolderList: React.FC<FolderListProps> = ({ list = [] }) => {
 
   const renderIcon = (item: DomainShareNodeDetailItem) => {
     if (item.emoji) {
-      return <StyledIconBox>{item.emoji}</StyledIconBox>;
+      return (
+        <StyledIconBox>
+          <Twemoji text={item.emoji} size={16} />
+        </StyledIconBox>
+      );
     }
     // type === 1 是文件夹，type === 2 是文件
     return item.type === 1 ? <StyledIconFolder /> : <StyledIconFile />;

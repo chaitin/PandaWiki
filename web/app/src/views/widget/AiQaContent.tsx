@@ -90,6 +90,7 @@ import {
 import { handleThinkingContent } from './utils';
 import { useBasePath } from '@/hooks';
 import { getImagePath } from '@/utils/getImagePath';
+import Twemoji from '@/components/emoji/Twemoji';
 
 export type ChatChainStep = { step: number; title: string; detail: string };
 
@@ -953,7 +954,9 @@ const AiQaContent: React.FC<{
                                   lineHeight: 1,
                                 }}
                               >
-                                {chunk.emoji || (
+                                {chunk.emoji ? (
+                                  <Twemoji text={chunk.emoji} size={14} />
+                                ) : (
                                   <IconWenjian
                                     sx={{ fontSize: 14, color: 'inherit' }}
                                   />

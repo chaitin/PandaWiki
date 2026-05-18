@@ -19,6 +19,9 @@
 /out/
 /dist/
 
+# twemoji SVG assets (auto-copied from node_modules by scripts/copy-twemoji.mjs)
+/public/twemoji/
+
 # production
 /build
 

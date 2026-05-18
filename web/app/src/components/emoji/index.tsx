@@ -1,7 +1,7 @@
 'use client';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
-import { Box, IconButton, Popover, SxProps } from '@mui/material';
+import { IconButton, Popover, SxProps } from '@mui/material';
 import React, { useCallback } from 'react';
 import zh from './emoji-data/zh.json';
 import {
@@ -9,6 +9,7 @@ import {
   IconWenjianjiaKai,
   IconWenjian,
 } from '@panda-wiki/icons';
+import Twemoji from './Twemoji';
 
 interface EmojiPickerProps {
   type: 1 | 2;
@@ -69,9 +70,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
         }}
       >
         {value ? (
-          <Box component='span' sx={{ fontSize: 14, ...iconSx }}>
-            {value}
-          </Box>
+          <Twemoji text={value} size={14} />
         ) : (
           <>
             {type === 1 ? (

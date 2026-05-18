@@ -1,6 +1,7 @@
 'use client';
 import Logo from '@/assets/images/logo.png';
 import noDocImage from '@/assets/images/no-doc.png';
+import Twemoji from '@/components/emoji/Twemoji';
 import { useStore } from '@/provider';
 import { postShareV1ChatWidgetSearch } from '@/request';
 import { DomainNodeContentChunkSSE } from '@/request/types';
@@ -388,7 +389,12 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {result.emoji || <IconWenjian />} {result.name}
+                    {result.emoji ? (
+                      <Twemoji text={result.emoji} size={14} />
+                    ) : (
+                      <IconWenjian />
+                    )}{' '}
+                    {result.name}
                   </Typography>
 
                   {/* 描述 */}
