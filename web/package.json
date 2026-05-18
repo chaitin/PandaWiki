@@ -7,6 +7,7 @@
     "preinstall": "npx only-allow pnpm",
     "icon": "pnpm --filter @panda-wiki/icons icon",
     "prepare": "cd ../ && husky web/.husky",
+    "postinstall": "node scripts/apply-patches.mjs",
     "build": "pnpm --parallel --filter panda-wiki-admin --filter panda-wiki-app build",
     "dev": "pnpm --parallel --filter panda-wiki-admin --filter panda-wiki-app dev"
   },
@@ -47,9 +48,6 @@
   "pnpm": {
     "overrides": {
       "require-in-the-middle": "^7.5.2"
-    },
-    "patchedDependencies": {
-      "@ctzhian/tiptap@2.9.4": "patches/@ctzhian__tiptap@2.9.4.patch"
     }
   }
 }
