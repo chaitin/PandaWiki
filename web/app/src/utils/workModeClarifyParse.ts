@@ -24,13 +24,13 @@ export function extractWorkModeClarify(content: string): {
   if (!match) return { meta: null, text: content };
   try {
     const parsed = JSON.parse(match[1]);
-    const collected =
+    const collected: Record<string, string> | undefined =
       parsed.collected && typeof parsed.collected === 'object'
-        ? Object.fromEntries(
+        ? (Object.fromEntries(
             Object.entries(parsed.collected).filter(
               ([k, v]) => typeof k === 'string' && typeof v === 'string',
             ),
-          )
+          ) as Record<string, string>)
         : undefined;
     const meta: WorkModeClarifyMeta = {
       category: typeof parsed.category === 'string' ? parsed.category : '',
