@@ -13,5 +13,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.12.1"
+  "peerDependencies": {
+    "@mui/material": "^7.3.0"
+  }
 }

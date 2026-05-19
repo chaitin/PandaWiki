@@ -1,11 +1,16 @@
 import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const appRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const nextConfig: NextConfig = {
   distDir: 'dist',
   reactStrictMode: false,
   allowedDevOrigins: ['10.10.18.71'],
   output: 'standalone',
+  outputFileTracingRoot: path.join(appRoot, '..'),
   assetPrefix: '/panda-wiki-app-assets',
   logging: {
     fetches: {
@@ -15,7 +20,28 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
-  transpilePackages: ['mermaid'],
+  transpilePackages: [
+    'mermaid',
+    '@panda-wiki/icons',
+    '@panda-wiki/themes',
+    '@panda-wiki/ui',
+    '@ctzhian/tiptap',
+    '@ctzhian/ui',
+  ],
+  webpack: config => {
+    config.resolve.modules = [
+      path.join(appRoot, 'node_modules'),
+      ...(config.resolve.modules ?? ['node_modules']),
+    ];
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'entities/decode': path.join(
+        appRoot,
+        'node_modules/entities/lib/decode.js',
+      ),
+    };
+    return config;
+  },
   async headers() {
     return [
       {

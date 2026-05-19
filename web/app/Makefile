@@ -5,7 +5,7 @@ REGISTRY=panda-wiki-app
 
 # 构建前端代码
 build:
-	pnpm run build
+	npm run build
 
 # 构建并加载到本地Docker
 image: build

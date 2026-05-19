@@ -69,7 +69,7 @@ const LogoutButton = () => {
       <Tooltip title='退出登录' arrow>
         <IconButton size='small' onClick={() => setOpen(true)}>
           <IconDengchu
-            sx={theme => ({
+            sx={(theme: import('@mui/material/styles').Theme) => ({
               cursor: 'pointer',
               color: alpha(theme.palette.text.primary, 0.65),
               fontSize: 24,

@@ -14,7 +14,10 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.12.1",
+  "peerDependencies": {
+    "@mui/material": "^7.3.0",
+    "react": ">=18.0.0"
+  },
   "devDependencies": {
     "tsx": "^4.20.5"
   }

@@ -288,7 +288,7 @@ const QaModal: React.FC<QaModalProps> = () => {
                   color='primary'
                   onClick={onClose}
                   size='small'
-                  sx={theme => ({
+                  sx={(theme: import('@mui/material/styles').Theme) => ({
                     minWidth: 'auto',
                     px: 1,
                     py: '1px',

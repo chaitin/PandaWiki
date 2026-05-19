@@ -154,7 +154,7 @@ const DocContent = ({
   return (
     <Box
       id='doc-content'
-      sx={theme => ({
+      sx={(theme: import('@mui/material/styles').Theme) => ({
         wordBreak: 'break-all',
         color: 'text.primary',
         position: 'relative',

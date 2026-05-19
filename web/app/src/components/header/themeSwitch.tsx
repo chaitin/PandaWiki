@@ -11,7 +11,9 @@ const ThemeSwitch = () => {
     >
       {themeMode === 'dark' ? (
         <IconShensemoshi
-          sx={theme => ({ color: alpha(theme.palette.text.primary, 0.65) })}
+          sx={(theme: import('@mui/material/styles').Theme) => ({
+            color: alpha(theme.palette.text.primary, 0.65),
+          })}
         />
       ) : (
         <IconMingliangmoshi sx={{ fontSize: 20 }} />

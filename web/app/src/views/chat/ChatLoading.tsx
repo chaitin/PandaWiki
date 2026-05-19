@@ -45,7 +45,7 @@ const ChatLoading = ({ thinking, onClick }: ChatLoadingProps) => {
         ></Box>
       </Stack>
       <Box
-        sx={theme => ({
+        sx={(theme: import('@mui/material/styles').Theme) => ({
           lineHeight: 1,
           color: alpha(theme.palette.text.primary, 0.5),
         })}

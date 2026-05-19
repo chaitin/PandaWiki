@@ -5,7 +5,7 @@
  * 在 dev / build 之前自动跑（见 package.json 的 predev / prebuild）。
  * 这样：
  *   - git 仓库不增加 ~16MB 的 svg 文件（用 .gitignore 屏蔽 public/twemoji/）
- *   - 镜像构建只要能跑 pnpm install，就会自动把资产打进 public/，
+ *   - 镜像构建只要能跑 npm install，就会自动把资产打进 public/，
  *     最终被 Next.js 静态服务（/twemoji/svg/<codepoint>.svg）
  *   - 全程不依赖公网 CDN，适合内网部署
  */
@@ -21,7 +21,7 @@ if (!existsSync(SRC)) {
   console.error(
     '[twemoji] @twemoji/svg not found at',
     SRC,
-    '\n         请先运行 `pnpm install`',
+    '\n         请先运行 `npm install`',
   );
   process.exit(1);
 }

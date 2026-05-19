@@ -93,7 +93,7 @@ const Widget = () => {
 
   return (
     <Box
-      sx={theme => ({
+      sx={(theme: import('@mui/material/styles').Theme) => ({
         display: 'flex',
         flexDirection: 'column',
         flex: 1,
@@ -153,7 +153,7 @@ const Widget = () => {
           variant='outlined'
           color='primary'
           size='small'
-          sx={theme => ({
+          sx={(theme: import('@mui/material/styles').Theme) => ({
             minWidth: 'auto',
             px: 1,
             py: '1px',

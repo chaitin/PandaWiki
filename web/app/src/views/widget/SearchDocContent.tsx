@@ -238,7 +238,7 @@ const SearchDocContent: React.FC<SearchDocContentProps> = ({
         onKeyDown={handleKeyDown}
         fullWidth
         autoFocus
-        sx={theme => ({
+        sx={(theme: import('@mui/material/styles').Theme) => ({
           boxShadow: `0px 20px 40px 0px ${alpha(theme.palette.text.primary, 0.06)}`,
           borderRadius: 2,
           '& .MuiInputBase-root': {

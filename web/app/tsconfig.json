@@ -23,7 +23,8 @@
     ".next/types/**/*.ts",
     "new-types.d.ts",
     "next-env.d.ts",
-    "dist/types/**/*.ts"
+    "dist/types/**/*.ts",
+    "../packages/themes/theme.d.ts"
   ],
   "exclude": ["node_modules"]
 }

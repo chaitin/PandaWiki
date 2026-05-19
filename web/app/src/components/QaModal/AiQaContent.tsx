@@ -143,7 +143,7 @@ const LoadingContent = ({
       />
       <Typography
         variant='body2'
-        sx={theme => ({
+        sx={(theme: import('@mui/material/styles').Theme) => ({
           fontSize: 12,
           color: alpha(theme.palette.text.primary, 0.5),
         })}
@@ -1094,7 +1094,7 @@ const AiQaContent: React.FC<{
                     >
                       <Typography
                         variant='body2'
-                        sx={theme => ({
+                        sx={(theme: import('@mui/material/styles').Theme) => ({
                           fontSize: 12,
                           color: alpha(theme.palette.text.primary, 0.5),
                         })}
@@ -1114,7 +1114,9 @@ const AiQaContent: React.FC<{
                             </Typography>
                             <Typography
                               variant='body2'
-                              sx={theme => ({
+                              sx={(
+                                theme: import('@mui/material/styles').Theme,
+                              ) => ({
                                 fontSize: 12,
                                 color: alpha(theme.palette.text.primary, 0.65),
                                 whiteSpace: 'pre-wrap',
@@ -1149,7 +1151,7 @@ const AiQaContent: React.FC<{
                     >
                       <Typography
                         variant='body2'
-                        sx={theme => ({
+                        sx={(theme: import('@mui/material/styles').Theme) => ({
                           fontSize: 12,
                           color: alpha(theme.palette.text.primary, 0.5),
                         })}
@@ -1165,7 +1167,9 @@ const AiQaContent: React.FC<{
                             <Typography
                               variant='body2'
                               className='hover-primary'
-                              sx={theme => ({
+                              sx={(
+                                theme: import('@mui/material/styles').Theme,
+                              ) => ({
                                 fontSize: 12,
                                 color: alpha(theme.palette.text.primary, 0.5),
                                 display: 'flex',
@@ -1250,7 +1254,9 @@ const AiQaContent: React.FC<{
 
                         <Typography
                           variant='body2'
-                          sx={theme => ({
+                          sx={(
+                            theme: import('@mui/material/styles').Theme,
+                          ) => ({
                             fontSize: 12,
                             color: alpha(theme.palette.text.primary, 0.5),
                           })}
@@ -1293,7 +1299,9 @@ const AiQaContent: React.FC<{
                       <>
                         {meta && (
                           <Box
-                            sx={theme => ({
+                            sx={(
+                              theme: import('@mui/material/styles').Theme,
+                            ) => ({
                               mb: 1.5,
                               p: 1.25,
                               borderRadius: '10px',
@@ -1374,7 +1382,9 @@ const AiQaContent: React.FC<{
                             {identified && (
                               <Typography
                                 variant='body2'
-                                sx={theme => ({
+                                sx={(
+                                  theme: import('@mui/material/styles').Theme,
+                                ) => ({
                                   fontSize: 12,
                                   color: workChrome
                                     ? workChrome.textSecondary
@@ -1389,7 +1399,9 @@ const AiQaContent: React.FC<{
                             {isAsking && (
                               <Typography
                                 variant='body2'
-                                sx={theme => ({
+                                sx={(
+                                  theme: import('@mui/material/styles').Theme,
+                                ) => ({
                                   fontSize: 12,
                                   color: workChrome
                                     ? workChrome.textSecondary
@@ -1405,7 +1417,9 @@ const AiQaContent: React.FC<{
                             {isTerminal && (
                               <Typography
                                 variant='body2'
-                                sx={theme => ({
+                                sx={(
+                                  theme: import('@mui/material/styles').Theme,
+                                ) => ({
                                   fontSize: 12,
                                   color: workChrome
                                     ? workChrome.textSecondary
@@ -1422,7 +1436,9 @@ const AiQaContent: React.FC<{
                                 <Stack gap={0.5} sx={{ mb: 0.75 }}>
                                   <Typography
                                     variant='caption'
-                                    sx={theme => ({
+                                    sx={(
+                                      theme: import('@mui/material/styles').Theme,
+                                    ) => ({
                                       fontSize: 11,
                                       color: workChrome
                                         ? workChrome.textMuted
@@ -1443,7 +1459,9 @@ const AiQaContent: React.FC<{
                                       ([k, v]) => (
                                         <Box
                                           key={k}
-                                          sx={theme => ({
+                                          sx={(
+                                            theme: import('@mui/material/styles').Theme,
+                                          ) => ({
                                             px: 1,
                                             py: 0.25,
                                             borderRadius: '6px',
@@ -1477,7 +1495,9 @@ const AiQaContent: React.FC<{
                               <Stack gap={0.5}>
                                 <Typography
                                   variant='caption'
-                                  sx={theme => ({
+                                  sx={(
+                                    theme: import('@mui/material/styles').Theme,
+                                  ) => ({
                                     fontSize: 11,
                                     color: workChrome
                                       ? workChrome.textMuted
@@ -1494,7 +1514,9 @@ const AiQaContent: React.FC<{
                                   {meta.missing.map(name => (
                                     <Box
                                       key={name}
-                                      sx={theme => ({
+                                      sx={(
+                                        theme: import('@mui/material/styles').Theme,
+                                      ) => ({
                                         px: 1,
                                         py: 0.25,
                                         borderRadius: '6px',
@@ -1593,7 +1615,7 @@ const AiQaContent: React.FC<{
       {conversation.length > 0 && (
         <Button
           variant='contained'
-          sx={theme => ({
+          sx={(theme: import('@mui/material/styles').Theme) => ({
             textTransform: 'none',
             minWidth: 'auto',
             px: 3.5,
