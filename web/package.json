@@ -10,10 +10,8 @@
   "scripts": {
     "preinstall": "npx only-allow npm",
     "icon": "npm --filter @panda-wiki/icons icon",
-    "prepare": "cd ../ && husky web/.husky",
-    "postinstall": "node scripts/apply-patches.mjs",
-    "build": "npm --parallel --filter panda-wiki-admin --filter panda-wiki-app build",
-    "dev": "npm --parallel --filter panda-wiki-admin --filter panda-wiki-app dev"
+    "build": "npm run build --workspace=panda-wiki-app && npm run build --workspace=panda-wiki-admin",
+    "dev": "npm run dev --workspace=panda-wiki-app && npm run dev --workspace=panda-wiki-admin"
   },
   "lint-staged": {
     "**/*.{js,jsx,ts,tsx,css,scss,md,mdx,json,yml,yaml,mjs,cjs}": "prettier --write --ignore-path .prettierignore"
