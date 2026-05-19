@@ -78,7 +78,7 @@ const DocEditor = () => {
               try {
                 window.open('', '_self');
                 window.close();
-              } catch {}
+              } catch (e) { console.warn("[PandaWiki] Editor error:", e); }
               // 最终兜底：跳转到首页
               setTimeout(() => {
                 if (!document.hidden) {
@@ -87,7 +87,7 @@ const DocEditor = () => {
               }, 50);
             }
           }, 0);
-        } catch {}
+        } catch (e) { console.warn("[PandaWiki] Editor error:", e); }
       }, 3000);
     });
   };
