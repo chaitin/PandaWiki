@@ -5,11 +5,12 @@
   "main": "index.js",
   "workspaces": [
     "app",
+    "admin",
     "packages/*"
   ],
   "scripts": {
     "preinstall": "npx only-allow npm",
-    "icon": "npm --filter @panda-wiki/icons icon",
+    "icon": "npm run icon --workspace=@panda-wiki/icons",
     "build": "npm run build --workspace=panda-wiki-app && npm run build --workspace=panda-wiki-admin",
     "dev": "npm run dev --workspace=panda-wiki-app && npm run dev --workspace=panda-wiki-admin"
   },
@@ -20,12 +21,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@ctzhian/tiptap": "^2.9.4",
+    "@ctzhian/tiptap": "2.9.4",
     "@ctzhian/ui": "^7.1.3",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mui/icons-material": "^7.3.2",
     "@mui/material": "^7.3.2",
+    "@tiptap/extension-drag-handle": "3.23.4",
+    "@tiptap/extension-collaboration": "3.23.4",
+    "@tiptap/extension-node-range": "3.23.4",
+    "@tiptap/y-tiptap": "^3.0.2",
     "@panda-wiki/icons": "*",
     "@panda-wiki/themes": "*",
     "@panda-wiki/ui": "*",
@@ -47,6 +52,7 @@
     "typescript": "^5.9.2"
   },
   "overrides": {
-    "require-in-the-middle": "^7.5.2"
+    "require-in-the-middle": "^7.5.2",
+    "@ctzhian/tiptap": "2.9.4"
   }
 }

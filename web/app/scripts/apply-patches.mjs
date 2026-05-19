@@ -18,7 +18,18 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = resolve(__dirname, '..');
-const PATCHES_DIR = resolve(APP_ROOT, '../patches');
+const WEB_ROOT = resolve(APP_ROOT, '..');
+const PATCHES_DIR = resolve(WEB_ROOT, 'patches');
+
+// npm workspace 下依赖会被提升到 web/node_modules；非提升时落在 app/node_modules。
+// 两处都找，优先用真实存在的那个。
+function resolvePackageDir(pkgName) {
+  for (const base of [APP_ROOT, WEB_ROOT]) {
+    const p = join(base, 'node_modules', pkgName);
+    if (existsSync(p)) return p;
+  }
+  return null;
+}
 
 if (!existsSync(PATCHES_DIR)) {
   console.log('[patches] no patches/ dir, nothing to do');
@@ -34,23 +45,22 @@ if (patchFiles.length === 0) {
 let hadError = false;
 
 function resolvePatchCommand() {
+  // 先信任 PATH 里的 `patch`：accessSync 不做 PATH 查找，必须真正执行一次探测。
+  const probe = spawnSync('patch', ['--version'], { stdio: 'ignore' });
+  if (!probe.error && probe.status === 0) {
+    return 'patch';
+  }
+  // 回退到 Git for Windows 自带的 patch.exe
   const candidates = [
-    'patch',
     'C:\\Program Files\\Git\\usr\\bin\\patch.exe',
     'C:\\Program Files (x86)\\Git\\usr\\bin\\patch.exe',
   ];
   for (const cmd of candidates) {
     try {
-      accessSync(cmd, constants.X_OK);
+      accessSync(cmd, constants.F_OK);
       return cmd;
     } catch {
-      if (cmd === 'patch') continue;
-      try {
-        accessSync(cmd, constants.F_OK);
-        return cmd;
-      } catch {
-        /* try next */
-      }
+      /* try next */
     }
   }
   return null;
@@ -75,10 +85,10 @@ for (const patchFile of patchFiles) {
     rawName.startsWith('@') ? `@${scope}/${name}` : `${scope}/${name}`,
   );
 
-  const linkPath = join(APP_ROOT, 'node_modules', pkgName);
-  if (!existsSync(linkPath)) {
+  const linkPath = resolvePackageDir(pkgName);
+  if (!linkPath) {
     console.warn(
-      `[patches] skip ${patchFile}: ${linkPath} not installed (expected ${pkgName}@${version})`,
+      `[patches] skip ${patchFile}: ${pkgName} not installed in app/ or web/ node_modules (expected ${pkgName}@${version})`,
     );
     continue;
   }
@@ -126,11 +136,11 @@ for (const patchFile of patchFiles) {
   }
 }
 
-const sentinelPath = join(
-  APP_ROOT,
-  'node_modules/@ctzhian/tiptap/dist/extension/component/Link/index.js',
-);
-if (existsSync(sentinelPath)) {
+const tiptapDir = resolvePackageDir('@ctzhian/tiptap');
+const sentinelPath = tiptapDir
+  ? join(tiptapDir, 'dist/extension/component/Link/index.js')
+  : null;
+if (sentinelPath && existsSync(sentinelPath)) {
   const count =
     readFileSync(sentinelPath, 'utf8').split('pwKbDocLinkPicker').length - 1;
   if (count !== 2) {

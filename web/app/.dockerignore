@@ -1,0 +1,10 @@
+node_modules
+.next
+src
+.git
+.gitignore
+*.log
+.DS_Store
+dist/cache
+dist/trace
+dist/trace-build
