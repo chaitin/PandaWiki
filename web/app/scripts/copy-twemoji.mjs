@@ -14,7 +14,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const SRC = resolve(__dirname, '../node_modules/@twemoji/svg');
+const SRC = resolve(__dirname, '../../node_modules/@twemoji/svg');
 const DST = resolve(__dirname, '../public/twemoji/svg');
 
 if (!existsSync(SRC)) {
