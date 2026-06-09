@@ -111,9 +111,14 @@ func (r *NavRepository) reorderPositionsTx(tx *gorm.DB, kbId string) error {
 	basePosition := int64(1000)
 	interval := int64(1000)
 	for i, nav := range navs {
-		nav.Position = float64(basePosition + int64(i)*interval)
+		position := float64(basePosition + int64(i)*interval)
+		if err := tx.Model(&domain.Nav{}).
+			Where("id = ? AND kb_id = ?", nav.ID, kbId).
+			Update("position", position).Error; err != nil {
+			return err
+		}
 	}
-	return tx.Select("position").Save(navs).Error
+	return nil
 }
 
 func (r *NavRepository) Move(ctx context.Context, kbId, id, prevID, nextID string) error {
