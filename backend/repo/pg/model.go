@@ -104,6 +104,17 @@ func (r *ModelRepository) GetModelByType(ctx context.Context, modelType domain.M
 	return &model, nil
 }
 
+func (r *ModelRepository) GetModelByID(ctx context.Context, modelID string) (*domain.Model, error) {
+	var model domain.Model
+	if err := r.db.WithContext(ctx).
+		Model(&domain.Model{}).
+		Where("id = ?", modelID).
+		First(&model).Error; err != nil {
+		return nil, err
+	}
+	return &model, nil
+}
+
 func (r *ModelRepository) UpdateUsage(ctx context.Context, modelID string, usage *schema.TokenUsage) error {
 	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
 		// update model usage
