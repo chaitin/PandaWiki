@@ -116,22 +116,11 @@ func (u *ModelUsecase) Update(ctx context.Context, req *domain.UpdateModelReq) e
 	if err := u.modelRepo.Update(ctx, req); err != nil {
 		return err
 	}
-	data := &domain.Model{
-		Provider:   req.Provider,
-		Model:      req.Model,
-		Type:       req.Type,
-		APIKey:     req.APIKey,
-		BaseURL:    req.BaseURL,
-		APIHeader:  req.APIHeader,
-		APIVersion: req.APIVersion,
+	model, err := u.modelRepo.GetModelByID(ctx, req.ID)
+	if err != nil {
+		return err
 	}
-	if req.IsActive != nil {
-		data.IsActive = *req.IsActive
-	}
-	if req.Parameters != nil {
-		data.Parameters = *req.Parameters
-	}
-	if err := u.ragStore.UpsertModel(ctx, data); err != nil {
+	if err := u.ragStore.UpsertModel(ctx, model); err != nil {
 		return err
 	}
 	// 模型更新成功后，如果更新嵌入模型，则触发记录更新
