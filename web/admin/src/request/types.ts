@@ -19,6 +19,7 @@ export enum SchemaRoleType {
 
 export enum GithubComChaitinPandaWikiDomainModelProvider {
   ModelProviderBrandBaiZhiCloud = "BaiZhiCloud",
+  ModelProviderBaiZhiCloudModelStore = "BaiZhiCloudModelStore",
 }
 
 export enum DomainStatPageScene {
@@ -978,6 +979,8 @@ export interface DomainMetricsConfig {
 export interface DomainModelModeSetting {
   /** 百智云 API Key */
   auto_mode_api_key?: string;
+  /** 自动模式供应商 */
+  auto_mode_provider?: GithubComChaitinPandaWikiDomainModelProvider;
   /** 自定义对话模型名称 */
   chat_model?: string;
   /** 手动模式下嵌入模型是否更新 */
@@ -1295,6 +1298,8 @@ export interface DomainStatsSetting {
 export interface DomainSwitchModeReq {
   /** 百智云 API Key */
   auto_mode_api_key?: string;
+  /** 自动模式供应商 */
+  auto_mode_provider?: GithubComChaitinPandaWikiDomainModelProvider;
   /** 自定义对话模型名称 */
   chat_model?: string;
   mode: "manual" | "auto";
