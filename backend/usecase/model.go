@@ -57,7 +57,7 @@ func (u *ModelUsecase) Create(ctx context.Context, model *domain.Model) error {
 	}
 	// 模型更新成功后，如果更新嵌入模型，则触发记录更新
 	if updatedEmbeddingModel {
-		if _, err := u.updateModeSettingConfig(ctx, "", "", "", true); err != nil {
+		if _, err := u.updateModeSettingConfig(ctx, "", "", "", "", true); err != nil {
 			return err
 		}
 	}
@@ -125,7 +125,7 @@ func (u *ModelUsecase) Update(ctx context.Context, req *domain.UpdateModelReq) e
 	}
 	// 模型更新成功后，如果更新嵌入模型，则触发记录更新
 	if updatedEmbeddingModel {
-		if _, err := u.updateModeSettingConfig(ctx, "", "", "", true); err != nil {
+		if _, err := u.updateModeSettingConfig(ctx, "", "", "", "", true); err != nil {
 			return err
 		}
 	}
@@ -144,13 +144,14 @@ func (u *ModelUsecase) GetChatModel(ctx context.Context) (*domain.Model, error) 
 		if modelName == "" {
 			modelName = string(consts.AutoModeDefaultChatModel)
 		}
+		provider, baseURL := autoModeProviderAndBaseURL(modelModeSetting.AutoModeProvider)
 		model = &domain.Model{
 			Model:    modelName,
 			Type:     domain.ModelTypeChat,
 			IsActive: true,
-			BaseURL:  consts.AutoModeBaseURL,
+			BaseURL:  baseURL,
 			APIKey:   modelModeSetting.AutoModeAPIKey,
-			Provider: domain.ModelProviderBrandBaiZhiCloud,
+			Provider: provider,
 		}
 		return model, nil
 	}
@@ -180,11 +181,12 @@ func (u *ModelUsecase) SwitchMode(ctx context.Context, req *domain.SwitchModeReq
 		if modelName == "" {
 			modelName = consts.GetAutoModeDefaultModel(string(domain.ModelTypeChat))
 		}
+		provider, baseURL := autoModeProviderAndBaseURL(req.AutoModeProvider)
 		// 检查 API Key 是否有效
 		check, err := u.modelkit.CheckModel(ctx, &modelkitDomain.CheckModelReq{
-			Provider: string(domain.ModelProviderBrandBaiZhiCloud),
+			Provider: string(provider),
 			Model:    modelName,
-			BaseURL:  consts.AutoModeBaseURL,
+			BaseURL:  baseURL,
 			APIKey:   req.AutoModeAPIKey,
 			Type:     string(domain.ModelTypeChat),
 		})
@@ -230,12 +232,12 @@ func (u *ModelUsecase) SwitchMode(ctx context.Context, req *domain.SwitchModeReq
 		isResetEmbeddingUpdateFlag = false
 	}
 
-	modelModeSetting, err := u.updateModeSettingConfig(ctx, req.Mode, req.AutoModeAPIKey, req.ChatModel, isResetEmbeddingUpdateFlag)
+	modelModeSetting, err := u.updateModeSettingConfig(ctx, req.Mode, req.AutoModeAPIKey, req.AutoModeProvider, req.ChatModel, isResetEmbeddingUpdateFlag)
 	if err != nil {
 		return err
 	}
 
-	if err := u.updateRAGModelsByMode(ctx, req.Mode, modelModeSetting.AutoModeAPIKey, oldModelModeSetting); err != nil {
+	if err := u.updateRAGModelsByMode(ctx, req.Mode, modelModeSetting.AutoModeAPIKey, modelModeSetting.AutoModeProvider, oldModelModeSetting); err != nil {
 		return err
 	}
 
@@ -243,7 +245,7 @@ func (u *ModelUsecase) SwitchMode(ctx context.Context, req *domain.SwitchModeReq
 }
 
 // updateModeSettingConfig 读取当前设置并更新，然后持久化
-func (u *ModelUsecase) updateModeSettingConfig(ctx context.Context, mode, apiKey, chatModel string, isManualEmbeddingUpdated bool) (*domain.ModelModeSetting, error) {
+func (u *ModelUsecase) updateModeSettingConfig(ctx context.Context, mode, apiKey string, provider domain.ModelProvider, chatModel string, isManualEmbeddingUpdated bool) (*domain.ModelModeSetting, error) {
 	// 读取当前设置
 	setting, err := u.systemSettingRepo.GetSystemSetting(ctx, consts.SystemSettingModelMode)
 	if err != nil {
@@ -258,6 +260,9 @@ func (u *ModelUsecase) updateModeSettingConfig(ctx context.Context, mode, apiKey
 	// 更新设置
 	if apiKey != "" {
 		config.AutoModeAPIKey = apiKey
+	}
+	if provider != "" {
+		config.AutoModeProvider = provider
 	}
 	if chatModel != "" {
 		config.ChatModel = chatModel
@@ -296,7 +301,7 @@ func (u *ModelUsecase) GetModelModeSetting(ctx context.Context) (domain.ModelMod
 }
 
 // updateRAGModelsByMode 根据模式更新 RAG 模型
-func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoModeAPIKey string, oldModelModeSetting domain.ModelModeSetting) error {
+func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoModeAPIKey string, autoModeProvider domain.ModelProvider, oldModelModeSetting domain.ModelModeSetting) error {
 	var isTriggerUpsertRecords = true
 
 	// 手动切换到手动模式, 根据IsManualEmbeddingUpdated字段决定
@@ -329,13 +334,14 @@ func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoMode
 			model = m
 		} else {
 			modelName := consts.GetAutoModeDefaultModel(string(modelType))
+			provider, baseURL := autoModeProviderAndBaseURL(autoModeProvider)
 			model = &domain.Model{
 				Model:    modelName,
 				Type:     modelType,
 				IsActive: true,
-				BaseURL:  consts.AutoModeBaseURL,
+				BaseURL:  baseURL,
 				APIKey:   autoModeAPIKey,
-				Provider: domain.ModelProviderBrandBaiZhiCloud,
+				Provider: provider,
 			}
 		}
 
@@ -356,4 +362,11 @@ func (u *ModelUsecase) updateRAGModelsByMode(ctx context.Context, mode, autoMode
 		return u.TriggerUpsertRecords(ctx)
 	}
 	return nil
+}
+
+func autoModeProviderAndBaseURL(provider domain.ModelProvider) (domain.ModelProvider, string) {
+	if provider == domain.ModelProviderBaiZhiCloudModelStore {
+		return domain.ModelProviderBaiZhiCloudModelStore, consts.AutoModeModelStoreBaseURL
+	}
+	return domain.ModelProviderBrandBaiZhiCloud, consts.AutoModeBaseURL
 }

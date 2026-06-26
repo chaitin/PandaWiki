@@ -165,7 +165,7 @@ export const VersionMap = {
 export const ModelProvider = {
   BaiZhiCloud: {
     label: 'BaiZhiCloud',
-    cn: '百智云',
+    cn: '（即将下线）模型广场',
     icon: IconBaizhiyunlogo,
     urlWrite: false,
     secretRequired: true,
@@ -176,6 +176,20 @@ export const ModelProvider = {
     rerank: true,
     modelDocumentUrl: 'https://model-square.app.baizhi.cloud/token',
     defaultBaseUrl: 'https://model-square.app.baizhi.cloud/v1',
+  },
+  BaiZhiCloudModelStore: {
+    label: 'BaiZhiCloudModelStore',
+    cn: '百智云',
+    icon: IconBaizhiyunlogo,
+    urlWrite: false,
+    secretRequired: true,
+    customHeader: false,
+    chat: true,
+    code: true,
+    embedding: true,
+    rerank: true,
+    modelDocumentUrl: 'https://ai-models.app.baizhi.cloud/console/keys',
+    defaultBaseUrl: 'https://ai-models.app.baizhi.cloud/api/openai',
   },
   ZhiPu: {
     label: 'ZhiPu',

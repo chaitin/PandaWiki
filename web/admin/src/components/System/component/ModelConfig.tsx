@@ -6,7 +6,11 @@ import {
   putApiV1Model,
   getApiV1ModelModeSetting,
 } from '@/request/Model';
-import { GithubComChaitinPandaWikiDomainModelListItem } from '@/request/types';
+import {
+  DomainSwitchModeReq,
+  GithubComChaitinPandaWikiDomainModelListItem,
+  GithubComChaitinPandaWikiDomainModelProvider,
+} from '@/request/types';
 import { addOpacityToColor } from '@/utils';
 import { message, Modal } from '@ctzhian/ui';
 import {
@@ -86,6 +90,7 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
     const [isSaving, setIsSaving] = useState(false);
     const [initialApiKey, setInitialApiKey] = useState('');
     const [initialChatModel, setInitialChatModel] = useState('');
+    const [isLegacyAutoConfig, setIsLegacyAutoConfig] = useState(false);
     const [hasConfigChanged, setHasConfigChanged] = useState(false);
 
     const [modelData, setModelData] = useState<Record<string, any>>({
@@ -165,6 +170,11 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
             if (setting.chat_model) {
               setInitialChatModel(setting.chat_model);
             }
+            setIsLegacyAutoConfig(
+              isAuto &&
+                (!setting.auto_mode_provider ||
+                  setting.auto_mode_provider === 'BaiZhiCloud'),
+            );
           }
         } catch (err) {
           console.error('获取模型配置失败:', err);
@@ -273,11 +283,7 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
       const modelConfigList = Object.keys(cacheModelData.current);
 
       try {
-        const requestData: {
-          mode: 'auto' | 'manual';
-          auto_mode_api_key?: string;
-          chat_model?: string;
-        } = {
+        const requestData: DomainSwitchModeReq = {
           mode: tempMode,
         };
 
@@ -286,6 +292,8 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
           const formData = autoConfigRef.current.getFormData();
           if (formData) {
             requestData.auto_mode_api_key = formData.apiKey;
+            requestData.auto_mode_provider =
+              GithubComChaitinPandaWikiDomainModelProvider.ModelProviderBaiZhiCloudModelStore;
             requestData.chat_model = formData.selectedModel;
           }
         }
@@ -301,6 +309,7 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
           if (formData) {
             setInitialApiKey(formData.apiKey);
             setInitialChatModel(formData.selectedModel);
+            setIsLegacyAutoConfig(false);
           }
         }
 
@@ -463,6 +472,7 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
             showTip={showTip}
             initialApiKey={initialApiKey}
             initialChatModel={initialChatModel}
+            showLegacyConfigTip={isLegacyAutoConfig}
             onDataChange={() => setHasConfigChanged(true)}
           />
         ) : (

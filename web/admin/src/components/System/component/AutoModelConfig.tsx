@@ -24,6 +24,7 @@ interface AutoModelConfigProps {
   showTip?: boolean;
   initialApiKey?: string;
   initialChatModel?: string;
+  showLegacyConfigTip?: boolean;
   onDataChange?: () => void;
 }
 
@@ -33,6 +34,7 @@ const AutoModelConfig = forwardRef<AutoModelConfigRef, AutoModelConfigProps>(
       showTip = false,
       initialApiKey = '',
       initialChatModel = '',
+      showLegacyConfigTip = false,
       onDataChange,
     } = props;
     const [autoConfigApiKey, setAutoConfigApiKey] = useState(initialApiKey);
@@ -42,11 +44,14 @@ const AutoModelConfig = forwardRef<AutoModelConfigRef, AutoModelConfigProps>(
 
     // 默认百智云 Chat 模型列表
     const DEFAULT_BAIZHI_CLOUD_CHAT_MODELS: string[] = [
-      'deepseek-chat',
-      'deepseek-r1',
-      'kimi-k2-0711-preview',
-      'qwen-vl-max-latest',
-      'glm-4.5',
+      'qwen-flash',
+      'qwen3.5-flash',
+      'deepseek-v4-flash',
+      'deepseek-v4-pro',
+      'qwen3.6-plus',
+      'minimax-m2.7',
+      'glm-5.1',
+      'kimi-k2.6',
     ];
 
     const modelList = DEFAULT_BAIZHI_CLOUD_CHAT_MODELS;
@@ -158,7 +163,7 @@ const AutoModelConfig = forwardRef<AutoModelConfigRef, AutoModelConfigProps>(
             </Box>
             <Box
               component='a'
-              href='https://model-square.app.baizhi.cloud/token'
+              href='https://ai-models.app.baizhi.cloud/console/keys'
               target='_blank'
               sx={{
                 color: 'primary.main',
@@ -200,6 +205,33 @@ const AutoModelConfig = forwardRef<AutoModelConfigRef, AutoModelConfigProps>(
               },
             }}
           />
+          {showLegacyConfigTip && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 1,
+                p: 1.5,
+                mt: 1.5,
+                bgcolor: 'rgba(237, 108, 2, 0.08)',
+                borderRadius: '8px',
+                border: '1px solid rgba(237, 108, 2, 0.2)',
+                fontSize: 12,
+                lineHeight: 1.6,
+                color: 'warning.main',
+              }}
+            >
+              <InfoOutlineSharpIcon
+                sx={{
+                  fontSize: 16,
+                  color: 'warning.main',
+                  flexShrink: 0,
+                  mt: 0.2,
+                }}
+              />
+              当前配置将于2026年12月31日失效，请及时前往模型商店更新 API Key。
+            </Box>
+          )}
         </Box>
 
         {!showTip && (

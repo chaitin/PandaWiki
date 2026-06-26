@@ -3,11 +3,11 @@ package consts
 type AutoModeDefaultModel string
 
 const (
-	AutoModeDefaultChatModel       AutoModeDefaultModel = "deepseek-chat"
+	AutoModeDefaultChatModel       AutoModeDefaultModel = "deepseek-v4-flash"
 	AutoModeDefaultEmbeddingModel  AutoModeDefaultModel = "bge-m3"
 	AutoModeDefaultRerankModel     AutoModeDefaultModel = "bge-reranker-v2-m3"
-	AutoModeDefaultAnalysisModel   AutoModeDefaultModel = "qwen2.5-3b-instruct"
-	AutoModeDefaultAnalysisVLModel AutoModeDefaultModel = "qwen-vl-max-latest"
+	AutoModeDefaultAnalysisModel   AutoModeDefaultModel = "qwen-flash"
+	AutoModeDefaultAnalysisVLModel AutoModeDefaultModel = "qwen3.7-plus"
 )
 
 func GetAutoModeDefaultModel(modelType string) string {
@@ -35,5 +35,6 @@ const (
 )
 
 const (
-	AutoModeBaseURL = "https://model-square.app.baizhi.cloud/v1"
+	AutoModeBaseURL           = "https://model-square.app.baizhi.cloud/v1"
+	AutoModeModelStoreBaseURL = "https://ai-models.app.baizhi.cloud/api/openai"
 )
