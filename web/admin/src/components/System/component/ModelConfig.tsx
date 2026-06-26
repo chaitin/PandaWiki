@@ -172,6 +172,7 @@ const ModelConfig = forwardRef<ModelConfigRef, ModelConfigProps>(
             }
             setIsLegacyAutoConfig(
               isAuto &&
+                !!setting.auto_mode_api_key &&
                 (!setting.auto_mode_provider ||
                   setting.auto_mode_provider === 'BaiZhiCloud'),
             );
