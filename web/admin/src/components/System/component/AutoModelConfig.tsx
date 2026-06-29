@@ -13,6 +13,26 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 
+// 默认百智云 Chat 模型列表
+const DEFAULT_BAIZHI_CLOUD_CHAT_MODELS: string[] = [
+  'qwen-flash',
+  'qwen3.5-flash',
+  'deepseek-v4-flash',
+  'deepseek-v4-pro',
+  'qwen3.6-plus',
+  'minimax-m2.7',
+  'glm-5.1',
+  'kimi-k2.6',
+];
+
+const getDefaultChatModel = (chatModel: string) => {
+  if (DEFAULT_BAIZHI_CLOUD_CHAT_MODELS.includes(chatModel)) {
+    return chatModel;
+  }
+
+  return DEFAULT_BAIZHI_CLOUD_CHAT_MODELS[0];
+};
+
 export interface AutoModelConfigRef {
   getFormData: () => {
     apiKey: string;
@@ -38,21 +58,10 @@ const AutoModelConfig = forwardRef<AutoModelConfigRef, AutoModelConfigProps>(
       onDataChange,
     } = props;
     const [autoConfigApiKey, setAutoConfigApiKey] = useState(initialApiKey);
-    const [selectedAutoChatModel, setSelectedAutoChatModel] =
-      useState(initialChatModel);
+    const [selectedAutoChatModel, setSelectedAutoChatModel] = useState(
+      getDefaultChatModel(initialChatModel),
+    );
     const [showApiKey, setShowApiKey] = useState(false);
-
-    // 默认百智云 Chat 模型列表
-    const DEFAULT_BAIZHI_CLOUD_CHAT_MODELS: string[] = [
-      'qwen-flash',
-      'qwen3.5-flash',
-      'deepseek-v4-flash',
-      'deepseek-v4-pro',
-      'qwen3.6-plus',
-      'minimax-m2.7',
-      'glm-5.1',
-      'kimi-k2.6',
-    ];
 
     const modelList = DEFAULT_BAIZHI_CLOUD_CHAT_MODELS;
 
@@ -64,9 +73,7 @@ const AutoModelConfig = forwardRef<AutoModelConfigRef, AutoModelConfigProps>(
     }, [initialApiKey]);
 
     useEffect(() => {
-      if (initialChatModel) {
-        setSelectedAutoChatModel(initialChatModel);
-      }
+      setSelectedAutoChatModel(getDefaultChatModel(initialChatModel));
     }, [initialChatModel]);
 
     // 如果没有选中模型且有可用模型,默认选择第一个
