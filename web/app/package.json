@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev -p 3010",
     "build": "next build",
+    "build:seo": "node scripts/generate-seo-pages.mjs",
+    "build:all": "pnpm build:seo && pnpm build",
     "start": "next start",
     "lint": "next lint",
     "api": "cx-swagger-api",
