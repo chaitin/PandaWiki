@@ -1,18 +1,14 @@
 import {
   getApiV1KnowledgeBaseDetail,
   getApiV1Comment,
-  deleteApiV1CommentList,
-  getApiV1AppDetail,
+  postApiV1CommentDelete,
 } from '@/request';
 
 import {
   postApiProV1CommentModerate,
   DomainCommentStatus,
 } from '@/request/pro';
-import {
-  DomainCommentListItem,
-  DomainWebAppCommentSettings,
-} from '@/request/types';
+import { DomainCommentListItem } from '@/request/types';
 
 import NoData from '@/assets/images/nodata.png';
 import { tableSx } from '@/constant/styles';
@@ -160,9 +156,6 @@ const Comments = ({
   const [total, setTotal] = useState(0);
   const [baseUrl, setBaseUrl] = useState('');
 
-  const [appSetting, setAppSetting] =
-    useState<DomainWebAppCommentSettings | null>(null);
-
   const isEnableReview = useMemo(() => {
     return PROFESSION_VERSION_PERMISSION.includes(license.edition!);
   }, [license.edition]);
@@ -183,7 +176,7 @@ const Comments = ({
         color: 'primary',
       },
       onOk: () => {
-        deleteApiV1CommentList({ ids: [id] }).then(() => {
+        postApiV1CommentDelete({ kb_id, ids: [id] }).then(() => {
           message.success('删除成功');
           if (page === 1) {
             getData({});
@@ -308,8 +301,7 @@ const Comments = ({
       title: '操作',
       width: 120,
       render: (text: string, record: DomainCommentListItem) => {
-        return isEnableReview &&
-          (appSetting?.moderation_enable || record.status === 0) ? (
+        return isEnableReview && record.status === 0 ? (
           <ActionMenu
             record={record}
             onDeleteComment={onDeleteComment}
@@ -371,15 +363,6 @@ const Comments = ({
       });
   };
 
-  const getAppSetting = () => {
-    getApiV1AppDetail({
-      kb_id: kb_id,
-      type: '1',
-    }).then(res => {
-      setAppSetting(res.settings?.web_app_comment_settings || {});
-    });
-  };
-
   useEffect(() => {
     if (!kb_id) return;
     setPage(1);
@@ -389,12 +372,6 @@ const Comments = ({
       paramCommentStatus: commentStatus,
     });
   }, [kb_id, commentStatus]);
-
-  useEffect(() => {
-    if (kb_id) {
-      getAppSetting();
-    }
-  }, [kb_id]);
 
   useEffect(() => {
     if (kb_id) {
@@ -426,8 +403,6 @@ const Comments = ({
       });
     }
   }, [kb_id]);
-
-  if (!appSetting) return null;
 
   return (
     <Table

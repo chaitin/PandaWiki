@@ -85,8 +85,9 @@ type CommentListItem struct {
 	CreatedAt time.Time     `json:"created_at"`
 }
 
-type DeleteCommentListReq struct {
-	IDS []string `json:"ids" query:"ids"`
+type CommentDeleteReq struct {
+	KBID string   `json:"kb_id" validate:"required"`
+	IDS  []string `json:"ids" validate:"required"`
 }
 
 type ShareCommentListItem struct {

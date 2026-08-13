@@ -404,9 +404,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/api/v1/comment/list": {
-            "delete": {
-                "description": "DeleteCommentList",
+        "/api/v1/comment/delete": {
+            "post": {
+                "description": "CommentDelete",
                 "consumes": [
                     "application/json"
                 ],
@@ -416,16 +416,16 @@ const docTemplate = `{
                 "tags": [
                     "comment"
                 ],
-                "summary": "DeleteCommentList",
+                "summary": "CommentDelete",
                 "parameters": [
                     {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        },
-                        "collectionFormat": "csv",
-                        "name": "ids",
-                        "in": "query"
+                        "description": "CommentDeleteReq",
+                        "name": "req",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.CommentDeleteReq"
+                        }
                     }
                 ],
                 "responses": {
@@ -6058,6 +6058,24 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.CommentDeleteReq": {
+            "type": "object",
+            "required": [
+                "ids",
+                "kb_id"
+            ],
+            "properties": {
+                "ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "kb_id": {
                     "type": "string"
                 }
             }
