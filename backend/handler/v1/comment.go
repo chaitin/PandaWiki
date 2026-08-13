@@ -29,7 +29,7 @@ func NewCommentHandler(e *echo.Echo, baseHandler *handler.BaseHandler, logger *l
 
 	group := e.Group("/api/v1/comment", h.auth.Authorize, h.auth.ValidateKBUserPerm(consts.UserKBPermissionDataOperate))
 	group.GET("", h.GetCommentModeratedList)
-	group.DELETE("/list", h.DeleteCommentList)
+	group.POST("/delete", h.CommentDelete)
 
 	return h
 }
@@ -64,25 +64,26 @@ func (h *CommentHandler) GetCommentModeratedList(c echo.Context) error {
 	return h.NewResponseWithData(c, commentList)
 }
 
-// DeleteCommentList
+// CommentDelete
 //
-//	@Summary		DeleteCommentList
-//	@Description	DeleteCommentList
+//	@Summary		CommentDelete
+//	@Description	CommentDelete
 //	@Tags			comment
 //	@Accept			json
 //	@Produce		json
-//	@Param			req	query		domain.DeleteCommentListReq	true	"DeleteCommentListReq"
-//	@Success		200	{object}	domain.Response				"total"
-//	@Router			/api/v1/comment/list [delete]
-func (h *CommentHandler) DeleteCommentList(c echo.Context) error {
-	var req domain.DeleteCommentListReq
-	ids := c.QueryParams()["ids[]"]
-	if len(ids) == 0 {
-		return h.NewResponseWithError(c, "len comment id is zero", nil)
+//	@Param			req	body		domain.CommentDeleteReq	true	"CommentDeleteReq"
+//	@Success		200	{object}	domain.Response			"total"
+//	@Router			/api/v1/comment/delete [post]
+func (h *CommentHandler) CommentDelete(c echo.Context) error {
+	var req domain.CommentDeleteReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "bind request", err)
 	}
-	req.IDS = ids
+	if err := c.Validate(&req); err != nil {
+		return h.NewResponseWithError(c, "invalid request", err)
+	}
 	ctx := c.Request().Context()
-	err := h.usecase.DeleteCommentList(ctx, &req)
+	err := h.usecase.CommentDelete(ctx, &req)
 	if err != nil {
 		return h.NewResponseWithError(c, "failed to delete comment list", err)
 	}

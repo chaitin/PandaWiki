@@ -1952,8 +1952,9 @@ export interface GetApiV1CommentParams {
   status?: -1 | 0 | 1;
 }
 
-export interface DeleteApiV1CommentListParams {
-  ids?: string[];
+export interface DomainCommentDeleteReq {
+  ids: string[];
+  kb_id: string;
 }
 
 export interface GetApiV1ConversationParams {

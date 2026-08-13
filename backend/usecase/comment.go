@@ -159,9 +159,8 @@ func (u *CommentUsecase) GetCommentListByKbID(ctx context.Context, req *domain.C
 	return domain.NewPaginatedResult(comments, uint64(total)), nil
 }
 
-// 批量删除评论， （简单化，只删除传入评论id）
-func (u *CommentUsecase) DeleteCommentList(ctx context.Context, req *domain.DeleteCommentListReq) error {
-	err := u.CommentRepo.DeleteCommentList(ctx, req.IDS)
+func (u *CommentUsecase) CommentDelete(ctx context.Context, req *domain.CommentDeleteReq) error {
+	err := u.CommentRepo.CommentDelete(ctx, req.KBID, req.IDS)
 	if err != nil {
 		return err
 	}

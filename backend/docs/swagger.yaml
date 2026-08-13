@@ -1035,6 +1035,18 @@ definitions:
       type:
         type: string
     type: object
+  domain.CommentDeleteReq:
+    properties:
+      ids:
+        items:
+          type: string
+        type: array
+      kb_id:
+        type: string
+    required:
+    - ids
+    - kb_id
+    type: object
   domain.CommentInfo:
     properties:
       auth_user_id:
@@ -3737,18 +3749,18 @@ paths:
       summary: GetCommentModeratedList
       tags:
       - comment
-  /api/v1/comment/list:
-    delete:
+  /api/v1/comment/delete:
+    post:
       consumes:
       - application/json
-      description: DeleteCommentList
+      description: CommentDelete
       parameters:
-      - collectionFormat: csv
-        in: query
-        items:
-          type: string
-        name: ids
-        type: array
+      - description: CommentDeleteReq
+        in: body
+        name: req
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CommentDeleteReq'
       produces:
       - application/json
       responses:
@@ -3756,7 +3768,7 @@ paths:
           description: total
           schema:
             $ref: '#/definitions/domain.Response'
-      summary: DeleteCommentList
+      summary: CommentDelete
       tags:
       - comment
   /api/v1/conversation:

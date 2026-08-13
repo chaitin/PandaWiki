@@ -82,9 +82,9 @@ func (r *CommentRepository) GetCommentListByKbID(ctx context.Context, req *domai
 
 }
 
-func (r *CommentRepository) DeleteCommentList(ctx context.Context, commentID []string) error {
-	// 批量删除指定id的comment,获取删除的总的数量、
-	query := r.db.WithContext(ctx).Model(&domain.Comment{}).Where("id IN (?)", commentID)
+func (r *CommentRepository) CommentDelete(ctx context.Context, kbID string, commentIDs []string) error {
+	query := r.db.WithContext(ctx).Model(&domain.Comment{}).
+		Where("kb_id = ? AND id IN (?)", kbID, commentIDs)
 
 	if err := query.Delete(&domain.Comment{}).Error; err != nil {
 		return err

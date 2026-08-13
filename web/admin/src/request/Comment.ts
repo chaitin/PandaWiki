@@ -12,7 +12,7 @@
 
 import httpRequest, { ContentType, RequestParams } from "./httpClient";
 import {
-  DeleteApiV1CommentListParams,
+  DomainCommentDeleteReq,
   DomainPWResponse,
   DomainResponse,
   GetApiV1CommentParams,
@@ -50,23 +50,23 @@ export const getApiV1Comment = (
   });
 
 /**
- * @description DeleteCommentList
+ * @description CommentDelete
  *
  * @tags comment
- * @name DeleteApiV1CommentList
- * @summary DeleteCommentList
- * @request DELETE:/api/v1/comment/list
+ * @name PostApiV1CommentDelete
+ * @summary CommentDelete
+ * @request POST:/api/v1/comment/delete
  * @response `200` `DomainResponse` total
  */
 
-export const deleteApiV1CommentList = (
-  query: DeleteApiV1CommentListParams,
+export const postApiV1CommentDelete = (
+  req: DomainCommentDeleteReq,
   params: RequestParams = {},
 ) =>
   httpRequest<DomainResponse>({
-    path: `/api/v1/comment/list`,
-    method: "DELETE",
-    query: query,
+    path: `/api/v1/comment/delete`,
+    method: "POST",
+    body: req,
     type: ContentType.Json,
     format: "json",
     ...params,
