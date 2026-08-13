@@ -22,7 +22,7 @@ jobs:
         with:
           lfs: true
           submodules: true
-          token: ${{ secrets.PRO_TOKEN }}
+          token: ${{ secrets.PRO_TOKEN || github.token }}
 
       - name: Get version
         id: get_version
