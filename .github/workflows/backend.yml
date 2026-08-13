@@ -21,8 +21,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           lfs: true
-          submodules: true
-          token: ${{ secrets.PRO_TOKEN }}
+
+      - name: Checkout pro submodule
+        env:
+          PRO_TOKEN: ${{ secrets.PRO_TOKEN }}
+        run: |
+          git submodule sync --recursive
+          git -c url."https://x-access-token:${PRO_TOKEN}@github.com/".insteadOf=git@github.com: \
+            submodule update --init --recursive
 
       - name: Get version
         id: get_version
