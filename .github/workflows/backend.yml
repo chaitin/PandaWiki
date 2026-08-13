@@ -26,14 +26,20 @@ jobs:
         env:
           PRO_TOKEN: ${{ secrets.PRO_TOKEN }}
         run: |
-          NETRC_BACKUP=""
-          if [ -f ~/.netrc ]; then
-            NETRC_BACKUP="$(mktemp)"
-            cp ~/.netrc "${NETRC_BACKUP}"
-          fi
-          trap 'git config --local --unset-all url."https://github.com/".insteadOf || true; if [ -n "${NETRC_BACKUP}" ]; then mv "${NETRC_BACKUP}" ~/.netrc; else rm -f ~/.netrc; fi' EXIT
-          printf "machine github.com\nlogin x-access-token\npassword %s\n" "${PRO_TOKEN}" | install -m 600 /dev/stdin ~/.netrc
-          git config --local url."https://github.com/".insteadOf "git@github.com:"
+          ASKPASS_SCRIPT="$(mktemp)"
+          GIT_CONFIG_GLOBAL_FILE="$(mktemp)"
+          trap 'rm -f "${ASKPASS_SCRIPT}" "${GIT_CONFIG_GLOBAL_FILE}"' EXIT
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'case "$1" in' \
+            '  *Username*) printf "%s\n" "x-access-token" ;;' \
+            '  *Password*) printf "%s\n" "${PRO_TOKEN}" ;;' \
+            'esac' > "${ASKPASS_SCRIPT}"
+          chmod 700 "${ASKPASS_SCRIPT}"
+          export GIT_ASKPASS="${ASKPASS_SCRIPT}"
+          export GIT_TERMINAL_PROMPT=0
+          export GIT_CONFIG_GLOBAL="${GIT_CONFIG_GLOBAL_FILE}"
+          git config --global url."https://github.com/".insteadOf "git@github.com:"
           git submodule sync --recursive
           git submodule update --init --recursive
 
