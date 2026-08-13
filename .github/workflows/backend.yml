@@ -39,7 +39,7 @@ jobs:
           export GIT_ASKPASS="${ASKPASS_SCRIPT}"
           export GIT_TERMINAL_PROMPT=0
           export GIT_CONFIG_GLOBAL="${GIT_CONFIG_GLOBAL_FILE}"
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          printf '[url "https://github.com/"]\n\tinsteadOf = git@github.com:\n' > "${GIT_CONFIG_GLOBAL_FILE}"
           git submodule sync --recursive
           git submodule update --init --recursive
 
