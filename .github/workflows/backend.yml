@@ -26,15 +26,12 @@ jobs:
         env:
           PRO_TOKEN: ${{ secrets.PRO_TOKEN }}
         run: |
-          cat <<EOF > ~/.netrc
-          machine github.com
-            login x-access-token
-            password ${PRO_TOKEN}
-          EOF
+          printf "machine github.com\nlogin x-access-token\npassword %s\n" "${PRO_TOKEN}" > ~/.netrc
           chmod 600 ~/.netrc
-          git config --global url."https://github.com/".insteadOf "git@github.com:"
+          git config --local url."https://github.com/".insteadOf "git@github.com:"
           git submodule sync --recursive
           git submodule update --init --recursive
+          git config --local --unset-all url."https://github.com/".insteadOf
           rm -f ~/.netrc
 
       - name: Get version
