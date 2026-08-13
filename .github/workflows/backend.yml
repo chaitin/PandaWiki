@@ -26,7 +26,12 @@ jobs:
         env:
           PRO_TOKEN: ${{ secrets.PRO_TOKEN }}
         run: |
-          trap 'git config --local --unset-all url."https://github.com/".insteadOf || true; rm -f ~/.netrc' EXIT
+          NETRC_BACKUP=""
+          if [ -f ~/.netrc ]; then
+            NETRC_BACKUP="$(mktemp)"
+            cp ~/.netrc "${NETRC_BACKUP}"
+          fi
+          trap 'git config --local --unset-all url."https://github.com/".insteadOf || true; if [ -n "${NETRC_BACKUP}" ]; then mv "${NETRC_BACKUP}" ~/.netrc; else rm -f ~/.netrc; fi' EXIT
           printf "machine github.com\nlogin x-access-token\npassword %s\n" "${PRO_TOKEN}" | install -m 600 /dev/stdin ~/.netrc
           git config --local url."https://github.com/".insteadOf "git@github.com:"
           git submodule sync --recursive
