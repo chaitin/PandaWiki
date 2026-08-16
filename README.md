@@ -121,4 +121,4 @@ SUCCESS    密码: **********************
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=chaitin/PandaWiki&type=Date)](https://www.star-history.com/#chaitin/PandaWiki&Date)
+[![Star History Chart](https://star-history.dera.page/svg?repos=chaitin/PandaWiki&type=Date)](https://star-history.dera.page/#chaitin/PandaWiki&Date)
