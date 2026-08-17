@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PandaWiki</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; color: #333; }
+        h1 { color: #1677ff; border-bottom: 2px solid #1677ff; padding-bottom: 10px; }
+        h2 { color: #333; margin-top: 30px; }
+        .noise { display: none; }
+        nav, footer, aside { color: #999; font-size: 12px; }
+        nav { margin-bottom: 20px; }
+        footer { margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; }
+        ul li { margin: 8px 0; }
+        code { background: #f5f5f5; padding: 2px 6px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="/">首页</a> | <a href="/about">关于</a> | <a href="/contact">联系</a>
+    </nav>
+
+    <article>
+        <h1>PandaWiki 智能知识库系统介绍</h1>
+        <p>PandaWiki 是一个面向企业团队的智能知识库与问答系统，基于 RAG（检索增强生成）技术构建。它能够把分散的文档、网页、笔记统一沉淀为可检索、可问答的知识资产。</p>
+
+        <h2>核心能力</h2>
+        <ul>
+            <li><strong>多源文档导入</strong>：支持本地文件批量上传、URL 网页抓取、飞书文档导入等多种来源。</li>
+            <li><strong>智能向量检索</strong>：文档自动切片并向量化，问答时基于语义相似度召回最相关内容。</li>
+            <li><strong>AI 问答助手</strong>：用户可以用自然语言提问，系统结合检索结果生成准确回答。</li>
+            <li><strong>权限与版本管理</strong>：支持文档权限控制、发布草稿分离、历史版本回溯。</li>
+        </ul>
+
+        <h2>技术架构</h2>
+        <p>系统采用前后端分离架构：</p>
+        <ul>
+            <li>后端：Java Spring Boot + Kotlin，配合 PostgreSQL、Redis、NATS、MinIO。</li>
+            <li>管理前台：React + Vite，面向运营与管理员。</li>
+            <li>用户前台：Next.js，面向普通用户搜索与问答。</li>
+            <li>模型层：兼容 OpenAI 协议，支持 chat、embedding、rerank 三类模型。</li>
+        </ul>
+
+        <h2>RAG 流程说明</h2>
+        <p>一个典型的 RAG 流程包括以下步骤：</p>
+        <ol>
+            <li>文档导入：通过文件、URL 或飞书把原始文档写入系统。</li>
+            <li>内容发布：管理员确认后发布知识库，文档状态变为已发布。</li>
+            <li>向量化：调用 embedding 模型把文档文本转成向量并存储。</li>
+            <li>问题检索：用户提问同样被向量化，与文档向量计算相似度。</li>
+            <li>答案生成：把召回的文档片段作为上下文，调用大模型生成答案。</li>
+        </ol>
+
+        <h2>测试关键词</h2>
+        <p>如果你看到这个页面，说明 URL 抓取导入是成功的。可以尝试问：<code>PandaWiki 的核心能力有哪些？</code> 或者 <code>RAG 流程分几步？</code></p>
+    </article>
+
+    <aside class="noise">
+        这是一段应该被过滤掉的噪声内容，包含广告、导航、推荐链接等无关信息。
+    </aside>
+
+    <footer>
+        © 2026 PandaWiki Test Page. All rights reserved.
+    </footer>
+</body>
+</html>

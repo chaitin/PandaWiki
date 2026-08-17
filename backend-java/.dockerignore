@@ -1,0 +1,24 @@
+# Gradle 构建缓存与产物
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# IDE 配置文件
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 测试报告
+out/
+
+# Gradle 临时文件
+*.tmp
+*.log

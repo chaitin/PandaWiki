@@ -15,6 +15,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import DocAnchor from './DocAnchor';
 import DocContent from './DocContent';
+import { postShareV1StatPage } from '@/request/ShareStat';
 
 const Doc = ({
   node,
@@ -28,6 +29,13 @@ const Doc = ({
   const [headings, setHeadings] = useState<TocList>([]);
   const [characterCount, setCharacterCount] = useState(0);
   const pathname = usePathname();
+
+  useEffect(() => {
+    // 文档详情页访问埋点
+    if (node?.id) {
+      postShareV1StatPage({ scene: 2, node_id: node.id });
+    }
+  }, [node?.id]);
   const isMarkdown = useMemo(() => {
     return node?.meta?.content_type === 'md';
   }, [node?.meta?.content_type]);

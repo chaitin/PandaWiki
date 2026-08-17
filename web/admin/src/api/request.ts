@@ -37,11 +37,15 @@ const request = <T>(options: AxiosRequestConfig): Promise<T> => {
     (response: AxiosResponse<Response<T>>) => {
       if (response.status === 200) {
         const res = response.data;
-        if (res.success) {
-          return res.data;
+        // 兼容 Go 后端（统一包装 {success, data, message}）和 Java 后端（直接返回数据）
+        if (res && typeof res.success === 'boolean') {
+          if (res.success) {
+            return res.data;
+          }
+          message.error(res.message || '网络异常');
+          return Promise.reject(res);
         }
-        message.error(res.message || '网络异常');
-        return Promise.reject(res);
+        return res;
       }
       message.error(response.statusText);
       return Promise.reject(response);

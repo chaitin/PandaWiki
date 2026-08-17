@@ -85,17 +85,17 @@ export default defineConfig(({ command, mode }) => {
     server: {
       proxy: {
         '/api': {
-          target: env.TARGET,
+          target: env.TARGET || 'http://localhost:8080',
           secure: false,
           changeOrigin: true,
         },
         '/static-file': {
-          target: env.STATIC_FILE_TARGET,
+          target: env.STATIC_FILE_TARGET || 'http://localhost:8080',
           secure: false,
           changeOrigin: true,
         },
         '/share': {
-          target: env.SHARE_TARGET,
+          target: env.SHARE_TARGET || 'http://localhost:8080',
           secure: false,
           changeOrigin: true,
         },

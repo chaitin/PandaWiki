@@ -12,6 +12,7 @@ import { getShareV1ConversationDetail } from '@/request/ShareConversation';
 import { postShareV1CommonFileUpload } from '@/request/ShareFile';
 import { copyText } from '@/utils';
 import SSEClient, { SSEHttpError } from '@/utils/fetch';
+import { useMathCaptcha } from '@/utils/useMathCaptcha';
 import { Image as ImagePreview, message } from '@ctzhian/ui';
 import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -163,6 +164,7 @@ const AiQaContent: React.FC<{
 
   const searchParams = useSearchParams();
   const basePath = useBasePath();
+  const { dialog: captchaDialog, requestCaptcha } = useMathCaptcha(basePath);
 
   // 使用智能滚动 hook（内置 ResizeObserver 自动监听内容高度变化，自动滚动）
   const { setShouldAutoScroll } = useSmartScroll({
@@ -381,14 +383,9 @@ const AiQaContent: React.FC<{
       for (const image of uploadedImages) {
         let token = '';
         try {
-          const Cap = (await import(`@cap.js/widget`)).default;
-          const cap = new Cap({
-            apiEndpoint: `${basePath}/share/v1/captcha/`,
-          });
-          const solution = await cap.solve();
-          token = solution.token;
-        } catch (error) {
-          message.error('验证失败');
+          token = await requestCaptcha();
+        } catch (error: any) {
+          message.error(error?.message || '验证失败');
           return Promise.reject(error);
         }
         // 上传新图片
@@ -415,18 +412,12 @@ const AiQaContent: React.FC<{
     const imagePaths = await uploadAllImages();
 
     let token = '';
-
-    const Cap = (await import(`@cap.js/widget`)).default;
-    const cap = new Cap({
-      apiEndpoint: `${basePath}/share/v1/captcha/`,
-    });
     try {
-      const solution = await cap.solve();
-      token = solution.token;
-    } catch (error) {
+      token = await requestCaptcha();
+    } catch (error: any) {
       setLoading(false);
       setThinking(4);
-      message.error('验证失败');
+      message.error(error?.message || '验证失败');
       return;
     }
 
@@ -751,6 +742,7 @@ const AiQaContent: React.FC<{
 
   return (
     <StyledMainContainer className={palette.mode === 'dark' ? 'md-dark' : ''}>
+      {captchaDialog}
       {/* 无对话时显示欢迎界面 */}
       {conversation.length === 0 && (
         <Box

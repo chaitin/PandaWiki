@@ -128,7 +128,7 @@ const proxyShare = async (request: NextRequest, pathname?: string) => {
   // 转发到 process.env.TARGET
   const kb_id = request.headers.get('x-kb-id') || process.env.DEV_KB_ID || '';
 
-  const targetOrigin = process.env.TARGET!;
+  const targetOrigin = process.env.TARGET!.trim();
   const targetUrl = new URL(
     (pathname || request.nextUrl.pathname) + request.nextUrl.search,
     targetOrigin,
@@ -157,12 +157,25 @@ const proxyShare = async (request: NextRequest, pathname?: string) => {
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
   const pathname = url.pathname;
-  const kbDetail = await getShareV1AppWebInfo();
+  let kbDetail: any = null;
+  try {
+    kbDetail = await getShareV1AppWebInfo();
+  } catch (e) {
+    // 后端暂不可用时中间件不能抛异常，否则所有页面都打不开
+    console.error('Failed to load app info in proxy:', e);
+  }
   const basePath = getBasePath(kbDetail?.base_url || '');
   const appPathname = stripBasePath(pathname, basePath);
 
   if (appPathname.startsWith('/widget')) {
-    const widgetInfo: any = await getShareV1AppWidgetInfo();
+    const kb_id =
+      url.searchParams.get('kb_id') ||
+      request.headers.get('x-kb-id') ||
+      process.env.DEV_KB_ID ||
+      '';
+    const widgetInfo: any = await getShareV1AppWidgetInfo({
+      headers: { 'x-kb-id': kb_id },
+    });
     if (widgetInfo) {
       if (!widgetInfo?.settings?.widget_bot_settings?.is_open) {
         return NextResponse.rewrite(new URL('/not-found', request.url));

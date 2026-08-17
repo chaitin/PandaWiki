@@ -1,0 +1,44 @@
+# === Java / Gradle ===
+build/
+.gradle/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+out/
+!gradle/wrapper/gradle-wrapper.jar
+
+# === IDE ===
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.factorypath
+.vscode/
+*.swp
+*.swo
+*~
+
+# === OS ===
+.DS_Store
+Thumbs.db
+
+# === 日志与临时文件 ===
+logs/
+*.log
+tmp/
+temp/
+
+# === Spring / Devtools ===
+.spring-boot-devtools.properties
+
+# === 本地私有配置（不要提交） ===
+src/main/resources/application-local.yml
+src/main/resources/application-private.yml
+.env

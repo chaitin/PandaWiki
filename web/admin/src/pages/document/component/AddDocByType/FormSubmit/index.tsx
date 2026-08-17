@@ -37,6 +37,7 @@ const FormSubmit = ({
     app_secret: '',
     user_access_token: '',
     url: '',
+    space_id: '',
   });
 
   const handleSubmitForm = useCallback(async () => {
@@ -136,39 +137,25 @@ const FormSubmit = ({
               app_id: formData.app_id!,
               app_secret: formData.app_secret!,
               user_access_token: formData.user_access_token!,
+              space_id: formData.space_id,
             },
             kb_id,
           });
 
-          const myfolder: ListDataItem = {
-            uuid: uuidv4(),
-            task_id: '',
-            parent_id: parent_id || '',
-            platform_id: resp.id || '',
-            id: 'cloud_disk',
-            title: '飞书云盘',
-            summary: 'cloud_disk',
-            file: false,
-            status: 'parsed',
-            open: true,
-            folderReq: false,
-            feishu_setting: {
-              app_id: formData.app_id!,
-              app_secret: formData.app_secret!,
-              user_access_token: formData.user_access_token!,
-            },
+          const feishuSetting = {
+            app_id: formData.app_id!,
+            app_secret: formData.app_secret!,
+            user_access_token: formData.user_access_token!,
+            space_id: formData.space_id,
           };
 
+          // 直接平铺后端返回的文档树；space_id 为空时拉「我的云文档」，有值时拉知识库
           const children = flattenCrawlerParseResponse(resp, parent_id, {
-            folderReq: false,
-            feishu_setting: {
-              app_id: formData.app_id!,
-              app_secret: formData.app_secret!,
-              user_access_token: formData.user_access_token!,
-            },
-          });
+            folderReq: true,
+            feishu_setting: feishuSetting,
+          }).filter(item => item.id !== 'root');
 
-          setData([myfolder, ...children]);
+          setData(children);
           break;
         }
         case ConstsCrawlerSource.CrawlerSourceDingtalk: {

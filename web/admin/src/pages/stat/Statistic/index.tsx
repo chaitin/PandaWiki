@@ -5,6 +5,7 @@ import AreaMap from './AreaMap';
 import ClientStat from './ClientStat';
 import HostReferer from './HostReferer';
 import HotDocs from './HotDocs';
+import HotQuestions from './HotQuestions';
 import QAReferer from './QAReferer';
 import RTVisitor from './RTVisitor';
 import TypeCount from './TypeCount';
@@ -123,6 +124,9 @@ const Statistic = () => {
         </Box>
         <Box sx={{ width: isWideScreen ? 340 : '100%', flexShrink: 0 }}>
           <HotDocs tab={tab} />
+        </Box>
+        <Box sx={{ width: isWideScreen ? 340 : '100%', flexShrink: 0 }}>
+          <HotQuestions tab={tab} />
         </Box>
         <Box sx={{ width: isWideScreen ? 340 : '100%', flex: 1 }}>
           <ClientStat tab={tab} />

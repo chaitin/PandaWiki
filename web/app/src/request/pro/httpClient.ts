@@ -345,4 +345,4 @@ export class HttpClient<SecurityDataType = unknown> {
   };
 }
 
-export default new HttpClient({ baseUrl: process.env.TARGET }).request;
+export default new HttpClient({ baseUrl: process.env.TARGET?.trim() }).request;

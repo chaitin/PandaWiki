@@ -1,0 +1,106 @@
+# ==============================================================
+# 🐼 PandaWiki 本地开发环境 · Docker Compose
+# 严格对齐 backend/config/config.go 的【默认配置】，无需改代码即插即用
+#
+# 🔧 用法（二选一，推荐 start.bat）：
+#   A. 命令行：项目根目录下 → docker compose up -d
+#   B. 双击脚本：start.bat → 选 1（一键启中间件）
+# ==============================================================
+
+name: pandawiki-local
+
+services:
+
+  # ==============================================================
+  # 1. PostgreSQL 16（主数据库）
+  # Go 后端默认 DSN 里写死：host=panda-wiki-postgres user=panda-wiki password=panda-wiki-secret dbname=panda-wiki
+  # ==============================================================
+  panda-wiki-postgres:
+    image: postgres:16-alpine
+    container_name: pandawiki-pg
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: panda-wiki
+      POSTGRES_PASSWORD: panda-wiki-secret
+      POSTGRES_DB: panda-wiki
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      - pandawiki_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U panda-wiki -d panda-wiki"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ==============================================================
+  # 2. Redis 7（缓存 + 会话存储）
+  # Go 后端默认：addr=panda-wiki-redis:6379 password=""
+  # ==============================================================
+  panda-wiki-redis:
+    image: redis:7-alpine
+    container_name: pandawiki-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"   # 改宿主机端口 6380，避免和用户本地已有的旧 Redis:6379 冲突
+    volumes:
+      - pandawiki_redisdata:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ==============================================================
+  # 3. NATS 2.x（消息队列：文档向量化异步通知 ct-rag）
+  # Go 后端默认：nats://panda-wiki-nats:4222 user=panda-wiki password=""
+  # ==============================================================  
+  panda-wiki-nats:
+    image: nats:2-alpine
+    container_name: pandawiki-nats
+    restart: unless-stopped
+    command: "-js -sd /data"   # -js=开启 JetStream（本地开发不加 -user/-pass，避免 HTTP 监控也需认证）
+    ports:
+      - "4222:4222"
+      - "8222:8222"   # NATS 监控面板 http://localhost:8222
+    volumes:
+      - pandawiki_natsdata:/data
+    healthcheck:
+      # Alpine 镜像没有 wget/curl，用 pidof 检查进程存活（更可靠，不依赖网络）
+      test: ["CMD-SHELL", "pidof nats-server || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  # ==============================================================
+  # 4. MinIO（S3 兼容对象存储：图片/附件上传）
+  # Go 后端默认：endpoint=panda-wiki-minio:9000 access_key=s3panda-wiki secret=""
+  # （可选，暂时不用文件上传功能可以注释掉整个 section）
+  # ==============================================================
+  panda-wiki-minio:
+    image: minio/minio:latest
+    container_name: pandawiki-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: s3panda-wiki
+      MINIO_ROOT_PASSWORD: s3panda-wiki-secret   # 至少 8 位
+    ports:
+      - "9000:9000"    # S3 API 端口（后端连这个）
+      - "9001:9001"    # MinIO 网页控制台 http://localhost:9001
+    volumes:
+      - pandawiki_miniodata:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pandawiki_pgdata:       # PostgreSQL 数据卷（删掉=数据清零）
+  pandawiki_redisdata:    # Redis 数据卷
+  pandawiki_natsdata:     # NATS JetStream 数据卷
+  pandawiki_miniodata:    # MinIO 文件卷
