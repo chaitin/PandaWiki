@@ -8,10 +8,16 @@ import { Stack, createTheme } from '@mui/material';
 import { createComponentStyleOverrides } from '@/theme';
 import { useStore } from '@/provider';
 import { THEME_TO_PALETTE } from '@panda-wiki/themes/constants';
+import { postShareV1StatPage } from '@/request/ShareStat';
 
 const HomePage = () => {
   const { kbDetail } = useStore();
   const [showSearch, setShowSearch] = useState(false);
+
+  useEffect(() => {
+    // 欢迎页访问埋点
+    postShareV1StatPage({ scene: 1 });
+  }, []);
 
   useEffect(() => {
     let ticking = false;

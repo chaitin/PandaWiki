@@ -14,6 +14,7 @@ export type FormData = {
   user_access_token?: string;
   unionid?: string;
   url?: string;
+  space_id?: string;
 };
 
 /**
@@ -126,9 +127,8 @@ export const flattenCrawlerParseResponse = (
 
     const { value, children } = node;
 
-    // 如果 value.id 为空，跳过此节点（不是正常数据）
-    if (!value.id) {
-      // 但仍然需要处理其子节点（如果有的话）
+    // root 节点或 id 为空节点不创建 item，子节点直接挂到当前父节点下
+    if (!value.id || value.id === 'root') {
       if (children && children.length > 0) {
         children.forEach(child => processNode(child, currentParentId));
       }

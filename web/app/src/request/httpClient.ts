@@ -236,9 +236,14 @@ export class HttpClient<SecurityDataType = unknown> {
     const payloadFormatter = this.contentFormatters[type || ContentType.Json];
     const responseFormat = format || requestParams.format || "json";
 
-    let customHeaders = {};
+    let customHeaders: Record<string, string> = {};
     if (typeof window === "undefined") {
       customHeaders = await getServerHeader();
+    } else {
+      const urlKbId = new URLSearchParams(window.location.search).get('kb_id');
+      if (urlKbId) {
+        customHeaders['x-kb-id'] = urlKbId;
+      }
     }
 
     return this.customFetch(
@@ -345,4 +350,4 @@ export class HttpClient<SecurityDataType = unknown> {
   };
 }
 
-export default new HttpClient({ baseUrl: process.env.TARGET }).request;
+export default new HttpClient({ baseUrl: process.env.TARGET?.trim() }).request;

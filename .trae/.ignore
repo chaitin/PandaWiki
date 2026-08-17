@@ -1,0 +1,145 @@
+# ==============================================================
+# 🐼 PandaWiki .trae/.ignore 配置
+# 规则：把 AI 读了也没用 / 巨浪费 token 的文件/目录放这里
+# 取消忽略 → 前面加 # 注释掉即可
+# ==============================================================
+
+# ==============================================================
+# 一、依赖安装目录（最大 token 杀手，几十万行没用的代码）
+# ==============================================================
+**/node_modules/          # 前端 npm/pnpm 依赖包目录
+backend-java/.gradle/     # Gradle 缓存目录
+**/.gradle/
+**/.idea/                 # JetBrains IDE 配置
+**/.vscode/               # VS Code 配置
+
+# ==============================================================
+# 二、构建产物目录（编译/打包后的文件，读源码不需要）
+# ==============================================================
+backend-java/build/       # Gradle 构建产物
+**/build/
+**/dist/                  # Vite/Next.js 打包产物
+**/target/                # Maven 构建产物（如果以后用）
+web/app/.next/            # Next.js 构建缓存
+web/admin/.husky/         # Husky git hooks（不需要读）
+
+# ==============================================================
+# 三、巨型锁文件 / 依赖清单（几万~几十万行纯 hash，读了没用）
+# ==============================================================
+backend/go.sum
+web/pnpm-lock.yaml
+**/yarn.lock
+**/package-lock.json
+
+# ==============================================================
+# 四、自动生成的代码（AI 读了白读，因为是工具生成的，改了也会被覆盖）
+# ==============================================================
+# 4.1 Google Wire 依赖注入自动生成（3 个 cmd 都有）
+backend/cmd/api/wire_gen.go
+backend/cmd/consumer/wire_gen.go
+backend/cmd/migrate/wire_gen.go
+
+# 4.2 Swagger 自动生成文档 JSON/YAML
+backend/docs/swagger.json
+backend/docs/swagger.yaml
+backend/docs/docs.go
+
+# 4.3 前端基于 Swagger 自动生成的 API 层（模板+请求代码，不需要读）
+web/admin/api-templates/
+web/app/api-templates/
+web/admin/src/request/pro/nml
+web/app/src/request/pro/
+
+# ==============================================================
+# 五、二进制 / 图片 / 媒体 / 非文本大文件
+# （AI 解码 PNG/XDB 全是乱码，几万乱码 token 白烧）
+# ==============================================================
+# 5.1 全项目图片
+images/                   # 根目录 README 截图               
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.ico
+**/*.bmp
+**/*.svg
+
+# 5.2 IP 地理离线库（二进制）
+backend/store/ipdb/ip2region.xdb
+
+# 5.3 字体文件
+**/*.woff
+**/*.woff2
+**/*.ttf
+**/*.otf
+
+# 5.4 前端大 JSON 数据（地图/地理信息）
+web/admin/public/geo/
+web/admin/public/echarts/
+web/admin/public/world.json
+web/admin/src/assets/json/
+web/admin/src/assets/emoji-data/
+
+# ==============================================================
+# 六、证书 / 密钥（敏感文件，禁止 AI 读到！顺便省 token）
+# ==============================================================
+**/*.crt
+**/*.pem
+**/*.key
+web/admin/ssl/
+
+# ==============================================================
+# 七、日志 / 临时 / 缓存文件
+# ==============================================================
+**/*.log
+**/*.tmp
+**/*.cache
+**/logs/
+**/.DS_Store
+**/Thumbs.db
+
+# ==============================================================
+# 八、Git 元数据 / 版本控制
+# ==============================================================
+.git/
+.gitmodules
+.gitattributes
+
+# ==============================================================
+# 九、暂时不需要读的子模块/子项目（需要时注释掉取消忽略）
+# ==============================================================
+backend/                   # 【用户暂时不用Go后端】整目录忽略不扫描（包括 go.mod/go.sum/main.go/wire_gen.go），以后切回Go时整行注释掉即可
+sdk/                       # Go 版 RAG SDK，改 Java 后端暂时不读
+.github/                   # GitHub Actions CI/CD 配置
+
+# ==============================================================
+# 十、前端静态资源（AI 读 CSS/JS 没用）
+# ==============================================================
+web/admin/public/panda-wiki.css
+web/admin/public/panda-wiki.js
+web/app/public/widget-bot.css
+web/app/public/widget-bot.js
+web/admin/src/assets/fonts/
+web/admin/src/assets/styles/
+
+# ==============================================================
+# 十一、Go/Java 项目中的非核心配置
+# ==============================================================
+backend/.golangci.toml     # linter 配置
+backend/cSpell.json        # 拼写检查配置
+backend/project-words.txt  # 拼写词典
+backend-java/.dockerignore
+
+# ==============================================================
+# 十二、架构设计说明文档（人工看，AI 不需要读节省 token）
+# （需要 AI 读时 → 前面加 # 注释掉这一行）
+# ==============================================================
+autal.md
+mingling.md
+oprater.md
+bishe.md
+vector-retrieval-plan.md
+文档导入功能实施计划.md
+others/daoruceshi.html
+方向三-统计数据分析-Java后端补齐方案.md

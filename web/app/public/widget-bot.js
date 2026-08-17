@@ -10,6 +10,12 @@
   const ulrObj = new URL(currentScript.src)
   const widgetDomain = `${ulrObj.origin}${ulrObj.pathname}`.replace('/widget-bot.js', '')
 
+  // API 域名：从 data-api-domain 读取，默认 Java 后端 8080
+  const apiDomain = (currentScript.getAttribute('data-api-domain') || 'http://localhost:8080').replace(/\/$/, '')
+
+  // 知识库 ID：从 data-kb-id 读取
+  const kbId = currentScript.getAttribute('data-kb-id') || ''
+
   let widgetInfo = null;
   let widgetButton = null;
   let widgetModal = null;
@@ -47,12 +53,13 @@
     }
 
     try {
-      const response = await fetch(`${widgetDomain}/share/v1/app/widget/info`, {
+      const response = await fetch(`${apiDomain}/share/v1/app/widget/info`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'x-kb-id': kbId,
         },
-        credentials: 'same-origin'
+        credentials: 'omit'
       });
 
       if (!response.ok) {
@@ -451,7 +458,7 @@
     // 创建iframe
     const iframe = document.createElement('iframe');
     iframe.className = 'widget-bot-iframe';
-    iframe.src = `${widgetDomain}/widget`;
+    iframe.src = `${widgetDomain}/widget${kbId ? `?kb_id=${encodeURIComponent(kbId)}` : ''}`;
     iframe.setAttribute('title', `${widgetInfo.btn_text || '在线客服'}服务窗口`);
     iframe.setAttribute('allow', 'camera; microphone; geolocation');
     iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms allow-popups allow-presentation');

@@ -558,6 +558,7 @@ const AiQaContent: React.FC<{
       url: `${basePath}/share/v1/chat/widget`,
       headers: {
         'Content-Type': 'application/json',
+        'x-kb-id': searchParams.get('kb_id') || '',
       },
       onCancel: () => {
         setLoading(false);

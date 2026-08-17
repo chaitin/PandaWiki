@@ -39,7 +39,13 @@ export const viewport: Viewport = {
 };
 
 export async function generateMetadata(): Promise<Metadata> {
-  const kbDetail: any = await getShareV1AppWebInfo();
+  let kbDetail: any = null;
+  try {
+    kbDetail = await getShareV1AppWebInfo();
+  } catch (e) {
+    // 后端暂不可用时不要整个页面崩溃，退回默认 meta
+    console.error('Failed to load app info for metadata:', e);
+  }
   const basePath = getBasePath(kbDetail?.base_url || '');
   const icon = getImagePath(kbDetail?.settings?.icon || '', basePath);
   return {

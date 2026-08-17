@@ -120,11 +120,13 @@ class SSEClient<T> {
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (line.startsWith('data: ')) {
+      if (line.startsWith('data:')) {
+        // 兼容 data:xxx（Spring SseEmitter）和 data: xxx（标准 SSE）两种格式
+        const payload = line.slice(5).replace(/^ /, '');
         if (isDataLine) {
           currentData += '\n';
         }
-        currentData += line.slice(6);
+        currentData += payload;
         isDataLine = true;
       } else if (line === '') {
         if (isDataLine) {

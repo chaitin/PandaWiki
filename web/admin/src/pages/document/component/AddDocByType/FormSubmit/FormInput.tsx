@@ -105,6 +105,11 @@ const FormInput = ({ type, formData, onChange }: FormInputProps) => {
           placeholder: '',
           fieldName: 'user_access_token',
         },
+        {
+          label: 'Space ID（知识库 ID，可选）',
+          placeholder: '为空时拉取「我的云文档」；填写时拉取指定知识库',
+          fieldName: 'space_id',
+        },
       ],
       [ConstsCrawlerSource.CrawlerSourceDingtalk]: [
         {

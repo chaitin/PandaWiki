@@ -1,0 +1,48 @@
+server:
+  port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+      force-request: true
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
+  datasource:
+    url: jdbc:postgresql://localhost:5432/panda-wiki
+    username: panda-wiki
+    password: panda-wiki-secret
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  data:
+    redis:
+      host: localhost
+      port: 6380
+  cache:
+    type: redis
+  # nats:
+  #   server: nats://localhost:4222  # 阶段 3 再接入；当前无 nats-spring-boot-starter
+
+logging:
+  level:
+    root: INFO
+    com.chaitin.pandawiki: DEBUG
+
+panda:
+  admin:
+    password: admin123
+  jwt:
+    secret: change-me-in-prod-please-1234567890

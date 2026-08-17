@@ -5,7 +5,13 @@ import Script from 'next/script';
 const Layout = async ({
   children,
 }: Readonly<{ children: React.ReactNode }>) => {
-  const kbDetail = await getShareV1AppWebInfo();
+  let kbDetail: any = null;
+  try {
+    kbDetail = await getShareV1AppWebInfo();
+  } catch (e) {
+    // 后端暂不可用时不要整个页面崩溃
+    console.error('Failed to load app info:', e);
+  }
 
   const options = {
     replace(domNode: DOMNode) {
