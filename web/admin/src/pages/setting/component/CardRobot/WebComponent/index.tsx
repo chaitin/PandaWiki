@@ -91,12 +91,12 @@ const CardRobotWebComponent = ({ kb }: CardRobotWebComponentProps) => {
     if (host === '') return;
     const { ssl_ports = [], ports = [] } = kb.access_settings || {};
 
-    if (ssl_ports) {
+    if (ssl_ports && ssl_ports.length > 0) {
       if (ssl_ports.includes(443)) setUrl(`https://${host}`);
-      else if (ssl_ports.length > 0) setUrl(`https://${host}:${ssl_ports[0]}`);
-    } else if (ports) {
+      else setUrl(`https://${host}:${ssl_ports[0]}`);
+    } else if (ports && ports.length > 0) {
       if (ports.includes(80)) setUrl(`http://${host}`);
-      else if (ports.length > 0) setUrl(`http://${host}:${ports[0]}`);
+      else setUrl(`http://${host}:${ports[0]}`);
     }
   }, [kb]);
 

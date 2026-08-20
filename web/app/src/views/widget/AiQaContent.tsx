@@ -9,6 +9,7 @@ import { useBasePath, useSmartScroll } from '@/hooks';
 import { useStore } from '@/provider';
 import { postShareV1ChatFeedback } from '@/request/ShareChat';
 import { getShareV1ConversationDetail } from '@/request/ShareConversation';
+import { ConstsCopySetting } from '@/request/types';
 import { copyText } from '@/utils';
 import SSEClient from '@/utils/fetch';
 import { getImagePath } from '@/utils/getImagePath';
@@ -368,22 +369,54 @@ const AiQaContent: React.FC<{
     }
   };
 
+  const TOKEN_KEY = 'pandawiki_captcha_token';
+
+  const readCachedToken = (): { token: string; expires: number } | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem(TOKEN_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { token?: string; expires?: number };
+      if (parsed.token && parsed.expires && parsed.expires > Date.now()) {
+        return { token: parsed.token, expires: parsed.expires };
+      }
+    } catch {
+      // ignore
+    }
+    localStorage.removeItem(TOKEN_KEY);
+    return null;
+  };
+
+  const cacheToken = (token: string, expires: number) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({ token, expires }));
+  };
+
   const chatAnswer = async (q: string) => {
     setLoading(true);
     setThinking(1);
 
     let token = '';
+    const cached = readCachedToken();
 
-    const Cap = (await import(`@cap.js/widget`)).default;
-    const cap = new Cap({
-      apiEndpoint: `${basePath}/share/v1/captcha/`,
-    });
-    try {
-      const solution = await cap.solve();
-      token = solution.token;
-    } catch (error) {
-      message.error('验证失败');
-      return;
+    if (cached) {
+      token = cached.token;
+    } else {
+      const Cap = (await import(`@cap.js/widget`)).default;
+      const cap = new Cap({
+        apiEndpoint: `${basePath}/share/v1/captcha/`,
+      });
+      try {
+        const solution = (await cap.solve()) as {
+          token: string;
+          expires?: number;
+        };
+        token = solution.token;
+        cacheToken(token, solution.expires ?? Date.now() + 5 * 60 * 1000);
+      } catch (error) {
+        message.error('验证失败');
+        return;
+      }
     }
 
     const reqData = {
@@ -895,7 +928,19 @@ const AiQaContent: React.FC<{
                       <IconCopy
                         sx={{ cursor: 'pointer' }}
                         onClick={() => {
-                          copyText(item.a);
+                          if (
+                            kbDetail?.settings?.copy_setting ===
+                            ConstsCopySetting.CopySettingDisabled
+                          ) {
+                            message.warning('当前状态下禁止复制');
+                            return;
+                          }
+                          const suffix =
+                            kbDetail?.settings?.copy_setting ===
+                            ConstsCopySetting.CopySettingAppend
+                              ? `\n\n-----------------------------------------\n内容来自 ${window.location.href}`
+                              : '';
+                          copyText(item.a + suffix);
                         }}
                       />
 

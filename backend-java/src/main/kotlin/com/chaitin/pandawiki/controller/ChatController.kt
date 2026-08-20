@@ -1,9 +1,11 @@
 package com.chaitin.pandawiki.controller
 
+import com.chaitin.pandawiki.service.BlockWordService
 import com.chaitin.pandawiki.service.EmbeddingService
 import com.chaitin.pandawiki.service.ModelService
 import com.chaitin.pandawiki.service.PromptService
 import com.fasterxml.jackson.databind.ObjectMapper
+import jakarta.servlet.http.HttpServletRequest
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter
+import java.util.UUID
 
 @RestController
 @RequestMapping("/share/v1/chat")
@@ -19,6 +22,7 @@ class ChatController(
     private val modelService: ModelService,
     private val embeddingService: EmbeddingService,
     private val promptService: PromptService,
+    private val blockWordService: BlockWordService,
     private val objectMapper: ObjectMapper
 ) {
 
@@ -116,6 +120,28 @@ class ChatController(
             ?: throw IllegalArgumentException("缺少用户消息")
 
         val kbId = resolveKbId(kbIdHeader)
+
+        // 敏感词检查：用户问题包含敏感词时直接返回错误
+        if (kbId != null) {
+            val blockError = blockWordService.checkQuestion(kbId, userMessage)
+            if (blockError != null) {
+                return mapOf(
+                    "id" to "chatcmpl-${System.currentTimeMillis()}",
+                    "object" to "chat.completion",
+                    "created" to (System.currentTimeMillis() / 1000),
+                    "model" to req["model"],
+                    "choices" to listOf(
+                        mapOf(
+                            "index" to 0,
+                            "message" to mapOf("role" to "assistant", "content" to blockError),
+                            "finish_reason" to "stop"
+                        )
+                    ),
+                    "usage" to mapOf("prompt_tokens" to 0, "completion_tokens" to 0, "total_tokens" to 0)
+                )
+            }
+        }
+
         val chunks = if (kbId == null) emptyList() else searchNodes(kbId, userMessage.trim())
 
         val context = if (chunks.isEmpty()) {
@@ -139,6 +165,9 @@ class ChatController(
             temperature = (req["temperature"] as? Number)?.toDouble() ?: 0.3
         )
 
+        // 敏感词过滤：替换 AI 回答中的敏感词
+        val filteredAnswer = if (kbId != null) blockWordService.filterAnswer(kbId, answer) else answer
+
         return mapOf(
             "id" to "chatcmpl-${System.currentTimeMillis()}",
             "object" to "chat.completion",
@@ -147,7 +176,7 @@ class ChatController(
             "choices" to listOf(
                 mapOf(
                     "index" to 0,
-                    "message" to mapOf("role" to "assistant", "content" to answer),
+                    "message" to mapOf("role" to "assistant", "content" to filteredAnswer),
                     "finish_reason" to "stop"
                 )
             ),
@@ -160,7 +189,8 @@ class ChatController(
         userMessage: String,
         kbIdHeader: String?,
         conversationId: String?,
-        nonce: String?
+        nonce: String?,
+        request: HttpServletRequest? = null
     ) {
         try {
             if (userMessage.isEmpty()) {
@@ -170,14 +200,38 @@ class ChatController(
             }
 
             val kbId = resolveKbId(kbIdHeader)
+
+            // 敏感词检查：用户问题包含敏感词时直接返回错误
+            if (kbId != null) {
+                val blockError = blockWordService.checkQuestion(kbId, userMessage)
+                if (blockError != null) {
+                    sendSseEvent(emitter, "conversation_id", conversationId ?: "conv-${System.currentTimeMillis()}")
+                    sendSseEvent(emitter, "message_id", "msg-${System.currentTimeMillis()}-${(0..9999).random()}")
+                    nonce?.takeIf { it.isNotBlank() }?.let {
+                        sendSseEvent(emitter, "nonce", it)
+                    }
+                    sendSseEvent(emitter, "error", blockError)
+                    emitter.complete()
+                    return
+                }
+            }
+
             val chunks = if (kbId == null) emptyList() else searchNodes(kbId, userMessage)
 
             val convId = conversationId?.takeIf { it.isNotBlank() }
                 ?: "conv-${System.currentTimeMillis()}"
-            val messageId = "msg-${System.currentTimeMillis()}-${(0..9999).random()}"
+            val userMessageId = "msg-${System.currentTimeMillis()}-${(0..9999).random()}"
+            val assistantMessageId = "msg-${System.currentTimeMillis()}-${(0..9999).random()}"
+            val appId = "app-${System.currentTimeMillis()}-${(0..9999).random()}"
+            val remoteIp = extractClientIp(request)
+            val now = java.time.OffsetDateTime.now()
+
+            // 保存会话与用户问题
+            saveConversation(convId, kbId ?: "", appId, userMessage, remoteIp, now)
+            saveUserMessage(userMessageId, convId, appId, kbId ?: "", userMessage, remoteIp, now)
 
             sendSseEvent(emitter, "conversation_id", convId)
-            sendSseEvent(emitter, "message_id", messageId)
+            sendSseEvent(emitter, "message_id", assistantMessageId)
             nonce?.takeIf { it.isNotBlank() }?.let {
                 sendSseEvent(emitter, "nonce", it)
             }
@@ -216,11 +270,17 @@ class ChatController(
 
             val answer = modelService.chat(chatMessages)
 
+            // 敏感词过滤：替换 AI 回答中的敏感词
+            val filteredAnswer = if (kbId != null) blockWordService.filterAnswer(kbId, answer) else answer
+
             val chunkSize = 8
-            for (i in answer.indices step chunkSize) {
-                val end = minOf(i + chunkSize, answer.length)
-                sendSseEvent(emitter, "data", answer.substring(i, end))
+            for (i in filteredAnswer.indices step chunkSize) {
+                val end = minOf(i + chunkSize, filteredAnswer.length)
+                sendSseEvent(emitter, "data", filteredAnswer.substring(i, end))
             }
+
+            // 保存助手回答，message_id 返回给前端用于反馈
+            saveAssistantMessage(assistantMessageId, convId, appId, kbId ?: "", filteredAnswer, remoteIp, now)
 
             sendSseEvent(emitter, "done", "")
             emitter.complete()
@@ -233,7 +293,8 @@ class ChatController(
     @PostMapping("/message")
     fun message(
         @RequestBody req: Map<String, Any?>,
-        @RequestHeader("x-kb-id") kbIdHeader: String?
+        @RequestHeader("x-kb-id") kbIdHeader: String?,
+        request: HttpServletRequest
     ): SseEmitter {
         val emitter = SseEmitter(120_000L)
         Thread {
@@ -242,7 +303,8 @@ class ChatController(
                 req["message"]?.toString()?.trim() ?: "",
                 kbIdHeader,
                 req["conversation_id"]?.toString(),
-                req["nonce"]?.toString()
+                req["nonce"]?.toString(),
+                request
             )
         }.start()
         return emitter
@@ -251,7 +313,8 @@ class ChatController(
     @PostMapping("/widget")
     fun widget(
         @RequestBody req: Map<String, Any?>,
-        @RequestHeader("x-kb-id") kbIdHeader: String?
+        @RequestHeader("x-kb-id") kbIdHeader: String?,
+        request: HttpServletRequest
     ): SseEmitter {
         val emitter = SseEmitter(120_000L)
         Thread {
@@ -260,7 +323,8 @@ class ChatController(
                 req["message"]?.toString()?.trim() ?: "",
                 kbIdHeader,
                 req["conversation_id"]?.toString(),
-                req["nonce"]?.toString()
+                req["nonce"]?.toString(),
+                request
             )
         }.start()
         return emitter
@@ -300,6 +364,69 @@ class ChatController(
             data["chunk_result"] = chunkResult
         }
         emitter.send(SseEmitter.event().data(objectMapper.writeValueAsString(data)))
+    }
+
+    private fun saveConversation(
+        id: String,
+        kbId: String,
+        appId: String,
+        subject: String,
+        remoteIp: String,
+        now: java.time.OffsetDateTime
+    ) {
+        jdbcTemplate.update(
+            """INSERT INTO conversations (id, nonce, kb_id, app_id, subject, remote_ip, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)
+               ON CONFLICT (id) DO NOTHING""",
+            id, "", kbId, appId, subject, remoteIp, now
+        )
+    }
+
+    private fun saveUserMessage(
+        id: String,
+        convId: String,
+        appId: String,
+        kbId: String,
+        content: String,
+        remoteIp: String,
+        now: java.time.OffsetDateTime
+    ) {
+        jdbcTemplate.update(
+            """INSERT INTO conversation_messages
+               (id, conversation_id, app_id, role, content, kb_id, remote_ip, created_at, info)
+               VALUES (?, ?, ?, 'user', ?, ?, ?, ?, '{}')""",
+            id, convId, appId, content, kbId, remoteIp, now
+        )
+    }
+
+    private fun saveAssistantMessage(
+        id: String,
+        convId: String,
+        appId: String,
+        kbId: String,
+        content: String,
+        remoteIp: String,
+        now: java.time.OffsetDateTime
+    ) {
+        jdbcTemplate.update(
+            """INSERT INTO conversation_messages
+               (id, conversation_id, app_id, role, content, kb_id, remote_ip, created_at, info)
+               VALUES (?, ?, ?, 'assistant', ?, ?, ?, ?)""",
+            id, convId, appId, content, kbId, remoteIp, now,
+            objectMapper.writeValueAsString(mapOf("score" to 0))
+        )
+    }
+
+    private fun extractClientIp(request: HttpServletRequest?): String {
+        if (request == null) return "unknown"
+        val headers = listOf("X-Forwarded-For", "X-Real-IP", "Proxy-Client-IP", "WL-Proxy-Client-IP")
+        for (h in headers) {
+            val value = request.getHeader(h)
+            if (!value.isNullOrBlank() && !value.equals("unknown", ignoreCase = true)) {
+                return value.split(",")[0].trim()
+            }
+        }
+        return request.remoteAddr ?: "unknown"
     }
 
     @PostMapping("/widget/search")

@@ -97,13 +97,25 @@ class CaptchaController {
             )
         }
 
-        // 校验通过；移除该 token 防止重放
-        tokens.remove(token)
+        // 校验通过；保留 token 以便 5 分钟内复用（演示环境降低验证频率）
         return VerificationResult(
             success = true,
             message = "ok",
             token = token,
             expires = stored.expires
         )
+    }
+
+    /**
+     * 供其他 Controller（如评论创建）校验验证码 token 是否有效：存在且未过期。
+     */
+    fun validateToken(token: String?): Boolean {
+        if (token.isNullOrBlank()) return false
+        val stored = tokens[token] ?: return false
+        if (Instant.now().toEpochMilli() > stored.expires) {
+            tokens.remove(token)
+            return false
+        }
+        return true
     }
 }

@@ -21,8 +21,10 @@ const StatPage = {
   auth: 4,
 } as const;
 
-const getFirstNode = async () => {
-  const nodeListResult: any = await getShareV1NodeList();
+const getFirstNode = async (kbId?: string) => {
+  const nodeListResult: any = await getShareV1NodeList({
+    headers: { 'x-kb-id': kbId || '' },
+  });
   const { isGrouped, navDataMap, defaultNavId } = parseNodeListResponse(
     nodeListResult || [],
   );
@@ -35,8 +37,10 @@ const getFirstNode = async () => {
   return deepSearchFirstNode(tree);
 };
 
-const getHomePath = async () => {
-  const info = await getShareV1AppWebInfo();
+const getHomePath = async (kbId?: string) => {
+  const info = await getShareV1AppWebInfo({
+    headers: { 'x-kb-id': kbId || '' },
+  });
   return info?.settings?.home_page_setting;
 };
 
@@ -54,26 +58,35 @@ const homeProxy = async (
   headers: Record<string, string>,
   session: string,
   pathname?: string,
+  kbId?: string,
+  requestHeaders?: Headers,
 ) => {
   const url = request.nextUrl.clone();
   if (pathname) {
     url.pathname = pathname;
   }
   const { page, id } = parsePathname(url.pathname);
+  const rewriteInit = requestHeaders
+    ? { request: { headers: requestHeaders } }
+    : undefined;
   try {
     // 获取节点列表
     if (url.pathname === '/') {
-      const homePath = await getHomePath();
+      const homePath = await getHomePath(kbId);
       if (homePath === 'custom') {
-        return NextResponse.rewrite(new URL('/home', request.url));
+        return NextResponse.rewrite(new URL('/home', request.url), rewriteInit);
       } else {
-        const [firstNode] = await Promise.all([getFirstNode(), getHomePath()]);
+        const [firstNode] = await Promise.all([
+          getFirstNode(kbId),
+          getHomePath(kbId),
+        ]);
         if (firstNode) {
           return NextResponse.rewrite(
             new URL(`/node/${firstNode.id}`, request.url),
+            rewriteInit,
           );
         }
-        return NextResponse.rewrite(new URL('/node', request.url));
+        return NextResponse.rewrite(new URL('/node', request.url), rewriteInit);
       }
     }
 
@@ -97,9 +110,10 @@ const homeProxy = async (
     if (pathname && pathname !== request.nextUrl.pathname) {
       return NextResponse.rewrite(
         new URL(`${url.pathname}${url.search}`, request.url),
+        rewriteInit,
       );
     }
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: requestHeaders } });
   } catch (error) {
     if (
       typeof error === 'object' &&
@@ -119,14 +133,20 @@ const homeProxy = async (
   if (pathname && pathname !== request.nextUrl.pathname) {
     return NextResponse.rewrite(
       new URL(`${url.pathname}${url.search}`, request.url),
+      rewriteInit,
     );
   }
-  return NextResponse.next();
+  return NextResponse.next({ request: { headers: requestHeaders } });
 };
 
-const proxyShare = async (request: NextRequest, pathname?: string) => {
-  // 转发到 process.env.TARGET
-  const kb_id = request.headers.get('x-kb-id') || process.env.DEV_KB_ID || '';
+const proxyShare = async (
+  request: NextRequest,
+  pathname?: string,
+  kbId?: string,
+  requestHeaders?: Headers,
+) => {
+  const kb_id =
+    kbId || request.headers.get('x-kb-id') || process.env.DEV_KB_ID || '';
 
   const targetOrigin = process.env.TARGET!.trim();
   const targetUrl = new URL(
@@ -136,6 +156,9 @@ const proxyShare = async (request: NextRequest, pathname?: string) => {
   // 构造 fetch 选项
   const fetchHeaders = new Headers(request.headers);
   fetchHeaders.set('x-kb-id', kb_id);
+  if (requestHeaders?.get('x-pw-session-id')) {
+    fetchHeaders.set('x-pw-session-id', requestHeaders.get('x-pw-session-id')!);
+  }
 
   const hasBody = !['GET', 'HEAD'].includes(request.method);
   const fetchOptions: RequestInit = {
@@ -157,11 +180,11 @@ const proxyShare = async (request: NextRequest, pathname?: string) => {
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl.clone();
   const pathname = url.pathname;
+  const urlKbId = url.searchParams.get('kb_id') || '';
   let kbDetail: any = null;
   try {
-    kbDetail = await getShareV1AppWebInfo();
+    kbDetail = await getShareV1AppWebInfo({ headers: { 'x-kb-id': urlKbId } });
   } catch (e) {
-    // 后端暂不可用时中间件不能抛异常，否则所有页面都打不开
     console.error('Failed to load app info in proxy:', e);
   }
   const basePath = getBasePath(kbDetail?.base_url || '');
@@ -197,12 +220,23 @@ export async function proxy(request: NextRequest) {
     needSetSessionId = true;
   }
 
+  // 把会话 ID 注入 SSR 请求头，前端服务端渲染时能拿到访客标识（首次访问没有 cookie）
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pw-session-id', sessionId);
+
   let response: NextResponse;
 
   if (appPathname.startsWith('/share/')) {
-    response = await proxyShare(request, appPathname);
+    response = await proxyShare(request, appPathname, urlKbId, requestHeaders);
   } else {
-    response = await homeProxy(request, headers, sessionId, appPathname);
+    response = await homeProxy(
+      request,
+      headers,
+      sessionId,
+      appPathname,
+      urlKbId,
+      requestHeaders,
+    );
   }
 
   if (needSetSessionId) {

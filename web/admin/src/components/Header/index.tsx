@@ -21,30 +21,21 @@ const Header = () => {
     if (kb_id) {
       getApiV1KnowledgeBaseDetail({ id: kb_id }).then(res => {
         dispatch(setKbDetail(res));
-        if (res.access_settings?.base_url) {
-          setWikiUrl(res.access_settings.base_url);
-        } else {
-          let defaultUrl: string = '';
-          const host = res.access_settings?.hosts?.[0] || '';
-          if (!host) return;
+        const settings = res.access_settings;
+        const host = settings?.hosts?.[0] || '';
+        let defaultUrl: string = '';
 
-          if (
-            res.access_settings?.ssl_ports &&
-            res.access_settings?.ssl_ports.length > 0
-          ) {
-            defaultUrl = res.access_settings.ssl_ports.includes(443)
-              ? `https://${host}`
-              : `https://${host}:${res.access_settings.ssl_ports[0]}`;
-          } else if (
-            res.access_settings?.ports &&
-            res.access_settings?.ports.length > 0
-          ) {
-            defaultUrl = res.access_settings.ports.includes(80)
-              ? `http://${host}`
-              : `http://${host}:${res.access_settings.ports[0]}`;
-          }
-          setWikiUrl(defaultUrl);
+        // 优先使用 HTTP 配置打开 Wiki 站点
+        if (host && settings?.ports && settings.ports.length > 0) {
+          defaultUrl = settings.ports.includes(80)
+            ? `http://${host}`
+            : `http://${host}:${settings.ports[0]}`;
+        } else if (settings?.base_url) {
+          defaultUrl = settings.base_url;
         }
+        // 拼接 kb_id，确保 App 前台打开正确的知识库（多知识库隔离）
+        const sep = defaultUrl.includes('?') ? '&' : '?';
+        setWikiUrl(`${defaultUrl}${sep}kb_id=${kb_id}`);
       });
     }
   }, [kb_id]);

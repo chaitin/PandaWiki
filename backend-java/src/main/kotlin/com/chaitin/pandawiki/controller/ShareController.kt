@@ -80,7 +80,8 @@ class ShareController(
         ).firstOrNull() ?: return err("knowledge base not found")
 
         val kbName = kb["name"] as? String ?: ""
-        val baseUrl = parseJson(kb["access_settings"])["base_url"] as? String ?: "http://localhost:3010"
+        val accessSettings = parseJson(kb["access_settings"])
+        val baseUrl = accessSettings["base_url"] as? String ?: "http://localhost:3010"
 
         val app = jdbcTemplate.queryForList(
             "SELECT name, settings FROM apps WHERE kb_id = ? AND type = 1 ORDER BY created_at LIMIT 1",

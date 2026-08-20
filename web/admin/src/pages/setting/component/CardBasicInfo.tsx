@@ -43,26 +43,15 @@ const CardBasicInfo = ({
   const baseUrlPlaceholder = () => {
     const host = kb.access_settings?.hosts?.[0] || '';
     if (!host) {
-      return;
+      return '';
     }
 
-    if (
-      kb.access_settings?.ssl_ports &&
-      kb.access_settings.ssl_ports.length > 0
-    ) {
-      return kb.access_settings.ssl_ports.includes(443)
-        ? `https://${host}`
-        : `https://${host}:${kb.access_settings.ssl_ports[0]}`;
-    } else if (
-      kb.access_settings?.ports &&
-      kb.access_settings.ports.length > 0
-    ) {
+    if (kb.access_settings?.ports && kb.access_settings.ports.length > 0) {
       return kb.access_settings.ports.includes(80)
         ? `http://${host}`
         : `http://${host}:${kb.access_settings.ports[0]}`;
-    } else {
-      return '';
     }
+    return '';
   };
 
   return (

@@ -278,11 +278,6 @@ const CopyForm = ({
                 control={<Radio size='small' />}
                 label={<StyledRadioLabel>不做限制</StyledRadioLabel>}
               />
-              <FormControlLabel
-                value={ConstsCopySetting.CopySettingAppend}
-                control={<Radio size='small' />}
-                label={<StyledRadioLabel>增加内容尾巴</StyledRadioLabel>}
-              />
 
               <FormControlLabel
                 value={ConstsCopySetting.CopySettingDisabled}

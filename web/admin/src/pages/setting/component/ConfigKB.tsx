@@ -125,40 +125,6 @@ const ConfigKB = () => {
                 }}
               >{`http://${kb.access_settings.hosts[0] === '*' ? window.location.hostname : kb.access_settings.hosts[0]}:${kb.access_settings.ports[0]}`}</Box>
             )}
-          {kb?.access_settings?.ssl_ports &&
-            kb.access_settings.ssl_ports.length > 0 &&
-            kb.access_settings.hosts && (
-              <Box
-                onClick={() => {
-                  if (
-                    !kb.access_settings.hosts ||
-                    !kb.access_settings.ssl_ports
-                  )
-                    return;
-                  if (kb.access_settings.hosts[0] === '*') {
-                    window.open(
-                      `https://${window.location.hostname}:${kb.access_settings.ssl_ports[0]}`,
-                      '_blank',
-                    );
-                    return;
-                  }
-                  window.open(
-                    `https://${kb.access_settings.hosts[0]}:${kb.access_settings.ssl_ports[0]}`,
-                    '_blank',
-                  );
-                }}
-                sx={{
-                  width: 300,
-                  bgcolor: 'background.paper3',
-                  borderRadius: '10px',
-                  px: '14px',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    color: 'primary.main',
-                  },
-                }}
-              >{`https://${kb.access_settings.hosts[0] === '*' ? window.location.hostname : kb.access_settings.hosts[0]}`}</Box>
-            )}
         </Stack>
       </Stack>
     </Card>

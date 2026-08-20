@@ -10,6 +10,7 @@ import { useStore } from '@/provider';
 import { postShareV1ChatFeedback } from '@/request/ShareChat';
 import { getShareV1ConversationDetail } from '@/request/ShareConversation';
 import { postShareV1CommonFileUpload } from '@/request/ShareFile';
+import { ConstsCopySetting } from '@/request/types';
 import { copyText } from '@/utils';
 import SSEClient, { SSEHttpError } from '@/utils/fetch';
 import { useMathCaptcha } from '@/utils/useMathCaptcha';
@@ -1004,7 +1005,19 @@ const AiQaContent: React.FC<{
                       <IconCopy
                         sx={{ cursor: 'pointer' }}
                         onClick={() => {
-                          copyText(item.a);
+                          if (
+                            kbDetail?.settings?.copy_setting ===
+                            ConstsCopySetting.CopySettingDisabled
+                          ) {
+                            message.warning('当前状态下禁止复制');
+                            return;
+                          }
+                          const suffix =
+                            kbDetail?.settings?.copy_setting ===
+                            ConstsCopySetting.CopySettingAppend
+                              ? `\n\n-----------------------------------------\n内容来自 ${window.location.href}`
+                              : '';
+                          copyText(item.a + suffix);
                         }}
                       />
 

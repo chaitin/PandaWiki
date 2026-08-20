@@ -4,8 +4,14 @@ export async function getServerHeader(
 ): Promise<Record<string, string>> {
   const { headers, cookies } = await import('next/headers');
   const headersList = await headers();
+  const search = headersList.get('x-current-search') || '';
+  const urlKbId = new URLSearchParams(search).get('kb_id') || '';
   const kb_id =
-    kbId || headersList.get('x-kb-id') || process.env.DEV_KB_ID || '';
+    kbId ||
+    headersList.get('x-kb-id') ||
+    urlKbId ||
+    process.env.DEV_KB_ID ||
+    '';
   const cookieStore = await cookies();
 
   // 手动构建 cookie header，避免转义问题
@@ -19,6 +25,7 @@ export async function getServerHeader(
 
   return {
     'x-kb-id': kb_id,
+    'x-pw-session-id': headersList.get('x-pw-session-id') || '',
     cookie: cookieHeader,
   };
 }

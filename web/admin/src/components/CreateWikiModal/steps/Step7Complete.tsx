@@ -8,29 +8,16 @@ const Step7Complete = () => {
 
   const wikiUrl = useMemo(() => {
     if (!kbDetail) return '';
-    if (kbDetail.access_settings?.base_url) {
-      return kbDetail.access_settings.base_url;
-    } else {
-      let defaultUrl: string = '';
-      const host = kbDetail.access_settings?.hosts?.[0] || '';
-      if (!host) return '';
-      if (
-        kbDetail.access_settings?.ssl_ports &&
-        kbDetail.access_settings?.ssl_ports.length > 0
-      ) {
-        defaultUrl = kbDetail.access_settings.ssl_ports.includes(443)
-          ? `https://${host}`
-          : `https://${host}:${kbDetail.access_settings.ssl_ports[0]}`;
-      } else if (
-        kbDetail.access_settings?.ports &&
-        kbDetail.access_settings?.ports.length > 0
-      ) {
-        defaultUrl = kbDetail.access_settings.ports.includes(80)
-          ? `http://${host}`
-          : `http://${host}:${kbDetail.access_settings.ports[0]}`;
-      }
-      return defaultUrl;
+    const settings = kbDetail.access_settings;
+    const host = settings?.hosts?.[0] || '';
+
+    // 优先使用 HTTP 配置打开 Wiki 站点
+    if (host && settings?.ports && settings.ports.length > 0) {
+      return settings.ports.includes(80)
+        ? `http://${host}`
+        : `http://${host}:${settings.ports[0]}`;
     }
+    return settings?.base_url || '';
   }, [kbDetail]);
 
   return (

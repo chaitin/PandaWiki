@@ -26,6 +26,7 @@ interface RedeemResult {
 }
 
 const LOCK_KEY = 'pandawiki_captcha_lock';
+const TOKEN_KEY = 'pandawiki_captcha_token';
 const LOCK_DURATION = 5 * 60 * 1000; // 5 分钟
 const MAX_ATTEMPTS = 3;
 
@@ -82,6 +83,32 @@ export function useMathCaptcha(basePath: string) {
     return raw ? parseInt(raw, 10) : 0;
   }, []);
 
+  const readCachedToken = useCallback((): {
+    token: string;
+    expires: number;
+  } | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem(TOKEN_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { token?: string; expires?: number };
+      if (parsed.token && parsed.expires && parsed.expires > Date.now()) {
+        return { token: parsed.token, expires: parsed.expires };
+      }
+    } catch {
+      // ignore parse error
+    }
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+    return null;
+  }, []);
+
+  const cacheToken = useCallback((token: string, expires: number) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(TOKEN_KEY, JSON.stringify({ token, expires }));
+  }, []);
+
   const applyLock = useCallback(() => {
     const until = Date.now() + LOCK_DURATION;
     if (typeof window !== 'undefined') {
@@ -127,6 +154,10 @@ export function useMathCaptcha(basePath: string) {
   }, [readLockUntil, clearLock]);
 
   const requestCaptcha = useCallback(async (): Promise<string> => {
+    const cached = readCachedToken();
+    if (cached) {
+      return cached.token;
+    }
     const locked = checkLocked();
     setOpen(true);
     if (!locked) {
@@ -138,7 +169,7 @@ export function useMathCaptcha(basePath: string) {
     return new Promise<string>((resolve, reject) => {
       promiseRef.current = { resolve, reject };
     });
-  }, [checkLocked, fetchQuestion]);
+  }, [checkLocked, fetchQuestion, readCachedToken]);
 
   const handleConfirm = useCallback(async () => {
     if (isLocked) {
@@ -165,8 +196,11 @@ export function useMathCaptcha(basePath: string) {
     })) as RedeemResult;
 
     if (result?.success) {
+      const okToken = result.token ?? tokenRef.current;
+      const okExpires = result.expires ?? Date.now() + LOCK_DURATION;
+      cacheToken(okToken, okExpires);
       close();
-      promiseRef.current?.resolve(result.token ?? tokenRef.current);
+      promiseRef.current?.resolve(okToken);
       promiseRef.current = null;
       clearLock();
       return;
@@ -239,20 +273,20 @@ export function useMathCaptcha(basePath: string) {
       <Box component='span' sx={{ fontSize: 18, letterSpacing: 2 }}>
         <Box
           component='span'
-          sx={{ color: '#fff', fontWeight: 700, fontSize: 22 }}
+          sx={{ color: '#1976d2', fontWeight: 700, fontSize: 22 }}
         >
           {a}
         </Box>
-        <Box component='span' sx={{ color: 'rgba(255,255,255,0.7)', mx: 1 }}>
+        <Box component='span' sx={{ color: 'rgba(0,0,0,0.6)', mx: 1 }}>
           +
         </Box>
         <Box
           component='span'
-          sx={{ color: '#fff', fontWeight: 700, fontSize: 22 }}
+          sx={{ color: '#1976d2', fontWeight: 700, fontSize: 22 }}
         >
           {b}
         </Box>
-        <Box component='span' sx={{ color: 'rgba(255,255,255,0.7)', mx: 1 }}>
+        <Box component='span' sx={{ color: 'rgba(0,0,0,0.6)', mx: 1 }}>
           = ?
         </Box>
       </Box>

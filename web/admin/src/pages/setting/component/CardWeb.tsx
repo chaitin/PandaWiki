@@ -5,17 +5,9 @@ import {
 } from '@/request/types';
 import { Box } from '@mui/material';
 import { useEffect, useState } from 'react';
-import CardAuth from './CardAuth';
-import CardBasicInfo from './CardBasicInfo';
-import CardCatalog from './CardCatalog';
 import CardCustom from './CardCustom';
 import CardListen from './CardListen';
-import CardProxy from './CardProxy';
 import CardStyle from './CardStyle';
-import CardWebCustomCode from './CardWebCustomCode';
-import CardWebSEO from './CardWebSEO';
-import CardQaCopyright from './CardQaCopyright';
-import CardWebStats from './CardWebStats';
 
 interface CardWebProps {
   kb: DomainKnowledgeBaseDetail;
@@ -76,81 +68,6 @@ const CardWeb = ({ kb, refresh }: CardWebProps) => {
         }}
       />
       <CardListen kb={kb} refresh={refresh} />
-      <CardProxy kb={kb} refresh={refresh} />
-      <CardBasicInfo kb={kb} refresh={refresh} />
-      <CardQaCopyright
-        data={info}
-        refresh={value => {
-          setInfo({
-            ...info,
-            settings: {
-              ...info.settings,
-              conversation_setting: value,
-            },
-          });
-        }}
-      />
-      <CardAuth kb={kb} refresh={refresh} />
-      <CardCatalog
-        id={info.id}
-        data={info}
-        refresh={value => {
-          setInfo({
-            ...info,
-            settings: {
-              ...info.settings,
-              catalog_settings: {
-                ...info.settings?.catalog_settings,
-                ...value,
-              },
-            },
-          });
-        }}
-      />
-
-      <CardWebSEO
-        id={info.id}
-        data={info}
-        refresh={value => {
-          setInfo({
-            ...info,
-            settings: {
-              ...info.settings,
-              ...value,
-            },
-          });
-        }}
-      />
-
-      <CardWebCustomCode
-        id={info.id}
-        data={info}
-        refresh={value => {
-          setInfo({
-            ...info,
-            settings: {
-              ...info.settings,
-              ...value,
-            },
-          });
-        }}
-      />
-      <CardWebStats
-        id={info.id}
-        data={info}
-        refresh={value => {
-          setInfo({
-            ...info,
-            settings: {
-              ...info.settings,
-              stats_setting: {
-                ...info.settings?.stats_setting,
-                ...value,
-              },
-            },
-          });
-        }}
-      />
     </Box>
   );
 };

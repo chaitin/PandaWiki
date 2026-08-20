@@ -184,6 +184,49 @@
 - 联调验证（8081 端口）：URL 抓取 example.com、本地文件上传+解析、批量 results 查询、飞书错误透传全部通过
 - 操作：重新编译后启动 Java 后端即可（无需动数据库）
 
+## 2026-08-17
+
+### 修复 Admin「智能摘要提示词」保存后回显空白
+- 现象：Admin「设置 → 问答设置」里填写「智能摘要提示词」保存，切到别的 Tab 再回来，文本框变空白
+- 根因：`backend-java/build/libs/panda-wiki-api-2.11.1.jar` 构建于 8/13，而 `PromptController.kt`/`PromptService.kt` 在 8/17 才加入 `summary_content` 字段支持；运行中的 Java 后端仍是旧包，PUT 时忽略/丢失摘要提示词，GET 时也不返回该字段
+- 修复：重新打包 `cd backend-java && .\gradlew.bat bootJar -x test --no-daemon`，生成包含最新 PromptController/PromptService 的 JAR
+- 验证：在 8081 端口临时启动新包，curl 测试 PUT `summary_content` 后 GET 能正确回显，包括空字符串也能正常返回
+- 操作：停止当前 8080 端口的旧 Java 后端，再执行 `cd backend-java && java -jar build/libs/panda-wiki-api-2.11.1.jar` 启动新包
+- 补充：用户重启后反馈中文变成 `???`，原因是前面我用 PowerShell 命令行直接传中文恢复数据时，终端编码把中文变成了问号字节；已改用 UTF-8 文件作为请求体重新写入正确中文，并通过 hex 校验确认数据库里存的是真实 UTF-8 中文
+- 顺手修复 `web/app/src/views/widget/AiQaContent.tsx` 的 TypeScript 类型报错：`@cap.js/widget` 的 `cap.solve()` 返回类型 `SolveResult` 没有声明 `expires`，已用 `as { token: string; expires?: number }` 断言兼容
+
+### 说明 App 前台知识库切换机制（未改代码）
+- Admin 有 `KBSelect` 组件（`web/admin/src/components/KB/KBSelect.tsx`），调用 `GET /api/v1/knowledge_base/list`，切换时写 Redux + localStorage
+- App 前台没有知识库切换 UI，设计上一个 App 实例只服务一个知识库
+- App 确定当前知识库的方式：服务端 `x-kb-id` header → URL `?kb_id=` → 环境变量 `DEV_KB_ID` → 后端回退第一个知识库
+- 后端接口 `GET /share/v1/app/web/info` 根据 `x-kb-id` 返回 `base_url` 和 `settings`
+- 多知识库通过不同 `base_url`（访问地址）访问；本地调试可用 `?kb_id=xxx` 临时切换
+- `start.cmd` 未设置 `DEV_KB_ID`，因此本地 `http://localhost:3010` 总是回退到 `knowledge_bases` 表中 `created_at` 最早的知识库
+
+### 说明 App 前台如何显示 Admin 文档（未改代码）
+- 完整链路：Admin 编辑器保存 → `PUT /api/v1/node` → `nodes` 表 → Admin 发布 → `POST /api/v1/knowledge_base/release` → `nodes.status=2` + 生成发布快照 + 向量化
+- Java 后端目前直接读 `nodes` 表给 App 用，不读发布快照（注释写明暂不生成 node_releases 发布版本）
+- App 打开首页时，Next.js 中间件 `proxy.ts` 调用 `GET /share/v1/node/list` 取目录树，重写到第一个文档 `/node/xxx`
+- 文档详情页 `[id]/page.tsx` 服务端调用 `GET /share/v1/node/detail?id=xxx` 拿单篇内容
+- 前端 `views/node/index.tsx` 用 `useTiptap` 以只读模式渲染 `content`；`type=1` 是文件夹，`type=2` 是文档
+
+### 说明 App 前台智能问答人机验证流程（未改代码）
+- 触发点：`components/QaModal/AiQaContent.tsx` 的 `chatAnswer` 在发 SSE 请求前先 `await requestCaptcha()`；图片上传也先调验证码
+- 弹窗实现：`utils/useMathCaptcha.tsx` 自定义 Hook，返回 `captchaDialog`（MUI Dialog）和 `requestCaptcha`（Promise）
+- 后端出题：`POST /share/v1/captcha/challenge` 生成两个 1~20 整数相加，token 与答案存内存 `ConcurrentHashMap`，5 分钟过期
+- 前端校验：`POST /share/v1/captcha/redeem` 提交 token + 答案，后端校验正确后删除 token 防重放
+- 通过后再发 `POST /share/v1/chat/message`，请求体带 `captcha_token`
+- 防刷：连续错误 3 次前端写入 localStorage 锁定 5 分钟，显示倒计时
+- 踩坑：验证码用原生 fetch，绕过 httpClient 统一封装，避免 token 被 `response.data` 包装吃掉
+
+### 说明 App 前台欢迎页与 Ctrl+K 智能问答弹窗原理（未改代码）
+- 欢迎页路由为 `/welcome`，由 `web/app/src/app/(pages)/(doc)/welcome/page.tsx` 复用 `home/page.tsx`，组件渲染在 `web/app/src/views/home/index.tsx`
+- 欢迎页内容不是写死的，而是读取 `kbDetail.settings.web_app_landing_configs` 动态渲染；若 Admin 未配置落地页组件，则只有顶栏/页脚
+- Ctrl+K 快捷键注册在 `web/packages/ui/src/header/index.tsx` 和 `welcomeHeader/index.tsx`，通过 `window.addEventListener('keydown')` 监听 `metaKey||ctrlKey && key==='k'`，调用 `onQaClick` 打开弹窗
+- App 中 `onQaClick` 对应 `setQaModalOpen(true)`，弹窗组件 `QaModal` 在 `web/app/src/components/QaModal/index.tsx`
+- 智能问答内容在 `AiQaContent.tsx`，流程：输入 → 数学验证码 → SSE 请求 `/share/v1/chat/message` → 接收 `conversation_id`/`message_id`/`chunk_result`/`data`/`done`/`error` 事件并流式渲染
+- 仅搜索文档内容在 `SearchDocContent.tsx`，调用 `POST /share/v1/chat/search`
+
 ## 2026-08-14
 
 ### 方向三：统计/数据分析（Java 后端补齐 + Admin 看板）
@@ -239,3 +282,146 @@
   - 3 次错误后进入锁定状态，倒计时实时递减
   - 锁定期间重新提问直接提示锁定
 - 操作：重新启动 App 前端 dev server
+
+### 规划 OAuth2 / 短信 / 微信扫码登录方案（未改代码）
+- 与用户确认功能范围：不做微博/QQ，主做「微信扫码 + 手机号验证码 + 保留账号密码」三端共存
+- 确认 admin/admin123 密码登录保留，新增登录方式不替代
+- 输出可执行实现计划，涉及 Java 后端新接口、数据库 migration、Redis 临时存储、Admin 登录页改造
+- 将 SSO/OAuth2/短信登录的区别、完整链路、安全设计、答辩要点写入 `others/bishe.md`
+- 解释 Admin 后台为什么没有注册功能：PandaWiki 设计为 Admin 后台仅管理员使用、普通员工走 App 前台；当前 Java 后端 App 前台尚未实现访问控制
+- 在 `bishe.md` 补充 13.8/13.9：Admin/App 两套入口的定位、企业场景下员工访问知识库的方式
+
+### 解答管理员/权限/Wiki 站配置问题（未改代码）
+- 说明 `users.role` 两种取值：`admin` 超级管理员、`user` 普通管理员
+- 说明免费版超级管理员限制为 1 个，前端按 License 版本限制（专业版 20、企业版 50）
+- 说明知识库级权限 `kb_users.perm`：`full_control` 完全控制、`doc_manage` 文档管理、`data_operate` 数据运营
+- 说明「访问 WIKI 网站」按钮打开当前知识库对外公开地址
+- 说明「复制用户信息」报错因 `navigator.clipboard` 要求 https/localhost 安全上下文
+- 说明 Wiki 站表单字段含义及存储位置 `knowledge_bases.access_settings` jsonb
+
+### 说明首次登录/注册超级管理员机制（未改代码）
+- 系统无注册入口，首次登录使用 Flyway 迁移预置的 `admin/admin123`
+- 登录接口 `POST /api/v1/user/login`，源码在 `AuthController.kt`
+- 预置账号写入 `V2__seed_default_admin.sql`
+- 登录后可在 Admin「用户管理」创建其他管理员；免费版仍受 `MAX_ADMIN = 1` 限制
+- 当前内置 admin 密码无法通过「重置密码」接口修改，`.env` 方案代码未实际实现
+
+### 简化 Admin 设置页（改代码）
+- 门户网站：隐藏前置反向代理、HTTPS 端口、智能问答版权信息、访问认证、目录设置、SEO、自定义代码、统计设置
+- 服务监听方式：仅保留域名/IP 和 HTTP 端口，默认端口改为 3010
+- AI 机器人：仅保留网页挂件机器人，隐藏 API、钉钉、微信、企微、飞书、Lark、Discord 等卡片
+- 修改文件：`web/admin/src/pages/setting/component/CardWeb.tsx`、`CardListen.tsx`、`Step2Config.tsx`、`Header/index.tsx`、`CardRobot.tsx` 等
+
+### 修复网页挂件机器人「未配置域名」提示（改代码）
+- 原因：`CardRobotWebComponent` 中 `if (ssl_ports)` 把空数组当 true，导致 HTTP 分支走不到
+- 修复：改为 `ssl_ports && ssl_ports.length > 0`
+- 修改文件：`web/admin/src/pages/setting/component/CardRobot/WebComponent/index.tsx`
+
+### 修复妃妃知识库访问报"页面无法加载" & 统一水印颜色
+
+- **现象**：Admin 点「访问 Wiki 网站」打开妃妃知识库 `http://localhost:3010/?kb_id=6b77256d...`，任何页面直接显示"页面无法加载"；测试知识库正常。且水印颜色随背景反色，视觉不稳定。
+- **根因**：
+  - SSR 阶段（`proxy.ts`、`app/layout.tsx`、`(pages)/layout.tsx`）调用 `getShareV1AppWebInfo()` 无参，`getServerHeader()` 只读 `x-kb-id` header + `DEV_KB_ID`，**不读 URL `?kb_id=`**。
+  - 浏览器访问 `?kb_id=妃妃` 时 header 里没有 `x-kb-id`，SSR 回退到 `created_at` 最早 = 测试知识库 → 渲染测试库配置（home_page_setting=doc → rewrite 到 `/node/测试第一个node`）。
+  - 客户端 httpClient 从 `window.location.search` 读 `kb_id=妃妃` 加 header → 请求 node detail → 妃妃里没有测试库那个 node → 404。
+  - 测试知识库正常是因为回退库恰好就是它自己，SSR/CSR 一致。
+- **修复**：
+  1. `getServerHeader.ts`：从 proxy 设置的 `x-current-search` header 解析 `kb_id`，优先级 `kbId` > `x-kb-id` header > `x-current-search` 里的 `kb_id` > `DEV_KB_ID`。
+  2. `proxy.ts`：显式从 `url.searchParams.get('kb_id')` 读取，传给 `getShareV1AppWebInfo({ headers })`、`getFirstNode(kbId)`、`getHomePath(kbId)`；`proxyShare` 也传 `urlKbId`。
+  3. 统一水印颜色：`(doc)/layout.tsx` 的 `WaterMarkProvider` 传固定 `color="rgba(0,0,0,0.15)"`，覆盖自动反色逻辑。
+- **验证**：
+  - `http://localhost:3010/?kb_id=45aadf70...`（测试库）→ 文档页有水印
+  - `http://localhost:3010/?kb_id=6b77256d...`（妃妃）→ 欢迎页正常加载，有水印，不再 404
+- **编译**：`cd web && npm run dev` 热重载即可
+- **后续修复**：
+  1. `homeProxy` 函数中误用未定义变量 `urlKbId`，改为正确参数 `kbId`
+  2. `proxy()` 调用 `homeProxy` 时未传 `kbId` 参数，补充传递 `urlKbId`
+- 原因：后端 `CaptchaController.redeem` 校验通过后立即删除 token，导致每次都要重新验证
+- 修复：
+  - 后端保留已验证 token，5 分钟内可复用
+  - 前端 `useMathCaptcha.tsx` 将成功 token 写入 localStorage，5 分钟内直接复用
+  - 挂件机器人 `views/widget/AiQaContent.tsx` 同样增加 token 缓存
+- 修改文件：`backend-java/.../CaptchaController.kt`、`web/app/src/utils/useMathCaptcha.tsx`、`web/app/src/views/widget/AiQaContent.tsx`
+
+### 简化 WIKI 站配置：隐藏 HTTPS、按钮直接打开 HTTP 地址
+- 修改 `Header/index.tsx`、`Step7Complete.tsx`、`ConfigKB.tsx`、`CardBasicInfo.tsx`：优先用 `access_settings.hosts + ports` 拼 HTTP 地址，忽略 `base_url` 优先级
+- 修改 `Step2Config.tsx`、`CardListen.tsx`：移除 HTTPS 端口、证书、私钥字段，只保留域名/IP 和 HTTP 端口
+- 说明：HTTP 端口应填 App 前台实际运行端口（本地开发为 3010），表单只是登记地址，不会自动启动服务
+
+### 简化门户网站设置页（毕设场景）
+- 隐藏 `CardProxy`（前置反向代理）、`CardBasicInfo`（网址绝对路径前缀）、`CardQaCopyright`（智能问答版权信息）、`CardAuth`（访问认证）
+- 原因：本地开发用不到反向代理；base_url 已和 HTTP 端口配置解耦；版权信息非核心；Java 后端暂未实现访问认证拦截，展示会误导用户
+- 继续隐藏：目录设置、SEO 设置、自定义代码、统计设置，门户网站页只保留网站自定义、主题样式、服务监听方式
+
+## 2026-08-20
+
+### 讲解「统计-实时来访」模块链路（未改代码）
+- 前端：Admin `RTVisitor.tsx` 请求 `GET /api/v1/stat/instant_count` 和 `/instant_pages`
+- 后端：`StatController.kt` → `StatService.kt`，从 `stat_pages` 表聚合近 60 分钟数据和最近 10 条记录
+- 埋点：App 前台 `home/page.tsx`、`views/node/index.tsx` 调用 `POST /share/v1/stat/page`，经 `proxy.ts` 生成/透传 `x-pw-session-id`
+- 技术栈：React + Next.js + Spring Boot/Kotlin + JdbcTemplate + PostgreSQL；未用 Redis/NATS/WebSocket
+
+### 修复 proxy.ts homeProxy 变量引用错误
+- **现象**：妃妃知识库修复后 App 前台报错
+- **根因**：`homeProxy` 函数中误用未定义变量 `urlKbId`（应为参数 `kbId`）；`proxy()` 调用 `homeProxy` 时未传 `kbId` 参数
+- **修复**：
+  1. `homeProxy` 内部 `getFirstNode(urlKbId)` / `getHomePath(urlKbId)` 改为 `getFirstNode(kbId)` / `getHomePath(kbId)`
+  2. `proxy()` 调用 `homeProxy(request, headers, sessionId, appPathname)` 补充第五个参数 `urlKbId`
+- **文件**：`web/app/src/proxy.ts`
+
+### AI 问答复制按钮尊重 copy_setting 设置
+- **现象**：Admin「安全设置 → 内容复制」设为「禁止复制」或「增加尾巴」时，AI 问答消息的复制按钮不受影响
+- **根因**：`AiQaContent.tsx`（QaModal 版和 Widget 版）的复制按钮直接调用 `copyText(item.a)`，未检查 `copy_setting`
+- **修复**：
+  1. 导入 `ConstsCopySetting`
+  2. `copy_setting === "disabled"` 时隐藏复制按钮
+  3. `copy_setting === "append"` 时追加 `\n\n-----------------------------------------\n内容来自 {url}` 尾巴
+- **文件**：`web/app/src/components/QaModal/AiQaContent.tsx`、`web/app/src/views/widget/AiQaContent.tsx`
+
+### 实现 DFA 敏感词过滤（Java 后端）
+- **背景**：Go 后端有完整的敏感词过滤链路（`DFA.go` + `block_word.go` + `chat.go`），Java 后端缺失此功能
+- **新增文件**：
+  1. `DfaFilter.kt`：DFA（确定性有限自动机）算法实现，支持 `init`（构建 Trie）、`check`（检查敏感词）、`filter`（替换敏感词为 `*`）
+  2. `BlockWordService.kt`：从 `settings` 表读取 `key='block_words'` 的记录，启动时初始化所有知识库的 DFA，提供 `checkQuestion` / `filterAnswer` / `refreshDfa` 方法
+- **修改文件**：`ChatController.kt`
+  - `streamChat` 方法：用户问题发送前检查敏感词（包含则返回 error SSE 事件）；AI 回答发送前过滤敏感词
+  - `completions` 方法：同样增加检查和过滤
+- **敏感词存储**：复用 `settings` 表，`key='block_words'`，`value` 格式 `{"words": ["词1", "词2"]}`
+- **编译**：`cd backend-java && .\gradlew.bat compileKotlin compileJava -q --no-daemon`
+
+### 修改 AI 问答复制按钮交互
+- **变更**：`copy_setting === "disabled"` 时不再隐藏复制按钮，改为点击后弹出 `message.warning('当前状态下禁止复制')` 提示
+- **原因**：用户期望看到复制按钮但被明确告知禁止，而非按钮消失
+- **文件**：`web/app/src/components/QaModal/AiQaContent.tsx`、`web/app/src/views/widget/AiQaContent.tsx`
+
+### 新增 BlockController（内容合规管理接口）
+- **问题**：Admin「安全设置 → 内容合规」保存时调用 `POST /api/pro/v1/block`，Java 后端没有该接口，报 404
+- **新增文件**：`backend-java/.../controller/BlockController.kt`
+  - `GET /api/pro/v1/block?kb_id=xxx` → 返回 `{ words: string[] }`
+  - `POST /api/pro/v1/block` → 请求体 `{ kb_id, block_words: string[] }` → 保存并刷新 DFA
+- **修改文件**：`BlockWordService.kt` 新增 `saveBlockWords` 方法，写入 `settings` 表并实时刷新内存 DFA
+- **编译**：`cd backend-java && .\gradlew.bat compileKotlin compileJava -q --no-daemon`
+
+### 插入敏感词测试数据
+- 向 `settings` 表插入测试知识库的 `block_words` 记录：`{"words": ["测试屏蔽词", "敏感词"]}`
+- 需重启 Java 后端让 `@PostConstruct` 初始化 DFA
+
+## 2026-08-20
+
+### 排查水印不显示 + 妃妃无法访问
+- **字段/请求均健康**：DB `apps.settings` 与 `GET /share/v1/app/web/info` 两个库都返回 `watermark_setting:"visible"`；SSR 页面完整渲染（之前误判 404，实为 Next.js 预加载的 not-found 边界）
+- **水印根因**：`web/app/src/app/(pages)/(doc)/layout.tsx` 传的颜色 `rgba(0,0,0,0.15)` 自带 alpha，又被 canvas `globalAlpha=0.1` 二次压透明度 → 有效透明度 1.5%，肉眼不可见
+  - 用 Edge CDP 实测解码水印 PNG：文字像素最大 alpha=4/255 ≈ 1.5%
+  - 修复：`color` 改为 `rgba(0,0,0,1)`（不透明），让 opacity 0.1 生效 = 10% 黑字
+- **妃妃无法访问根因**：Admin Header「访问 Wiki」按钮优先用 `hosts+ports` 拼 URL，妃妃配置 `ports=[85]`，但 wiki app 实际跑在 3010 → 打开 `http://localhost:85` 无服务
+  - 修复：DB 更新妃妃 `access_settings.ports` 为 `[3010]`
+  - 验证：`netstat` 确认 85 端口无服务，3010 正常
+
+### 公开库水印访客溯源（外部方案）
+- 需求：公开知识库无登录、无水印用户名，泄露截图无法溯源 → 让水印显示访客 ID
+- **新增后端接口**：`ShareAuthController.kt` → `GET /share/pro/v1/auth/info`，读 `x-pw-session-id` 头，返回 `{ username: "访客"+sessionId末8位 }`（原来 404）
+- **中间件注入**：`web/app/src/proxy.ts` 把生成的 `sessionId` 通过 `NextResponse.next({request:{headers}})` 注入 SSR 请求头（首次访问没 cookie 也能拿到），`proxyShare` 也转发该头
+- **转发链路**：`getServerHeader.ts` 增加透传 `x-pw-session-id` 请求头 → SSR 请求直达后端时后端能读到
+- **验证**：curl SSR 页面，RSC payload 中 `authInfo` 已返回 `"username":"访客3dea5fe4"`（sessionId 末8位）；CDP 确认水印 overlay 存在（756×488, z-index 9999）
+- **溯源闭环**：水印显示访客ID + 时间戳 → 泄露截图 → 到 stat 表按 `session_id` 末8位反查 IP / UA / 轨迹
+- 重启了 Java 后端（新 controller 生效），app 3010 由 dev 热更新自动加载
