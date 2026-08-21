@@ -1,5 +1,63 @@
 # 毕设可讲内容
 
+## 十七、校园知识库品牌定制（毕设场景化改造）
+
+### 17.1 为什么做品牌定制
+- 原版 PandaWiki 是通用产品，毕设演示时用学校场景更有代入感，也能体现"我对项目做了定制化改造"
+- 改造不涉及核心逻辑，属于前端静态资源 + 默认配置的替换，工作量小但视觉效果明显
+
+### 17.2 改了哪些地方
+1. **Logo 图片替换**（多处）：
+   - `web/admin/src/assets/images/logo.png`、`login-logo.png` — Admin 侧边栏/登录页
+   - `web/admin/public/logo.png` — Admin 浏览器标签页 favicon
+   - `web/admin/public/images/init/icon.png`、`brand_logo.png` — 门户网站欢迎页图标/底部品牌
+   - `web/app/public/favicon.png` — App 前台浏览器标签页图标
+   - `web/app/src/assets/images/logo.png` — App 前台 header logo
+   - 校徽需去掉白色背景，保存为透明 PNG（可用 remove.bg）
+2. **默认配置改造**（`initData.ts`）：
+   - 站点标题 → 湖工院知识库；品牌名/描述改为校园定位
+   - Footer 链接 → 校园服务/学习资源/其他
+   - Banner/轮播图/FAQ → 校园相关内容；主题色 → 校徽蓝（#1E5AA8）
+3. **Admin 后台文字**：侧边栏/登录页标题统一改为「湖工院知识库」
+4. **Logo 尺寸调整**：
+   - Admin 侧边栏 30px → 48px、登录页 64px → 96px
+   - App 前台 header 32px → 44px（`web/packages/ui/src/header/NavBtns.tsx` + `welcomeHeader/NavBtns.tsx`）
+5. **版权信息**：`FooterConfig.tsx`「PandaWiki 版权信息」→「湖工院版权信息」
+6. **帮助文档改造**：`Sidebar/index.tsx` 把「帮助文档」按钮从外链官网改为项目内弹窗，展示自家 7 大功能帮助说明（HELP_ITEMS 常量）
+
+### 17.3 答辩可说的点
+- "我把 PandaWiki 改造成了校园知识库场景，替换校徽、调整主题色、重写欢迎页内容，让它更贴合学校使用场景"
+- "默认配置不是写死在后端数据库，而是前端 `initData.ts` 定义，创建知识库时通过 API 写入 `apps.settings` JSONB 字段——这种设计让不同场景的默认模板可灵活切换"
+- "Logo 分布在不同文件分别服务 Admin 后台、登录页、门户网站、App 前台，体现多端品牌一致性"
+- "帮助文档用常量数组驱动渲染，新增功能只需往数组加一项，易维护"
+
+### 17.4 数据流向（可讲）
+```
+initData.ts（前端默认模板）
+  ↓ 创建知识库时
+PUT /api/v1/app 写入 apps.settings（JSONB）
+  ↓ 管理员在设置页修改
+CustomModal 可视化编辑器
+  ↓ 保存
+再次写入 apps.settings
+  ↓ App 前台读取
+GET /share/v1/app/web/info → 渲染欢迎页
+```
+
+### 17.5 Admin 帮助文档改造（外链 → 自家功能弹窗）
+- 原版侧边栏「帮助文档」按钮直接 `window.open` 跳转 PandaWiki 官网文档（外网链接，本地无法访问且与毕设内容无关）
+- 改造：点击改为打开项目内弹窗（MUI Modal），内容为 `HELP_ITEMS` 常量数组，展示本项目 7 大功能使用说明：知识库管理、文档管理、AI 智能问答、统计看板、模型配置、网页挂件机器人、反馈闭环
+- 代码位置：`web/admin/src/components/Sidebar/index.tsx`
+
+### 17.6 侧边栏底部按钮与在线支持改造
+- 删除 GitHub 按钮（原跳转 PandaWiki 开源仓库），底部顺序改为：在线支持 → 帮助文档 → 版本信息
+- 「在线支持」弹窗内容定制：
+  - 左侧：原「企业微信交流群」→「学校公众号」，二维码图片替换为学校公众号二维码（`web/admin/src/assets/images/qrcode.png`）
+  - 右侧：原「社区论坛」（跳百智云论坛）→「学校官网」，跳转 `https://www.hunangy.com/`，按钮配色改为校徽蓝渐变（#1E5AA8 → #2f7bd6）
+- 答辩可讲点："品牌去魅"——删掉了所有指向 PandaWiki 官方（GitHub/论坛/官网）的入口，全部替换为学校资源，让系统完全本地化、场景化
+
+---
+
 ## 附、App 前台交互实现（可讲点）
 
 ### App 前台为什么没有知识库切换

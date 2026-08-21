@@ -72,7 +72,7 @@ const Login = () => {
           }}
         >
           <Stack alignItems={'center'}>
-            <Avatar src={Logo} sx={{ width: 64, height: 64, mb: 1 }} />
+            <Avatar src={Logo} sx={{ width: 96, height: 96, mb: 2 }} />
             <Stack
               direction={'row'}
               alignItems={'center'}
@@ -84,7 +84,7 @@ const Login = () => {
                 mb: 4,
               }}
             >
-              PandaWiki
+              湖工院知识库
             </Stack>
             <TextField
               value={account}

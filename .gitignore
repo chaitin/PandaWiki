@@ -34,3 +34,6 @@ local
 .idea
 __debug*
 
+# Java 后端运行时数据（用户上传的静态文件）
+backend-java/data/
+

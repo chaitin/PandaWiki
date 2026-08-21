@@ -69,7 +69,7 @@ const NavBtns = ({ logo, title, btns, homePath }: NavBtnsProps) => {
             gap={1.5}
             sx={{ py: '14px', cursor: 'pointer', ml: 3 }}
           >
-            {logo && <img src={logo} alt='logo' width={32} />}
+            {logo && <img src={logo} alt='logo' width={44} />}
             <Box sx={{ fontSize: 18 }}>{title}</Box>
           </Stack>
         </Link>

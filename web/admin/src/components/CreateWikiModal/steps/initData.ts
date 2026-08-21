@@ -33,19 +33,19 @@ export const INIT_DOC_DATA = [
 ] as const;
 
 export const INIT_LADING_DATA = {
-  title: 'PandaWiki',
+  title: '湖工院知识库',
   theme_mode: 'light',
   home_page_setting:
     ConstsHomePageSetting.HomePageSettingCustom as ConstsHomePageSetting,
   icon: getBasePath('/images/init/icon.png'),
   btns: [
     {
-      icon: getBasePath('/images/init/github_icon.png'),
+      icon: '',
       id: '1748421035847',
-      showIcon: true,
+      showIcon: false,
       target: '_blank',
-      text: 'GitHub',
-      url: 'https://ly.safepoint.cloud/XEyeWqL',
+      text: '学校官网',
+      url: 'https://www.hunangy.com/',
       variant: 'contained',
     },
     {
@@ -53,66 +53,58 @@ export const INIT_LADING_DATA = {
       id: '1749634844746',
       showIcon: false,
       target: '_blank',
-      text: '微信交流群',
-      url: 'https://pandawiki.docs.baizhi.cloud/node/01971640-3937-7664-851d-a7f426d59764',
+      text: '教务系统',
+      url: 'https://www.hunangy.com/',
       variant: 'outlined',
     },
   ],
   web_app_custom_style: {
     allow_theme_switching: false,
-    header_search_placeholder: '问问AI吧',
+    header_search_placeholder: '有问题？问问AI',
     show_brand_info: true,
     footer_show_intro: true,
-    social_media_accounts: [
-      {
-        channel: 'wechat_oa',
-        text: '微信交流群',
-        link: '',
-        icon: getBasePath('/images/init/weixin_qrcode.png'),
-        phone: '',
-      },
-    ],
+    social_media_accounts: [],
   },
   footer_settings: {
     footer_style: 'complex',
-    corp_name: '',
+    corp_name: '湖南工业职业技术学院',
     icp: '',
-    brand_name: 'PandaWiki 知识库',
+    brand_name: '湖工院知识库',
     brand_desc:
-      'PandaWiki 是一款 AI 驱动的开源知识库系统，支持构建产品文档、技术文档、FAQ 和博客，提供AI创作、问答和搜索功能',
+      '基于 AI 大模型的校园知识服务平台，为全校师生提供智能化的文档检索、知识问答和学习资源推荐',
     brand_logo: getBasePath('/images/init/brand_logo.png'),
     brand_groups: [
       {
-        name: '相关产品',
+        name: '校园服务',
         links: [
           {
-            name: 'PandaWiki',
-            url: 'https://baizhi.cloud/landing/pandawiki',
+            name: '学校官网',
+            url: 'https://www.hunangy.com/',
           },
           {
-            name: 'MonkeyCode',
-            url: 'https://baizhi.cloud/landing/monkeycode',
+            name: '教务系统',
+            url: 'https://www.hunangy.com/',
           },
           {
-            name: 'KoalaQA',
-            url: 'https://baizhi.cloud/landing/koaloa',
+            name: '图书馆',
+            url: 'https://www.hunangy.com/',
           },
         ],
       },
       {
-        name: '长亭科技',
+        name: '学习资源',
         links: [
           {
-            name: '长亭科技官网',
-            url: 'https://chaitin.cn/',
+            name: '在线课程',
+            url: 'https://www.hunangy.com/',
           },
           {
-            name: '长亭百智云',
-            url: 'https://baizhi.cloud/',
+            name: '实验教学',
+            url: 'https://www.hunangy.com/',
           },
           {
-            name: '长亭百川云',
-            url: 'https://rivers.chaitin.cn/',
+            name: '毕业设计',
+            url: 'https://www.hunangy.com/',
           },
         ],
       },
@@ -121,11 +113,11 @@ export const INIT_LADING_DATA = {
         links: [
           {
             name: '关于我们',
-            url: 'https://chaitin.cn/',
+            url: 'https://www.hunangy.com/',
           },
           {
-            name: '开源协议',
-            url: 'https://github.com/chaitin/PandaWiki?tab=AGPL-3.0-1-ov-file#readme',
+            name: '联系我们',
+            url: 'https://www.hunangy.com/',
           },
         ],
       },
@@ -135,32 +127,28 @@ export const INIT_LADING_DATA = {
     {
       type: 'banner',
       banner_config: {
-        title: '欢迎使用 PandaWiki AI 知识库',
-        title_color: '#6E73FE',
-        title_font_size: 60,
+        title: '湖工院 AI 知识库',
+        title_color: '#1E5AA8',
+        title_font_size: 56,
         subtitle:
-          'PandaWiki 是一款 AI 驱动的开源知识库搭建系统，帮助你快速构建智能化产品文档、技术文档、FAQ、博客系统，借助大模型的力量为你提供 AI 创作、AI 问答、AI 搜索等能力。',
+          '基于 AI 大模型的校园知识服务平台，为全校师生提供智能化的文档检索、知识问答和学习资源推荐，让校园信息触手可及。',
         placeholder: '有问题？问问 AI',
         subtitle_color: '#ffffff80',
         subtitle_font_size: 16,
         bg_url: '',
-        hot_search: [
-          '如何安装PandaWiki',
-          'PandaWiki能做什么？',
-          '忘了admin的密码如何重置？',
-        ],
+        hot_search: ['奖学金怎么申请？', '图书馆开放时间', '选课系统怎么用？'],
         btns: [
           {
             id: '1760701149843',
-            text: '查看文档',
+            text: '开始使用',
             type: 'contained',
             href: '',
           },
           {
             id: '1760701163769',
-            text: '社区论坛',
+            text: '学校官网',
             type: 'outlined',
-            href: 'https://pandawiki.qa.baizhi.cloud',
+            href: 'https://www.hunangy.com/',
           },
         ],
       },
@@ -171,7 +159,7 @@ export const INIT_LADING_DATA = {
     {
       type: 'basic_doc',
       basic_doc_config: {
-        title: '极速入门',
+        title: '热门文档',
         title_color: '#000000',
         bg_color: '#ffffff00',
       },
@@ -180,42 +168,42 @@ export const INIT_LADING_DATA = {
     {
       type: 'carousel',
       carousel_config: {
-        title: '产品介绍',
-        bg_color: '#3248F2',
+        title: '校园服务',
+        bg_color: '#1E5AA8',
         list: [
           {
             id: '1760701308042',
-            title: '数据统计',
+            title: '教务管理',
             url: getBasePath('/images/init/carousel_data_statistics.jpg'),
             desc: '',
           },
           {
             id: '1760701285851',
-            title: '文档管理',
+            title: '图书资源',
             url: getBasePath('/images/init/carousel_doc_manage.jpg'),
             desc: '',
           },
           {
             id: '1760701343411',
-            title: '文档首页',
+            title: '校园生活',
             url: getBasePath('/images/init/carousel_doc_home.jpg'),
             desc: '',
           },
           {
             id: '1760701321421',
-            title: '智能问答',
+            title: 'AI 智能问答',
             url: getBasePath('/images/init/carousel_ai_qa.jpg'),
             desc: '',
           },
           {
             id: '1760701346392',
-            title: '三方机器人集成',
+            title: '学习指南',
             url: getBasePath('/images/init/carousel_third_party_robot.jpg'),
             desc: '',
           },
           {
             id: '1760701385679',
-            title: '网页挂件机器人',
+            title: '就业服务',
             url: getBasePath('/images/init/carousel_web_robot.jpg'),
             desc: '',
           },
@@ -233,13 +221,18 @@ export const INIT_LADING_DATA = {
         list: [
           {
             id: '1760701530938',
-            question: '回答出错 failed to format messages',
-            link: 'https://pandawiki.qa.baizhi.cloud/discuss/LqX2h8EfdqaGjbYW',
+            question: '如何查询成绩？',
+            link: '',
           },
           {
             id: '1760701557320',
-            question: '安装失败',
-            link: 'https://pandawiki.qa.baizhi.cloud',
+            question: '图书馆借书流程',
+            link: '',
+          },
+          {
+            id: '1760701557321',
+            question: '奖学金申请条件',
+            link: '',
           },
         ],
       },

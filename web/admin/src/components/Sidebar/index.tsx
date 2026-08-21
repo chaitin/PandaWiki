@@ -19,7 +19,6 @@ import {
   IconDuihualishi1,
   IconChilun,
   IconGroup,
-  IconGithub,
 } from '@panda-wiki/icons';
 
 const MENUS = [
@@ -96,11 +95,50 @@ const MENUS = [
   },
 ];
 
+const HELP_ITEMS = [
+  {
+    title: '知识库管理',
+    content:
+      '在顶部下拉框可切换知识库，点击「创建新 Wiki 站」可新建知识库。知识库是一个独立的 Wiki 站点，可配置域名、Logo、主题和机器人。发布后内容才会在前台展示。',
+  },
+  {
+    title: '文档管理',
+    content:
+      '在「文档」页可创建目录和文档，支持 AI 摘要、AI 续写、文本润色（润色/扩写/缩写/改写）。文档保存后需在「发布」页发布，前台才能看到最新内容。',
+  },
+  {
+    title: 'AI 智能问答',
+    content:
+      '前台通过 Ctrl+K 或搜索框打开智能问答，基于 RAG（向量检索 + 大模型生成）回答知识库内的问题，回答会标注引用来源，并支持点赞/点踩反馈。',
+  },
+  {
+    title: '统计看板',
+    content:
+      '在「统计」页可查看访问趋势、实时来访、用户分布、热门文档、热门问题等数据。数据来自前台页面的访问埋点，用于了解知识库的使用情况。',
+  },
+  {
+    title: '模型配置',
+    content:
+      '在「系统设置 → AI 模型」中配置 Chat、Embedding、Rerank 等模型。配置时可点「检测」验证连通性。Embedding/Rerank 用于向量检索，Chat 用于智能问答。',
+  },
+  {
+    title: '网页挂件机器人',
+    content:
+      '在「系统设置 → AI 机器人」中配置网页挂件机器人，可将 AI 问答能力嵌入到外部网站，访客通过悬浮球即可提问。',
+  },
+  {
+    title: '反馈闭环',
+    content:
+      '在「反馈」页可查看用户对 AI 回答的评价和对文档的评论，支持审核评论（通过/拒绝/删除），用于持续优化知识库质量。',
+  },
+];
+
 const Sidebar = () => {
   const { pathname } = useLocation();
   const { kbDetail } = useAppSelector(state => state.config);
   const theme = useTheme();
   const [showQrcode, setShowQrcode] = useState(false);
+  const [showHelpDoc, setShowHelpDoc] = useState(false);
   const navigate = useNavigate();
   const menus = useMemo(() => {
     return MENUS.filter(it => {
@@ -143,7 +181,7 @@ const Sidebar = () => {
         justifyContent={'center'}
         sx={{ flexShrink: 0 }}
       >
-        <Avatar src={Logo} sx={{ width: 30, height: 30 }} />
+        <Avatar src={Logo} sx={{ width: 48, height: 48 }} />
       </Stack>
       <Box
         sx={{
@@ -155,7 +193,7 @@ const Sidebar = () => {
           borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
-        PandaWiki
+        湖工院知识库
       </Box>
       <Stack sx={{ py: 2, flexGrow: 1 }} gap={1}>
         {menus.map(it => {
@@ -228,68 +266,66 @@ const Sidebar = () => {
               color: 'primary.main',
             },
           }}
-          startIcon={
-            <IconBangzhuwendang1 sx={{ fontSize: '14px !important' }} />
-          }
-          onClick={() =>
-            window.open('https://pandawiki.docs.baizhi.cloud/', '_blank')
-          }
-        >
-          帮助文档
-        </Button>
-        <Button
-          variant='outlined'
-          color='dark'
-          sx={{
-            fontSize: 14,
-            flexShrink: 0,
-            fontWeight: 400,
-            pr: 1.5,
-            pl: 1.5,
-            gap: 0.5,
-            justifyContent: 'flex-start',
-            textTransform: 'none',
-            border: `1px solid ${theme.palette.divider}`,
-            '.MuiButton-startIcon': {
-              mr: '3px',
-            },
-            '&:hover': {
-              color: 'primary.main',
-            },
-          }}
-          startIcon={<IconGithub sx={{ fontSize: '14px !important' }} />}
-          onClick={() =>
-            window.open('https://github.com/chaitin/PandaWiki', '_blank')
-          }
-        >
-          GitHub
-        </Button>
-        <Button
-          variant='outlined'
-          color='dark'
-          sx={{
-            fontSize: 14,
-            flexShrink: 0,
-            fontWeight: 400,
-            pr: 1.5,
-            pl: 1.5,
-            gap: 0.5,
-            justifyContent: 'flex-start',
-            border: `1px solid ${theme.palette.divider}`,
-            '.MuiButton-startIcon': {
-              mr: '3px',
-            },
-            '&:hover': {
-              color: 'primary.main',
-            },
-          }}
           onClick={() => setShowQrcode(true)}
           startIcon={<IconGroup sx={{ fontSize: '14px !important' }} />}
         >
           在线支持
         </Button>
+        <Button
+          variant='outlined'
+          color='dark'
+          sx={{
+            fontSize: 14,
+            flexShrink: 0,
+            fontWeight: 400,
+            pr: 1.5,
+            pl: 1.5,
+            gap: 0.5,
+            justifyContent: 'flex-start',
+            border: `1px solid ${theme.palette.divider}`,
+            '.MuiButton-startIcon': {
+              mr: '3px',
+            },
+            '&:hover': {
+              color: 'primary.main',
+            },
+          }}
+          startIcon={
+            <IconBangzhuwendang1 sx={{ fontSize: '14px !important' }} />
+          }
+          onClick={() => setShowHelpDoc(true)}
+        >
+          帮助文档
+        </Button>
         <Version />
       </Stack>
+      <Modal
+        open={showHelpDoc}
+        onCancel={() => setShowHelpDoc(false)}
+        title='帮助文档'
+        footer={null}
+        width={760}
+      >
+        <Box sx={{ p: 2 }}>
+          <Typography variant='h6' sx={{ mb: 2, fontWeight: 600 }}>
+            湖工院知识库 功能使用说明
+          </Typography>
+          <Stack spacing={2.5}>
+            {HELP_ITEMS.map(item => (
+              <Box key={item.title}>
+                <Typography
+                  sx={{ fontWeight: 600, color: 'primary.main', mb: 0.5 }}
+                >
+                  {item.title}
+                </Typography>
+                <Typography variant='body2' sx={{ color: 'text.secondary' }}>
+                  {item.content}
+                </Typography>
+              </Box>
+            ))}
+          </Stack>
+        </Box>
+      </Modal>
       <Modal
         open={showQrcode}
         onCancel={() => setShowQrcode(false)}
@@ -321,7 +357,7 @@ const Sidebar = () => {
                     variant='subtitle1'
                     sx={{ fontWeight: 600, color: '#2d3748' }}
                   >
-                    企业微信交流群
+                    学校公众号
                   </Typography>
                   <Box
                     component='img'
@@ -338,7 +374,7 @@ const Sidebar = () => {
                     variant='body2'
                     sx={{ color: '#4a5568', fontSize: 13 }}
                   >
-                    扫码加入企业微信交流群
+                    扫码关注学校公众号
                   </Typography>
                 </Stack>
               </Box>
@@ -384,15 +420,12 @@ const Sidebar = () => {
                     variant='subtitle1'
                     sx={{ fontWeight: 600, color: '#2d3748' }}
                   >
-                    社区论坛
+                    学校官网
                   </Typography>
                   <Button
                     variant='contained'
                     onClick={() =>
-                      window.open(
-                        'https://bbs.baizhi.cloud?ref=PandaWiki',
-                        '_blank',
-                      )
+                      window.open('https://www.hunangy.com/', '_blank')
                     }
                     sx={{
                       px: 3,
@@ -402,22 +435,22 @@ const Sidebar = () => {
                       textTransform: 'none',
                       fontWeight: 600,
                       background:
-                        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      boxShadow: '0 2px 8px rgba(102, 126, 234, 0.3)',
+                        'linear-gradient(135deg, #1E5AA8 0%, #2f7bd6 100%)',
+                      boxShadow: '0 2px 8px rgba(30, 90, 168, 0.3)',
                       '&:hover': {
-                        boxShadow: '0 4px 12px rgba(102, 126, 234, 0.5)',
+                        boxShadow: '0 4px 12px rgba(30, 90, 168, 0.5)',
                         transform: 'translateY(-1px)',
                       },
                       transition: 'all 0.3s ease',
                     }}
                   >
-                    访问官方论坛
+                    访问学校官网
                   </Button>
                   <Typography
                     variant='body2'
                     sx={{ color: '#4a5568', fontSize: 13, textAlign: 'center' }}
                   >
-                    查看更多技术讨论和社区动态
+                    了解更多学校信息和校园服务
                   </Typography>
                 </Stack>
               </Box>

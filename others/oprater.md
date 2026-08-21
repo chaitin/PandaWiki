@@ -297,6 +297,19 @@
 - 说明知识库级权限 `kb_users.perm`：`full_control` 完全控制、`doc_manage` 文档管理、`data_operate` 数据运营
 - 说明「访问 WIKI 网站」按钮打开当前知识库对外公开地址
 - 说明「复制用户信息」报错因 `navigator.clipboard` 要求 https/localhost 安全上下文
+
+## 2026-08-20
+
+### 编写毕设需求文档
+- 把已实现的功能整理成需求文档，写入 `others/remand.md`
+- 覆盖 13 个功能模块：知识库管理、文档管理、AI 模型管理、RAG 智能问答、Widget 嵌入机器人、CardAI 提示词、统计看板、人机验证、文件上传、文档导入、用户管理、反馈闭环、安全设置
+
+### 梳理 Admin 设置功能
+- 内容复制控制：前端 `useCopy` hook 根据 `copy_setting` 控制复制行为
+- 内容合规（屏蔽词）：DFA 关键词匹配，提问时检查 + 回答时过滤
+- 隐性水印：前端 Canvas 生成半透明 PNG 铺满页面，截图时带水印
+- Wiki 站管理员 / API Token：前端已实现，Java 后端待补齐，已出方案文档
+- 以上设置功能 Java 后端目前通过 access_settings JSONB 透传存储
 - 说明 Wiki 站表单字段含义及存储位置 `knowledge_bases.access_settings` jsonb
 
 ### 说明首次登录/注册超级管理员机制（未改代码）
@@ -416,6 +429,20 @@
 - **妃妃无法访问根因**：Admin Header「访问 Wiki」按钮优先用 `hosts+ports` 拼 URL，妃妃配置 `ports=[85]`，但 wiki app 实际跑在 3010 → 打开 `http://localhost:85` 无服务
   - 修复：DB 更新妃妃 `access_settings.ports` 为 `[3010]`
   - 验证：`netstat` 确认 85 端口无服务，3010 正常
+
+## 2026-08-21
+
+### 校园知识库品牌改造（校徽 + 文案）
+- 用户替换 4 处 logo 图片为湖南工业职业技术学院校徽（src/assets/images/logo.png、login-logo.png、public/images/init/icon.png、brand_logo.png）
+- 修改 initData.ts：标题、品牌名、描述、Footer 链接、Banner、轮播图、FAQ 全部改为学校相关内容
+- 修改 Sidebar/index.tsx：logo 30px → 48px，文字"PandaWiki" → "湖南工院知识库"
+- 修改 login/index.tsx：logo 64px → 96px，文字"PandaWiki" → "湖南工业职业技术学院知识库"
+- 后续统一改为「湖工院知识库」：initData.ts 标题/Banner/品牌名、login/index.tsx、Sidebar/index.tsx
+- 修改 NavBtns.tsx（header + welcomeHeader）：前台 header logo 32px → 44px
+- 修改 FooterConfig.tsx：「PandaWiki 版权信息」→「湖工院版权信息」
+- 修改 Sidebar/index.tsx：把「帮助文档」按钮从外链官网改为自家功能帮助弹窗（HELP_ITEMS 常量，含知识库管理/文档管理/AI问答/统计/模型配置/挂件机器人/反馈闭环 7 项）
+- 修改 Sidebar/index.tsx：删除 GitHub 按钮，底部顺序改为 在线支持 → 帮助文档 → 版本信息（移除 IconGithub import）
+- 修改 Sidebar/index.tsx「在线支持」弹窗：左侧「企业微信交流群」→「学校公众号」（待用户替换 qrcode.png），右侧「社区论坛」→「学校官网」跳转 https://www.hunangy.com/（按钮改校徽蓝渐变）
 
 ### 公开库水印访客溯源（外部方案）
 - 需求：公开知识库无登录、无水印用户名，泄露截图无法溯源 → 让水印显示访客 ID
