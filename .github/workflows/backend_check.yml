@@ -24,6 +24,7 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.1
+          verify: false
           working-directory: backend
           args: --timeout 5m
 
