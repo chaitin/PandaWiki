@@ -21,3 +21,10 @@ func GetLicenseEdition(c echo.Context) LicenseEdition {
 	edition, _ := c.Get("edition").(LicenseEdition)
 	return edition
 }
+
+type LicenseMode string
+
+const (
+	LicenseModeOnline  LicenseMode = "online"  // 在线授权
+	LicenseModeOffline LicenseMode = "offline" // 离线授权
+)
