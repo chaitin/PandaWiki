@@ -71,7 +71,7 @@ const ShowText = ({
                     if (ok) message.success('复制成功');
                     document.body.removeChild(ta);
                   }
-                } catch (e) {}
+                } catch (e) { console.warn("[PandaWiki] Parse error:", e); }
                 onClick?.();
               } else {
                 copyText(content);

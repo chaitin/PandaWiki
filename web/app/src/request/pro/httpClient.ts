@@ -312,7 +312,7 @@ export class HttpClient<SecurityDataType = unknown> {
 
       try {
         data = await response[responseFormat]();
-      } catch (error) {}
+      } catch (error) { console.warn("[PandaWiki] Response parse error:", error); }
 
       if (cancelToken) {
         this.abortControllers.delete(cancelToken);
