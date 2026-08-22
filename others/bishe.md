@@ -473,6 +473,91 @@ GET /share/v1/app/web/info → 渲染欢迎页
 - 登录后可在 Admin「用户管理」里创建其他管理员或普通管理员
 - **注意**：`UserController.reset_password` 禁止修改内置 `admin` 账号自己的密码，提示语提到改 `.env` 文件，但当前代码并未真正实现读取 `.env` 的 ADMIN_PASSWORD；如需改密目前只能直接更新数据库
 
+### 14.8 访问控制：Wiki 站管理员 + API Token（方案，答辩可讲）
+
+**「用户管理」 vs 「Wiki 站管理员」为什么分开（RBAC 核心：身份与授权解耦）**
+- 用户管理管「全局账号」：`users` 表，造号 + 定角色（admin/user）；只有超级管理员隐式全站 full_control
+- Wiki 站管理员管「某知识库的成员权限」：`kb_users` 表，一个用户对多个站权限不同，所以授权必须挂在「用户×站」关系上
+- 操作者不同：造号是全局超管的最高权限；加站授权是该站 full_control 就能做 → 分开 = 最小权限，防止「能授权的人」同时「能造号」
+- 授权是持续变化（改权限/移除/加站），造号是一次性 → 职责天然分离
+- 用户管理里那个「wiki 站 + 权限」下拉只是**快捷方式**：内部调用的正是 `knowledge_base/user/invite`（Wiki 站管理员同款接口），建号时顺手把人加进第一个站
+
+**三层权限模型（答辩亮点）**
+```
+users.role    系统级：谁能登录后台、是不是超管（admin 自动全站 full_control）
+kb_users.perm 知识库级：某人在某站 = full_control / doc_manage / data_operate
+api_tokens     API 级：外部机器调用凭据（按 kb 隔离、可分级、可吊销）
+```
+
+**API Token 是给外部平台用的凭据（对标 Go Pro）**
+- 外部系统调 `Authorization: Bearer <API Token>`，等价 JWT 但免登录，且绑定 kb + 权限
+- Go 版链路：`middleware/jwt.go` 先解析 JWT，失败回退查 `api_tokens` 表 → 构造 {kb_id, permission} 鉴权上下文
+- 用途：喂文档（`POST /api/v1/datasets/{id}/documents`）+ 问答检索（`POST /api/v1/retrieval`），仓库 `sdk/rag/` 就是标准接入客户端
+- **现状**：datasets/retrieval 是 Pro 功能，Java 后端没有；本次方案先做 token 管理 + 鉴权，RAG 开放接口作为可选加分项（可复用已有 DocumentParseService / EmbeddingService）
+
+### 14.9 访问控制已落地（Java 后端 3.1~3.5，答辩可讲）
+
+**实现内容（按方案文档全部落地）**
+- **3.1 KbAccessService**（`security/KbAccessService.java`）：统一三层权限解析
+  - ① JWT 且 `users.role == 'admin'` → 直接 `full_control`（全局超管绕过 kb_users）
+  - ② JWT 普通用户 → 查 `kb_users` 表取该知识库 perm
+  - ③ Bearer 不含 "."（即 API Token）→ 查 `api_tokens` 表按 kb 取 permission
+  - 对外提供 `requireLogin` / `requirePerm` / `requireFullControl`，各 Controller 复用
+- **3.2 KbUserController**（`/api/v1/knowledge_base/user/*` 4 接口）
+  - list：kb 已加入的普通用户（JOIN users role='user' 按加入时间倒序）+ 全部全局 admin（perms=full_control），字段对齐前端 `{id,account,role,perms}`
+  - invite：校验 perm 枚举、目标存在且非 admin（拒绝邀请超管）、依赖 `UNIQUE(kb_id,user_id)` 兜底重复邀请
+  - update/delete：同样拒绝 admin，无记录返回 404
+  - 权限要求：除 list 需该知识库 `full_control`
+- **3.3 ApiTokenController**（`/api/pro/v1/token/*` 4 接口）
+  - create 生成 `pw_` + UUID 去横线（35 位，不含 "." 便于过滤器区分 JWT/Token），返回完整 token 供前端复制
+  - list 返回全量 token（前端 maskString 脱敏展示）、update 改名称/权限、delete 吊销
+  - 全部要求 `full_control`
+- **3.4 ApiTokenAuthFilter**（`security/ApiTokenAuthFilter.java`，OncePerRequestFilter）
+  - 关键设计：对 `/api/**` 做「尽力而为」的鉴权上下文**预填充**，不拦截请求
+  - Bearer 含 "." → 尝试 JWT 解析，成功写入身份 attribute；失败留给 Controller 自行 401
+  - Bearer 不含 "." → 回退查 `api_tokens`，命中写入 `{kbId, permission, userId}`
+  - 为什么不做全局 401：现有 Java Controller 各自校验登录态、且大量公开接口（node/list、kb/list 等）本就不需要鉴权，全局拦截会破坏现有功能；所以过滤器只负责"把 Token 解析结果暴露出来"，让 Token 与 JWT 等价可用
+- **3.5 RagController**（外部接入开放接口，闭环）
+  - `POST /api/v1/rag/documents`：multipart 文件 + kb_id → 存盘 → `DocumentParseService.parseLocalFile` 解析 → 建节点（`status=2` 已发布、`type=2` 文档、permissions open、creator_id=token 所属用户）→ `EmbeddingService.ensureIndexed` 向量化；权限需 `full_control` / `doc_manage`
+  - `POST /api/v1/rag/retrieval`：`{kb_id, query}` → `EmbeddingService.search` 语义检索 top5，embedding 失败降级关键词 ILIKE；权限需任意有效（`data_operate` 及以上）
+- **附带改造**：`KnowledgeBaseController.resolvePerm` 复用 KbAccessService，让非 admin 但 `full_control` 的用户在 `GET /kb/detail` 也能拿到正确 perm（此前只认 admin，前端会误判禁用 API Token 管理）
+
+**答辩可讲的点**
+1. "我把 Go 版 `middleware/jwt.go` 的 Authorize + `ValidateKBUserPerm` 语义翻译成了 Java 的 `ApiTokenAuthFilter` + `KbAccessService`，实现 JWT 失败回退查 api_tokens 的等价鉴权"
+2. "三层权限模型完整落地：`users.role`（全局）→ `kb_users.perm`（知识库）→ `api_tokens`（API 级），越往下越贴近具体资源"
+3. "过滤器用『预填充 request attribute』而不是『全局拦截』——因为项目里各 Controller 已经各自校验登录态，新增全局 401 会破坏 node/list 等公开接口；这是『最小侵入』的改造思路"
+4. "3.5 是对标 Go Pro `datasets/retrieval` 的最小实现：外部平台拿 key → 传文档 → 问答检索，现场可用 curl/Python 演示完整闭环，体现『系统开放 API 能力』"
+5. "安全细节：admin 用户不可被邀请/修改/删除；重复邀请靠数据库唯一约束兜底；token 用 `pw_` 前缀便于识别且不含 `.` 便于和 JWT 区分；喂文档有扩展名黑名单 + 路径穿越校验"
+
+**验证命令（APIfox / cmd）**
+- 登录拿 JWT：`POST /api/v1/user/login` body `{"account":"admin","password":"admin123"}`
+- 测 KB 用户：`GET /api/v1/knowledge_base/user/list?kb_id=xxx`（带 Bearer）
+- 建 token：`POST /api/pro/v1/token/create` body `{"kb_id":"xxx","name":"测试","permission":"full_control"}`（返回 `token`）
+- 用 token 调受控接口：`GET /api/v1/knowledge_base/detail?id=xxx`，`Authorization: Bearer pw_...`（无需 JWT）
+- 3.5 演示：curl 上传 PDF → `POST /api/v1/rag/documents`（form-data: file + kb_id，带 token）→ `POST /api/v1/rag/retrieval` body `{"kb_id":"xxx","query":"问题"}` 返回 top5 文本片段
+
+**顺带修复：Admin「复制用户信息」在 http 内网 IP 下失败**
+- 现象：用户管理创建用户后点「复制用户信息」提示「非 https 协议下不支持复制」
+- 根因：`web/admin/src/utils/index.ts` 的 `copyText` 只要非 https 就直接拦截，没让降级方案执行
+- 修复：删除提前拦截，改为优先 `navigator.clipboard`，不支持时回退临时 textarea + `document.execCommand('copy')`
+- 答辩可讲："浏览器安全策略要求 `navigator.clipboard` 必须在 https/localhost 下使用，我在非安全上下文中用临时 textarea 做降级复制，保证演示环境可用"
+
+**新增 API Token 本地演示页（无公网也能展示外部接入）**
+- 文件：`web/admin/public/test-token.html`，访问 `http://localhost:5173/test-token.html`
+- 页面内容：填入 API Token 和 kb_id 后，可一键测试三个接口：
+  - 知识库详情（验证 token 鉴权替代 JWT）
+  - RAG 喂文档（multipart 上传文件）
+  - RAG 检索问答（JSON 查询）
+- 每次请求都会把「请求方法、URL、Header、Body」和「响应状态、响应体」完整展示出来，答辩时可以边点边讲，直观证明"外部平台用 token 就能调本地接口"
+- 答辩可讲："由于演示环境没有公网 IP，飞书/钉钉接入暂时无法现场演示，我做了一个本地模拟页，把 API Token 调用的请求和响应完整暴露出来，证明开放接口能力已经实现；部署到云服务器后，外部平台按同样方式接入即可"
+
+**修复 RAG 开放接口的两个问题**
+- **喂文档后知识库看不到**：根因是创建节点时没有 `nav_id`，前端按目录分组显示时未分组文档被隐藏。修复方式是自动把文档挂到该知识库第一个目录下。
+- **检索结果不精准**：根因是只取 top5 但没有相似度阈值，且 embedding 失败时会降级为关键词 ILIKE 匹配。修复方式是 A+B：
+  - A. 加余弦相似度阈值 0.5，低于阈值的结果直接丢弃
+  - B. 最多返回 5 条，并在响应中标注 `mode`（vector/keyword）、`threshold`、`count`
+- 答辩可讲："RAG 检索我加了相似度阈值和数量限制，避免无关内容被召回；同时响应里带 mode 字段，能区分是向量语义检索还是关键词降级检索，方便调试和优化"
+
 ## 十二、文档导入（知识库内容来源，答辩高频考点）
 
 - 价值定位：RAG 系统"怎么把文档喂给系统"是毕设最常见考点。知识库内容来源 = 导入功能，导入后文档进入 nodes 表，发布后走 embedding 向量化，才能被问答检索到。链路：**导入 → 解析 → 建节点 → 发布 → 向量化 → 检索**
@@ -686,3 +771,52 @@ StatService 聚合查询
 - **验证方法**：curl SSR 页面 → 在 RSC payload 里直接看到 `"username":"访客3dea5fe4"`（sessionId 末8位），证明整条链路：中间件→透传→后端→根布局→水印
 - **学到**：① 公开站点无登录也可以做溯源，用"访客会话ID"代替"用户身份"；② 水印组件不用改，补上后端缺失的 auth/info 接口即可让前端自动获得用户名；③ SSR 的 RSC payload 里能直接看到服务端组件拿到的数据，是排查这类链路的好入口
 - **注意**：水印只挂在 `(doc)/layout.tsx`，自定义 home 页目前无水印
+
+## 十八、Vite 代理报错 ECONNREFUSED 的排查（可讲：前后端联调排错方法）
+
+### 18.1 现象
+- Admin 前端 Vite 终端刷出：`[vite] http proxy error: /api/v1/user`、`/api/v1/license`，错误类型 `AggregateError [ECONNREFUSED]`
+
+### 18.2 这条日志到底在说什么（核心）
+- 前端开发模式不直接跨域调后端，而是走 **Vite dev server 代理**：浏览器请求 `http://localhost:5173/api/...` → Vite 把 `/api` 开头的请求**转发**到 `http://localhost:8080`（配置在 `web/admin/vite.config.ts` 的 `server.proxy`）
+- `ECONNREFUSED`（connection refused）= 代理把请求转发过去，但**目标端口 8080 上没有任何进程在监听**，TCP 连接被拒绝
+- 所以：**这是「后端没起来」的表现，不是代码 bug，也不是接口报错**。后端一但起来，同样的页面刷新就正常
+
+### 18.3 排错四步（可现场演示）
+1. **看端口**：`netstat -ano | findstr :8080` —— 有没有 LISTENING？没有 = 后端没起来
+2. **看中间件**：`docker compose ps` —— PG/Redis/NATS/MinIO 是否 healthy？后端启动时要连 PostgreSQL，连不上会直接退出
+3. **看后端启动日志**：Spring Boot 启动成功标志是 `Started PandaWikiApplication` / `Tomcat started on port 8080`；失败看堆栈里的 `Caused by`（如连不上数据库、端口被占）
+4. **验证接口**：`curl http://localhost:8080/ping` 期望 200；`/api/v1/user` 不带 token 返回 401 反而是**正常**（说明接口存在、有鉴权拦截）
+
+### 18.4 常见根因：启动时序
+- 本项目中间件是 Docker 容器。如果后端在 PG 容器还没 healthy 时就 `bootRun`，数据库连接失败 → Spring Boot 启动中断 → 8080 无监听 → 前端所有 `/api` 请求全部 ECONNREFUSED
+- 标准做法：用 `start.cmd` 选项 7（一键全启）按顺序 中间件 → 建库 → 后端 → 前端；或手动确保 `docker compose ps` 全部 healthy 后再启动后端
+
+### 18.5 答辩可说的点
+- "我理解了 Vite 代理机制：开发环境下前端和后端通过 proxy 通信，代理报 ECONNREFUSED 本质是后端端口没服务，先查端口和中间件，而不是去改前端代码"
+- "排错顺序：端口 → 中间件 → 后端日志 → 接口验证，用排除法把问题范围一步步缩小"
+- "bootRun 编译成功但进程退出码 1 = 运行期失败；Gradle 日志和 Spring Boot 应用日志是两层，要分开看"
+
+## 十九、RAG 外部 API 返回简化（外部平台接入体验）
+
+### 19.1 背景
+- 之前 `POST /api/v1/rag/documents` 和 `POST /api/v1/rag/retrieval` 返回统一包装 `{success, code, message, data}`，外部平台调用时需要多拆一层
+- 用户希望像 App 前台 AI 问答一样「只关心结果」：喂文档只关心是否成功，问答只关心答案
+
+### 19.2 改造内容
+- 修改 `RagController.java`：
+  - `documents` 接口：success 时直接返回 `text/plain` 纯文本 `文档《name》已存入`
+  - `retrieval` 接口：在原有向量/关键词检索基础上，把检索片段拼进 system prompt，调用 `ModelService.chat()` 生成回答，只返回纯文本答案
+  - 错误分支也改为 `text/plain` 简单文本，不返回 JSON 包装
+  - system prompt 优先读取知识库 `settings.system_prompt`（CardAI 提示词），未配置时使用默认助手提示词
+- 更新 `web/admin/public/test-token.html` 演示页说明，明确第 ③ 步「RAG 问答」只返回答案
+
+### 19.3 可讲点
+- "外部 API 设计要站在调用方视角：喂文档只返回状态，问答只返回答案，减少调用方解析成本"
+- "复用了 App 前台的 RAG 链路——先检索、再拼 prompt、最后调 chat 模型，保证外部接口和前台问答能力一致"
+- "system prompt 复用 CardAI 配置，外部平台调用也能受管理员自定义提示词影响"
+- "降级设计保留：embedding 失败时仍走关键词 ILIKE 检索，再让模型回答，避免模型未配置时接口直接报错"
+
+### 19.4 验证方式
+- 用 APIfox 或 `test-token.html` 测试：上传文件成功返回纯文本；提问后只返回一段回答文字，不再看到 `mode`/`hits`/`count` 等调试字段
+- 注意：需重启 Java 后端后生效

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Token 本地测试页</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #f5f6f8;
+      margin: 0;
+      padding: 24px;
+      color: #1f2329;
+    }
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 22px;
+      margin-bottom: 8px;
+    }
+    .subtitle {
+      color: #646a73;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .card h2 {
+      font-size: 16px;
+      margin: 0 0 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .form-row {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    label {
+      font-size: 13px;
+      color: #646a73;
+      font-weight: 500;
+    }
+    input[type="text"], input[type="file"], textarea, select {
+      padding: 8px 10px;
+      border: 1px solid #dee0e3;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: #3370ff;
+    }
+    textarea {
+      min-height: 60px;
+      resize: vertical;
+      font-family: monospace;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      color: #fff;
+      background: #3370ff;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #2860df; }
+    .btn:active { background: #1e4fc2; }
+    .btn:disabled { background: #bbb; cursor: not-allowed; }
+    .result {
+      margin-top: 16px;
+      background: #f8f9fa;
+      border: 1px solid #e5e6eb;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 13px;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+      min-height: 80px;
+      max-height: 360px;
+      overflow: auto;
+    }
+    .hint {
+      font-size: 12px;
+      color: #8f959e;
+      margin-top: 6px;
+    }
+    .success { color: #00b42a; }
+    .error { color: #f53f3f; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>API Token 本地测试页</h1>
+    <div class="subtitle">模拟外部平台使用 API Token 调用 PandaWiki 接口（无公网环境演示专用）</div>
+
+    <div class="card">
+      <h2>基础配置</h2>
+      <div class="form-row">
+        <label>后端地址</label>
+        <input type="text" id="baseUrl" value="http://localhost:8080" />
+      </div>
+      <div class="form-row">
+        <label>API Token</label>
+        <input type="text" id="token" placeholder="pw_xxxxxxxx..." />
+        <div class="hint">在 Admin「访问控制 → API Token」里创建后复制</div>
+      </div>
+      <div class="form-row">
+        <label>知识库 ID（kb_id）</label>
+        <input type="text" id="kbId" placeholder="你的知识库id" />
+        <div class="hint">可从「知识库设置 → 访问控制」页面或接口 /knowledge_base/list 获取</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>① 知识库详情（验证 Token 鉴权）</h2>
+      <div class="hint">GET /api/v1/knowledge_base/detail?id={kb_id}，验证 API Token 能替代 JWT</div>
+      <button class="btn" onclick="testDetail()">发送请求</button>
+      <div class="result" id="resultDetail">等待请求...</div>
+    </div>
+
+    <div class="card">
+      <h2>② RAG 喂文档</h2>
+      <div class="hint">POST /api/v1/rag/documents，multipart/form-data: file + kb_id（需 doc_manage 及以上权限）</div>
+      <div class="form-row">
+        <label>选择文件</label>
+        <input type="file" id="docFile" />
+      </div>
+      <button class="btn" onclick="testUpload()">上传并学习</button>
+      <div class="result" id="resultUpload">等待请求...</div>
+    </div>
+
+    <div class="card">
+      <h2>③ RAG 问答</h2>
+      <div class="hint">POST /api/v1/rag/retrieval，JSON: {kb_id, query}（需 data_operate 及以上权限）；后端先做检索，再调用 chat 模型，只返回纯文本回答</div>
+      <div class="form-row">
+        <label>问题</label>
+        <input type="text" id="query" placeholder="输入你想问的问题" value="测试问题" />
+      </div>
+      <button class="btn" onclick="testRetrieval()">检索</button>
+      <div class="result" id="resultRetrieval">等待请求...</div>
+    </div>
+  </div>
+
+  <script>
+    function getConfig() {
+      return {
+        baseUrl: document.getElementById('baseUrl').value.trim().replace(/\/$/, ''),
+        token: document.getElementById('token').value.trim(),
+        kbId: document.getElementById('kbId').value.trim()
+      };
+    }
+
+    function checkConfig() {
+      const cfg = getConfig();
+      if (!cfg.token) return '请先填写 API Token';
+      if (!cfg.kbId) return '请先填写知识库 ID';
+      return null;
+    }
+
+    function formatRequest(method, url, headers, body) {
+      let lines = [`${method} ${url}`, 'Headers:'];
+      Object.entries(headers).forEach(([k, v]) => lines.push(`  ${k}: ${v}`));
+      if (body) {
+        lines.push('Body:');
+        if (typeof body === 'string') lines.push(body);
+        else if (body instanceof FormData) {
+          for (let [k, v] of body.entries()) {
+            lines.push(`  ${k}: ${v instanceof File ? v.name : v}`);
+          }
+        } else lines.push(JSON.stringify(body, null, 2));
+      }
+      return lines.join('\n');
+    }
+
+    async function sendRequest(elId, method, url, headers, body) {
+      const el = document.getElementById(elId);
+      el.textContent = formatRequest(method, url, headers, body) + '\n\n发送中...';
+      try {
+        const res = await fetch(url, { method, headers, body });
+        const text = await res.text();
+        let json;
+        try { json = JSON.parse(text); } catch { json = null; }
+        el.textContent =
+          formatRequest(method, url, headers, body) +
+          `\n\nHTTP 状态: ${res.status} ${res.statusText}\n` +
+          `响应:\n${json ? JSON.stringify(json, null, 2) : text}`;
+        el.className = 'result ' + (res.ok ? 'success' : 'error');
+      } catch (err) {
+        el.textContent =
+          formatRequest(method, url, headers, body) +
+          `\n\n请求失败: ${err.message}`;
+        el.className = 'result error';
+      }
+    }
+
+    function testDetail() {
+      const err = checkConfig();
+      if (err) return alert(err);
+      const cfg = getConfig();
+      const url = `${cfg.baseUrl}/api/v1/knowledge_base/detail?id=${encodeURIComponent(cfg.kbId)}`;
+      sendRequest('resultDetail', 'GET', url, {
+        'Authorization': `Bearer ${cfg.token}`
+      }, null);
+    }
+
+    function testUpload() {
+      const err = checkConfig();
+      if (err) return alert(err);
+      const cfg = getConfig();
+      const fileInput = document.getElementById('docFile');
+      if (!fileInput.files || !fileInput.files[0]) return alert('请选择文件');
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('kb_id', cfg.kbId);
+
+      const url = `${cfg.baseUrl}/api/v1/rag/documents`;
+      sendRequest('resultUpload', 'POST', url, {
+        'Authorization': `Bearer ${cfg.token}`
+      }, formData);
+    }
+
+    function testRetrieval() {
+      const err = checkConfig();
+      if (err) return alert(err);
+      const cfg = getConfig();
+      const query = document.getElementById('query').value.trim();
+      if (!query) return alert('请输入问题');
+
+      const body = JSON.stringify({ kb_id: cfg.kbId, query });
+      const url = `${cfg.baseUrl}/api/v1/rag/retrieval`;
+      sendRequest('resultRetrieval', 'POST', url, {
+        'Authorization': `Bearer ${cfg.token}`,
+        'Content-Type': 'application/json'
+      }, body);
+    }
+  </script>
+</body>
+</html>

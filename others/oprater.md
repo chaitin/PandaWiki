@@ -452,3 +452,68 @@
 - **验证**：curl SSR 页面，RSC payload 中 `authInfo` 已返回 `"username":"访客3dea5fe4"`（sessionId 末8位）；CDP 确认水印 overlay 存在（756×488, z-index 9999）
 - **溯源闭环**：水印显示访客ID + 时间戳 → 泄露截图 → 到 stat 表按 `session_id` 末8位反查 IP / UA / 轨迹
 - 重启了 Java 后端（新 controller 生效），app 3010 由 dev 热更新自动加载
+
+## 2026-08-22
+
+### 简化 RAG 外部 API 返回格式
+- 修改 `RagController.java`：
+  - `POST /api/v1/rag/documents` 成功时返回纯文本 `文档《name》已存入`，不再包装 `{success,code,message,data}`
+  - `POST /api/v1/rag/retrieval` 先向量/关键词检索，再调用 `ModelService.chat()` 生成回答，只返回纯文本答案
+  - 错误返回也改为 `text/plain` 简单文本
+  - 复用 `PromptService.getPromptContent(kbId)` 读取知识库 CardAI 提示词作为 system prompt
+- 更新 `web/admin/public/test-token.html` 第 ③ 步标题和说明，改为「RAG 问答」并说明只返回答案
+- 编译 `gradlew compileJava compileKotlin -q --no-daemon` 通过
+- 操作：需停止旧 Java 后端并重新启动
+
+### 排查 Vite 代理报错 ECONNREFUSED（/api/v1/user、/api/v1/license）
+- 现象：前端 Vite 日志 `[vite] http proxy error: /api/v1/user ... ECONNREFUSED`
+- 定位：vite.config.ts 的 `/api` 代理目标 = `http://localhost:8080`（Java 后端）；ECONNREFUSED = 8080 没人监听
+- 诊断：`docker compose ps` 四个中间件（PG/Redis/NATS/MinIO）全部 healthy；`netstat` 确认 8080 未监听
+- 查 `backend-java/bootrun.err`：8月17日旧文件（非当天），仅显示 Gradle 层 `bootRun FAILED (exit 1)`，编译成功、应用启动阶段退出
+- 复跑 `.\gradlew.bat bootRun --no-daemon` → 本次启动成功（Tomcat 8080，11.3s），curl 验证 `/ping`=200、`/api/v1/user`=401（需登录，正常）、`/api/v1/license`=200
+- 结论：根因是后端启动时序——中间件未就绪时启动后端导致连库失败退出，前端代理自然 ECONNREFUSED；中间件健康时后端可正常启动
+- 沙箱里起的后端已按规则关闭（8080 已释放），需用户自行重新启动
+
+### 规划 Admin「访问控制」（方案已出，未改代码）
+- 调研：访问控制页签 = CardKB（Wiki 站管理员 + API Token），前端已实现，Java 后端缺接口
+- 产出方案文档 `.trae/documents/Admin访问控制-Java后端实施方案.md`
+- 范围：必做 3.1 KbAccessService 鉴权帮助类、3.2 KB 用户管理 4 接口、3.3 API Token 4 接口、3.4 Token 鉴权过滤器；可选 3.5 RAG 开放接口（喂文档+问答）
+- 讲解：用户管理（造全局账号）vs Wiki 站管理员（kb_users 知识库授权）区别；API Token = 外部平台 Bearer 凭据，对标 Go Pro datasets/retrieval（Java 后端暂无）
+
+### 实现 Admin「访问控制」（Java 后端，3.1~3.5）
+- 用户确认「要 3.5」，按方案全部实现：
+  - 3.1 新增 `security/KbAccessService.java`：三层权限解析（JWT admin 直通 / kb_users / api_tokens），requireLogin/requirePerm/requireFullControl 帮助方法
+  - 3.2 新增 `controller/KbUserController.java`：GET /api/v1/knowledge_base/user/list、POST /invite、PATCH /update、DELETE /delete（除 list 需 full_control，拒绝邀请/改/删 admin，重复邀请报友好提示）
+  - 3.3 新增 `controller/ApiTokenController.java`：POST/GET/PATCH/DELETE /api/pro/v1/token/*，token 格式 `pw_`+UUID 去横线（不含 . 便于区分 JWT），全部需 full_control
+  - 3.4 新增 `security/ApiTokenAuthFilter.java`：OncePerRequestFilter，对 /api/** 预解析 Bearer，非 JWT（不含 .）回退查 api_tokens，写入 request attribute；不拦截请求，保持现有 Controller 自校验
+  - 3.5 新增 `controller/RagController.java`：POST /api/v1/rag/documents（multipart 上传→存盘→DocumentParseService 解析→建 status=2/type=2 节点→ensureIndexed 向量化）、POST /api/v1/rag/retrieval（EmbeddingService.search top5，失败降级 ILIKE）
+  - 改造 `KnowledgeBaseController.resolvePerm` 复用 KbAccessService，使非 admin 但 full_control 用户在 detail 能拿到正确 perm
+- 编译 `gradlew compileJava compileKotlin` 通过；当前 8080 后端是旧代码，需重启生效
+
+### 修复 Admin「复制用户信息」在 http 内网 IP 下失败
+- 现象：用户管理创建用户后点「复制用户信息」弹窗提示「非 https 协议下不支持复制」
+- 根因：`web/admin/src/utils/index.ts` 的 `copyText` 只要 `window.location.origin` 不是 `https://` 就直接 `message.error` 返回，未执行后面的 textarea 降级方案
+- 修复：删除该提前拦截，改为优先 `navigator.clipboard`，不支持时回退临时 textarea + `document.execCommand('copy')`；修复了降级分支 duration 不一致的小 bug；build:dev 验证通过
+- 操作：前端 Vite 热更新，刷新页面即可
+
+### 新增 API Token 本地演示页 test-token.html
+- 需求：无公网环境下让 API Token 调用流程更透明、答辩可演示
+- 实现：在 `web/admin/public/test-token.html` 创建独立静态页，包含：
+  - 基础配置：后端地址、API Token、kb_id
+  - ① 知识库详情：GET /api/v1/knowledge_base/detail?id= 验证 token 鉴权
+  - ② RAG 喂文档：POST /api/v1/rag/documents multipart 上传文件
+  - ③ RAG 检索：POST /api/v1/rag/retrieval JSON 查询
+  - 每个接口实时展示请求方法/URL/Header/Body 和响应状态/响应体
+- 验证：`vite build --mode development` 通过；访问 `http://localhost:5173/test-token.html`
+- 前提：Java 后端需重启加载新接口，前端 dev server 需运行
+
+### 修复 RAG 喂文档后知识库看不到文档 + 检索结果不精准
+- 现象 1：test-token 上传 txt 返回 200，但 Admin 知识库文档列表看不到该文档
+- 根因 1：RagController 创建节点时未设置 `nav_id`，前端 `listGroupNav` 按目录分组，`nav_id` 为空会进入 orphan 组，默认不显示
+- 修复 1：创建节点前查询该知识库第一个 nav，把文档挂到第一个目录下
+- 现象 2：检索时"有关的无关的都出来"
+- 根因 2：返回 top5 但没有相似度阈值过滤，且向量化失败会降级为关键词 ILIKE 匹配
+- 修复 2：A+B 方案
+  - A. 加相似度阈值 `SIMILARITY_THRESHOLD = 0.5`，低于阈值的向量结果丢弃
+  - B. 限制最多返回 5 条，并在响应里返回 `mode`（vector/keyword）、`threshold`、`count`，方便前端/演示页判断检索质量
+- 编译 `gradlew compileJava compileKotlin` 通过；需重启后端生效

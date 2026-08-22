@@ -98,7 +98,6 @@ export const copyText = (
   duration?: number,
   msgText?: string,
 ) => {
-  const isNotHttps = !/^https:\/\//.test(window.location.origin);
   const dur = duration ?? 1.5;
 
   if (msgText) {
@@ -107,44 +106,40 @@ export const copyText = (
     msgText = '';
   }
 
-  if (isNotHttps) {
-    message.error(
-      '非 https 协议下不支持复制，请使用 https 协议' + msgText,
-      dur,
-    );
-    return;
-  }
-
   try {
+    // 优先使用现代 Clipboard API（https / localhost / 127.0.0.1 可用）
     if (navigator.clipboard && window.isSecureContext) {
       navigator.clipboard.writeText(text);
       message.success('复制成功' + msgText, dur);
       callback?.();
-    } else {
-      const textArea = document.createElement('textarea');
-      textArea.style.position = 'fixed';
-      textArea.style.opacity = '0';
-      textArea.style.left = '-9999px';
-      textArea.style.top = '-9999px';
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-      try {
-        const successful = document.execCommand('copy');
-        if (successful) {
-          message.success('复制成功' + msgText, duration ?? 1500);
-          callback?.();
-        } else {
-          message.error('复制失败，请手动复制' + msgText, duration ?? 1500);
-        }
-      } catch (err) {
-        message.error('复制失败，请手动复制' + msgText, duration ?? 1500);
-      }
-      document.body.removeChild(textArea);
+      return;
     }
+
+    // 降级方案：临时 textarea + execCommand，兼容 http 内网 IP 等非安全上下文
+    const textArea = document.createElement('textarea');
+    textArea.style.position = 'fixed';
+    textArea.style.opacity = '0';
+    textArea.style.left = '-9999px';
+    textArea.style.top = '-9999px';
+    textArea.value = text;
+    textArea.setAttribute('readonly', '');
+    document.body.appendChild(textArea);
+    textArea.select();
+    textArea.setSelectionRange(0, text.length);
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        message.success('复制成功' + msgText, dur);
+        callback?.();
+      } else {
+        message.error('复制失败，请手动复制' + msgText, dur);
+      }
+    } catch (err) {
+      message.error('复制失败，请手动复制' + msgText, dur);
+    }
+    document.body.removeChild(textArea);
   } catch (err) {
-    message.error('复制失败，请手动复制' + msgText, duration ?? 1500);
+    message.error('复制失败，请手动复制' + msgText, dur);
   }
 };
 

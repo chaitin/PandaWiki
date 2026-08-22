@@ -3,10 +3,9 @@ package com.chaitin.pandawiki.controller;
 import com.chaitin.pandawiki.dto.KnowledgeBaseDtos;
 import com.chaitin.pandawiki.entity.KnowledgeBase;
 import com.chaitin.pandawiki.repository.KnowledgeBaseRepository;
-import com.chaitin.pandawiki.security.JwtService;
+import com.chaitin.pandawiki.security.KbAccessService;
 import com.chaitin.pandawiki.service.EmbeddingService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -28,8 +27,8 @@ public class KnowledgeBaseController {
     private final KnowledgeBaseRepository knowledgeBaseRepository;
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
-    private final JwtService jwtService;
     private final EmbeddingService embeddingService;
+    private final KbAccessService kbAccessService;
 
     @PostMapping
     public KnowledgeBaseDtos.Resp create(@RequestBody KnowledgeBaseDtos.CreateReq req, HttpServletRequest request) {
@@ -195,17 +194,16 @@ public class KnowledgeBaseController {
     }
 
     private String resolvePerm(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return "";
+        // 复用访问控制帮助类：带 kb_id（如 detail?id=）时精确解析 kb_users / api_tokens 权限
+        String kbId = request.getParameter("id");
+        if (kbId != null && !kbId.isBlank()) {
+            return kbAccessService.resolvePerm(request, kbId);
         }
-        try {
-            Claims claims = jwtService.parseBearer(authHeader);
-            String role = jwtService.role(claims);
-            return "admin".equals(role) ? "full_control" : "";
-        } catch (Exception e) {
-            return "";
-        }
+        // 无 kb_id（如 list）：admin 直通 full_control，API Token 按上下文权限返回
+        String type = (String) request.getAttribute(KbAccessService.ATTR_TYPE);
+        if ("admin".equals(request.getAttribute(KbAccessService.ATTR_ROLE))) return "full_control";
+        if ("token".equals(type)) return String.valueOf(request.getAttribute(KbAccessService.ATTR_PERM));
+        return "";
     }
 
     private KnowledgeBaseDtos.Resp toResp(KnowledgeBase kb, HttpServletRequest request) {

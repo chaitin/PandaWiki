@@ -15,7 +15,7 @@ App 前台：cd /d E:\PandaWiki\web\app && set TARGET=http://localhost:8080 && s
 
 - Admin 后台： http://localhost:5173
 - App 前台： http://localhost:3010
-- Java 健康检查： http://localhost:8080/ping
+- Java 健康检查： http://localhost:8080/ping    
 
 http://localhost:3010/test-widget.html
 
