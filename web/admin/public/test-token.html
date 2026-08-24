@@ -3,115 +3,155 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API Token 本地测试页</title>
+  <title>API Token 测试</title>
   <style>
     * { box-sizing: border-box; }
     body {
+      margin: 0;
+      padding: 40px 24px;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
       background: #f5f6f8;
-      margin: 0;
-      padding: 24px;
       color: #1f2329;
     }
-    .container {
-      max-width: 960px;
+    .page {
+      max-width: 720px;
       margin: 0 auto;
     }
-    h1 {
-      font-size: 22px;
-      margin-bottom: 8px;
-    }
-    .subtitle {
-      color: #646a73;
-      font-size: 14px;
+    .page-title {
+      font-size: 24px;
+      font-weight: 600;
       margin-bottom: 24px;
     }
     .card {
       background: #fff;
-      border-radius: 8px;
-      padding: 20px;
+      border-radius: 12px;
+      padding: 24px;
       margin-bottom: 16px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
     }
-    .card h2 {
-      font-size: 16px;
-      margin: 0 0 16px 0;
+    .card-header {
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0;
     }
     .form-row {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
+    }
+    .form-row:last-child {
+      margin-bottom: 0;
     }
     label {
+      display: block;
       font-size: 13px;
       color: #646a73;
-      font-weight: 500;
+      margin-bottom: 6px;
     }
-    input[type="text"], input[type="file"], textarea, select {
-      padding: 8px 10px;
+    input[type="text"], select, textarea {
+      width: 100%;
+      padding: 10px 12px;
       border: 1px solid #dee0e3;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 14px;
       outline: none;
+      transition: border-color 0.2s;
     }
-    input:focus, textarea:focus, select:focus {
+    input:focus, select:focus, textarea:focus {
       border-color: #3370ff;
     }
     textarea {
-      min-height: 60px;
+      min-height: 120px;
       resize: vertical;
-      font-family: monospace;
+      line-height: 1.6;
     }
     .btn {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 8px 16px;
+      padding: 9px 18px;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 14px;
+      font-weight: 500;
       cursor: pointer;
       color: #fff;
       background: #3370ff;
-      transition: background 0.2s;
+      transition: background 0.2s, transform 0.1s;
     }
     .btn:hover { background: #2860df; }
-    .btn:active { background: #1e4fc2; }
-    .btn:disabled { background: #bbb; cursor: not-allowed; }
-    .result {
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { background: #bbb; cursor: not-allowed; transform: none; }
+    .btn-outline {
+      color: #3370ff;
+      background: #fff;
+      border: 1px solid #3370ff;
+    }
+    .btn-outline:hover { background: #f2f6ff; }
+    .row-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .answer-box {
       margin-top: 16px;
+      padding: 16px;
       background: #f8f9fa;
-      border: 1px solid #e5e6eb;
-      border-radius: 6px;
-      padding: 12px;
-      font-size: 13px;
-      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-      white-space: pre-wrap;
-      word-break: break-all;
+      border-radius: 8px;
       min-height: 80px;
-      max-height: 360px;
-      overflow: auto;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
     }
-    .hint {
-      font-size: 12px;
+    .answer-empty {
       color: #8f959e;
-      margin-top: 6px;
     }
-    .success { color: #00b42a; }
-    .error { color: #f53f3f; }
+    .hidden { display: none; }
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      color: #fff;
+      background: #1f2329;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+      z-index: 1000;
+    }
+    .toast.show { opacity: 1; }
+    .toast.success { background: #00b42a; }
+    .toast.error { background: #f53f3f; }
+    .loading {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,0.6);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>API Token 本地测试页</h1>
-    <div class="subtitle">模拟外部平台使用 API Token 调用 PandaWiki 接口（无公网环境演示专用）</div>
+  <div class="page">
+    <div class="page-title">API Token 测试</div>
 
     <div class="card">
-      <h2>基础配置</h2>
+      <div class="card-header">
+        <h2 class="card-title">基础配置</h2>
+        <button class="btn" id="btnDetail" onclick="testDetail()">发送请求</button>
+      </div>
       <div class="form-row">
         <label>后端地址</label>
         <input type="text" id="baseUrl" value="http://localhost:8080" />
@@ -119,44 +159,51 @@
       <div class="form-row">
         <label>API Token</label>
         <input type="text" id="token" placeholder="pw_xxxxxxxx..." />
-        <div class="hint">在 Admin「访问控制 → API Token」里创建后复制</div>
       </div>
       <div class="form-row">
-        <label>知识库 ID（kb_id）</label>
-        <input type="text" id="kbId" placeholder="你的知识库id" />
-        <div class="hint">可从「知识库设置 → 访问控制」页面或接口 /knowledge_base/list 获取</div>
+        <label>知识库 ID</label>
+        <input type="text" id="kbId" placeholder="请输入知识库 ID" />
       </div>
     </div>
 
     <div class="card">
-      <h2>① 知识库详情（验证 Token 鉴权）</h2>
-      <div class="hint">GET /api/v1/knowledge_base/detail?id={kb_id}，验证 API Token 能替代 JWT</div>
-      <button class="btn" onclick="testDetail()">发送请求</button>
-      <div class="result" id="resultDetail">等待请求...</div>
-    </div>
-
-    <div class="card">
-      <h2>② RAG 喂文档</h2>
-      <div class="hint">POST /api/v1/rag/documents，multipart/form-data: file + kb_id（需 doc_manage 及以上权限）</div>
+      <h2 class="card-title" style="margin-bottom: 20px;">上传文件</h2>
       <div class="form-row">
         <label>选择文件</label>
         <input type="file" id="docFile" />
       </div>
-      <button class="btn" onclick="testUpload()">上传并学习</button>
-      <div class="result" id="resultUpload">等待请求...</div>
+      <div id="navArea" class="hidden">
+        <div class="form-row">
+          <label>选择目录</label>
+          <select id="navSelect">
+            <option value="">请选择目录</option>
+          </select>
+        </div>
+        <div class="row-actions">
+          <button class="btn" id="btnConfirmUpload" onclick="confirmUpload()">确认上传</button>
+        </div>
+      </div>
+      <div class="row-actions" id="uploadActionArea">
+        <button class="btn" id="btnUpload" onclick="prepareUpload()">上传</button>
+      </div>
     </div>
 
     <div class="card">
-      <h2>③ RAG 问答</h2>
-      <div class="hint">POST /api/v1/rag/retrieval，JSON: {kb_id, query}（需 data_operate 及以上权限）；后端先做检索，再调用 chat 模型，只返回纯文本回答</div>
+      <h2 class="card-title" style="margin-bottom: 20px;">AI 问答</h2>
       <div class="form-row">
         <label>问题</label>
-        <input type="text" id="query" placeholder="输入你想问的问题" value="测试问题" />
+        <input type="text" id="query" placeholder="请输入问题" />
       </div>
-      <button class="btn" onclick="testRetrieval()">检索</button>
-      <div class="result" id="resultRetrieval">等待请求...</div>
+      <div class="row-actions">
+        <button class="btn" id="btnSend" onclick="testRetrieval()">发送</button>
+      </div>
+      <div class="answer-box" id="answerBox">
+        <span class="answer-empty">答案将显示在这里</span>
+      </div>
     </div>
   </div>
+
+  <div class="toast" id="toast"></div>
 
   <script>
     function getConfig() {
@@ -167,89 +214,171 @@
       };
     }
 
-    function checkConfig() {
+    function checkBase() {
       const cfg = getConfig();
-      if (!cfg.token) return '请先填写 API Token';
-      if (!cfg.kbId) return '请先填写知识库 ID';
-      return null;
+      if (!cfg.token) { showToast('请先填写 API Token', 'error'); return null; }
+      if (!cfg.kbId) { showToast('请先填写知识库 ID', 'error'); return null; }
+      return cfg;
     }
 
-    function formatRequest(method, url, headers, body) {
-      let lines = [`${method} ${url}`, 'Headers:'];
-      Object.entries(headers).forEach(([k, v]) => lines.push(`  ${k}: ${v}`));
-      if (body) {
-        lines.push('Body:');
-        if (typeof body === 'string') lines.push(body);
-        else if (body instanceof FormData) {
-          for (let [k, v] of body.entries()) {
-            lines.push(`  ${k}: ${v instanceof File ? v.name : v}`);
-          }
-        } else lines.push(JSON.stringify(body, null, 2));
+    function showToast(msg, type) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.className = 'toast show ' + type;
+      setTimeout(() => el.className = 'toast', 2500);
+    }
+
+    function setLoading(id, loading) {
+      const btn = document.getElementById(id);
+      if (loading) {
+        btn.disabled = true;
+        btn.dataset.originalText = btn.textContent;
+        btn.innerHTML = '<span class="loading"></span>' + btn.textContent;
+      } else {
+        btn.disabled = false;
+        btn.textContent = btn.dataset.originalText || btn.textContent.replace(/\s*$/, '');
       }
-      return lines.join('\n');
     }
 
-    async function sendRequest(elId, method, url, headers, body) {
-      const el = document.getElementById(elId);
-      el.textContent = formatRequest(method, url, headers, body) + '\n\n发送中...';
+    let navsLoaded = false;
+
+    async function loadNavs() {
+      const cfg = checkBase();
+      if (!cfg) return false;
       try {
-        const res = await fetch(url, { method, headers, body });
-        const text = await res.text();
-        let json;
-        try { json = JSON.parse(text); } catch { json = null; }
-        el.textContent =
-          formatRequest(method, url, headers, body) +
-          `\n\nHTTP 状态: ${res.status} ${res.statusText}\n` +
-          `响应:\n${json ? JSON.stringify(json, null, 2) : text}`;
-        el.className = 'result ' + (res.ok ? 'success' : 'error');
+        const res = await fetch(`${cfg.baseUrl}/api/v1/nav/list?kb_id=${encodeURIComponent(cfg.kbId)}`, {
+          headers: { 'Authorization': `Bearer ${cfg.token}` }
+        });
+        if (!res.ok) throw new Error('加载目录失败');
+        const list = await res.json();
+        const select = document.getElementById('navSelect');
+        select.innerHTML = '<option value="">请选择目录</option>';
+        if (!list || list.length === 0) {
+          showToast('该知识库暂无目录', 'error');
+          navsLoaded = false;
+          return false;
+        }
+        list.forEach(nav => {
+          const opt = document.createElement('option');
+          opt.value = nav.id;
+          opt.textContent = nav.name;
+          select.appendChild(opt);
+        });
+        navsLoaded = true;
+        return true;
       } catch (err) {
-        el.textContent =
-          formatRequest(method, url, headers, body) +
-          `\n\n请求失败: ${err.message}`;
-        el.className = 'result error';
+        showToast(err.message, 'error');
+        navsLoaded = false;
+        return false;
       }
     }
 
-    function testDetail() {
-      const err = checkConfig();
-      if (err) return alert(err);
-      const cfg = getConfig();
-      const url = `${cfg.baseUrl}/api/v1/knowledge_base/detail?id=${encodeURIComponent(cfg.kbId)}`;
-      sendRequest('resultDetail', 'GET', url, {
-        'Authorization': `Bearer ${cfg.token}`
-      }, null);
+    async function prepareUpload() {
+      const cfg = checkBase();
+      if (!cfg) return;
+      const fileInput = document.getElementById('docFile');
+      if (!fileInput.files || !fileInput.files[0]) {
+        showToast('请先选择文件', 'error'); return;
+      }
+
+      setLoading('btnUpload', true);
+      const ok = await loadNavs();
+      setLoading('btnUpload', false);
+
+      if (!ok) return;
+
+      document.getElementById('uploadActionArea').classList.add('hidden');
+      document.getElementById('navArea').classList.remove('hidden');
     }
 
-    function testUpload() {
-      const err = checkConfig();
-      if (err) return alert(err);
-      const cfg = getConfig();
+    async function confirmUpload() {
+      const cfg = checkBase();
+      if (!cfg) return;
+      const navId = document.getElementById('navSelect').value;
       const fileInput = document.getElementById('docFile');
-      if (!fileInput.files || !fileInput.files[0]) return alert('请选择文件');
+      if (!fileInput.files || !fileInput.files[0]) {
+        showToast('请选择文件', 'error'); return;
+      }
+      if (!navId) {
+        showToast('请选择目录', 'error'); return;
+      }
 
       const formData = new FormData();
       formData.append('file', fileInput.files[0]);
       formData.append('kb_id', cfg.kbId);
+      formData.append('nav_id', navId);
 
-      const url = `${cfg.baseUrl}/api/v1/rag/documents`;
-      sendRequest('resultUpload', 'POST', url, {
-        'Authorization': `Bearer ${cfg.token}`
-      }, formData);
+      setLoading('btnConfirmUpload', true);
+      try {
+        const res = await fetch(`${cfg.baseUrl}/api/v1/rag/documents`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${cfg.token}` },
+          body: formData
+        });
+        const text = await res.text();
+        if (res.ok) {
+          showToast(text, 'success');
+          fileInput.value = '';
+          document.getElementById('navArea').classList.add('hidden');
+          document.getElementById('uploadActionArea').classList.remove('hidden');
+        } else {
+          showToast('上传失败：' + text, 'error');
+        }
+      } catch (err) {
+        showToast('上传失败：' + err.message, 'error');
+      }
+      setLoading('btnConfirmUpload', false);
     }
 
-    function testRetrieval() {
-      const err = checkConfig();
-      if (err) return alert(err);
-      const cfg = getConfig();
-      const query = document.getElementById('query').value.trim();
-      if (!query) return alert('请输入问题');
+    async function testDetail() {
+      const cfg = checkBase();
+      if (!cfg) return;
+      setLoading('btnDetail', true);
+      try {
+        const res = await fetch(`${cfg.baseUrl}/api/v1/knowledge_base/detail?id=${encodeURIComponent(cfg.kbId)}`, {
+          headers: { 'Authorization': `Bearer ${cfg.token}` }
+        });
+        if (res.ok) {
+          showToast('请求成功', 'success');
+        } else {
+          showToast('请求失败：' + res.status, 'error');
+        }
+      } catch (err) {
+        showToast('请求失败：' + err.message, 'error');
+      }
+      setLoading('btnDetail', false);
+    }
 
-      const body = JSON.stringify({ kb_id: cfg.kbId, query });
-      const url = `${cfg.baseUrl}/api/v1/rag/retrieval`;
-      sendRequest('resultRetrieval', 'POST', url, {
-        'Authorization': `Bearer ${cfg.token}`,
-        'Content-Type': 'application/json'
-      }, body);
+    async function testRetrieval() {
+      const cfg = checkBase();
+      if (!cfg) return;
+      const query = document.getElementById('query').value.trim();
+      if (!query) { showToast('请输入问题', 'error'); return; }
+
+      const answerBox = document.getElementById('answerBox');
+      answerBox.innerHTML = '<span class="answer-empty">思考中...</span>';
+      setLoading('btnSend', true);
+      try {
+        const res = await fetch(`${cfg.baseUrl}/api/v1/rag/retrieval`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${cfg.token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ kb_id: cfg.kbId, query })
+        });
+        const text = await res.text();
+        if (res.ok) {
+          answerBox.textContent = text;
+        } else {
+          answerBox.innerHTML = '<span class="answer-empty">回答失败</span>';
+          showToast('回答失败：' + text, 'error');
+        }
+      } catch (err) {
+        answerBox.innerHTML = '<span class="answer-empty">回答失败</span>';
+        showToast('回答失败：' + err.message, 'error');
+      }
+      setLoading('btnSend', false);
     }
   </script>
 </body>

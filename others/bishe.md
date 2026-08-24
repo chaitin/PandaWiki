@@ -231,7 +231,7 @@ GET /share/v1/app/web/info → 渲染欢迎页
   - 场景：文档底部开启评论区，访客提交评论；若开启审核，评论先进入待审状态，审核通过后前台才显示
   - 校验：提交前需通过数学验证码，防止机器人灌评论
 - **后台管理入口**：Admin 左侧「反馈」菜单，两个 Tab：
-  - **AI 问答评价**：`GET /api/v1/conversation/message/list`，列出所有被点赞/点踩的问答，显示问题、回答、反馈类型、来源 IP、时间
+  - **AI 问答评价**：`GET /api/v1/conversation/message/list`，列出所有被点赞/点踩的问答，显示问题、来源渠道（`app_type`，JOIN `apps` 表）、用户反馈（👍/👎 + 标签 + 意见）、来源 IP + 归属地（`StatService.lookupIp`）、时间；点击问题弹详情 `GET /api/v1/conversation/message/detail`（按 `id`+`kb_id` 返回单条消息 content/created_at/info/image_paths 等）
   - **文档评论管理**：`GET /api/v1/comment`，支持按 待审核/已通过/已拒绝 筛选，提供通过、拒绝、删除操作（`POST /api/pro/v1/comment_moderate`、`DELETE /api/v1/comment/list`）
 - **数据落盘**：
   - 评价结果存在 `conversation_messages.info` JSONB 字段（`score`、`feedback_type`、`feedback_content`）
@@ -558,6 +558,19 @@ api_tokens     API 级：外部机器调用凭据（按 kb 隔离、可分级、
   - B. 最多返回 5 条，并在响应中标注 `mode`（vector/keyword）、`threshold`、`count`
 - 答辩可讲："RAG 检索我加了相似度阈值和数量限制，避免无关内容被召回；同时响应里带 mode 字段，能区分是向量语义检索还是关键词降级检索，方便调试和优化"
 
+**API Token 底层实现逻辑（答辩可讲）**
+1. **创建**：`ApiTokenController.create` 生成 `pw_` + UUID（不含 `.`），存入 `api_tokens` 表，绑定 kb_id + permission
+2. **携带**：外部请求 `Authorization: Bearer pw_xxx`
+3. **解析**：`ApiTokenAuthFilter` 发现 token 不含 `.`，回退查 `api_tokens` 表，把 `{kbId, permission, userId}` 写入 request attribute
+4. **鉴权**：`KbAccessService.requirePerm` 从 attribute 读取，校验 kb_id 和 permission 是否匹配
+5. **执行业务**：通过则执行 Controller 方法
+6. **为什么预填充不拦截**：现有 Controller 各自校验登录态，全局拦截会破坏公开接口，所以采用最小侵入设计
+
+**演示页更新**
+- `test-token.html` 改为产品化展示：基础配置 → 上传文件 → AI 问答
+- 上传文件时自动加载目录并选择目录
+- AI 问答直接返回模型生成的答案
+
 ## 十二、文档导入（知识库内容来源，答辩高频考点）
 
 - 价值定位：RAG 系统"怎么把文档喂给系统"是毕设最常见考点。知识库内容来源 = 导入功能，导入后文档进入 nodes 表，发布后走 embedding 向量化，才能被问答检索到。链路：**导入 → 解析 → 建节点 → 发布 → 向量化 → 检索**
@@ -820,3 +833,105 @@ StatService 聚合查询
 ### 19.4 验证方式
 - 用 APIfox 或 `test-token.html` 测试：上传文件成功返回纯文本；提问后只返回一段回答文字，不再看到 `mode`/`hits`/`count` 等调试字段
 - 注意：需重启 Java 后端后生效
+
+## 20. 文档贡献（Contribute）模块实现
+
+### 20.1 背景与问题
+- Admin 后台左侧有"贡献"菜单，App 前台文档页右下角有"编辑/新建"按钮，但 Java 后端没有对应接口
+- 现象：前台点保存无响应、后台贡献页空/报错
+- 排查方法：APIfox 调后台接口确认数据已存 → 调前台接口确认数据能读 → 锁定为后端 Controller 缺失
+
+### 20.2 实现内容
+- 新增 Java 后端 `ContributeController`，实现 4 个接口：
+  - `POST /share/pro/v1/contribute/submit`：前台提交贡献，存到 `contributes` 表，状态 `pending`
+  - `GET /api/pro/v1/contribute/list`：后台分页列表，支持按文档名/用户名/状态筛选
+  - `GET /api/pro/v1/contribute/detail`：后台详情，`edit` 类型返回原 node 内容做 diff
+  - `POST /api/pro/v1/contribute/audit`：审核通过时 `add` 新建文档、`edit` 更新原文档；拒绝时只改状态
+- 新增 `Contribute` 实体和 `ContributeRepository`，与 Go 版表结构对齐
+- 去掉前台编辑器里的 `@cap.js/widget` 图形验证码，直接提交
+- 复用现有 `NodeController` 的 RAG 清理逻辑：已发布文档更新后自动删旧向量、标记 `PENDING`，管理员手动点"重新学习"
+
+### 20.3 可讲点
+- "前后端链路排查用二分法：先确认数据写进去没，再确认读出来没，最后才看前端渲染"
+- "最小可用方案先跑通闭环，复杂功能（自动 RAG、版本历史）后续再迭代"
+- "贡献审核是开放与可控的平衡：前台人人可编辑，但管理员把关后才正式生效"
+- "代码风格上参考 Go 版的数据模型，但业务逻辑按 Java 后端现有 Controller → Repository 风格自实现，不直接搬代码"
+
+### 20.4 验证方式
+- 前台文档页 hover 右下角菜单 → 编辑文档 → 修改保存 → 后台贡献页出现 pending 记录
+- 后台点详情查看 diff → 点采纳 → 刷新前台文档页，内容已更新
+- 新增文档：前台创建 → 后台采纳时选目录 → 前台目录出现新文档
+- 拒绝：状态变 rejected，前台无变化
+- 注意：需重启 Java 后端后生效
+
+## 二十一、Admin 问答记录运营后台（已实现）
+
+### 21.1 这个功能是什么
+
+- Admin 后台左侧导航有「问答」菜单，对应原 PandaWiki 的「AI 对话记录管理」能力
+- 前台用户每次和 AI 问答，后端都会把会话写入 `conversations`、`conversation_messages`、`conversation_references` 三张表
+- Admin「问答」页就是读取这些表的运营视图，让管理员看到「用户问了什么、AI 怎么答、参考了哪篇文档」
+
+### 21.2 实现内容
+
+- **Java 后端新增两个 Admin 接口**（`ConversationController.kt`）：
+  - `GET /api/v1/conversation`：分页列表，支持 `kb_id`、`subject`、`remote_ip`、`app_id` 筛选
+  - `GET /api/v1/conversation/detail`：单条详情，返回完整 messages + references + ip_address
+- **权限校验**：复用 `FeedbackController` 的 JWT admin 校验模式
+- **IP 归属地**：复用 `StatService.lookupIp()`，本地/私有网段演示时映射到北京
+- **数据持久化完善**（`ChatController.kt`）：
+  - 保存消息时增加 `parent_id`、`provider`、`model`、`tokens` 字段
+  - 新增 `saveConversationReferences`，把 RAG 检索到的 chunks 写入 `conversation_references`
+  - 新增 `resolveAppId`，Web/Widget 场景使用 `apps` 表真实 `app_id`，让 Admin 列表正确显示来源渠道
+
+### 21.3 实现后的效果
+
+- 列表页：
+  - 问题（首条用户提问，图片问答显示「图片问答」）
+  - 来源渠道（Wiki 站 / 网页挂件 / 机器人等）
+  - 来源用户（已登录显示头像昵称邮箱，未登录显示「匿名用户」）
+  - 来源 IP + 地理位置（国家/省/市）
+  - 问答时间（相对时间 + 完整时间戳）
+- 详情弹窗：
+  - 顶部「内容来源」：RAG 引用的文档链接
+  - 聊天气泡：用户问题右对齐、AI 回答左对齐、Markdown 渲染
+  - 图片预览：用户上传的图片可点击查看
+  - 思考过程：模型输出 `<think>` 内容可展开查看
+
+### 21.4 完整数据流程
+
+```
+App/Widget 前台用户提问
+    ↓
+POST /share/v1/chat/message 或 /share/v1/chat/widget
+    ↓
+ChatController.streamChat
+    ├── 检索知识库 → 得到 chunks
+    ├── 保存会话 → conversations 表
+    ├── 保存用户问题 → conversation_messages 表
+    ├── 调用大模型生成回答
+    ├── 保存 AI 回答 → conversation_messages 表
+    └── 保存引用 → conversation_references 表
+    ↓
+管理员打开 Admin → 切到知识库 → 点击「问答」
+    ↓
+GET /api/v1/conversation / GET /api/v1/conversation/detail
+    ↓
+Admin 列表/详情展示问答记录
+```
+
+### 21.5 验证结果
+
+- 8081 端口临时启动新代码
+- 登录拿 JWT 后调用 `/api/v1/conversation`，返回 5 条历史会话，结构正确
+- 调用 `/api/v1/conversation/detail`，返回完整 messages 和 ip_address
+- 旧数据因 `app_id` 为随机生成，`app_name` 显示为空；新产生的会话会正确关联 `apps` 表
+
+### 21.6 答辩可讲点
+
+- "RAG 系统不是只管回答，还要能回溯对话——管理员在后台能看到用户问了什么、AI 引用了哪些文档"
+- "对话数据是前台 AI 问答流程自然沉淀的，不需要额外埋点"
+- "问答记录和反馈闭环（点赞点踩）结合，可以持续优化回答质量"
+- "我在 Java 后端补齐了 Admin 接口，同时把 RAG 引用持久化到 conversation_references，保证详情页内容来源不空白"
+- "实现过程中遇到 AI 问答保存 assistant 消息时报 SQL 语法错误，排查发现是 SQL 中混用了 `'assistant'` 字面量和 `?` 占位符；修复后统一使用 `?` 占位符并显式声明 `?::jsonb`，问题得到解决"
+- "IP 归属地当前是简化规则匹配：本地/私有网段统一映射到北京，保证演示有数据；生产环境可替换为 ip2region 等离线库，只需改动 `StatService.lookupIp` 一个方法"

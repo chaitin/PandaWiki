@@ -1,5 +1,69 @@
 # 操作记录
 
+## 2026-08-24
+
+### 补齐 Admin「反馈」评价详情接口
+- 文件：`backend-java/src/main/kotlin/com/chaitin/pandawiki/controller/FeedbackController.kt`
+- 新增 `GET /api/v1/conversation/message/detail`：按 id+kb_id 返回单条消息（content/created_at/info/image_paths/tokens 等），前端反馈页点评价弹「问答记录」不再 404
+- 增强 `GET /api/v1/conversation/message/list`：
+  - JOIN apps 返回 `app_type`，前端来源渠道列不再显示 `-`
+  - 注入 StatService，返回 `ip_address`（IP 归属地）
+- 编译：`.\gradlew.bat compileKotlin compileJava -q --no-daemon` 通过
+- 操作：需重新启动 Java 后端（8080）生效
+
+### 实现 Admin「问答」菜单（Java 后端）
+- 文件：`backend-java/src/main/kotlin/com/chaitin/pandawiki/controller/ConversationController.kt`
+- 新增接口：
+  - `GET /api/v1/conversation`：分页列表，支持 subject/remote_ip/app_id 筛选，返回问题、来源渠道、用户、IP、时间、反馈信息
+  - `GET /api/v1/conversation/detail`：单条详情，返回完整 messages + references + ip_address
+- 权限：复用 JWT admin 校验，参考 FeedbackController
+- IP 归属地：复用 StatService.lookupIp
+
+### 解释问答页 IP 归属地为什么显示北京
+- 原因：本地开发请求来源 IP 是 `127.0.0.1`/`::1`（IPv6 localhost），`StatService.lookupIp()` 把本地/私有网段统一映射为「北京」，保证演示有数据
+- 代码位置：`backend-java/src/main/kotlin/com/chaitin/pandawiki/service/StatService.kt` 第 387 行
+- 生产方案：替换为 ip2region / GeoLite2 / 纯真 IP 库等离线库，只改 lookupIp 一个方法
+- 排查命令：Arthas `watch com.chaitin.pandawiki.service.StatService lookupIp '{params,returnObj}' -x 2`
+
+### 修复 AI 问答 SQL 语法错误
+- 现象：提问后后端报错 `PreparedStatementCallback; 糟糕的SQL语法`，INSERT `conversation_messages` 失败
+- 根因：`ChatController.kt` 中 `saveUserMessage` / `saveAssistantMessage` 的 SQL 混用了 `'user'`/`'assistant'` 字面量和 `?` 占位符，PostgreSQL 解析异常
+- 修复：`backend-java/src/main/kotlin/com/chaitin/pandawiki/controller/ChatController.kt`
+  - 把 role 字段也改为 `?` 占位符，作为参数传入
+  - info 字段统一用 `?::jsonb` 显式转换
+  - image_paths 暂时使用数据库 DEFAULT，避免数组文本解析问题
+- 验证：8081 端口临时启动，调用 `/share/v1/chat/message` 成功返回完整流式回答，数据库正常写入 user/assistant 两条消息
+- 操作：停止 8081 测试进程；需用户重新在 8080 启动 Java 后端生效
+
+### 完善 AI 问答数据持久化
+- 文件：`backend-java/src/main/kotlin/com/chaitin/pandawiki/controller/ChatController.kt`
+- 改动：
+  - `saveUserMessage` / `saveAssistantMessage` 增加 `parent_id`、`provider`、`model`、`tokens` 字段
+  - 新增 `saveConversationReferences`：把 RAG 检索到的 chunks 写入 `conversation_references`
+  - 新增 `resolveAppId`：Web/Widget 场景使用 `apps` 表真实 app_id，保证 Admin 列表显示正确来源渠道
+- 编译：`cd backend-java && .\gradlew.bat compileKotlin compileJava -q --no-daemon`（需关闭沙箱，否则 Kotlin daemon 写临时文件受限）
+- 验证：8081 端口临时启动，curl/Invoke-RestMethod 测试列表/详情接口均返回 200 + 正确数据结构
+- 操作：停止沙箱 8081 测试进程；需用户重新在 8080 启动 Java 后端生效
+
+## 2026-08-22
+
+### 调整 API Token 本地演示页
+- 文件：`web/admin/public/test-token.html`
+- 改动：
+  - 删除基础配置里的「加载目录」按钮
+  - 「RAG 喂文档」改名为「上传文件」
+  - 上传流程改为：选文件 → 点上传 → 自动加载目录 → 选择目录 → 确认上传
+  - 「RAG 问答」改名为「AI 问答」
+  - 整体页面更简洁，去掉接口/请求体等技术提示
+
+### RAG 检索升级为 AI 问答
+- 文件：`backend-java/src/main/java/com/chaitin/pandawiki/controller/RagController.java`
+- 改动：`POST /api/v1/rag/retrieval` 检索后调用 `modelService.chat` 生成纯文本回答，只返回模型生成的答案
+
+### 喂文档支持指定目录
+- 文件：`backend-java/src/main/java/com/chaitin/pandawiki/controller/RagController.java`
+- 改动：`POST /api/v1/rag/documents` 新增 `nav_id` 参数；返回提示包含目录名
+
 ## 2026-08-11
 
 ### Java 后端补齐用户管理与文件上传接口
@@ -517,3 +581,18 @@
   - A. 加相似度阈值 `SIMILARITY_THRESHOLD = 0.5`，低于阈值的向量结果丢弃
   - B. 限制最多返回 5 条，并在响应里返回 `mode`（vector/keyword）、`threshold`、`count`，方便前端/演示页判断检索质量
 - 编译 `gradlew compileJava compileKotlin` 通过；需重启后端生效
+
+### 实现文档贡献（Contribute）模块
+- 新增 Java 后端：
+  - `backend-java/src/main/java/com/chaitin/pandawiki/entity/Contribute.java`（contributes 表实体）
+  - `backend-java/src/main/java/com/chaitin/pandawiki/repository/ContributeRepository.java`（基础 CRUD）
+  - `backend-java/src/main/kotlin/com/chaitin/pandawiki/controller/ContributeController.kt`（4 个接口）
+- 实现接口：
+  - `POST /share/pro/v1/contribute/submit` 前台提交贡献
+  - `GET /api/pro/v1/contribute/list` 后台列表
+  - `GET /api/pro/v1/contribute/detail` 后台详情（edit 返回原 node 做 diff）
+  - `POST /api/pro/v1/contribute/audit` 后台审核（add 新建 node / edit 更新 node / rejected 只改状态）
+- 修改 `web/app/src/views/editor/edit/ConfirmModal.tsx`：去掉 `@cap.js/widget` 图形验证码，直接提交
+- 去掉验证码原因：用户要求降低前台提交门槛；后端对 `captcha_token` 保留字段但忽略校验
+- RAG 处理：采纳 edit 后若原文档已发布，自动删旧向量并标记 PENDING；管理员需在文档管理页点"重新学习"重建索引
+- 编译 `gradlew compileJava compileKotlin` 通过；需重启 Java 后端生效

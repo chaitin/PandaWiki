@@ -1,5 +1,6 @@
 package com.chaitin.pandawiki.controller;
 
+import com.chaitin.pandawiki.entity.Nav;
 import com.chaitin.pandawiki.entity.Node;
 import com.chaitin.pandawiki.repository.NavRepository;
 import com.chaitin.pandawiki.repository.NodeRepository;
@@ -50,9 +51,9 @@ public class RagController {
     private final JdbcTemplate jdbcTemplate;
     private final EmbeddingService embeddingService;
     private final DocumentParseService documentParseService;
-    private final KbAccessService kbAccessService;
     private final ModelService modelService;
     private final PromptService promptService;
+    private final KbAccessService kbAccessService;
 
     @Value("${panda.upload.dir:data/static}")
     private String uploadDir;
@@ -64,6 +65,7 @@ public class RagController {
     @PostMapping(value = "/documents", produces = MediaType.TEXT_PLAIN_VALUE)
     public String documents(@RequestParam("file") MultipartFile file,
                             @RequestParam("kb_id") String kbId,
+                            @RequestParam(name = "nav_id", required = false) String navId,
                             HttpServletRequest request, HttpServletResponse response) {
         if (kbId == null || kbId.isBlank()) return plainError(response, 400, "kb_id 不能为空");
         // 喂文档属于「文档管理」级别操作
@@ -93,15 +95,16 @@ public class RagController {
         }
 
         // 3. 创建已发布文档节点（type=2, status=2，直接可检索）
-        // 挂到该知识库第一个目录下，否则前端按目录分组时看不到
-        String navId = navRepository.findByKbIdOrderByPositionAsc(kbId).stream()
-                .findFirst().map(n -> n.getId()).orElse("");
+        // 优先用前端指定的 nav_id，否则挂到第一个目录下
+        String selectedNavId = (navId != null && !navId.isBlank()) ? navId
+                : navRepository.findByKbIdOrderByPositionAsc(kbId).stream()
+                        .findFirst().map(n -> n.getId()).orElse("");
 
         OffsetDateTime now = OffsetDateTime.now();
         Node node = new Node();
         node.setId(UUID.randomUUID().toString());
         node.setKbId(kbId);
-        node.setNavId(navId);
+        node.setNavId(selectedNavId);
         node.setType((short) 2);
         node.setStatus((short) 2);
         node.setName(originalName);
@@ -127,7 +130,8 @@ public class RagController {
             System.err.println("[WARN] RAG 喂文档后向量化失败: " + e.getMessage());
         }
 
-        return "文档《" + saved.getName() + "》已存入";
+        String navName = navRepository.findById(selectedNavId).map(Nav::getName).orElse("默认目录");
+        return "文档《" + saved.getName() + "》成功上传到知识库，目录：" + navName;
     }
 
     /** 问答检索：语义相似度 top-K，embedding 不可用时降级关键词 ILIKE，最后调用 chat 模型只返回答案 */

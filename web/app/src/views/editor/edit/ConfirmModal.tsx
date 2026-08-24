@@ -1,6 +1,5 @@
 'use effect';
-import { useBasePath } from '@/hooks';
-import { Modal, message } from '@ctzhian/ui';
+import { Modal } from '@ctzhian/ui';
 import { Box, FormLabel, TextField, Typography, styled } from '@mui/material';
 import { IconCorrection } from '@panda-wiki/icons';
 import { useEffect, useState } from 'react';
@@ -61,7 +60,6 @@ export const StyledFormLabel = styled(FormLabel)(({ theme }) => ({
 }));
 
 const ConfirmModal = ({ open, onCancel, onOk }: ConfirmModalProps) => {
-  const basePath = useBasePath();
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState(false);
 
@@ -75,19 +73,7 @@ const ConfirmModal = ({ open, onCancel, onOk }: ConfirmModalProps) => {
       setReasonError(true);
       return;
     }
-    let token = '';
-    const Cap = (await import(`@cap.js/widget`)).default;
-    const cap = new Cap({
-      apiEndpoint: `${basePath}/share/v1/captcha/`,
-    });
-    try {
-      const solution = await cap.solve();
-      token = solution.token;
-    } catch (error) {
-      message.error('验证失败');
-      return;
-    }
-    return onOk(reason, token);
+    return onOk(reason, '');
   };
 
   return (

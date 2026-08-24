@@ -1,6 +1,7 @@
 package com.chaitin.pandawiki.controller
 
 import com.chaitin.pandawiki.security.JwtService
+import com.chaitin.pandawiki.service.StatService
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.jsonwebtoken.Claims
 import jakarta.servlet.http.HttpServletRequest
@@ -13,6 +14,9 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
+import java.sql.Timestamp
+import java.time.Instant
+import java.time.format.DateTimeFormatter
 
 /**
  * 反馈相关接口：
@@ -25,7 +29,8 @@ import org.springframework.web.bind.annotation.RestController
 class FeedbackController(
     private val jdbcTemplate: JdbcTemplate,
     private val jwtService: JwtService,
-    private val objectMapper: ObjectMapper
+    private val objectMapper: ObjectMapper,
+    private val statService: StatService
 ) {
 
     data class FeedbackRequest(
@@ -66,6 +71,7 @@ class FeedbackController(
         val conversation_id: String? = null,
         val question: String? = null,
         val remote_ip: String? = null,
+        val ip_address: Any? = null,
         val created_at: String? = null,
         val conversation_info: ConversationInfo = ConversationInfo(),
         val info: FeedbackInfo = FeedbackInfo()
@@ -126,10 +132,11 @@ class FeedbackController(
         ) ?: 0L
 
         val rows = jdbcTemplate.queryForList(
-            """SELECT cm.id, cm.app_id, cm.conversation_id, cm.remote_ip, cm.info, cm.created_at,
+            """SELECT cm.id, cm.app_id, a.type AS app_type, cm.conversation_id, cm.remote_ip, cm.info, cm.created_at,
                       u.content AS question, cm.content AS answer
                FROM conversation_messages cm
                JOIN conversations c ON c.id = cm.conversation_id
+               LEFT JOIN apps a ON cm.app_id = a.id
                LEFT JOIN LATERAL (
                    SELECT content FROM conversation_messages
                    WHERE conversation_id = cm.conversation_id AND role = 'user'
@@ -144,18 +151,69 @@ class FeedbackController(
 
         val list = rows.map { row ->
             val info = parseInfo(row["info"])
+            val ip = row["remote_ip"]?.toString() ?: ""
             ConversationMessageListItem(
                 id = row["id"].toString(),
                 app_id = row["app_id"]?.toString(),
+                app_type = (row["app_type"] as? Number)?.toInt() ?: 0,
                 conversation_id = row["conversation_id"]?.toString(),
                 question = row["question"]?.toString(),
-                remote_ip = row["remote_ip"]?.toString(),
-                created_at = row["created_at"]?.toString(),
+                remote_ip = ip,
+                ip_address = statService.lookupIp(ip),
+                created_at = formatTime(row["created_at"]),
                 info = info
             )
         }
 
         return success(mapOf("data" to list, "total" to count))
+    }
+
+    @GetMapping("/api/v1/conversation/message/detail")
+    fun messageDetail(
+        @RequestParam id: String,
+        @RequestParam kb_id: String,
+        @RequestHeader(value = "Authorization", required = false) authHeader: String?,
+        response: HttpServletResponse
+    ): Map<String, Any?> {
+        val claims = requireAdmin(response, authHeader) ?: return emptyMap()
+        if (!checkKbPermission(claims, kb_id)) {
+            response.status = HttpStatus.FORBIDDEN.value()
+            return error(HttpStatus.FORBIDDEN.value(), "无权访问该知识库")
+        }
+
+        val row = jdbcTemplate.queryForList(
+            """SELECT id, conversation_id, app_id, role, content, provider, model,
+                      prompt_tokens, completion_tokens, total_tokens, remote_ip,
+                      created_at, info, image_paths
+               FROM conversation_messages
+               WHERE id = ? AND kb_id = ?""",
+            id, kb_id
+        ).firstOrNull() ?: return error(HttpStatus.NOT_FOUND.value(), "消息不存在")
+
+        val imagePaths = when (val value = row["image_paths"]) {
+            is java.sql.Array -> (value.array as? Array<*>)?.map { it.toString() } ?: emptyList()
+            is Array<*> -> value.map { it.toString() }
+            else -> emptyList()
+        }
+
+        val data = mapOf(
+            "id" to row["id"].toString(),
+            "conversation_id" to row["conversation_id"]?.toString(),
+            "app_id" to row["app_id"]?.toString(),
+            "role" to row["role"]?.toString(),
+            "content" to row["content"]?.toString(),
+            "provider" to row["provider"]?.toString(),
+            "model" to row["model"]?.toString(),
+            "prompt_tokens" to ((row["prompt_tokens"] as? Number)?.toInt() ?: 0),
+            "completion_tokens" to ((row["completion_tokens"] as? Number)?.toInt() ?: 0),
+            "total_tokens" to ((row["total_tokens"] as? Number)?.toInt() ?: 0),
+            "remote_ip" to row["remote_ip"]?.toString(),
+            "created_at" to formatTime(row["created_at"]),
+            "info" to parseInfo(row["info"]),
+            "image_paths" to imagePaths
+        )
+
+        return success(data)
     }
 
     private fun parseInfo(value: Any?): FeedbackInfo {
@@ -203,5 +261,13 @@ class FeedbackController(
 
     private fun error(code: Int, message: String): Map<String, Any?> {
         return mapOf("success" to false, "code" to code, "message" to message, "data" to null)
+    }
+
+    private fun formatTime(value: Any?): String {
+        return when (value) {
+            is Timestamp -> value.toInstant().toString()
+            is Instant -> value.toString()
+            else -> value?.toString() ?: DateTimeFormatter.ISO_INSTANT.format(Instant.now())
+        }
     }
 }

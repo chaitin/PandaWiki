@@ -222,7 +222,10 @@ class ChatController(
                 ?: "conv-${System.currentTimeMillis()}"
             val userMessageId = "msg-${System.currentTimeMillis()}-${(0..9999).random()}"
             val assistantMessageId = "msg-${System.currentTimeMillis()}-${(0..9999).random()}"
-            val appId = "app-${System.currentTimeMillis()}-${(0..9999).random()}"
+            val isWidget = request?.requestURI?.contains("/widget") ?: false
+            val appType = if (isWidget) 2 else 1
+            val appId = resolveAppId(kbId ?: "", appType)
+                ?: "app-${System.currentTimeMillis()}-${(0..9999).random()}"
             val remoteIp = extractClientIp(request)
             val now = java.time.OffsetDateTime.now()
 
@@ -279,8 +282,14 @@ class ChatController(
                 sendSseEvent(emitter, "data", filteredAnswer.substring(i, end))
             }
 
+            // 保存 RAG 引用来源
+            saveConversationReferences(convId, appId, chunks)
+
             // 保存助手回答，message_id 返回给前端用于反馈
-            saveAssistantMessage(assistantMessageId, convId, appId, kbId ?: "", filteredAnswer, remoteIp, now)
+            saveAssistantMessage(
+                assistantMessageId, convId, appId, kbId ?: "", filteredAnswer,
+                remoteIp, now, userMessageId
+            )
 
             sendSseEvent(emitter, "done", "")
             emitter.complete()
@@ -389,13 +398,18 @@ class ChatController(
         kbId: String,
         content: String,
         remoteIp: String,
-        now: java.time.OffsetDateTime
+        now: java.time.OffsetDateTime,
+        parentId: String? = null,
+        imagePaths: List<String> = emptyList()
     ) {
         jdbcTemplate.update(
             """INSERT INTO conversation_messages
-               (id, conversation_id, app_id, role, content, kb_id, remote_ip, created_at, info)
-               VALUES (?, ?, ?, 'user', ?, ?, ?, ?, '{}')""",
-            id, convId, appId, content, kbId, remoteIp, now
+               (id, conversation_id, app_id, role, content, kb_id, remote_ip, created_at,
+                info, parent_id, provider, model, prompt_tokens, completion_tokens, total_tokens)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?)""",
+            id, convId, appId, "user", content, kbId, remoteIp, now,
+            objectMapper.writeValueAsString(emptyMap<String, Any>()),
+            parentId ?: "", "", "", 0L, 0L, 0L
         )
     }
 
@@ -406,15 +420,45 @@ class ChatController(
         kbId: String,
         content: String,
         remoteIp: String,
-        now: java.time.OffsetDateTime
+        now: java.time.OffsetDateTime,
+        parentId: String? = null
     ) {
         jdbcTemplate.update(
             """INSERT INTO conversation_messages
-               (id, conversation_id, app_id, role, content, kb_id, remote_ip, created_at, info)
-               VALUES (?, ?, ?, 'assistant', ?, ?, ?, ?)""",
-            id, convId, appId, content, kbId, remoteIp, now,
-            objectMapper.writeValueAsString(mapOf("score" to 0))
+               (id, conversation_id, app_id, role, content, kb_id, remote_ip, created_at,
+                info, parent_id, provider, model, prompt_tokens, completion_tokens, total_tokens)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, ?, ?, ?, ?, ?, ?)""",
+            id, convId, appId, "assistant", content, kbId, remoteIp, now,
+            objectMapper.writeValueAsString(mapOf("score" to 0)),
+            parentId ?: "",
+            "chat",
+            "",
+            0L,
+            0L,
+            0L
         )
+    }
+
+    private fun saveConversationReferences(
+        convId: String,
+        appId: String,
+        chunks: List<NodeChunk>
+    ) {
+        chunks.forEach { chunk ->
+            jdbcTemplate.update(
+                """INSERT INTO conversation_references
+                   (conversation_id, app_id, node_id, name, url, favicon)
+                   VALUES (?, ?, ?, ?, ?, ?)""",
+                convId, appId, chunk.node_id, chunk.name, "", ""
+            )
+        }
+    }
+
+    private fun resolveAppId(kbId: String, type: Int): String? {
+        return jdbcTemplate.queryForList(
+            "SELECT id FROM apps WHERE kb_id = ? AND type = ? LIMIT 1",
+            kbId, type
+        ).firstOrNull()?.get("id")?.toString()
     }
 
     private fun extractClientIp(request: HttpServletRequest?): String {
