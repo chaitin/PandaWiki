@@ -87,7 +87,7 @@ public class KnowledgeBaseController {
     }
 
     @PostMapping("/release")
-    public Map<String, Object> release(@RequestBody KnowledgeBaseDtos.ReleaseReq req) {
+    public Map<String, Object> release(@RequestBody KnowledgeBaseDtos.ReleaseReq req, HttpServletRequest request) {
         String kbId = req.getKb_id();
         if (kbId == null || kbId.isBlank()) {
             throw new IllegalArgumentException("kb_id is required");
@@ -115,11 +115,13 @@ public class KnowledgeBaseController {
             return Map.of("success", true, "code", 0, "message", "OK", "data", Map.of("released", 0));
         }
 
-        // 2. 生成 release 记录
+        // 2. 生成 release 记录（记录发布者，来自 JWT/API Token 上下文，可为空）
         String releaseId = UUID.randomUUID().toString();
+        String publisherId = kbAccessService.currentUserId(request);
+        if (publisherId == null) publisherId = "";
         jdbcTemplate.update(
-                "INSERT INTO kb_releases (id, kb_id, tag, message, created_at) VALUES (?, ?, ?, ?, ?)",
-                releaseId, kbId, req.getTag(), req.getMessage() != null ? req.getMessage() : "", now);
+                "INSERT INTO kb_releases (id, kb_id, tag, message, publisher_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                releaseId, kbId, req.getTag(), req.getMessage() != null ? req.getMessage() : "", publisherId, now);
 
         int releasedCount = 0;
         for (Map<String, Object> node : nodes) {
@@ -169,11 +171,138 @@ public class KnowledgeBaseController {
     }
 
     @GetMapping("/release/list")
-    public Map<String, Object> releaseList(@RequestParam("kb_id") String kbId) {
+    public Map<String, Object> releaseList(@RequestParam("kb_id") String kbId,
+                                           @RequestParam(name = "page", required = false) Integer page,
+                                           @RequestParam(name = "per_page", required = false) Integer perPage) {
+        int p = (page == null || page < 1) ? 1 : page;
+        int ps = (perPage == null || perPage < 1) ? 20 : perPage;
+        int offset = (p - 1) * ps;
+
+        Long total = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM kb_releases WHERE kb_id = ?", Long.class, kbId);
+
+        // 联表 users 取发布者账号；第一条即当前版本（按创建时间倒序）
         List<Map<String, Object>> rows = jdbcTemplate.queryForList(
-                "SELECT id, kb_id, tag, message, created_at FROM kb_releases WHERE kb_id = ? ORDER BY created_at DESC",
-                kbId);
-        return Map.of("success", true, "code", 0, "message", "OK", "data", rows);
+                "SELECT r.id, r.kb_id, r.tag, r.message, r.created_at, u.account AS publisher_account " +
+                        "FROM kb_releases r LEFT JOIN users u ON u.id = r.publisher_id " +
+                        "WHERE r.kb_id = ? ORDER BY r.created_at DESC LIMIT ? OFFSET ?",
+                kbId, ps, offset);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", rows);
+        data.put("total", total != null ? total : 0L);
+        return Map.of("success", true, "code", 0, "message", "OK", "data", data);
+    }
+
+    /**
+     * 版本回滚：用指定 release 的节点快照覆盖 nodes 当前内容，并重建向量。
+     */
+    @PostMapping("/release/rollback")
+    public Map<String, Object> releaseRollback(@RequestBody Map<String, String> body) {
+        String kbId = body.get("kb_id");
+        String releaseId = body.get("release_id");
+        if (kbId == null || kbId.isBlank()) {
+            throw new IllegalArgumentException("kb_id is required");
+        }
+        if (releaseId == null || releaseId.isBlank()) {
+            throw new IllegalArgumentException("release_id is required");
+        }
+        knowledgeBaseRepository.findById(kbId)
+                .orElseThrow(() -> new IllegalArgumentException("knowledge base not found"));
+
+        List<Map<String, Object>> releaseRows = jdbcTemplate.queryForList(
+                "SELECT id FROM kb_releases WHERE id = ? AND kb_id = ?", releaseId, kbId);
+        if (releaseRows.isEmpty()) {
+            throw new IllegalArgumentException("release not found");
+        }
+
+        // 查出该版本的所有节点快照
+        List<Map<String, Object>> snapshots = jdbcTemplate.queryForList(
+                "SELECT nr.node_id, nr.name, nr.meta, nr.content, nr.visibility, nr.type, nr.parent_id, nr.position " +
+                        "FROM node_releases nr " +
+                        "JOIN kb_release_node_releases krn ON krn.node_release_id = nr.id " +
+                        "WHERE krn.release_id = ? AND krn.kb_id = ?",
+                releaseId, kbId);
+
+        OffsetDateTime now = OffsetDateTime.now();
+        int rolledBack = 0;
+        for (Map<String, Object> snap : snapshots) {
+            String nodeId = (String) snap.get("node_id");
+            if (nodeId == null) continue;
+            int updated = jdbcTemplate.update(
+                    "UPDATE nodes SET name = ?, meta = ?::jsonb, content = ?, visibility = ?, type = ?, " +
+                            "parent_id = ?, position = ?, status = 2, updated_at = ? WHERE id = ? AND kb_id = ?",
+                    snap.get("name"),
+                    toJson(snap.get("meta")),
+                    snap.get("content"),
+                    snap.get("visibility") != null ? snap.get("visibility") : 1,
+                    snap.get("type"),
+                    snap.get("parent_id"),
+                    snap.get("position") != null ? snap.get("position") : 0.0,
+                    now,
+                    nodeId, kbId);
+            if (updated > 0) rolledBack++;
+        }
+
+        // 回滚后清空并重建该知识库向量（失败不阻塞）
+        try {
+            jdbcTemplate.update("DELETE FROM node_embeddings WHERE kb_id = ?", kbId);
+            embeddingService.ensureIndexed(kbId);
+        } catch (Exception e) {
+            System.err.println("[WARN] 回滚后向量化失败: " + e.getMessage());
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("release_id", releaseId);
+        data.put("rolled_back", rolledBack);
+        return Map.of("success", true, "code", 0, "message", "OK", "data", data);
+    }
+
+    /**
+     * 删除历史版本（仅限非当前版本），级联清理节点快照。
+     */
+    @DeleteMapping("/release")
+    public Map<String, Object> releaseDelete(@RequestParam("kb_id") String kbId,
+                                             @RequestParam("release_id") String releaseId) {
+        if (kbId == null || kbId.isBlank()) {
+            throw new IllegalArgumentException("kb_id is required");
+        }
+        if (releaseId == null || releaseId.isBlank()) {
+            throw new IllegalArgumentException("release_id is required");
+        }
+
+        // 当前版本 = 最新一条，不允许删除（避免破坏快照完整性）
+        List<Map<String, Object>> latest = jdbcTemplate.queryForList(
+                "SELECT id FROM kb_releases WHERE kb_id = ? ORDER BY created_at DESC LIMIT 1", kbId);
+        if (latest.isEmpty()) {
+            throw new IllegalArgumentException("release not found");
+        }
+        if (latest.get(0).get("id").equals(releaseId)) {
+            throw new IllegalArgumentException("当前版本不能删除，请先发布新版本");
+        }
+
+        List<Map<String, Object>> target = jdbcTemplate.queryForList(
+                "SELECT id FROM kb_releases WHERE id = ? AND kb_id = ?", releaseId, kbId);
+        if (target.isEmpty()) {
+            throw new IllegalArgumentException("release not found");
+        }
+
+        // 级联删除：先删 node_releases（按本版本的 node_release_id），再删关联表、发布记录
+        List<Map<String, Object>> links = jdbcTemplate.queryForList(
+                "SELECT node_release_id FROM kb_release_node_releases WHERE release_id = ?", releaseId);
+        if (!links.isEmpty()) {
+            List<String> nrIds = links.stream()
+                    .map(m -> String.valueOf(m.get("node_release_id")))
+                    .collect(Collectors.toList());
+            String inSql = nrIds.stream().map(s -> "?").collect(Collectors.joining(","));
+            jdbcTemplate.update(
+                    "DELETE FROM node_releases WHERE kb_id = ? AND id IN (" + inSql + ")",
+                    prep(kbId, nrIds));
+        }
+        jdbcTemplate.update("DELETE FROM kb_release_node_releases WHERE release_id = ?", releaseId);
+        jdbcTemplate.update("DELETE FROM kb_releases WHERE id = ? AND kb_id = ?", releaseId, kbId);
+
+        return Map.of("success", true, "code", 0, "message", "OK", "data", Map.of("deleted", releaseId));
     }
 
     private Object[] prep(Object first, List<?> rest) {
@@ -187,7 +316,12 @@ public class KnowledgeBaseController {
 
     private String toJson(Object obj) {
         try {
-            return obj == null ? "{}" : objectMapper.writeValueAsString(obj);
+            if (obj == null) return "{}";
+            // PostgreSQL jsonb 字段经 JdbcTemplate 读出的是 PGobject，需取其内部 JSON 字符串
+            if (obj instanceof org.postgresql.util.PGobject pg) {
+                return pg.getValue() != null ? pg.getValue() : "{}";
+            }
+            return objectMapper.writeValueAsString(obj);
         } catch (Exception e) {
             return "{}";
         }

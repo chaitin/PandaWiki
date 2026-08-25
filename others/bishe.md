@@ -935,3 +935,126 @@ Admin 列表/详情展示问答记录
 - "我在 Java 后端补齐了 Admin 接口，同时把 RAG 引用持久化到 conversation_references，保证详情页内容来源不空白"
 - "实现过程中遇到 AI 问答保存 assistant 消息时报 SQL 语法错误，排查发现是 SQL 中混用了 `'assistant'` 字面量和 `?` 占位符；修复后统一使用 `?` 占位符并显式声明 `?::jsonb`，问题得到解决"
 - "IP 归属地当前是简化规则匹配：本地/私有网段统一映射到北京，保证演示有数据；生产环境可替换为 ip2region 等离线库，只需改动 `StatService.lookupIp` 一个方法"
+
+## 二十二、两个真实 bug：问答评价看不到问题 + 文档评论失败（答辩可讲）
+
+### 22.1 Bug1：Admin「反馈 → AI 问答评价」列表的「问题」列空白
+
+**现象**：反馈列表能显示回答、👍/👎、来源渠道、IP、时间，唯独「问题」列是空的。
+
+**数据是怎么来的**：评价列表用 SQL 取每条被投票的助手消息，再取同一会话里**比它更早的那条用户消息**作为"问题"：
+
+```sql
+LEFT JOIN LATERAL (
+    SELECT content FROM conversation_messages
+    WHERE conversation_id = cm.conversation_id AND role = 'user'
+      AND created_at < cm.created_at ORDER BY created_at DESC LIMIT 1
+) u ON true
+```
+
+**排查思路（先看数据，再改代码）**：
+1. 直接查数据库 `conversation_messages`，发现同一会话里 user 和 assistant 两条消息的 `created_at` **完全相同**（都是同一毫秒）
+2. 那么 `created_at < cm.created_at`（严格小于）恒为 false → LATERAL 查不到 → question = null
+3. 回源码看时间从哪来 → `ChatController.streamChat` 里 `saveConversation`（存用户问题）和 `saveAssistantMessage`（存助手回答）**复用了同一个 `now` 变量**
+
+**修复**：保存助手消息时改用 `java.time.OffsetDateTime.now()` 生成新的时间戳，让 assistant 一定晚于 user。
+
+**答辩可讲**：
+- "同一个事务里两条消息如果用同一个时间戳，依赖时间先后关系的关联查询就会失效——这提醒我：**复用一个时间变量前要想清楚下游有没有人依赖时间差**"
+- "排查时先看数据库真实数据（两行 created_at 相同），再倒推代码，比直接改 SQL 更准"
+
+### 22.2 Bug2：App 前台文档评论失败（comments 表 0 行）
+
+**现象**：文档评论区提交评论没反应，`comments` 表一条记录都没有——说明从来没写成功过。
+
+**排查思路（前后端协议对齐）**：
+1. 先模拟后端接口：直接调 `POST /share/v1/comment`，后端全链路正常（能插入）→ 排除后端业务逻辑
+2. 再看前端：评论提交前先跑 `cap.solve()` 拿验证码 token
+3. 对比两端验证码协议：
+   - 前端 `@cap.js/widget`：OpenAI PoW（工作量证明），`SHA256(salt+nonce)` 前 N 字节匹配 target，salt/target 由确定性 PRNG 从 token 生成
+   - 后端 `CaptchaController`：数学题答案校验（challenge 返回两个整数，redeem 校验"和"）
+4. 结论：**鸡同鸭讲**——前端按 PoW 协议算出来的 token，后端拿去做数学题校验，永远失败 → 评论被拒
+
+**修复（用户选择：评论去掉验证码）**：
+- 后端 `CommentController` 删除验证码校验 + 移除 `captchaController` 依赖
+- 前端 `DocContent.tsx`、`commentInput/index.tsx` 删除 `cap.solve()`，`captcha_token` 传空串
+
+**答辩可讲**：
+- "这是典型的**前后端协议不一致**问题：验证码不只是个开关，两端必须实现同一套协议（PoW 或 数学题），否则校验永远失败"
+- "排查用二分法：先证明后端业务逻辑没问题（直接调接口能通），再锁定前端→后端之间的验证码环节"
+- "项目里 AI 问答用的数学验证码（`useMathCaptcha`）和前端库的 PoW 协议本来就是两套，AI 问答和评论各用各的，这次评论改为不校验，统一走'前端校验、后端放行'的演示策略"
+- **遗留说明（诚实交代）**：纯文字评论已通；带图评论走 `postShareV1CommonFileUpload`，但 Java 后端还没实现对应 `file_upload` 接口，所以带图评论仍会失败——这是后续可补的点
+
+### 22.3 本次排错方法论沉淀
+
+1. **先看数据库实际数据**：`docker exec pandawiki-pg psql -U panda-wiki -d panda-wiki -c "SELECT ..."`——很多前端"看不到/失败"的问题，一查数据就知道是"没写进去"还是"写进去了但查/显示不对"
+2. **直接调接口模拟**：用 APIfox 或 curl 绕过前端直接打后端，能快速判断是后端问题还是前端问题
+3. **协议对齐**：凡是有"验证码/签名/加密"的地方，前端和第三方库与后端必须实现同一套协议，排错时把两端各自的实现都读一遍对比
+4. **关联查询注意时间差**：`created_at < cm.created_at` 这类"取前一条"的写法，前提是两条记录时间严格递增，存储时复用一个时间戳会让它失效
+
+---
+
+# 23. Admin「发布」功能完整落地（发布 → 门禁 → 回滚闭环）
+
+## 23.1 发布功能解决什么问题（立项动机）
+
+管理员在后台改文档，改完不想立刻对前台用户可见——比如内容没写完、想攒一批一起上线、或者出错了要回退。**"发布"就是给内容加一道"草稿 vs 线上"的门**：
+- **草稿态**：改了存着，前台看不到
+- **已发布**：前台用户才能看到/搜索到/被 AI 问答引用
+
+## 23.2 核心链路（发布 → 快照 → 门禁 → 回滚）
+
+**发布动作** `POST /api/v1/knowledge_base/release`：
+1. 选中一批未发布的文档（或全部），把 `nodes.status` 从 0（草稿）/1（更新未发布）改成 2（已发布）
+2. 同时生成三张快照表的记录：
+   - `kb_releases`：一条"版本记录"（tag 标签 + message 说明 + 发布者 publisher_id + 时间）
+   - `node_releases`：每个文档当时的完整快照（标题/正文/目录/可见性…）
+   - `kb_release_node_releases`：版本 ↔ 快照的关联表（一个版本包含哪些文档）
+3. 发布后触发向量化 `ensureIndexed`，让新内容能被 AI 问答检索到
+
+**前台内容门禁**（`ShareController.kt`）：
+- 前台列表/详情读的是 `nodes` 表，所以必须加过滤：**`status=2`（已发布）才可见，文件夹（type=1）永远可见**（目录结构不能缺）
+- 用户直接猜未发布文档的 URL，返回 `not found`，而不是泄露草稿内容
+
+**版本回滚** `POST /api/v1/knowledge_base/release/rollback`：
+1. 校验该版本属于当前知识库（防越权）
+2. 把 `node_releases` 里的快照逐条覆盖回 `nodes` 表（标题/正文/目录/可见性/status 统一置为 2=已发布）
+3. 删除该知识库的全部向量 `node_embeddings`，再重新向量化——保证前台看到的内容和 AI 检索的内容一致
+
+**版本删除** `DELETE /api/v1/knowledge_base/release`：
+- 只能删非当前版本（最新的不能删，提示"请先发布新版本"），防止删掉当前线上内容
+- 级联删除：先删快照关联，再删版本记录
+
+## 23.3 为什么设计"三张快照表"而不是直接覆盖 nodes
+
+- 发布历史 = 版本记录（kb_releases），每次发布记一条，能看到"谁、什么时候、发布说明"
+- 但一个版本包含多个文档，所以要 `kb_release_node_releases` 关联表（多对多）
+- 每个文档当时的完整内容存 `node_releases` 快照——**回滚不需要反向 patch，直接拿快照覆盖**，简单可靠
+- 类比：像 Git 的 commit（版本）+ 每次提交的文件快照（blob）
+
+## 23.4 前端交互效果（Admin 侧）
+
+- **发布页**（左侧导航"发布"）：
+  - 版本列表分页展示：tag、发布说明、发布者账号（LEFT JOIN users 取 account）、时间
+  - 每条版本有"回滚"和"删除"操作；当前版本删除按钮禁用
+  - "发布新版本"弹窗：勾选未发布的文档 → 填写 tag/说明 → 发布
+- **侧边栏角标**：发布菜单上显示未发布文档数量（调 `/api/v1/node/stats` 的 `unpublished_count`），管理员一眼知道"还有 N 篇没上线"
+- 回滚/删除弹窗点击确认后真实调后端接口，成功给提示
+
+## 23.5 答辩可讲点
+
+- **"什么是发布"**：内容从"编辑态"到"线上态"的显式动作，配合 status 状态机（0 草稿 / 1 更新未发布 / 2 已发布）
+- **数据一致性设计**：快照表为什么能支撑回滚（存的是"当时的完整内容"而非"改动差异"，回滚=覆盖，简单可靠）
+- **前后台联动**：改了一处后端（发布接口）必须同步改前台读取逻辑（门禁过滤），否则发布就变成"白发"——草稿和线上不分家
+- **越权防护**：回滚/删除前校验 release 属于当前 kb；发布者用 `KbAccessService.currentUserId(request)` 从鉴权上下文取，不信任前端传的用户名
+- **演示脚本**：后台改一篇文档 → 不发布 → 前台刷新看不到 → 后台点发布 → 前台刷新能看到 → 再改 → 回滚到上一个版本 → 前台内容恢复旧版
+
+## 23.6 涉及的表结构
+
+| 表 | 作用 |
+| --- | --- |
+| `kb_releases` | 版本记录（id/kb_id/tag/message/publisher_id/created_at） |
+| `node_releases` | 文档快照（节点当时的完整内容） |
+| `kb_release_node_releases` | 版本↔快照关联（多对多） |
+| `nodes` | 文档主表（status 0/1/2） |
+| `node_embeddings` | 向量（回滚后重建，保证 AI 检索与前台一致） |

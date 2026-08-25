@@ -1,9 +1,11 @@
 import Card from '@/components/Card';
+import { deleteApiV1KnowledgeBaseRelease } from '@/request/KnowledgeBase';
 import { useAppSelector } from '@/store';
+import { message, Modal } from '@ctzhian/ui';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import ErrorIcon from '@mui/icons-material/Error';
 import { Box, Stack, useTheme } from '@mui/material';
-import { Modal } from '@ctzhian/ui';
+import { useState } from 'react';
 
 interface VersionDeleteProps {
   open: boolean;
@@ -20,14 +22,27 @@ const VersionDelete = ({
 }: VersionDeleteProps) => {
   const theme = useTheme();
   const { kb_id } = useAppSelector(state => state.config);
+  const [submitting, setSubmitting] = useState(false);
   if (!data) return null;
 
   const submit = () => {
-    // updateNodeAction({ ids: data.map(item => item.id), kb_id, action: 'delete' }).then(() => {
-    //   message.success('删除成功')
-    //   onClose()
-    //   refresh?.();
-    // })
+    if (!data?.id || !kb_id || submitting) return;
+    setSubmitting(true);
+    deleteApiV1KnowledgeBaseRelease({
+      kb_id,
+      release_id: data.id,
+    })
+      .then(() => {
+        message.success('删除成功');
+        onClose();
+        refresh?.();
+      })
+      .catch(() => {
+        // httpClient 已统一弹错误提示（如当前版本不能删除）
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
   };
 
   return (

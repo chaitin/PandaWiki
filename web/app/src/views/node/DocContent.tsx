@@ -87,17 +87,6 @@ const DocContent = ({
   const onSubmit = handleSubmit(
     async (data: { content: string; name: string }) => {
       setCommentLoading(true);
-      let token = '';
-      try {
-        const Cap = (await import('@cap.js/widget')).default;
-        const cap = new Cap({ apiEndpoint: `${basePath}/share/v1/captcha/` });
-        const solution = await cap.solve();
-        token = solution.token;
-      } catch (error) {
-        message.error('验证失败');
-        setCommentLoading(false);
-        return;
-      }
       try {
         let imageUrls: string[] = [];
         if (commentImages.length > 0 && commentInputRef.current) {
@@ -108,7 +97,7 @@ const DocContent = ({
           pic_urls: imageUrls,
           node_id: docId,
           user_name: data.name,
-          captcha_token: token,
+          captcha_token: '',
         });
         getComment();
         reset();

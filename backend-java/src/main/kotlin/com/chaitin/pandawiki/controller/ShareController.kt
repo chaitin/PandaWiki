@@ -162,7 +162,7 @@ class ShareController(
             """SELECT id, name, type, parent_id, nav_id, position, meta, status,
                       created_at, updated_at
                FROM nodes
-               WHERE kb_id = ?""",
+               WHERE kb_id = ? AND (status = 2 OR type = 1)""",
             kbId
         )
 
@@ -221,6 +221,13 @@ class ShareController(
                WHERE id = ? AND kb_id = ?""",
             id, kbId
         ).firstOrNull() ?: return err("node not found")
+
+        // 内容门禁：未发布的文档（type=2 且 status!=2）对访客隐藏；文件夹 type=1 不受限
+        val nodeType = (node["type"] as? Number)?.toInt()
+        val nodeStatus = (node["status"] as? Number)?.toInt()
+        if (nodeType == 2 && nodeStatus != 2) {
+            return err("node not found")
+        }
 
         return ok(nodeToDetail(node))
     }

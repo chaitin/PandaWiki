@@ -288,7 +288,7 @@ class ChatController(
             // 保存助手回答，message_id 返回给前端用于反馈
             saveAssistantMessage(
                 assistantMessageId, convId, appId, kbId ?: "", filteredAnswer,
-                remoteIp, now, userMessageId
+                remoteIp, java.time.OffsetDateTime.now(), userMessageId
             )
 
             sendSseEvent(emitter, "done", "")

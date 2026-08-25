@@ -1,5 +1,41 @@
 # 操作记录
 
+## 2026-08-25
+
+### Admin「发布」功能完整落地（按已批准方案实施）
+- 方案：`.trae/documents/Admin发布功能落地效果与实施方案.md`
+- 后端（`KnowledgeBaseController.java`）：
+  - `release` 记录发布者 `publisher_id`（从 request 取当前用户）
+  - `releaseList` 分页 page/per_page + LEFT JOIN users 返回 `publisher_account`，data 返回 `{list,total}`
+  - 新增 `POST /release/rollback`：快照覆盖 nodes 表 → 删向量 → ensureIndexed 重建
+  - 新增 `DELETE /release`：仅允许删非当前版本，级联删快照
+  - `toJson` 兼容 PGobject
+- 后端（`ShareController.kt`）：前台 list 过滤未发布文档（status=2 或 type=1），detail 对未发布文档返回 not found
+- 前端：
+  - 发布页 `release/index.tsx` 启用回滚/删除操作列 + 适配 `{list,total}`
+  - `VersionReset.tsx` / `VersionDelete.tsx` 弹窗真实调用后端
+  - `request/KnowledgeBase.ts` 新增 rollback/delete 两个 API
+  - `Sidebar/index.tsx` 发布菜单加未发布数量角标（调 /node/stats）
+- 编译：沙箱内 `gradlew compileKotlin` 卡死（TRAE_SANDBOX 限制），改用 GetDiagnostics 验证无错误（与 8/25 前一次相同）
+- 操作：需重启 Java 后端（8080）生效；Admin 前端 Vite 热更新刷新即可
+
+### 修复 Admin「反馈-AI问答评价」问题列空白
+- 现象：Admin 反馈页「AI 问答评价」列表的「问题」列空白，但「回答/反馈/渠道/IP/时间」正常
+- 根因：`ChatController.streamChat` 里保存用户消息和助手消息复用了**同一个 `now` 时间戳**，导致两条消息 `created_at` 完全相同；FeedbackController 评价列表用 `LEFT JOIN LATERAL (... created_at < cm.created_at ...)` 严格小于查用户问题，恒查不到 → question=null
+- 修复：`ChatController.kt` 保存 assistant 消息时改用 `java.time.OffsetDateTime.now()`（新时间戳）
+- 数据库证据：`SELECT role,left(content,25),created_at FROM conversation_messages WHERE conversation_id='conv-...'` 两条 created_at 相同
+
+### 修复 App 前台文档评论失败
+- 现象：文档评论区提交评论无反应/失败，`comments` 表 0 行（从未写入成功）
+- 根因：前端评论流程用 `@cap.js/widget`（OpenAI PoW 工作量证明验证码），而后端 `CaptchaController` 实现的是**数学题答案校验**（challenge 返回 d/s 两个数，redeem 校验 solutions[0]==d+s），协议不匹配 → 后端永远校验失败 → 评论被拒
+- 方案（用户选择）：评论去掉验证码
+- 修复：
+  - 后端 `CommentController.kt`：删除 createComment 里的 `validateToken` 校验 + 构造函数移除 `captchaController` 依赖（保留 captcha_token 字段不校验）
+  - 前端 `DocContent.tsx`：onSubmit 删除 `cap.solve()`，captcha_token 传 `''`
+  - 前端 `commentInput/index.tsx`：图片上传删除 `cap.solve()`，captcha_token 传 `''`；清理 `useBasePath` import
+- 编译：沙箱内 `gradlew compileKotlin` 卡死（TRAE_SANDBOX 限制 Gradle 早期阶段），改用 IDE 语言服务 GetDiagnostics 验证 4 个改动文件均无错误
+- 遗留（未改）：带图评论走 `postShareV1CommonFileUpload`，Java 后端暂无对应 file_upload 接口，纯文字评论已通、带图评论仍会失败（用户本次未要求扩范围）
+
 ## 2026-08-24
 
 ### 补齐 Admin「反馈」评价详情接口

@@ -70,23 +70,39 @@ const Release = () => {
         return dayjs(text).fromNow();
       },
     },
-    // {
-    //   dataIndex: 'action',
-    //   title: '操作',
-    //   width: 120,
-    //   render: (text: string, record: ReleaseListItem) => {
-    //     return <Stack direction={'row'} gap={2}>
-    //       <Button sx={{ minWidth: 0, p: 0 }} size='small' onClick={() => {
-    //         setCurData(record)
-    //         setResetOpen(true)
-    //       }}>回滚</Button>
-    //       <Button sx={{ minWidth: 0, p: 0 }} size='small' color='error' onClick={() => {
-    //         setCurData(record)
-    //         setDeleteOpen(true)
-    //       }}>删除</Button>
-    //     </Stack>
-    //   }
-    // }
+    {
+      dataIndex: 'action',
+      title: '操作',
+      width: 120,
+      render: (text: string, record: ReleaseListItem) => {
+        return (
+          <Stack direction={'row'} gap={2}>
+            <Button
+              sx={{ minWidth: 0, p: 0 }}
+              size='small'
+              onClick={() => {
+                setCurData(record);
+                setResetOpen(true);
+              }}
+            >
+              回滚
+            </Button>
+            <Button
+              sx={{ minWidth: 0, p: 0 }}
+              size='small'
+              color='error'
+              disabled={curVersionId === record.id}
+              onClick={() => {
+                setCurData(record);
+                setDeleteOpen(true);
+              }}
+            >
+              删除
+            </Button>
+          </Stack>
+        );
+      },
+    },
   ];
 
   const getData = () => {
@@ -94,10 +110,11 @@ const Release = () => {
     // @ts-expect-error 类型错误
     getApiV1KnowledgeBaseReleaseList({ kb_id, page, per_page: pageSize })
       .then(res => {
-        setData(res.data || []);
-        setTotal(res.total || 0);
-        if (res.data && res.data.length > 0 && page === 1)
-          setCurVersionId(res.data[0].id!);
+        // httpClient 拦截器已解包 success.data，res 即 { list, total }
+        const list = res?.list || [];
+        setData(list);
+        setTotal(res?.total || 0);
+        if (list.length > 0 && page === 1) setCurVersionId(list[0].id!);
       })
       .finally(() => {
         setLoading(false);

@@ -30,7 +30,6 @@ import java.util.UUID
 @RestController
 class CommentController(
     private val jdbcTemplate: JdbcTemplate,
-    private val captchaController: CaptchaController,
     private val jwtService: JwtService,
     private val objectMapper: ObjectMapper
 ) {
@@ -98,10 +97,6 @@ class CommentController(
         val isEnable = (commentSettings?.get("is_enable") as? Boolean) == true
         if (!isEnable) {
             return error(HttpStatus.BAD_REQUEST.value(), "please check comment is open")
-        }
-
-        if (!captchaController.validateToken(req.captcha_token)) {
-            return error(HttpStatus.BAD_REQUEST.value(), "failed to validate captcha token")
         }
 
         req.pic_urls.forEach { url ->

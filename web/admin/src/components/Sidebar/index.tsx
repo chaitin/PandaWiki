@@ -6,6 +6,7 @@ import { ConstsUserKBPermission } from '@/request/types';
 import { Modal } from '@ctzhian/ui';
 import { useState, useMemo, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { getApiV1NodeStats } from '@/request/Node';
 import Avatar from '../Avatar';
 import Version from './Version';
 import { useAppSelector } from '@/store';
@@ -139,12 +140,25 @@ const Sidebar = () => {
   const theme = useTheme();
   const [showQrcode, setShowQrcode] = useState(false);
   const [showHelpDoc, setShowHelpDoc] = useState(false);
+  const [unpublishedCount, setUnpublishedCount] = useState(0);
   const navigate = useNavigate();
   const menus = useMemo(() => {
     return MENUS.filter(it => {
       return it.perms.includes(kbDetail.perm!);
     });
   }, [kbDetail]);
+
+  // 拉取未发布文档数，供「发布」菜单角标展示
+  useEffect(() => {
+    if (!kbDetail?.id) return;
+    getApiV1NodeStats({ kb_id: kbDetail.id })
+      .then((res: any) => {
+        setUnpublishedCount(res?.unpublished_count || 0);
+      })
+      .catch(() => {
+        setUnpublishedCount(0);
+      });
+  }, [kbDetail?.id]);
 
   useEffect(() => {
     const menu = menus.find(it => {
@@ -241,6 +255,28 @@ const Sidebar = () => {
                   }}
                 />
                 {it.label}
+                {it.value === '/release' && unpublishedCount > 0 && (
+                  <Box
+                    component='span'
+                    sx={{
+                      ml: 'auto',
+                      minWidth: 18,
+                      height: 18,
+                      px: 0.5,
+                      borderRadius: 9,
+                      lineHeight: '18px',
+                      textAlign: 'center',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: isActive ? 'primary.main' : '#FFFFFF',
+                      bgcolor: isActive
+                        ? 'rgba(255,255,255,0.9)'
+                        : 'error.main',
+                    }}
+                  >
+                    {unpublishedCount}
+                  </Box>
+                )}
               </Button>
             </NavLink>
           );

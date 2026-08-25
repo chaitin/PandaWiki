@@ -1,6 +1,5 @@
 'use client';
 
-import { useBasePath } from '@/hooks';
 import { postShareV1CommonFileUpload } from '@/request/ShareFile';
 import { message } from '@ctzhian/ui';
 import data from '@emoji-mart/data';
@@ -64,7 +63,6 @@ const CommentInput = React.forwardRef<CommentInputRef, CommentInputProps>(
     ref,
   ) => {
     const theme = useTheme();
-    const basePath = useBasePath();
     const [images, setImages] = useState<ImageItem[]>([]);
     const [uploading, setUploading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -133,24 +131,10 @@ const CommentInput = React.forwardRef<CommentInputRef, CommentInputProps>(
             // 已经上传过的图片直接使用服务器 URL
             uploadedUrls.push(image.uploadedUrl);
           } else {
-            let token = '';
-
-            try {
-              const Cap = (await import(`@cap.js/widget`)).default;
-              const cap = new Cap({
-                apiEndpoint: `${basePath}/share/v1/captcha/`,
-              });
-              const solution = await cap.solve();
-              token = solution.token;
-            } catch (error) {
-              message.error('验证失败');
-              setUploading(false);
-              return Promise.reject(error);
-            }
-            // 上传新图片
+            // 上传新图片（验证码已去掉，captcha_token 传空）
             const result = await postShareV1CommonFileUpload({
               file: image.file,
-              captcha_token: token,
+              captcha_token: '',
             });
             const serverUrl = '/static-file/' + result.key;
             uploadedUrls.push(serverUrl);

@@ -1,9 +1,11 @@
 import Card from '@/components/Card';
+import { postApiV1KnowledgeBaseReleaseRollback } from '@/request/KnowledgeBase';
 import { useAppSelector } from '@/store';
+import { message, Modal } from '@ctzhian/ui';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import ErrorIcon from '@mui/icons-material/Error';
 import { Box, Stack, useTheme } from '@mui/material';
-import { Modal } from '@ctzhian/ui';
+import { useState } from 'react';
 
 interface VersionResetProps {
   open: boolean;
@@ -15,14 +17,27 @@ interface VersionResetProps {
 const VersionReset = ({ open, onClose, data, refresh }: VersionResetProps) => {
   const theme = useTheme();
   const { kb_id } = useAppSelector(state => state.config);
+  const [submitting, setSubmitting] = useState(false);
   if (!data) return null;
 
   const submit = () => {
-    // updateNodeAction({ ids: data.map(item => item.id), kb_id, action: 'delete' }).then(() => {
-    //   message.success('删除成功')
-    //   onClose()
-    //   refresh?.();
-    // })
+    if (!data?.id || !kb_id || submitting) return;
+    setSubmitting(true);
+    postApiV1KnowledgeBaseReleaseRollback({
+      kb_id,
+      release_id: data.id,
+    })
+      .then(() => {
+        message.success('回滚成功，前台内容已恢复为该版本');
+        onClose();
+        refresh?.();
+      })
+      .catch(() => {
+        // httpClient 已统一弹错误提示
+      })
+      .finally(() => {
+        setSubmitting(false);
+      });
   };
 
   return (

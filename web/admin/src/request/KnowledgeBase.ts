@@ -211,6 +211,52 @@ export const getApiV1KnowledgeBaseReleaseList = (
   });
 
 /**
+ * @description Rollback KB release (restore node snapshots to nodes)
+ *
+ * @tags knowledge_base
+ * @name PostApiV1KnowledgeBaseReleaseRollback
+ * @summary RollbackKBRelease
+ * @request POST:/api/v1/knowledge_base/release/rollback
+ * @response `200` `DomainResponse` OK
+ */
+
+export const postApiV1KnowledgeBaseReleaseRollback = (
+  body: { kb_id: string; release_id: string },
+  params: RequestParams = {},
+) =>
+  httpRequest<DomainResponse>({
+    path: `/api/v1/knowledge_base/release/rollback`,
+    method: "POST",
+    body: body,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+/**
+ * @description Delete KB release (non-current version only)
+ *
+ * @tags knowledge_base
+ * @name DeleteApiV1KnowledgeBaseRelease
+ * @summary DeleteKBRelease
+ * @request DELETE:/api/v1/knowledge_base/release
+ * @response `200` `DomainResponse` OK
+ */
+
+export const deleteApiV1KnowledgeBaseRelease = (
+  query: { kb_id: string; release_id: string },
+  params: RequestParams = {},
+) =>
+  httpRequest<DomainResponse>({
+    path: `/api/v1/knowledge_base/release`,
+    method: "DELETE",
+    query: query,
+    type: ContentType.Json,
+    format: "json",
+    ...params,
+  });
+
+/**
  * @description Remove user from knowledge base
  *
  * @tags knowledge_base
