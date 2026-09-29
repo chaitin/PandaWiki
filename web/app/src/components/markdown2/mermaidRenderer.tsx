@@ -50,7 +50,7 @@ export const createMermaidRenderer = (
         mermaidSuccessIdRef.current?.set(mermaidCount, renderResult.svg);
         const mermaidContainer = document.querySelector(`.${className}`);
         mermaidContainer!.innerHTML = renderResult.svg;
-      } catch (renderError) {}
+      } catch (renderError) { console.warn("[PandaWiki] Mermaid render error:", renderError); }
     });
 
     return `<pre><div class="mermaid-container ${className}">${svg}</div></pre>`;
