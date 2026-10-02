@@ -19,6 +19,10 @@
 /out/
 /dist/
 
+# SEO 静态页面（构建时自动生成）
+/public/node/
+/seo-output/
+
 # production
 /build
 
