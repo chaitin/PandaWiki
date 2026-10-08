@@ -1,0 +1,88 @@
+{{- if .Values.ingress.admin.enabled }}
+{{- if not .Values.admin.enabled }}
+{{- fail "ingress.admin.enabled requires admin.enabled: the Ingress would point at a Service that is never deployed" }}
+{{- end }}
+{{- if not .Values.ingress.admin.hosts }}
+{{- fail "ingress.admin.enabled requires ingress.admin.hosts: an Ingress with no rules does nothing" }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "panda-wiki.name" . }}-admin
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+  annotations:
+    # The admin container terminates TLS itself on 8080 with the certificate
+    # from the image (or from admin.tls.existingSecret), so the Ingress has to
+    # speak HTTPS to it and cannot verify that certificate.
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/proxy-ssl-verify: "off"
+    # Uploads are allowed up to 1000m by the nginx config in front of the api.
+    nginx.ingress.kubernetes.io/proxy-body-size: "1000m"
+    {{- with .Values.ingress.admin.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- with .Values.ingress.admin.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.admin.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.admin.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "panda-wiki.name" $ }}-nginx
+                port:
+                  name: https
+          {{- end }}
+    {{- end }}
+{{- end }}
+{{- if .Values.ingress.wiki.enabled }}
+{{- if not .Values.caddy.enabled }}
+{{- fail "ingress.wiki.enabled requires caddy.enabled: the Ingress would point at a Service that is never deployed" }}
+{{- end }}
+{{- if not .Values.ingress.wiki.hosts }}
+{{- fail "ingress.wiki.enabled requires ingress.wiki.hosts: an Ingress with no rules does nothing" }}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "panda-wiki.name" . }}-wiki
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+  annotations:
+    {{- with .Values.ingress.wiki.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- with .Values.ingress.wiki.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.wiki.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.wiki.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "panda-wiki.name" $ }}-caddy
+                port:
+                  name: https
+    {{- end }}
+{{- end }}

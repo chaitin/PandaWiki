@@ -55,6 +55,14 @@ func (p *MQProducer) EnsureStreams() error {
 			Duplicates: 120 * time.Second,
 		})
 		if err != nil {
+			// Another instance may have created the stream between the check
+			// above and this add, which is expected when several replicas start
+			// at the same time. Re-check before treating it as a failure.
+			if _, infoErr := p.js.StreamInfo(stream.name); infoErr == nil {
+				p.logger.Info("stream already created concurrently",
+					log.String("stream", stream.name))
+				continue
+			}
 			return fmt.Errorf("failed to create stream %s: %w", stream.name, err)
 		}
 
@@ -101,6 +109,11 @@ func NewMQProducer(config *config.Config, logger *log.Logger) (*MQProducer, erro
 	}
 
 	return producer, nil
+}
+
+// IsConnected reports whether the underlying NATS connection is usable.
+func (p *MQProducer) IsConnected() bool {
+	return p.conn != nil && p.conn.IsConnected()
 }
 
 func (p *MQProducer) Produce(ctx context.Context, topic string, key string, value []byte) error {

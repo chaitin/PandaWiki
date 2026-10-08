@@ -9,6 +9,7 @@ package main
 import (
 	"github.com/chaitin/panda-wiki/config"
 	mq3 "github.com/chaitin/panda-wiki/handler/mq"
+	"github.com/chaitin/panda-wiki/health"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/mq"
 	cache2 "github.com/chaitin/panda-wiki/repo/cache"
@@ -94,11 +95,15 @@ func createApp() (*App, error) {
 		RagDocUpdateHandler: ragDocUpdateHandler,
 		StatCronHandler:     cronHandler,
 	}
+	checker := health.NewChecker(logger, db, cacheCache, minioClient)
+	server := health.NewServer(configConfig, checker, logger)
 	app := &App{
 		MQConsumer:      mqConsumer,
 		Config:          configConfig,
 		MQHandlers:      mqHandlers,
 		StatCronHandler: cronHandler,
+		Health:          server,
+		Logger:          logger,
 	}
 	return app, nil
 }
@@ -110,4 +115,6 @@ type App struct {
 	Config          *config.Config
 	MQHandlers      *mq3.MQHandlers
 	StatCronHandler *mq3.CronHandler
+	Health          *health.Server
+	Logger          *log.Logger
 }

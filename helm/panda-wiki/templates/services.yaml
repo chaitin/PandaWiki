@@ -1,0 +1,156 @@
+{{/*
+ClusterIP services. The names are fixed and match what the backend and the admin
+nginx address directly, so they are not derived from the release name.
+*/}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "panda-wiki.name" . }}-api
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "api") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.api.port }}
+      targetPort: http
+{{- if .Values.admin.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "panda-wiki.name" . }}-nginx
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: admin
+spec:
+  type: {{ .Values.admin.service.type }}
+  selector:
+    {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "admin") | nindent 4 }}
+  ports:
+    - name: https
+      port: {{ .Values.admin.service.port }}
+      targetPort: https
+{{- end }}
+{{- if .Values.app.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "panda-wiki.name" . }}-app
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: app
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "app") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.app.port }}
+      targetPort: http
+{{- end }}
+{{- if .Values.raglite.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "panda-wiki.name" . }}-raglite
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: raglite
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "raglite") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.raglite.port }}
+      targetPort: http
+{{- end }}
+{{- if .Values.crawler.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "panda-wiki.name" . }}-crawler
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: crawler
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "crawler") | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.crawler.port }}
+      targetPort: http
+{{- end }}
+{{- if .Values.caddy.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "panda-wiki.name" . }}-caddy
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: caddy
+spec:
+  # Entry traffic only. The admin API is deliberately NOT a port on this
+  # Service: with NodePort or LoadBalancer exposure that would publish an
+  # endpoint which accepts unauthenticated full config writes to the network.
+  type: {{ if eq .Values.caddy.exposure "hostNetwork" }}ClusterIP{{ else }}{{ .Values.caddy.exposure }}{{ end }}
+  selector:
+    {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "caddy") | nindent 4 }}
+  {{- if eq .Values.caddy.exposure "LoadBalancer" }}
+  {{- with .Values.caddy.loadBalancer.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  {{- end }}
+  ports:
+    # Published for every exposure: with hostNetwork the traffic reaches Caddy on
+    # the node directly, but the Service still has to exist and carry the ports
+    # for Ingress references and for the NetworkPolicy to be meaningful.
+    {{- range .Values.caddy.servicePorts }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .name }}
+      {{- if and (eq $.Values.caddy.exposure "NodePort") .nodePort }}
+      nodePort: {{ .nodePort }}
+      {{- else if and (eq $.Values.caddy.exposure "NodePort") (eq .name "http") }}
+      nodePort: {{ $.Values.caddy.nodePort.http }}
+      {{- else if and (eq $.Values.caddy.exposure "NodePort") (eq .name "https") }}
+      nodePort: {{ $.Values.caddy.nodePort.https }}
+      {{- end }}
+    {{- end }}
+    {{- range .Values.caddy.extraPorts }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .name }}
+      {{- if and (eq $.Values.caddy.exposure "NodePort") .nodePort }}
+      nodePort: {{ .nodePort }}
+      {{- end }}
+    {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "panda-wiki.name" . }}-caddy-admin
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: caddy
+spec:
+  # ClusterIP whatever the exposure is, so the backend can push configuration
+  # without the admin API ever being reachable from outside the cluster.
+  type: ClusterIP
+  selector:
+    {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "caddy") | nindent 4 }}
+  ports:
+    - name: admin
+      port: {{ .Values.caddy.adminPort }}
+      targetPort: admin
+{{- end }}

@@ -10,6 +10,7 @@ import (
 	"maps"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -46,22 +47,23 @@ func NewKnowledgeBaseRepository(db *pg.DB, config *config.Config, logger *log.Lo
 		r.logger.Error("failed to get knowledge base list", "error", err)
 		return r
 	}
-	if len(kbList) > 0 {
-		if err := r.SyncKBAccessSettingsToCaddy(ctx, kbList); err != nil {
-			r.logger.Error("failed to sync kb access settings to caddy", "error", err)
-		}
+	// Pushed even when there is no knowledge base, so that Caddy drops the routes
+	// of knowledge bases that have been deleted rather than keeping them.
+	if err := r.SyncKBAccessSettingsToCaddy(ctx, kbList); err != nil {
+		r.logger.Error("failed to sync kb access settings to caddy", "error", err)
 	}
 	return r
 }
 
 func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Context, kbList []*domain.KnowledgeBaseListItem) error {
-	if len(kbList) == 0 {
-		return nil
-	}
-	firstKB := kbList[0]
+	// An empty list still has to be pushed: the config replaces Caddy's whole
+	// routing table, so it is the only way Caddy learns to drop the routes of
+	// knowledge bases that no longer exist.
 	firstHost := ""
-	if len(firstKB.AccessSettings.Hosts) > 0 {
-		firstHost = firstKB.AccessSettings.Hosts[0]
+	if len(kbList) > 0 && len(kbList[0].AccessSettings.Hosts) > 0 {
+		// The first host of the first knowledge base also serves as the default
+		// host for its port.
+		firstHost = kbList[0].AccessSettings.Hosts[0]
 	}
 	certs := make([]map[string]any, 0)
 	portHostKBMap := make(map[string]map[string]*domain.KnowledgeBaseListItem)
@@ -92,16 +94,9 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 			})
 		}
 	}
-	socketPath := r.config.CaddyAPI
 	// sync kb to caddy
 	// create server for each port
-	subnetPrefix := r.config.SubnetPrefix
-	if subnetPrefix == "" {
-		subnetPrefix = "169.254.15"
-	}
-	api := fmt.Sprintf("%s.2:8000", subnetPrefix)
-	app := fmt.Sprintf("%s.112:3010", subnetPrefix)
-	staticFile := fmt.Sprintf("%s.12:9000", subnetPrefix) // minio
+	api, app, staticFile := r.caddyUpstreams()
 	servers := make(map[string]any, 0)
 	for port, hostKBMap := range portHostKBMap {
 		trustProxies := make([]string, 0)
@@ -312,17 +307,24 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 	config := map[string]any{
 		"apps": apps,
 	}
+	if listen := r.config.Caddy.AdminListen; listen != "" {
+		// POST /load replaces the whole config, so the admin listener has to be
+		// restated here or the endpoint would stop answering after this sync.
+		config["admin"] = map[string]any{"listen": listen}
+	}
 	newBody, _ := json.Marshal(config)
-	tr := &http.Transport{
-		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			return net.Dial("unix", socketPath)
-		},
+	endpoint, transport, err := caddyAdminEndpoint(r.config.CaddyAPI)
+	if err != nil {
+		return err
 	}
 	client := &http.Client{
-		Transport: tr,
+		Transport: transport,
 		Timeout:   5 * time.Second,
 	}
-	req, err := http.NewRequest("POST", "http://unix/load", bytes.NewBuffer(newBody))
+	// The transport is built fresh for this one request, so release its
+	// connections instead of leaving them idle until the transport is collected.
+	defer client.CloseIdleConnections()
+	req, err := http.NewRequest("POST", endpoint+"/load", bytes.NewBuffer(newBody))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -331,12 +333,85 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			r.logger.Error("failed to close caddy config response body", log.Error(err))
+		}
+	}()
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		r.logger.Error("failed to update caddy config", "error", string(body))
 		return domain.ErrSyncCaddyConfigFailed
 	}
 	return nil
+}
+
+// caddyUpstreams returns the reverse_proxy dial targets (host:port, without a
+// scheme). Configured values win; anything left empty is derived from
+// SubnetPrefix, which is how the compose deployment addresses its containers.
+func (r *KnowledgeBaseRepository) caddyUpstreams() (api, app, staticFile string) {
+	upstreams := r.config.Caddy.Upstreams
+
+	subnetPrefix := r.config.SubnetPrefix
+	if subnetPrefix == "" {
+		subnetPrefix = "169.254.15"
+	}
+
+	api = upstreams.API
+	if api == "" {
+		api = fmt.Sprintf("%s.2:8000", subnetPrefix)
+	}
+	app = upstreams.App
+	if app == "" {
+		app = fmt.Sprintf("%s.112:3010", subnetPrefix)
+	}
+	staticFile = upstreams.StaticFile
+	if staticFile == "" {
+		staticFile = fmt.Sprintf("%s.12:9000", subnetPrefix) // minio
+	}
+	return api, app, staticFile
+}
+
+// caddyAdminEndpoint turns the configured Caddy admin address into a request
+// base URL plus the transport that reaches it. A bare path or a unix:// URL
+// uses the unix socket the compose deployment mounts into both the api and the
+// caddy container; http(s)://, tcp:// and a bare host:port talk to a Caddy
+// reachable over the network instead.
+func caddyAdminEndpoint(caddyAPI string) (string, http.RoundTripper, error) {
+	switch {
+	case caddyAPI == "", strings.HasPrefix(caddyAPI, "/"), strings.HasPrefix(caddyAPI, "unix://"):
+		socketPath := strings.TrimPrefix(caddyAPI, "unix://")
+		if socketPath == "" {
+			return "", nil, errors.New("caddy admin socket path is empty; set caddy_api or CADDY_API")
+		}
+		return "http://unix", &http.Transport{
+			// A fresh transport is built per sync, so it must not hold
+			// connections open: see the CloseIdleConnections call in the caller.
+			DisableKeepAlives: true,
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", socketPath)
+			},
+		}, nil
+	case strings.HasPrefix(caddyAPI, "http://"), strings.HasPrefix(caddyAPI, "https://"):
+		return strings.TrimSuffix(caddyAPI, "/"), caddyAdminTransport(), nil
+	case strings.HasPrefix(caddyAPI, "tcp://"):
+		return "http://" + strings.TrimPrefix(caddyAPI, "tcp://"), caddyAdminTransport(), nil
+	default:
+		return "http://" + caddyAPI, caddyAdminTransport(), nil
+	}
+}
+
+// caddyAdminTransport clones the default transport, which keeps its dial
+// timeouts, but drops proxy detection: the admin API is an internal endpoint and
+// must not be routed through a proxy configured for outbound traffic.
+//
+// Keep-alives are off because a transport is built for every sync and only used
+// for one request; the caller closes idle connections as well.
+func caddyAdminTransport() *http.Transport {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = nil
+	transport.DisableKeepAlives = true
+	return transport
 }
 
 func (r *KnowledgeBaseRepository) CreateKnowledgeBase(ctx context.Context, maxKB int, kb *domain.KnowledgeBase) error {

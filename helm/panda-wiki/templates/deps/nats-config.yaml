@@ -1,0 +1,22 @@
+{{- if .Values.nats.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "panda-wiki.name" . }}-nats
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nats
+data:
+  nats.conf: |
+    port: 4222
+    http: 8222
+
+    # The backend creates its streams with Replicas: 1, so a single server is
+    # what this deployment is sized for. JetStream has to be on: the task,
+    # scraper and raglite event streams live in it.
+    jetstream {
+      store_dir: /data
+      max_memory_store: 1Gb
+      max_file_store: 10Gb
+    }
+{{- end }}
