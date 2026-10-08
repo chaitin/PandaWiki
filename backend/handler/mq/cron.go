@@ -17,6 +17,7 @@ type CronHandler struct {
 	nodeRepo    *pg.NodeRepository
 	statUseCase *usecase.StatUseCase
 	nodeUseCase *usecase.NodeUsecase
+	cron        *cron.Cron
 }
 
 func NewCronHandler(logger *log.Logger, statRepo *pg.StatRepository, nodeRepo *pg.NodeRepository, statUseCase *usecase.StatUseCase, nodeUseCase *usecase.NodeUsecase) (*CronHandler, error) {
@@ -26,25 +27,25 @@ func NewCronHandler(logger *log.Logger, statRepo *pg.StatRepository, nodeRepo *p
 		statUseCase: statUseCase,
 		nodeUseCase: nodeUseCase,
 		logger:      logger.WithModule("handler.mq.cron"),
+		cron:        cron.New(),
 	}
-	cron := cron.New()
 
 	// 每小时 */10 分执行聚合统计数据任务
-	if _, err := cron.AddFunc("*/10 */1 * * *", h.AggregateHourlyStats); err != nil {
+	if _, err := h.cron.AddFunc("*/10 */1 * * *", h.AggregateHourlyStats); err != nil {
 		h.logger.Error("failed to add cron job for aggregating hourly stats", log.Error(err))
 		return nil, err
 	}
 	h.logger.Info("add cron job", log.String("cron_id", "aggregate_hourly_stats"))
 
 	// 每小时1分执行清理旧数据任务
-	if _, err := cron.AddFunc("1 */1 * * *", h.RemoveOldStatData); err != nil {
+	if _, err := h.cron.AddFunc("1 */1 * * *", h.RemoveOldStatData); err != nil {
 		h.logger.Error("failed to add cron job for removing old data", log.Error(err))
 		return nil, err
 	}
 	h.logger.Info("add cron job", log.String("cron_id", "remove_old_stat_data"))
 
 	// 每天0点执行清理90天前的小时统计数据
-	if _, err := cron.AddFunc("3 0 * * *", h.CleanupOldHourlyStats); err != nil {
+	if _, err := h.cron.AddFunc("3 0 * * *", h.CleanupOldHourlyStats); err != nil {
 		h.logger.Error("failed to add cron job for cleaning up old hourly stats", log.Error(err))
 		return nil, err
 	}
@@ -56,22 +57,31 @@ func NewCronHandler(logger *log.Logger, statRepo *pg.StatRepository, nodeRepo *p
 			h.logger.Error("initial sync rag node status failed", log.Error(err))
 		}
 	}()
-	if _, err := cron.AddFunc("26 * * * *", h.SyncRagNodeStatus); err != nil {
+	if _, err := h.cron.AddFunc("26 * * * *", h.SyncRagNodeStatus); err != nil {
 		h.logger.Error("failed to sync rag node status", log.Error(err))
 		return nil, err
 	}
 	h.logger.Info("add cron job", log.String("cron_id", "sync_rag_node_status"))
 
 	// 每天2点执行清理30天前的node_release_backup数据
-	if _, err := cron.AddFunc("0 2 * * *", h.CleanupOldNodeReleaseBackups); err != nil {
+	if _, err := h.cron.AddFunc("0 2 * * *", h.CleanupOldNodeReleaseBackups); err != nil {
 		h.logger.Error("failed to add cron job for cleaning up old node release backups", log.Error(err))
 		return nil, err
 	}
 	h.logger.Info("add cron job", log.String("cron_id", "cleanup_old_node_release_backups"))
 
-	cron.Start()
+	h.cron.Start()
 	h.logger.Info("start cron jobs")
 	return h, nil
+}
+
+// Stop stops the scheduler and waits for the jobs that are already running to
+// finish, so a shutdown does not leave a job half done.
+func (h *CronHandler) Stop() {
+	if h.cron == nil {
+		return
+	}
+	<-h.cron.Stop().Done()
 }
 
 func (h *CronHandler) RemoveOldStatData() {

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,6 +35,7 @@ type Client struct {
 	machineID        string
 	firstReport      bool
 	stopChan         chan struct{}
+	stopOnce         sync.Once
 	logger           *log.Logger
 	repo             *pg.KnowledgeBaseRepository
 	modelUsecase     *usecase.ModelUsecase
@@ -66,6 +68,13 @@ func NewClient(logger *log.Logger, repo *pg.KnowledgeBaseRepository, modelUsecas
 		mcpRepo:          mcpRepo,
 		cfg:              cfg,
 		aesKey:           aesKey,
+	}
+
+	if !cfg.Telemetry.Enabled {
+		// Reporting is off, so there is no need for a machine ID on disk nor
+		// for the periodic reporter goroutine.
+		logger.Info("telemetry is disabled")
+		return client, nil
 	}
 
 	// get or create machine ID
@@ -390,9 +399,11 @@ func (c *Client) isAdminLoggedInYesterday() (bool, error) {
 	return false, nil
 }
 
-// Stop stops periodic report
+// Stop stops periodic report. It is safe to call more than once.
 func (c *Client) Stop() {
-	close(c.stopChan)
+	c.stopOnce.Do(func() {
+		close(c.stopChan)
+	})
 }
 
 // InstallationEvent represents installation event
