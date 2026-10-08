@@ -1,0 +1,112 @@
+{{- if .Values.nats.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "panda-wiki.name" . }}-nats
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nats
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "nats") | nindent 4 }}
+  ports:
+    - name: client
+      port: 4222
+      targetPort: client
+    - name: monitor
+      port: 8222
+      targetPort: monitor
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "panda-wiki.name" . }}-nats
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nats
+spec:
+  serviceName: {{ include "panda-wiki.name" . }}-nats
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "nats") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "panda-wiki.labels" . | nindent 8 }}
+        app.kubernetes.io/component: nats
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/deps/nats-config.yaml") . | sha256sum }}
+    spec:
+      {{- include "panda-wiki.imagePullSecrets" . | nindent 6 }}
+      automountServiceAccountToken: false
+      containers:
+        - name: nats
+          image: {{ include "panda-wiki.image" (dict "root" . "image" .Values.nats.image) }}
+          imagePullPolicy: {{ include "panda-wiki.imagePullPolicy" (dict "root" . "image" .Values.nats.image) }}
+          ports:
+            - name: client
+              containerPort: 4222
+            - name: monitor
+              containerPort: 8222
+          # The password is expanded by the shell so it does not appear in the
+          # pod spec.
+          command:
+            - sh
+            - -c
+            - exec nats-server -c /etc/nats/nats.conf --user "$NATS_USER" --pass "$NATS_PASSWORD"
+          env:
+            - name: NATS_USER
+              value: {{ .Values.nats.auth.username | quote }}
+            - name: NATS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "panda-wiki.natsSecretName" . }}
+                  key: {{ include "panda-wiki.natsSecretKey" . }}
+            - name: TZ
+              value: {{ .Values.global.timezone | quote }}
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: monitor
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: monitor
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.nats.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /etc/nats
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "panda-wiki.name" . }}-nats
+        {{- if not .Values.nats.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- end }}
+  {{- if .Values.nats.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- include "panda-wiki.storageClass" . | nindent 8 }}
+        resources:
+          requests:
+            storage: {{ .Values.nats.persistence.size }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "panda-wiki.name" . }}-consumer
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: consumer
+spec:
+  {{- if gt (int .Values.consumer.replicaCount) 1 }}
+  {{- if not .Values.consumer.cron.distributedLock }}
+  {{- fail "consumer.replicaCount > 1 requires consumer.cron.distributedLock, which is not implemented yet: the scheduled jobs run in this process without a distributed lock and would be executed once per replica" }}
+  {{- end }}
+  {{- end }}
+  replicas: {{ .Values.consumer.replicaCount }}
+  # Recreate so an upgrade never leaves the old and the new consumer running
+  # the scheduled jobs at the same time.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "consumer") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "panda-wiki.labels" . | nindent 8 }}
+        app.kubernetes.io/component: consumer
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap-backend.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      {{- include "panda-wiki.imagePullSecrets" . | nindent 6 }}
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: {{ .Values.consumer.terminationGracePeriodSeconds }}
+      initContainers:
+        {{- include "panda-wiki.waitForDeps" (dict "root" . "addrs" (include "panda-wiki.consumerAddrs" .)) | nindent 8 }}
+      containers:
+        - name: consumer
+          image: {{ include "panda-wiki.image" (dict "root" . "image" .Values.consumer.image) }}
+          imagePullPolicy: {{ include "panda-wiki.imagePullPolicy" (dict "root" . "image" .Values.consumer.image) }}
+          ports:
+            {{- if eq .Values.consumer.probes.mode "http" }}
+            - name: health
+              containerPort: {{ .Values.consumer.healthPort }}
+            {{- end }}
+          env:
+            {{- include "panda-wiki.backendEnv" (dict "root" . "role" "consumer") | nindent 12 }}
+            {{- if eq .Values.consumer.probes.mode "http" }}
+            - name: HEALTH_PORT
+              value: {{ .Values.consumer.healthPort | quote }}
+            {{- end }}
+            {{- range .Values.consumer.extraEnv }}
+            - {{- toYaml . | nindent 14 }}
+            {{- end }}
+          {{- if eq .Values.consumer.probes.mode "http" }}
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            periodSeconds: 5
+            timeoutSeconds: 10
+            failureThreshold: 3
+          {{- else }}
+          # The consumer has no serving port, so there is nothing to probe.
+          # Keep the container running unless it exits on its own.
+          {{- end }}
+          resources:
+            {{- toYaml .Values.consumer.resources | nindent 12 }}
+          volumeMounts:
+            {{- include "panda-wiki.backendVolumeMounts" . | nindent 12 }}
+      volumes:
+        {{- include "panda-wiki.backendVolumes" . | nindent 8 }}
+      {{- with .Values.consumer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.consumer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.consumer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

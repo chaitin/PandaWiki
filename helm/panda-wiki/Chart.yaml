@@ -1,0 +1,16 @@
+apiVersion: v2
+name: panda-wiki
+description: PandaWiki - an AI knowledge base system
+type: application
+version: 0.1.0
+appVersion: "v3.87.3"
+home: https://github.com/chaitin/PandaWiki
+sources:
+  - https://github.com/chaitin/PandaWiki
+keywords:
+  - wiki
+  - knowledge-base
+  - rag
+  - ai
+annotations:
+  category: Knowledge Management
