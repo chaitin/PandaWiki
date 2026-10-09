@@ -3,11 +3,12 @@
 
 import { useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
+import { sanitizeMermaidSvg } from '../markdown2/sanitizeMermaidSvg';
 
 const MERMAID_CONFIG = {
   startOnLoad: false,
   theme: 'default' as const,
-  securityLevel: 'loose' as const,
+  securityLevel: 'strict' as const,
   fontFamily: 'inherit',
   suppressErrorRendering: true,
 };
@@ -32,8 +33,9 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
       try {
         const id = `mermaid-${Date.now()}`;
         const { svg } = await mermaid.render(id, chart);
-        if (svg && containerRef.current) {
-          containerRef.current.innerHTML = svg;
+        const safeSvg = sanitizeMermaidSvg(svg);
+        if (safeSvg && containerRef.current) {
+          containerRef.current.innerHTML = safeSvg;
         }
       } catch (error: any) {
         // 在渲染错误时显示简单文本表示

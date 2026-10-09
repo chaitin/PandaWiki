@@ -429,6 +429,15 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
 
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
+      const unsafeLink = target.closest('a[href]');
+      if (unsafeLink) {
+        const href = unsafeLink.getAttribute('href') || '';
+        if (!/^(?:https?:|mailto:|tel:|#|\/)/i.test(href.trim())) {
+          e.preventDefault();
+          e.stopPropagation();
+          return;
+        }
+      }
 
       // 检查是否点击了图片
       const imgElement = target.closest(

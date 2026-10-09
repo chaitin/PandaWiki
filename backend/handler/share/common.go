@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/labstack/echo/v4"
 
@@ -13,7 +12,6 @@ import (
 	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/handler"
 	"github.com/chaitin/panda-wiki/log"
-	proDomain "github.com/chaitin/panda-wiki/pro/domain"
 	"github.com/chaitin/panda-wiki/usecase"
 	"github.com/chaitin/panda-wiki/utils"
 )
@@ -124,9 +122,6 @@ func (h *ShareCommonHandler) FileUpload(c echo.Context) error {
 //	@Router			/share/v1/common/file/upload/url [post]
 func (h *ShareCommonHandler) FileUploadByUrl(c echo.Context) error {
 	ctx := c.Request().Context()
-	if !proDomain.GetEditionLimitationByCtx(c).AllowContribute {
-		return h.NewResponseWithError(c, "document contribution is not available", nil)
-	}
 
 	var req v1.ShareFileUploadUrlReq
 	if err := c.Bind(&req); err != nil {
@@ -150,14 +145,6 @@ func (h *ShareCommonHandler) FileUploadByUrl(c echo.Context) error {
 	}
 	if !appInfo.Settings.ContributeSettings.IsEnable {
 		return h.NewResponseWithError(c, "document contribution is not enabled", nil)
-	}
-
-	parsedURL, err := url.Parse(req.Url)
-	if err != nil {
-		return h.NewResponseWithError(c, "invalid URL format", err)
-	}
-	if !utils.IsImageFile(parsedURL.Path) {
-		return h.NewResponseWithError(c, "只支持图片文件上传", fmt.Errorf("unsupported file type: %s", req.Url))
 	}
 
 	// validate captcha token

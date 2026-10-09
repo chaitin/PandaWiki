@@ -178,6 +178,12 @@ const MarkDown = ({ loading = false, content }: MarkDownProps) => {
                 textDecoration: 'underline',
                 ...style,
               }}
+              onClick={event => {
+                const href = event.currentTarget.getAttribute('href') || '';
+                if (!/^(?:https?:|mailto:|tel:|#|\/)/i.test(href.trim())) {
+                  event.preventDefault();
+                }
+              }}
             >
               {children}
             </a>
