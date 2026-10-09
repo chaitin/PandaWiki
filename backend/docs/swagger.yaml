@@ -1086,7 +1086,7 @@ definitions:
         type: string
       status:
         allOf:
-        - $ref: '#/definitions/domain.CommentStatus'
+        - $ref: '#/definitions/github_com_chaitin_panda-wiki_domain.CommentStatus'
         description: 'status : -1 reject 0 pending 1 accept'
     type: object
   domain.CommentReq:
@@ -1112,17 +1112,6 @@ definitions:
     - node_id
     - pic_urls
     type: object
-  domain.CommentStatus:
-    enum:
-    - -1
-    - 0
-    - 1
-    format: int32
-    type: integer
-    x-enum-varnames:
-    - CommentStatusReject
-    - CommentStatusPending
-    - CommentStatusAccepted
   domain.CompleteReq:
     properties:
       prefix:
@@ -1162,7 +1151,7 @@ definitions:
   domain.ConversationInfo:
     properties:
       user_info:
-        $ref: '#/definitions/domain.UserInfo'
+        $ref: '#/definitions/github_com_chaitin_panda-wiki_domain.UserInfo'
     type: object
   domain.ConversationListItem:
     properties:
@@ -1815,23 +1804,6 @@ definitions:
         type: array
       summary:
         type: string
-    type: object
-  domain.NodeGroupDetail:
-    properties:
-      auth_group_id:
-        type: integer
-      auth_ids:
-        items:
-          type: integer
-        type: array
-      kb_id:
-        type: string
-      name:
-        type: string
-      node_id:
-        type: string
-      perm:
-        $ref: '#/definitions/consts.NodePermName'
     type: object
   domain.NodeListItemResp:
     properties:
@@ -2520,24 +2492,6 @@ definitions:
     required:
     - url
     type: object
-  domain.UserInfo:
-    properties:
-      auth_user_id:
-        type: integer
-      avatar:
-        description: avatar
-        type: string
-      email:
-        type: string
-      from:
-        $ref: '#/definitions/domain.MessageFrom'
-      name:
-        type: string
-      real_name:
-        type: string
-      user_id:
-        type: string
-    type: object
   domain.WeChatAppAdvancedSetting:
     properties:
       disclaimer_content:
@@ -2724,7 +2678,7 @@ definitions:
     properties:
       auths:
         items:
-          $ref: '#/definitions/v1.AuthItem'
+          $ref: '#/definitions/github_com_chaitin_panda-wiki_api_auth_v1.AuthItem'
         type: array
       client_id:
         type: string
@@ -2734,6 +2688,41 @@ definitions:
         type: string
       source_type:
         $ref: '#/definitions/consts.SourceType'
+    type: object
+  github_com_chaitin_panda-wiki_api_auth_v1.AuthItem:
+    properties:
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      ip:
+        type: string
+      last_login_time:
+        type: string
+      source_type:
+        $ref: '#/definitions/consts.SourceType'
+      username:
+        type: string
+    type: object
+  github_com_chaitin_panda-wiki_api_auth_v1.AuthSetReq:
+    properties:
+      client_id:
+        type: string
+      client_secret:
+        type: string
+      kb_id:
+        type: string
+      proxy:
+        type: string
+      source_type:
+        allOf:
+        - $ref: '#/definitions/consts.SourceType'
+        enum:
+        - github
+    required:
+    - source_type
     type: object
   github_com_chaitin_panda-wiki_api_node_v1.NodeListGroupNavResp:
     properties:
@@ -2760,6 +2749,23 @@ definitions:
         $ref: '#/definitions/consts.LicenseEdition'
       source_type:
         $ref: '#/definitions/consts.SourceType'
+    type: object
+  github_com_chaitin_panda-wiki_api_share_v1.AuthGitHubReq:
+    properties:
+      kb_id:
+        type: string
+      redirect_url:
+        type: string
+    type: object
+  github_com_chaitin_panda-wiki_api_share_v1.AuthGitHubResp:
+    properties:
+      url:
+        type: string
+    type: object
+  github_com_chaitin_panda-wiki_api_share_v1.FileUploadResp:
+    properties:
+      key:
+        type: string
     type: object
   github_com_chaitin_panda-wiki_api_share_v1.GitHubCallbackResp:
     type: object
@@ -2802,6 +2808,17 @@ definitions:
       error:
         type: string
     type: object
+  github_com_chaitin_panda-wiki_domain.CommentStatus:
+    enum:
+    - -1
+    - 0
+    - 1
+    format: int32
+    type: integer
+    x-enum-varnames:
+    - CommentStatusReject
+    - CommentStatusPending
+    - CommentStatusAccepted
   github_com_chaitin_panda-wiki_domain.ModelListItem:
     properties:
       api_header:
@@ -2857,6 +2874,41 @@ definitions:
     x-enum-varnames:
     - ModelProviderBrandBaiZhiCloud
     - ModelProviderBaiZhiCloudModelStore
+  github_com_chaitin_panda-wiki_domain.NodeGroupDetail:
+    properties:
+      auth_group_id:
+        type: integer
+      auth_ids:
+        items:
+          type: integer
+        type: array
+      kb_id:
+        type: string
+      name:
+        type: string
+      node_id:
+        type: string
+      perm:
+        $ref: '#/definitions/consts.NodePermName'
+    type: object
+  github_com_chaitin_panda-wiki_domain.UserInfo:
+    properties:
+      auth_user_id:
+        type: integer
+      avatar:
+        description: avatar
+        type: string
+      email:
+        type: string
+      from:
+        $ref: '#/definitions/domain.MessageFrom'
+      name:
+        type: string
+      real_name:
+        type: string
+      user_id:
+        type: string
+    type: object
   gocap.ChallengeData:
     properties:
       challenge:
@@ -2914,59 +2966,12 @@ definitions:
       total:
         type: integer
     type: object
-  v1.AuthGitHubReq:
-    properties:
-      kb_id:
-        type: string
-      redirect_url:
-        type: string
-    type: object
-  v1.AuthGitHubResp:
-    properties:
-      url:
-        type: string
-    type: object
-  v1.AuthItem:
-    properties:
-      avatar_url:
-        type: string
-      created_at:
-        type: string
-      id:
-        type: integer
-      ip:
-        type: string
-      last_login_time:
-        type: string
-      source_type:
-        $ref: '#/definitions/consts.SourceType'
-      username:
-        type: string
-    type: object
   v1.AuthLoginSimpleReq:
     properties:
       password:
         type: string
     required:
     - password
-    type: object
-  v1.AuthSetReq:
-    properties:
-      client_id:
-        type: string
-      client_secret:
-        type: string
-      kb_id:
-        type: string
-      proxy:
-        type: string
-      source_type:
-        allOf:
-        - $ref: '#/definitions/consts.SourceType'
-        enum:
-        - github
-    required:
-    - source_type
     type: object
   v1.CommentLists:
     properties:
@@ -3097,11 +3102,6 @@ definitions:
   v1.CreateUserResp:
     properties:
       id:
-        type: string
-    type: object
-  v1.FileUploadResp:
-    properties:
-      key:
         type: string
     type: object
   v1.KBUserInviteReq:
@@ -3311,7 +3311,7 @@ definitions:
       answerable_groups:
         description: 可被问答
         items:
-          $ref: '#/definitions/domain.NodeGroupDetail'
+          $ref: '#/definitions/github_com_chaitin_panda-wiki_domain.NodeGroupDetail'
         type: array
       id:
         type: string
@@ -3320,12 +3320,12 @@ definitions:
       visible_groups:
         description: 导航内可见
         items:
-          $ref: '#/definitions/domain.NodeGroupDetail'
+          $ref: '#/definitions/github_com_chaitin_panda-wiki_domain.NodeGroupDetail'
         type: array
       visitable_groups:
         description: 可被访问
         items:
-          $ref: '#/definitions/domain.NodeGroupDetail'
+          $ref: '#/definitions/github_com_chaitin_panda-wiki_domain.NodeGroupDetail'
         type: array
     type: object
   v1.NodeRestudyReq:
@@ -3689,7 +3689,7 @@ paths:
         name: param
         required: true
         schema:
-          $ref: '#/definitions/v1.AuthSetReq'
+          $ref: '#/definitions/github_com_chaitin_panda-wiki_api_auth_v1.AuthSetReq'
       produces:
       - application/json
       responses:
@@ -5731,7 +5731,7 @@ paths:
         name: param
         required: true
         schema:
-          $ref: '#/definitions/v1.AuthGitHubReq'
+          $ref: '#/definitions/github_com_chaitin_panda-wiki_api_share_v1.AuthGitHubReq'
       produces:
       - application/json
       responses:
@@ -5742,7 +5742,7 @@ paths:
             - $ref: '#/definitions/domain.PWResponse'
             - properties:
                 data:
-                  $ref: '#/definitions/v1.AuthGitHubResp'
+                  $ref: '#/definitions/github_com_chaitin_panda-wiki_api_share_v1.AuthGitHubResp'
               type: object
       summary: GitHub登录
       tags:
@@ -6069,7 +6069,7 @@ paths:
             - $ref: '#/definitions/domain.Response'
             - properties:
                 data:
-                  $ref: '#/definitions/v1.FileUploadResp'
+                  $ref: '#/definitions/github_com_chaitin_panda-wiki_api_share_v1.FileUploadResp'
               type: object
       summary: 文件上传
       tags:

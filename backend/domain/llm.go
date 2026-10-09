@@ -132,11 +132,11 @@ func FormatNodeChunks(nodeChunks []*RankedNodeChunks, baseURL string) string {
 	documents := make([]string, 0)
 	for _, result := range nodeChunks {
 		document := strings.Builder{}
-		document.WriteString(fmt.Sprintf("<document>\nID: %s\n标题: %s\nURL: %s\n内容:\n", result.NodeID, result.NodeName, result.GetURL(baseURL)))
+		fmt.Fprintf(&document, "<document>\nID: %s\n标题: %s\nURL: %s\n内容:\n", result.NodeID, result.NodeName, result.GetURL(baseURL))
 		for _, chunk := range result.Chunks {
 			// Process content to add baseURL prefix to static-file URLs
 			processedContent := processContentWithBaseURL(chunk.Content, baseURL)
-			document.WriteString(fmt.Sprintf("%s\n", processedContent))
+			fmt.Fprintf(&document, "%s\n", processedContent)
 		}
 		document.WriteString("</document>")
 		documents = append(documents, document.String())
