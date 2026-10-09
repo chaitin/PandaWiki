@@ -277,27 +277,19 @@ func (u *FileUsecase) UploadFileByUrl(ctx context.Context, kbID string, fileURL 
 		return "", fmt.Errorf("failed to read response body: file size exceeds limit of %d bytes", maxRemoteFileSize)
 	}
 
-	urlPath := fileURL
-	if idx := strings.Index(urlPath, "?"); idx != -1 {
-		urlPath = urlPath[:idx]
+	// Derive the stored type from the downloaded bytes. A remote URL path and
+	// Content-Type can both be chosen by the attacker and must not determine
+	// the extension that later controls browser handling.
+	contentType, ext, err := safeRemoteContentType(data)
+	if err != nil {
+		return "", err
 	}
-	ext := strings.ToLower(filepath.Ext(urlPath))
 
 	if err := u.checkDeniedExtension(ctx, ext); err != nil {
 		return "", err
 	}
 
 	s3Filename := fmt.Sprintf("%s/%s%s", kbID, uuid.New().String(), ext)
-
-	// Derive content type from the actual data instead of trusting the remote header
-	contentType := http.DetectContentType(data)
-	if contentType == "" || contentType == "application/octet-stream" {
-		if extType := mime.TypeByExtension(ext); extType != "" {
-			contentType = extType
-		} else {
-			contentType = "application/octet-stream"
-		}
-	}
 
 	putResp, err := u.s3Client.PutObject(
 		ctx,
@@ -314,6 +306,27 @@ func (u *FileUsecase) UploadFileByUrl(ctx context.Context, kbID string, fileURL 
 	}
 
 	return putResp.Key, nil
+}
+
+func safeRemoteContentType(data []byte) (string, string, error) {
+	detected := http.DetectContentType(data)
+	mediaType, _, err := mime.ParseMediaType(detected)
+	if err != nil {
+		return "", "", fmt.Errorf("unsupported remote file type")
+	}
+
+	switch mediaType {
+	case "image/jpeg":
+		return mediaType, ".jpg", nil
+	case "image/png":
+		return mediaType, ".png", nil
+	case "image/gif":
+		return mediaType, ".gif", nil
+	case "image/webp":
+		return mediaType, ".webp", nil
+	default:
+		return "", "", fmt.Errorf("unsupported remote file type: %s", mediaType)
+	}
 }
 
 func (u *FileUsecase) httpClientForIPs(ips []net.IP) *http.Client {

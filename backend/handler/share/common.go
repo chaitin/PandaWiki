@@ -1,13 +1,15 @@
 package share
 
 import (
+	"context"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/labstack/echo/v4"
 
 	v1 "github.com/chaitin/panda-wiki/api/share/v1"
+	"github.com/chaitin/panda-wiki/consts"
+	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/handler"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/usecase"
@@ -18,6 +20,7 @@ type ShareCommonHandler struct {
 	*handler.BaseHandler
 	logger      *log.Logger
 	fileUsecase *usecase.FileUsecase
+	appUsecase  *usecase.AppUsecase
 }
 
 func NewShareCommonHandler(
@@ -25,11 +28,13 @@ func NewShareCommonHandler(
 	baseHandler *handler.BaseHandler,
 	logger *log.Logger,
 	fileUsecase *usecase.FileUsecase,
+	appUsecase *usecase.AppUsecase,
 ) *ShareCommonHandler {
 	h := &ShareCommonHandler{
 		BaseHandler: baseHandler,
 		logger:      logger,
 		fileUsecase: fileUsecase,
+		appUsecase:  appUsecase,
 	}
 
 	share := e.Group("share/v1/common",
@@ -133,12 +138,13 @@ func (h *ShareCommonHandler) FileUploadByUrl(c echo.Context) error {
 	}
 	req.KbId = kbID
 
-	parsedURL, err := url.Parse(req.Url)
+	appCtx := context.WithValue(ctx, consts.ContextKeyEdition, consts.GetLicenseEdition(c))
+	appInfo, err := h.appUsecase.GetAppDetailByKBIDAndAppType(appCtx, kbID, domain.AppTypeWeb)
 	if err != nil {
-		return h.NewResponseWithError(c, "invalid URL format", err)
+		return h.NewResponseWithError(c, "failed to get document contribution settings", err)
 	}
-	if !utils.IsImageFile(parsedURL.Path) {
-		return h.NewResponseWithError(c, "只支持图片文件上传", fmt.Errorf("unsupported file type: %s", req.Url))
+	if !appInfo.Settings.ContributeSettings.IsEnable {
+		return h.NewResponseWithError(c, "document contribution is not enabled", nil)
 	}
 
 	// validate captcha token

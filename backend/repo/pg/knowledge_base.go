@@ -216,19 +216,13 @@ func (r *KnowledgeBaseRepository) SyncKBAccessSettingsToCaddy(ctx context.Contex
 										"handler": "subroute",
 										"routes": []map[string]any{
 											{
-												"match": []map[string]any{
-													{
-														"not": []map[string]any{
-															{"path_regexp": map[string]string{"pattern": `(?i)\.pdf($|\?)`}},
-														},
-													},
-												},
 												"handle": []map[string]any{
 													{
 														"handler": "headers",
 														"response": map[string]any{
 															"set": map[string][]string{
-																"Content-Disposition": {"attachment"},
+																"Content-Disposition":    {"attachment"},
+																"X-Content-Type-Options": {"nosniff"},
 															},
 														},
 													},

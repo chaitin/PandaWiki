@@ -317,7 +317,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/v1.AuthSetReq"
+                            "$ref": "#/definitions/github_com_chaitin_panda-wiki_api_auth_v1.AuthSetReq"
                         }
                     }
                 ],
@@ -3675,7 +3675,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/v1.AuthGitHubReq"
+                            "$ref": "#/definitions/github_com_chaitin_panda-wiki_api_share_v1.AuthGitHubReq"
                         }
                     }
                 ],
@@ -3691,7 +3691,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/v1.AuthGitHubResp"
+                                            "$ref": "#/definitions/github_com_chaitin_panda-wiki_api_share_v1.AuthGitHubResp"
                                         }
                                     }
                                 }
@@ -4210,7 +4210,7 @@ const docTemplate = `{
                                     "type": "object",
                                     "properties": {
                                         "data": {
-                                            "$ref": "#/definitions/v1.FileUploadResp"
+                                            "$ref": "#/definitions/github_com_chaitin_panda-wiki_api_share_v1.FileUploadResp"
                                         }
                                     }
                                 }
@@ -6141,7 +6141,7 @@ const docTemplate = `{
                     "description": "status : -1 reject 0 pending 1 accept",
                     "allOf": [
                         {
-                            "$ref": "#/definitions/domain.CommentStatus"
+                            "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.CommentStatus"
                         }
                     ]
                 }
@@ -6180,20 +6180,6 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
-        },
-        "domain.CommentStatus": {
-            "type": "integer",
-            "format": "int32",
-            "enum": [
-                -1,
-                0,
-                1
-            ],
-            "x-enum-varnames": [
-                "CommentStatusReject",
-                "CommentStatusPending",
-                "CommentStatusAccepted"
-            ]
         },
         "domain.CompleteReq": {
             "type": "object",
@@ -6254,7 +6240,7 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "user_info": {
-                    "$ref": "#/definitions/domain.UserInfo"
+                    "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.UserInfo"
                 }
             }
         },
@@ -7261,32 +7247,6 @@ const docTemplate = `{
                 },
                 "summary": {
                     "type": "string"
-                }
-            }
-        },
-        "domain.NodeGroupDetail": {
-            "type": "object",
-            "properties": {
-                "auth_group_id": {
-                    "type": "integer"
-                },
-                "auth_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "integer"
-                    }
-                },
-                "kb_id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "node_id": {
-                    "type": "string"
-                },
-                "perm": {
-                    "$ref": "#/definitions/consts.NodePermName"
                 }
             }
         },
@@ -8340,33 +8300,6 @@ const docTemplate = `{
                 }
             }
         },
-        "domain.UserInfo": {
-            "type": "object",
-            "properties": {
-                "auth_user_id": {
-                    "type": "integer"
-                },
-                "avatar": {
-                    "description": "avatar",
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "from": {
-                    "$ref": "#/definitions/domain.MessageFrom"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "real_name": {
-                    "type": "string"
-                },
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
         "domain.WeChatAppAdvancedSetting": {
             "type": "object",
             "properties": {
@@ -8650,7 +8583,7 @@ const docTemplate = `{
                 "auths": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/v1.AuthItem"
+                        "$ref": "#/definitions/github_com_chaitin_panda-wiki_api_auth_v1.AuthItem"
                     }
                 },
                 "client_id": {
@@ -8664,6 +8597,62 @@ const docTemplate = `{
                 },
                 "source_type": {
                     "$ref": "#/definitions/consts.SourceType"
+                }
+            }
+        },
+        "github_com_chaitin_panda-wiki_api_auth_v1.AuthItem": {
+            "type": "object",
+            "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "ip": {
+                    "type": "string"
+                },
+                "last_login_time": {
+                    "type": "string"
+                },
+                "source_type": {
+                    "$ref": "#/definitions/consts.SourceType"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_chaitin_panda-wiki_api_auth_v1.AuthSetReq": {
+            "type": "object",
+            "required": [
+                "source_type"
+            ],
+            "properties": {
+                "client_id": {
+                    "type": "string"
+                },
+                "client_secret": {
+                    "type": "string"
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "proxy": {
+                    "type": "string"
+                },
+                "source_type": {
+                    "enum": [
+                        "github"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/consts.SourceType"
+                        }
+                    ]
                 }
             }
         },
@@ -8704,6 +8693,33 @@ const docTemplate = `{
                 },
                 "source_type": {
                     "$ref": "#/definitions/consts.SourceType"
+                }
+            }
+        },
+        "github_com_chaitin_panda-wiki_api_share_v1.AuthGitHubReq": {
+            "type": "object",
+            "properties": {
+                "kb_id": {
+                    "type": "string"
+                },
+                "redirect_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_chaitin_panda-wiki_api_share_v1.AuthGitHubResp": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_chaitin_panda-wiki_api_share_v1.FileUploadResp": {
+            "type": "object",
+            "properties": {
+                "key": {
+                    "type": "string"
                 }
             }
         },
@@ -8767,6 +8783,20 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "github_com_chaitin_panda-wiki_domain.CommentStatus": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+                -1,
+                0,
+                1
+            ],
+            "x-enum-varnames": [
+                "CommentStatusReject",
+                "CommentStatusPending",
+                "CommentStatusAccepted"
+            ]
         },
         "github_com_chaitin_panda-wiki_domain.ModelListItem": {
             "type": "object",
@@ -8850,6 +8880,59 @@ const docTemplate = `{
                 "ModelProviderBaiZhiCloudModelStore"
             ]
         },
+        "github_com_chaitin_panda-wiki_domain.NodeGroupDetail": {
+            "type": "object",
+            "properties": {
+                "auth_group_id": {
+                    "type": "integer"
+                },
+                "auth_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "kb_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "node_id": {
+                    "type": "string"
+                },
+                "perm": {
+                    "$ref": "#/definitions/consts.NodePermName"
+                }
+            }
+        },
+        "github_com_chaitin_panda-wiki_domain.UserInfo": {
+            "type": "object",
+            "properties": {
+                "auth_user_id": {
+                    "type": "integer"
+                },
+                "avatar": {
+                    "description": "avatar",
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "from": {
+                    "$ref": "#/definitions/domain.MessageFrom"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "real_name": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
         "gocap.ChallengeData": {
             "type": "object",
             "properties": {
@@ -8931,51 +9014,6 @@ const docTemplate = `{
                 }
             }
         },
-        "v1.AuthGitHubReq": {
-            "type": "object",
-            "properties": {
-                "kb_id": {
-                    "type": "string"
-                },
-                "redirect_url": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.AuthGitHubResp": {
-            "type": "object",
-            "properties": {
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.AuthItem": {
-            "type": "object",
-            "properties": {
-                "avatar_url": {
-                    "type": "string"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "ip": {
-                    "type": "string"
-                },
-                "last_login_time": {
-                    "type": "string"
-                },
-                "source_type": {
-                    "$ref": "#/definitions/consts.SourceType"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
-        },
         "v1.AuthLoginSimpleReq": {
             "type": "object",
             "required": [
@@ -8984,36 +9022,6 @@ const docTemplate = `{
             "properties": {
                 "password": {
                     "type": "string"
-                }
-            }
-        },
-        "v1.AuthSetReq": {
-            "type": "object",
-            "required": [
-                "source_type"
-            ],
-            "properties": {
-                "client_id": {
-                    "type": "string"
-                },
-                "client_secret": {
-                    "type": "string"
-                },
-                "kb_id": {
-                    "type": "string"
-                },
-                "proxy": {
-                    "type": "string"
-                },
-                "source_type": {
-                    "enum": [
-                        "github"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/consts.SourceType"
-                        }
-                    ]
                 }
             }
         },
@@ -9215,14 +9223,6 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "id": {
-                    "type": "string"
-                }
-            }
-        },
-        "v1.FileUploadResp": {
-            "type": "object",
-            "properties": {
-                "key": {
                     "type": "string"
                 }
             }
@@ -9538,7 +9538,7 @@ const docTemplate = `{
                     "description": "可被问答",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/domain.NodeGroupDetail"
+                        "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.NodeGroupDetail"
                     }
                 },
                 "id": {
@@ -9551,14 +9551,14 @@ const docTemplate = `{
                     "description": "导航内可见",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/domain.NodeGroupDetail"
+                        "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.NodeGroupDetail"
                     }
                 },
                 "visitable_groups": {
                     "description": "可被访问",
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/domain.NodeGroupDetail"
+                        "$ref": "#/definitions/github_com_chaitin_panda-wiki_domain.NodeGroupDetail"
                     }
                 }
             }

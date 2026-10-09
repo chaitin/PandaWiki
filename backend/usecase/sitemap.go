@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/xml"
 	"fmt"
 	"strings"
 	"time"
@@ -37,16 +38,27 @@ func (u *SitemapUsecase) GetSitemap(ctx context.Context, kbID string) (string, e
 	sb.WriteString(`<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`)
 
 	// add welcome
-	sb.WriteString(fmt.Sprintf(`<url><loc>%s/welcome</loc><lastmod>%s</lastmod></url>`, kb.AccessSettings.BaseURL, time.Now().Format(time.DateOnly)))
+	writeSitemapURL(&sb, kb.AccessSettings.BaseURL+"/welcome", time.Now())
 
 	// add nodes
 	for _, node := range nodes {
 		if node.Type == domain.NodeTypeDocument {
-			sb.WriteString(fmt.Sprintf(`<url><loc>%s</loc><lastmod>%s</lastmod></url>`, node.GetURL(kb.AccessSettings.BaseURL), node.UpdatedAt.Format(time.DateOnly)))
+			writeSitemapURL(&sb, node.GetURL(kb.AccessSettings.BaseURL), node.UpdatedAt)
 		}
 	}
 
 	sb.WriteString(`</urlset>`)
 
 	return sb.String(), nil
+}
+
+func writeSitemapURL(sb *strings.Builder, location string, updatedAt time.Time) {
+	escapedLocation := escapeSitemapLocation(location)
+	fmt.Fprintf(sb, `<url><loc>%s</loc><lastmod>%s</lastmod></url>`, escapedLocation, updatedAt.Format(time.DateOnly))
+}
+
+func escapeSitemapLocation(location string) string {
+	var escaped strings.Builder
+	_ = xml.EscapeText(&escaped, []byte(location))
+	return escaped.String()
 }

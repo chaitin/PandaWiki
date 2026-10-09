@@ -2,11 +2,12 @@
 
 import mermaid from 'mermaid';
 import React from 'react';
+import { sanitizeMermaidSvg } from './sanitizeMermaidSvg';
 
 const MERMAID_CONFIG = {
   startOnLoad: false,
   theme: 'default' as const,
-  securityLevel: 'loose' as const,
+  securityLevel: 'strict' as const,
   fontFamily: 'inherit',
   suppressErrorRendering: true,
 };
@@ -47,9 +48,12 @@ export const createMermaidRenderer = (
           .toString(36)
           .slice(2, 9)}`;
         const renderResult = await mermaid.render(id, code);
-        mermaidSuccessIdRef.current?.set(mermaidCount, renderResult.svg);
+        const safeSvg = sanitizeMermaidSvg(renderResult.svg);
+        mermaidSuccessIdRef.current?.set(mermaidCount, safeSvg);
         const mermaidContainer = document.querySelector(`.${className}`);
-        mermaidContainer!.innerHTML = renderResult.svg;
+        if (mermaidContainer) {
+          mermaidContainer.innerHTML = safeSvg;
+        }
       } catch (renderError) {}
     });
 

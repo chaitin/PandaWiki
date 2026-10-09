@@ -521,7 +521,7 @@ func (u *LLMUsecase) formatMessageWithImages(message string, imagePaths []string
 	builder.WriteString(message)
 	for _, path := range imagePaths {
 		builder.WriteString("\n")
-		builder.WriteString(fmt.Sprintf("![](%s)", path))
+		fmt.Fprintf(&builder, "![](%s)", path)
 	}
 	return builder.String()
 }
