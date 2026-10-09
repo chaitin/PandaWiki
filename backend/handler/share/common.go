@@ -1,6 +1,7 @@
 package share
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -8,8 +9,11 @@ import (
 	"github.com/labstack/echo/v4"
 
 	v1 "github.com/chaitin/panda-wiki/api/share/v1"
+	"github.com/chaitin/panda-wiki/consts"
+	"github.com/chaitin/panda-wiki/domain"
 	"github.com/chaitin/panda-wiki/handler"
 	"github.com/chaitin/panda-wiki/log"
+	proDomain "github.com/chaitin/panda-wiki/pro/domain"
 	"github.com/chaitin/panda-wiki/usecase"
 	"github.com/chaitin/panda-wiki/utils"
 )
@@ -18,6 +22,7 @@ type ShareCommonHandler struct {
 	*handler.BaseHandler
 	logger      *log.Logger
 	fileUsecase *usecase.FileUsecase
+	appUsecase  *usecase.AppUsecase
 }
 
 func NewShareCommonHandler(
@@ -25,11 +30,13 @@ func NewShareCommonHandler(
 	baseHandler *handler.BaseHandler,
 	logger *log.Logger,
 	fileUsecase *usecase.FileUsecase,
+	appUsecase *usecase.AppUsecase,
 ) *ShareCommonHandler {
 	h := &ShareCommonHandler{
 		BaseHandler: baseHandler,
 		logger:      logger,
 		fileUsecase: fileUsecase,
+		appUsecase:  appUsecase,
 	}
 
 	share := e.Group("share/v1/common",
@@ -117,6 +124,9 @@ func (h *ShareCommonHandler) FileUpload(c echo.Context) error {
 //	@Router			/share/v1/common/file/upload/url [post]
 func (h *ShareCommonHandler) FileUploadByUrl(c echo.Context) error {
 	ctx := c.Request().Context()
+	if !proDomain.GetEditionLimitationByCtx(c).AllowContribute {
+		return h.NewResponseWithError(c, "document contribution is not available", nil)
+	}
 
 	var req v1.ShareFileUploadUrlReq
 	if err := c.Bind(&req); err != nil {
@@ -132,6 +142,15 @@ func (h *ShareCommonHandler) FileUploadByUrl(c echo.Context) error {
 		return h.NewResponseWithError(c, "kb_id is required", nil)
 	}
 	req.KbId = kbID
+
+	appCtx := context.WithValue(ctx, consts.ContextKeyEdition, consts.GetLicenseEdition(c))
+	appInfo, err := h.appUsecase.GetAppDetailByKBIDAndAppType(appCtx, kbID, domain.AppTypeWeb)
+	if err != nil {
+		return h.NewResponseWithError(c, "failed to get document contribution settings", err)
+	}
+	if !appInfo.Settings.ContributeSettings.IsEnable {
+		return h.NewResponseWithError(c, "document contribution is not enabled", nil)
+	}
 
 	parsedURL, err := url.Parse(req.Url)
 	if err != nil {
