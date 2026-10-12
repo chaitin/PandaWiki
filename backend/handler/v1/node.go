@@ -61,6 +61,8 @@ func NewNodeHandler(
 	group.GET("/permission", h.NodePermission)
 	group.PATCH("/permission/edit", h.NodePermissionEdit)
 
+	group.GET("/export", h.ExportNode)
+
 	return h
 }
 
@@ -562,4 +564,38 @@ func (h *NodeHandler) NodeRestudy(c echo.Context) error {
 	}
 
 	return h.NewResponseWithData(c, nil)
+}
+
+// ExportNode 导出节点为 Markdown 或 HTML 格式
+//
+//	@Tags			Node
+//	@Summary		导出节点
+//	@Description	导出节点为 Markdown 或 HTML 格式
+//	@ID				v1-ExportNode
+//	@Accept			json
+//	@Produce		json
+//	@Security		bearerAuth
+//	@Param			param	query		v1.NodeExportReq	true	"导出参数"
+//	@Success		200		{object}	domain.Response{data=map[string]string}
+//	@Router			/api/v1/node/export [get]
+func (h *NodeHandler) ExportNode(c echo.Context) error {
+	var req v1.NodeExportReq
+	if err := c.Bind(&req); err != nil {
+		return h.NewResponseWithError(c, "request params is invalid", err)
+	}
+
+	if err := c.Validate(req); err != nil {
+		return h.NewResponseWithError(c, "validate request params failed", err)
+	}
+
+	ctx := c.Request().Context()
+	content, filename, err := h.usecase.ExportNode(ctx, &req)
+	if err != nil {
+		return h.NewResponseWithError(c, "export node failed", err)
+	}
+
+	return h.NewResponseWithData(c, map[string]string{
+		"content":  content,
+		"filename": filename,
+	})
 }

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
@@ -137,6 +138,58 @@ func (u *NodeUsecase) GetNodeByKBID(ctx context.Context, id, kbId, format string
 		}
 	}
 	return node, nil
+}
+
+func (u *NodeUsecase) ExportNode(ctx context.Context, req *v1.NodeExportReq) (string, string, error) {
+	node, err := u.nodeRepo.GetByID(ctx, req.ID, req.KbId)
+	if err != nil {
+		return "", "", err
+	}
+
+	var content string
+	var filename string
+
+	switch req.Format {
+	case "md":
+		content = node.Content
+		if node.Meta.ContentType == domain.ContentTypeHTML {
+			// Convert HTML to Markdown if needed
+			content = u.convertHTMLToMarkdown(content)
+		}
+		filename = fmt.Sprintf("%s.md", node.Name)
+	case "html":
+		content = node.Content
+		if node.Meta.ContentType == domain.ContentTypeMD {
+			content = u.convertMDToHTML(content)
+		}
+		filename = fmt.Sprintf("%s.html", node.Name)
+	default:
+		return "", "", errors.New("unsupported export format")
+	}
+
+	return content, filename, nil
+}
+
+func (u *NodeUsecase) convertHTMLToMarkdown(htmlContent string) string {
+	// Simple HTML to Markdown conversion
+	// This is a basic implementation - can be enhanced with more robust libraries
+	md := htmlContent
+	// Remove HTML tags and convert to basic markdown
+	md = strings.ReplaceAll(md, "<p>", "\n\n")
+	md = strings.ReplaceAll(md, "</p>", "")
+	md = strings.ReplaceAll(md, "<br>", "\n")
+	md = strings.ReplaceAll(md, "<br/>", "\n")
+	md = strings.ReplaceAll(md, "<strong>", "**")
+	md = strings.ReplaceAll(md, "</strong>", "**")
+	md = strings.ReplaceAll(md, "<em>", "*")
+	md = strings.ReplaceAll(md, "</em>", "*")
+	md = strings.ReplaceAll(md, "<h1>", "# ")
+	md = strings.ReplaceAll(md, "</h1>", "\n")
+	md = strings.ReplaceAll(md, "<h2>", "## ")
+	md = strings.ReplaceAll(md, "</h2>", "\n")
+	md = strings.ReplaceAll(md, "<h3>", "### ")
+	md = strings.ReplaceAll(md, "</h3>", "\n")
+	return strings.TrimSpace(md)
 }
 
 func (u *NodeUsecase) NodeAction(ctx context.Context, req *domain.NodeActionReq) error {
