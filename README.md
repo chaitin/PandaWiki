@@ -100,6 +100,10 @@ SUCCESS    密码: **********************
 - 🤝加入社区：扫码加入下方企业微信群，与更多用户及官方人员交流经验、获得帮助。
 
 
+## ☁️ 一键部署
+
+[![Deploy on RepoCloud](https://d16t0pc4846x52.cloudfront.net/deploylobe.svg)](https://repocloud.io/details/PandaWiki/)
+
 ## 社区交流
 
 欢迎加入我们的微信群进行交流。
