@@ -1,0 +1,122 @@
+diff --git a/dist/extension/component/Image/Crop.js b/dist/extension/component/Image/Crop.js
+index fc27d548fc26f7465c9311926f411fb5b1ec7eb2..6f3ca1152f10a6d82c412894b1eb6a3f0f5a1332 100644
+--- a/dist/extension/component/Image/Crop.js
++++ b/dist/extension/component/Image/Crop.js
+@@ -55,7 +55,9 @@ var CropImage = function CropImage(_ref) {
+         return;
+       }
+       var canvas = document.createElement('canvas');
+-      var ctx = canvas.getContext('2d');
++      var ctx = canvas.getContext('2d', {
++        willReadFrequently: true
++      });
+       if (!ctx) {
+         resolve(null);
+         return;
+@@ -85,7 +87,9 @@ var CropImage = function CropImage(_ref) {
+         return;
+       }
+       var canvas = document.createElement('canvas');
+-      var ctx = canvas.getContext('2d');
++      var ctx = canvas.getContext('2d', {
++        willReadFrequently: true
++      });
+       if (!ctx) {
+         resolve('');
+         return;
+diff --git a/dist/extension/component/TableExtendButton/index.js b/dist/extension/component/TableExtendButton/index.js
+index a1284392c102b49a7f06bd52c3835b390e89ca58..0f6245abd6f069f82a7e629189fa3b8cbccc808f 100644
+--- a/dist/extension/component/TableExtendButton/index.js
++++ b/dist/extension/component/TableExtendButton/index.js
+@@ -150,7 +150,7 @@ export var TableExtendRowColumnButton = function TableExtendRowColumnButton(_ref
+   }));
+ };
+ export var TableExtendRowColumnButtons = function TableExtendRowColumnButtons(_ref2) {
+-  var _state$showAddOrRemov, _state$showAddOrRemov2, _state$referencePosTa, _state$referencePosLa, _state$referencePosLa2;
++  var _state$showAddOrRemov, _state$showAddOrRemov2, _state$referencePosTa, _state$referencePosLa, _state$referencePosLa2, _editor$state$doc$con;
+   var providedEditor = _ref2.editor,
+     onMouseDown = _ref2.onMouseDown,
+     onMouseUp = _ref2.onMouseUp;
+@@ -172,9 +172,14 @@ export var TableExtendRowColumnButtons = function TableExtendRowColumnButtons(_r
+     onMouseUp === null || onMouseUp === void 0 || onMouseUp();
+   }, [editor, onMouseUp]);
+   if (!state) return null;
++  var blockPos = state.blockPos;
++  var docSize = (_editor$state$doc$con = editor === null || editor === void 0 ? void 0 : editor.state.doc.content.size) !== null && _editor$state$doc$con !== void 0 ? _editor$state$doc$con : -1;
++  if (!editor || blockPos === undefined || blockPos === null || blockPos < 0 || blockPos > docSize) {
++    return null;
++  }
+ 
+   // 检查是否为嵌套表格，如果是则不显示扩展按钮
+-  if (editor && state.blockPos !== undefined) {
++  if (state.blockPos !== undefined) {
+     var $pos = editor.state.doc.resolve(state.blockPos);
+     for (var d = $pos.depth - 1; d >= 0; d--) {
+       var node = $pos.node(d);
+diff --git a/dist/extension/component/UploadProgress/index.d.ts b/dist/extension/component/UploadProgress/index.d.ts
+index d8a1cadc2e6f961794b58b7bc4ebc84614ae88be..47ee310374fa99b938c3154d51e900443262493a 100644
+--- a/dist/extension/component/UploadProgress/index.d.ts
++++ b/dist/extension/component/UploadProgress/index.d.ts
+@@ -7,6 +7,6 @@ export interface UploadProgressAttributes {
+     tempId: string;
+ }
+ export declare const getFileIcon: (fileType: string) => React.JSX.Element;
+-export declare const getFileTypeText: (fileType: string) => "图片" | "视频" | "音频" | "文件";
++export declare const getFileTypeText: (fileType: string) => "视频" | "音频" | "图片" | "文件";
+ declare const UploadProgressView: React.FC<NodeViewProps>;
+ export default UploadProgressView;
+diff --git a/dist/extension/index.d.ts b/dist/extension/index.d.ts
+index af739e5a7ec10637d5a65b84565f563a4ac4eb2c..3071e300c5b371f0f785990f02c597bf24e00bc5 100644
+--- a/dist/extension/index.d.ts
++++ b/dist/extension/index.d.ts
+@@ -1,2 +1,2 @@
+ import { GetExtensionsProps } from '../type';
+-export declare const getExtensions: ({ limit, exclude, extensions: extensionsProps, editable, mentionItems, baseUrl, onMentionFilter, onUpload, onUploadImgUrl, onError, onTocUpdate, onAiWritingGetSuggestion, onValidateUrl, placeholder, mermaidOptions, youtubeOptions, tableOfContentsOptions, structuredDiffOptions, }: GetExtensionsProps) => any;
++export declare const getExtensions: ({ limit, exclude, extensions: extensionsProps, editable, mentionItems, baseUrl, onMentionFilter, onUpload, onUploadImgUrl, onError, onTocUpdate, onAiWritingGetSuggestion, onValidateUrl, placeholder, mermaidOptions, youtubeOptions, tableOfContentsOptions, structuredDiffOptions, }: GetExtensionsProps) => any[];
+diff --git a/dist/extension/index.js b/dist/extension/index.js
+index c48363986f0c06ae646bd24e46fba882a42831d7..3d6515bcf974adbb33ea0fad396ea3c69bab1cb8 100644
+--- a/dist/extension/index.js
++++ b/dist/extension/index.js
+@@ -188,5 +188,17 @@ export var getExtensions = function getExtensions(_ref) {
+   if (extensionsProps && extensionsProps.length > 0) {
+     defaultExtensions.push.apply(defaultExtensions, _toConsumableArray(extensionsProps));
+   }
+-  return defaultExtensions;
++  var seenExtensionNames = new Set();
++  var deduplicatedExtensions = _toConsumableArray(defaultExtensions).reverse().filter(function (extension) {
++    var name = extension === null || extension === void 0 ? void 0 : extension.name;
++    if (!name) {
++      return true;
++    }
++    if (seenExtensionNames.has(name)) {
++      return false;
++    }
++    seenExtensionNames.add(name);
++    return true;
++  }).reverse();
++  return deduplicatedExtensions;
+ };
+\ No newline at end of file
+diff --git a/dist/extension/node/FileHandler.d.ts b/dist/extension/node/FileHandler.d.ts
+index ca63a9b00cb9aa2cd5c3426b1aa959e58cfc2ec4..88ecd4d03f60b3b89150194dd24e9864c5f0c49a 100644
+--- a/dist/extension/node/FileHandler.d.ts
++++ b/dist/extension/node/FileHandler.d.ts
+@@ -1,4 +1,4 @@
+ import { UploadFunction } from "../../type";
+ export declare const FileHandlerExtension: (props: {
+     onUpload?: UploadFunction;
+-}) => import("@tiptap/core").Extension<Omit<import("@tiptap/extension-file-handler").FileHandlePluginOptions, "editor" | "key">, any>;
++}) => import("@tiptap/core").Extension<Omit<import("@tiptap/extension-file-handler").FileHandlePluginOptions, "key" | "editor">, any>;
+diff --git a/dist/hook/fn.d.ts b/dist/hook/fn.d.ts
+index 4a8612aceaf935e644a8ee1fc9c897ffdb48bd6d..50fcc2567332c2861c4e18ff41a7fd2a533f5a90 100644
+--- a/dist/hook/fn.d.ts
++++ b/dist/hook/fn.d.ts
+@@ -4,7 +4,7 @@ export interface UseFnProps {
+     exclude?: string[];
+ }
+ export declare const useFn: ({ exclude, }: UseFnProps) => {
+-    extensions: any;
++    extensions: any[];
+     getJSONByHTML: (html: string) => Record<string, any>;
+     getHTMLByJSON: (json: JSONContent) => string;
+     getStaticRenderToHTMLStringByJSON: (json: JSONContent) => string;

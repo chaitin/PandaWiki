@@ -2,3 +2,6 @@ packages:
   - 'app'
   - 'admin'
   - 'packages/*'
+
+patchedDependencies:
+  '@ctzhian/tiptap@3.0.4': patches/@ctzhian__tiptap@3.0.4.patch
