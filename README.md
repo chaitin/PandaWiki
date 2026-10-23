@@ -7,6 +7,10 @@
   <a target="_blank" href="/images/wechat.png">🙋‍♂️ 微信交流群</a>
 </p>
 
+<p align="center">
+  <a href="https://app.railyard.run/deploy?repo=https://github.com/chaitin/PandaWiki"><img src="https://app.railyard.run/deploy/badge" alt="Deploy to Railyard"></a>
+</p>
+
 ## 👋 项目介绍
 
 PandaWiki 是一款 AI 大模型驱动的**开源知识库搭建系统**，帮助你快速构建智能化的 **产品文档、技术文档、FAQ、博客系统**，借助大模型的力量为你提供 **AI 创作、AI 问答、AI 搜索** 等能力。
