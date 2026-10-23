@@ -1,0 +1,39 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "panda-wiki.name" . }}-caddy
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+spec:
+  # The Caddy admin API accepts unauthenticated full config writes, so only the
+  # backend is allowed to reach it. Entry traffic stays open.
+  podSelector:
+    matchLabels:
+      {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "caddy") | nindent 6 }}
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - port: {{ .Values.caddy.adminPort }}
+          protocol: TCP
+      from:
+        - podSelector:
+            matchLabels:
+              {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "api") | nindent 14 }}
+        - podSelector:
+            matchLabels:
+              {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "consumer") | nindent 14 }}
+        - podSelector:
+            matchLabels:
+              {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "migration") | nindent 14 }}
+    - ports:
+        - port: 80
+          protocol: TCP
+        - port: 443
+          protocol: TCP
+        {{- range .Values.caddy.extraPorts }}
+        - port: {{ .port }}
+          protocol: TCP
+        {{- end }}
+{{- end }}

@@ -1,0 +1,510 @@
+# PandaWiki Helm values.
+#
+# IMPORTANT: deploy one release per namespace.
+# The backend and the admin nginx address each other through fixed service
+# names (panda-wiki-api, panda-wiki-minio, panda-wiki-redis,
+# panda-wiki-postgres, panda-wiki-nats, panda-wiki-crawler) that are hardcoded
+# in the Go source, so those Service names are not release-scoped and two
+# releases in one namespace would collide.
+
+global:
+  # All default images live in this registry, including the middleware, so the
+  # chart does not need Docker Hub access.
+  imageRegistry: chaitin-registry.cn-hangzhou.cr.aliyuncs.com/chaitin
+  imagePullSecrets: []
+  timezone: Asia/Shanghai
+  # Leave empty to use the cluster default StorageClass.
+  storageClass: ""
+
+# Tag shared by the four components built from this repository. The middleware
+# and the closed-source raglite/crawler images pin their own versions below.
+image:
+  tag: v3.87.3
+  pullPolicy: IfNotPresent
+
+# Secrets. Leave a value empty and the chart generates a random one on first
+# install, then keeps it across upgrades by looking the existing Secret up.
+#
+# Note that the backend re-applies ADMIN_PASSWORD to the admin account on every
+# start, so this value wins over a password changed in the console; rotate it here
+# to change the login. It must not be empty: the backend only creates the admin
+# account when it is set, so an empty one would start a console with no way in and
+# no error to explain it. The chart checks for that when you supply your own Secret.
+secrets:
+  postgresPassword: ""
+  redisPassword: ""
+  natsPassword: ""
+  s3SecretKey: ""
+  qdrantApiKey: ""
+  jwtSecret: ""
+  # Password for the admin console login.
+  adminPassword: ""
+  # Name of a Secret you manage instead of having the chart generate one. It must
+  # hold jwt-secret and admin-password, plus the middleware keys the enabled
+  # components actually read from it: postgres-password, redis-password,
+  # nats-password, s3-secret-key and qdrant-api-key. A component with its own
+  # auth.existingSecret takes its password from there instead. The chart validates
+  # this Secret on install and upgrade, whenever it can reach the cluster.
+  existingSecret: ""
+
+api:
+  replicaCount: 2
+  image:
+    repository: panda-wiki-api
+    tag: ""
+    pullPolicy: ""
+  port: 8000
+  # Port for the dedicated liveness/readiness endpoint. Only used when
+  # probes.mode is http, and it has to differ from api.port or the health server
+  # cannot bind, leaving the pod with failing probes and only a log line to say
+  # why.
+  healthPort: 8081
+  probes:
+    # tcp checks that the port accepts connections and works with any image.
+    # http additionally checks /healthz and /readyz, which report whether the
+    # dependencies are usable, but those endpoints only exist in images built
+    # from this repository: the published panda-wiki-api image predates them, so
+    # an http probe against it never succeeds and the liveness probe then kills
+    # the container in a loop.
+    mode: tcp # tcp | http
+  terminationGracePeriodSeconds: 60
+  # The api drains in-flight requests for a fixed 30s inside the process
+  # (shutdownTimeout in backend/cmd/api/main.go), so this grace period has to
+  # stay larger than that or streams are cut off by SIGKILL. It is not a chart
+  # value because changing it would require a code change as well.
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+
+consumer:
+  # MUST stay 1: the scheduled jobs run in this process with no distributed
+  # lock, so extra replicas would repeat them. See cron.distributedLock below.
+  replicaCount: 1
+  image:
+    repository: panda-wiki-consumer
+    tag: ""
+    pullPolicy: ""
+  healthPort: 8081
+  probes:
+    # tcp gives the consumer NO probes at all: it serves nothing, so there is no
+    # port to check, and the published image has no health endpoint to ask. It is
+    # then only restarted if the process exits, so a wedged consumer stays
+    # "Ready". Use http with an image built from this repository to get real
+    # liveness and readiness.
+    mode: tcp # tcp | http
+  terminationGracePeriodSeconds: 60
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+  cron:
+    # Not implemented yet. When true, extra replicas may be run once the
+    # scheduled jobs are guarded by a distributed lock.
+    distributedLock: false
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+
+# Admin console: nginx serving the built admin SPA and proxying the API.
+admin:
+  # The console SPA, and the proxy that serves its /api, /share and
+  # /static-file traffic. Without it there is no UI and nothing routes to the
+  # api from outside the cluster.
+  enabled: true
+  image:
+    repository: panda-wiki-nginx
+    tag: ""
+    pullPolicy: ""
+  # server.conf listens on 8080 with TLS enabled using the certificate baked
+  # into the image. Point an Ingress at it with an HTTPS backend, or provide
+  # your own certificate through tls.existingSecret.
+  port: 8080
+  tls:
+    # Name of a TLS Secret whose keys are panda-wiki.crt and panda-wiki.key.
+    # Leave empty to use the self-signed certificate from the image.
+    existingSecret: ""
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  service:
+    type: ClusterIP
+    port: 8080
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Public wiki sites: Next.js server.
+app:
+  # Serves the wiki sites Caddy routes to. Without it Caddy's default route has
+  # no upstream, so every knowledge base returns 502.
+  enabled: true
+  image:
+    repository: panda-wiki-app
+    tag: ""
+    pullPolicy: ""
+  port: 3010
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Dynamic gateway. The backend pushes the per-knowledge-base routing table into
+# Caddy's admin API, so this runs as a single replica holding in-memory config.
+caddy:
+  # The gateway that publishes the wiki sites and receives their routing table
+  # from the backend. Without it a knowledge base cannot be published: the api
+  # logs a sync failure and the sites are unreachable.
+  enabled: true
+  image:
+    repository: panda-wiki-caddy
+    tag: 2.10-alpine
+    pullPolicy: ""
+  # hostNetwork (default) matches the official docker compose deployment: it
+  # lets a knowledge base be published on any port the admin picks, which the
+  # product allows. NodePort/LoadBalancer can only expose ports listed in
+  # servicePorts, so arbitrary knowledge base ports stop working with them.
+  #
+  # hostNetwork pins the pod to one node and makes that node a single point of
+  # failure; use nodeSelector to choose which node carries the entry traffic.
+  # The port also has to be free on that node: Caddy starts with no server (the
+  # Caddyfile in the image is entirely commented out) and only binds the admin
+  # port until the backend pushes routes, so an install succeeds even where 80
+  # and 443 are taken — it is publishing a knowledge base on a taken port that
+  # fails, because Caddy rejects the whole configuration rather than part of it.
+  #
+  # SECURITY: with hostNetwork, Caddy binds its admin port on the host's
+  # interfaces, so the admin API — which accepts unauthenticated full config
+  # writes — becomes reachable by anything that can reach that node. The chart
+  # keeps the admin port off the Service so the other exposure modes never
+  # publish it, but hostNetwork cannot be fixed from the manifest: traffic
+  # arrives through the host network namespace, so the chart's NetworkPolicy does
+  # not apply to it either. A host firewall is the only way to restrict the port,
+  # and using a non-hostNetwork exposure avoids the problem entirely.
+  exposure: hostNetwork # hostNetwork | NodePort | LoadBalancer | ClusterIP
+  # Ports the Service publishes, in every exposure mode. With NodePort each entry
+  # may set its own nodePort; the http and https entries fall back to the values
+  # below, and any further entry left without one gets a port picked by
+  # Kubernetes, so adding a third one never collides.
+  servicePorts:
+    - name: http
+      port: 80
+    - name: https
+      port: 443
+  # Extra knowledge base ports, for example [{name: kb-8081, port: 8081}].
+  # nodePort is optional on each entry, for NodePort exposure.
+  extraPorts: []
+  nodePort:
+    http: 30080
+    https: 30443
+  loadBalancer:
+    annotations: {}
+  # Port the backend uses to push configuration. Keep it on the cluster
+  # network only: the admin API accepts unauthenticated full config writes.
+  adminPort: 2019
+  # Start Caddy with --resume so it reloads the autosaved config after a restart
+  # instead of reverting to the Caddyfile baked into the image.
+  #
+  # Safe, and verified on a real cluster: the baked Caddyfile is the stock
+  # template with every line commented out, so a fresh Caddy has no routes at all
+  # and everything comes from the backend's push. With --resume and no autosave
+  # yet, Caddy logs "no autosave file exists" and falls back to that Caddyfile, so
+  # a first install still starts. With an autosave present, a Caddy-only restart
+  # keeps the routing table instead of losing it until the api restarts.
+  resume: true
+  persistence:
+    # Keeps the autosave file and ACME certificates across restarts, and is what
+    # makes caddy.resume work when it is enabled.
+    enabled: true
+    size: 1Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 512Mi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# Closed-source RAG service. Needs PostgreSQL, Qdrant, MinIO and NATS.
+raglite:
+  # The RAG service behind AI search, Q&A and creation. Turning it off requires
+  # raglite.external.baseURL, and without it those features do not work.
+  enabled: true
+  image:
+    repository: raglite
+    tag: v2.17.0
+    pullPolicy: ""
+  port: 5050
+  embedderRpm: 800
+  llmRpm: 50
+  persistence:
+    enabled: true
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  # Used when enabled is false: the base URL of a raglite deployed elsewhere,
+  # for example http://raglite.internal:5050.
+  external:
+    baseURL: ""
+
+# Closed-source document parser. Talks to NATS and MinIO only.
+crawler:
+  # Parses imported documents. Without it, URL, sitemap, RSS and offline-file
+  # imports have no worker behind them.
+  enabled: true
+  image:
+    repository: anydoc
+    tag: v0.9.11
+    pullPolicy: ""
+  port: 8080
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+migration:
+  # The api and consumer run with migrations off, so leaving this on is what
+  # applies the schema. Turning it off means nothing does: run the migrations
+  # yourself in that case, or the api starts against an empty database.
+  enabled: true
+  # post-install, not pre-install: Helm runs pre-install hooks *before* it
+  # creates anything, so on a fresh install with the bundled middleware the job
+  # would wait for PostgreSQL, Redis, NATS and MinIO that do not exist yet and
+  # time out. Running after the resources are created means the job's
+  # wait-for-dependencies container covers the gap until they accept
+  # connections, and on an upgrade the dependencies are already there anyway.
+  hook: post-install,pre-upgrade
+  # Extra time for the migrate binary to wait for its dependencies.
+  waitTimeoutSeconds: 300
+  backoffLimit: 6
+
+ingress:
+  admin:
+    # Needs admin.enabled and at least one host; the chart refuses to render an
+    # Ingress that would point at nothing or match nothing.
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts: []
+    #    - host: panda-wiki.example.com
+    #      paths:
+    #        - path: /
+    #          pathType: Prefix
+    tls: []
+  wiki:
+    # Needs caddy.enabled and at least one host. Only useful with a Caddy
+    # exposure that publishes 80/443 on a Service.
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts: []
+    tls: []
+
+networkPolicy:
+  # Restricts the Caddy admin API to the backend pods.
+  enabled: false
+
+backend:
+  # Values rendered into config.yml and mounted at /app/config.yml. Anything set
+  # here overrides the built-in defaults; passwords belong in secrets instead.
+  config:
+    log:
+      level: 0
+    auth:
+      type: jwt
+    apm:
+      enabled: false
+    rag:
+      # Only needed when the raglite deployment in use requires an API key.
+      apiKey: ""
+    # Raw YAML appended to the generated config.yml, for settings that have
+    # neither an environment variable nor a value of their own.
+    extraConfigYaml: ""
+  telemetry:
+    # Reports usage to baizhi.cloud. Turn off for private deployments; multiple
+    # replicas would each report separately.
+    enabled: false
+  sentry:
+    enabled: false
+    dsn: ""
+  setup:
+    # The self-signed certificate is only useful when the api and the admin
+    # nginx share a volume, which is a docker compose arrangement. In Kubernetes
+    # the certificate comes from the image or from a Secret.
+    #
+    # Note: this switch lives in the open-source entrypoint. An image built from
+    # the pro entrypoint always creates the certificate, which is harmless where
+    # the filesystem is writable.
+    initCert: false
+
+postgres:
+  enabled: true
+  image:
+    repository: postgres-zhparser
+    tag: 17.6-bookworm
+    pullPolicy: ""
+  # The backend creates a "raglite" database unless
+  # backend.config.pg.create_raglite_db is false, so the user needs CREATEDB.
+  auth:
+    username: panda-wiki
+    database: panda-wiki
+    password: ""
+    existingSecret: ""
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi
+  # Used when enabled is false.
+  external:
+    host: ""
+    port: 5432
+    username: ""
+    database: ""
+    sslMode: disable
+    existingSecret: ""
+    # Set when the external server does not grant CREATEDB.
+    createRagliteDB: false
+
+redis:
+  enabled: true
+  image:
+    repository: panda-wiki-redis
+    tag: 7.4.2-alpine
+    pullPolicy: ""
+  auth:
+    password: ""
+    existingSecret: ""
+  persistence:
+    enabled: true
+    size: 2Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  external:
+    addr: ""
+    existingSecret: ""
+
+nats:
+  enabled: true
+  image:
+    repository: panda-wiki-nats
+    tag: 2.11.3-alpine
+    pullPolicy: ""
+  auth:
+    username: panda-wiki
+    password: ""
+    existingSecret: ""
+  # JetStream stores streams on disk.
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  external:
+    server: ""
+    username: ""
+    existingSecret: ""
+
+minio:
+  enabled: true
+  image:
+    repository: panda-wiki-minio
+    tag: RELEASE.2025-04-22T22-12-26Z-cpuv1
+    pullPolicy: ""
+  auth:
+    # The backend defaults to this access key.
+    accessKey: s3panda-wiki
+    secretKey: ""
+    existingSecret: ""
+  bucket: static-file
+  persistence:
+    enabled: true
+    size: 20Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  external:
+    endpoint: ""
+    accessKey: ""
+    secretKey: ""
+    bucket: ""
+    existingSecret: ""
+
+qdrant:
+  enabled: true
+  image:
+    repository: panda-wiki-qdrant
+    tag: v1.14.1
+    pullPolicy: ""
+  apiKey: ""
+  existingSecret: ""
+  persistence:
+    enabled: true
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "2"
+      memory: 2Gi

@@ -1,0 +1,138 @@
+{{- if .Values.raglite.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "panda-wiki.name" . }}-raglite
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: raglite
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "raglite") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "panda-wiki.labels" . | nindent 8 }}
+        app.kubernetes.io/component: raglite
+    spec:
+      {{- include "panda-wiki.imagePullSecrets" . | nindent 6 }}
+      automountServiceAccountToken: false
+      initContainers:
+        {{- include "panda-wiki.waitForDeps" (dict "root" . "addrs" (include "panda-wiki.postgresQdrantMinioNatsAddrs" .)) | nindent 8 }}
+      containers:
+        - name: raglite
+          image: {{ include "panda-wiki.image" (dict "root" . "image" .Values.raglite.image) }}
+          imagePullPolicy: {{ include "panda-wiki.imagePullPolicy" (dict "root" . "image" .Values.raglite.image) }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.raglite.port }}
+          # Variable names mirror the ones the official docker compose file sets.
+          env:
+            - name: GIN_MODE
+              value: release
+            - name: DATABASE_POSTGRESQL_HOST
+              value: {{ include "panda-wiki.postgresHost" . | quote }}
+            - name: DATABASE_POSTGRESQL_USER
+              value: {{ include "panda-wiki.postgresUser" . | quote }}
+            - name: DATABASE_POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "panda-wiki.postgresSecretName" . }}
+                  key: {{ include "panda-wiki.postgresSecretKey" . }}
+            - name: DATABASE_QDRANT_HOST
+              value: {{ include "panda-wiki.qdrantHost" . | quote }}
+            - name: DATABASE_QDRANT_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ if .Values.qdrant.existingSecret }}{{ .Values.qdrant.existingSecret }}{{ else }}{{ include "panda-wiki.secretName" . }}{{ end }}
+                  key: {{ if .Values.qdrant.existingSecret }}api-key{{ else }}qdrant-api-key{{ end }}
+            - name: STORAGE_MINIO_ENDPOINT
+              value: {{ include "panda-wiki.s3Endpoint" . | quote }}
+            - name: STORAGE_MINIO_ACCESS_KEY_ID
+              value: {{ include "panda-wiki.s3AccessKey" . | quote }}
+            - name: STORAGE_MINIO_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "panda-wiki.s3SecretName" . }}
+                  key: {{ include "panda-wiki.s3SecretKey" . }}
+            - name: NATS_URL
+              value: {{ include "panda-wiki.natsServer" . | quote }}
+            - name: NATS_USER
+              value: {{ include "panda-wiki.natsUser" . | quote }}
+            - name: NATS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "panda-wiki.natsSecretName" . }}
+                  key: {{ include "panda-wiki.natsSecretKey" . }}
+            - name: EMBEDDER_RPM
+              value: {{ .Values.raglite.embedderRpm | quote }}
+            - name: LLM_RPM
+              value: {{ .Values.raglite.llmRpm | quote }}
+          # /health returns 200; verified on a real cluster.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            failureThreshold: 120
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.raglite.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          {{- if .Values.raglite.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "panda-wiki.name" . }}-raglite
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.raglite.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.raglite.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.raglite.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- if .Values.raglite.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "panda-wiki.name" . }}-raglite
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: raglite
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- include "panda-wiki.storageClass" . | nindent 2 }}
+  resources:
+    requests:
+      storage: {{ .Values.raglite.persistence.size }}
+{{- end }}
+{{- end }}

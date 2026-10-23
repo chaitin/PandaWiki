@@ -1,0 +1,102 @@
+{{- if .Values.minio.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "panda-wiki.name" . }}-minio
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: minio
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "minio") | nindent 4 }}
+  ports:
+    - name: s3
+      port: 9000
+      targetPort: s3
+    - name: console
+      port: 9001
+      targetPort: console
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "panda-wiki.name" . }}-minio
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: minio
+spec:
+  serviceName: {{ include "panda-wiki.name" . }}-minio
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "minio") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "panda-wiki.labels" . | nindent 8 }}
+        app.kubernetes.io/component: minio
+    spec:
+      {{- include "panda-wiki.imagePullSecrets" . | nindent 6 }}
+      automountServiceAccountToken: false
+      containers:
+        - name: minio
+          image: {{ include "panda-wiki.image" (dict "root" . "image" .Values.minio.image) }}
+          imagePullPolicy: {{ include "panda-wiki.imagePullPolicy" (dict "root" . "image" .Values.minio.image) }}
+          command: ["minio", "server", "/data", "--console-address", ":9001"]
+          ports:
+            - name: s3
+              containerPort: 9000
+            - name: console
+              containerPort: 9001
+          # These are the variable names the official compose file uses with this
+          # image, so they are the ones known to work here.
+          env:
+            - name: MINIO_ACCESS_KEY
+              value: {{ .Values.minio.auth.accessKey | quote }}
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "panda-wiki.s3SecretName" . }}
+                  key: {{ include "panda-wiki.s3SecretKey" . }}
+            - name: TZ
+              value: {{ .Values.global.timezone | quote }}
+          readinessProbe:
+            httpGet:
+              path: /minio/health/ready
+              port: s3
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /minio/health/live
+              port: s3
+            initialDelaySeconds: 20
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 6
+          resources:
+            {{- toYaml .Values.minio.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      {{- if not .Values.minio.persistence.enabled }}
+      volumes:
+        - name: data
+          emptyDir: {}
+      {{- end }}
+  {{- if .Values.minio.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- include "panda-wiki.storageClass" . | nindent 8 }}
+        resources:
+          requests:
+            storage: {{ .Values.minio.persistence.size }}
+  {{- end }}
+{{- end }}

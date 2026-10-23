@@ -2,9 +2,11 @@ package pg
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-migrate/migrate/v4"
@@ -37,21 +39,41 @@ func NewDB(config *config.Config) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	// create raglite database if not exists
-	var exists bool
-	if err := db.Raw("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = 'raglite')").Scan(&exists).Error; err != nil {
-		return nil, err
-	}
-	if !exists {
-		if err := db.Exec("CREATE DATABASE raglite").Error; err != nil {
+	if config.PG.CreateRagliteDB {
+		if err := createRagliteDB(db); err != nil {
 			return nil, err
 		}
 	}
-	if err := doMigrate(dsn); err != nil {
-		return nil, err
+	if config.PG.AutoMigrate {
+		if err := doMigrate(dsn); err != nil {
+			return nil, err
+		}
 	}
 
 	return &DB{DB: db}, nil
+}
+
+// createRagliteDB makes sure the raglite database exists. This is a
+// check-then-act, so instances starting at the same time can race; a concurrent
+// creation is therefore treated as success rather than as a startup failure.
+func createRagliteDB(db *gorm.DB) error {
+	var exists bool
+	if err := db.Raw("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = 'raglite')").Scan(&exists).Error; err != nil {
+		return err
+	}
+	if exists {
+		return nil
+	}
+	if err := db.Exec("CREATE DATABASE raglite").Error; err != nil {
+		// Postgres answers SQLSTATE 42P04 here. It is matched by message
+		// instead of by error type so that this stays independent of the
+		// driver's error implementation.
+		if errors.Is(err, gorm.ErrDuplicatedKey) || strings.Contains(err.Error(), "already exists") {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func doMigrate(dsn string) error {

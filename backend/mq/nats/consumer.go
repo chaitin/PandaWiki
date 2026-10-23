@@ -139,14 +139,21 @@ func (c *MQConsumer) StartConsumerHandlers(ctx context.Context) error {
 	return nil
 }
 
+// IsConnected reports whether the underlying NATS connection is usable.
+func (c *MQConsumer) IsConnected() bool {
+	return c.conn != nil && c.conn.IsConnected()
+}
+
 func (c *MQConsumer) Close() error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	// close all subscriptions
+	// Drain rather than unsubscribe so that in-flight messages finish being
+	// handled and are acked before the connection goes away. Unacked messages
+	// are redelivered because the subscriptions are durable with explicit acks.
 	for _, sub := range c.handlers {
-		if err := sub.Unsubscribe(); err != nil {
-			c.logger.Error("unsubscribe failed", log.Any("error", err))
+		if err := sub.Drain(); err != nil {
+			c.logger.Error("drain subscription failed", log.Any("error", err))
 		}
 	}
 

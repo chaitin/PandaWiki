@@ -1,0 +1,88 @@
+{{- if .Values.crawler.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "panda-wiki.name" . }}-crawler
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: crawler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "crawler") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "panda-wiki.labels" . | nindent 8 }}
+        app.kubernetes.io/component: crawler
+    spec:
+      {{- include "panda-wiki.imagePullSecrets" . | nindent 6 }}
+      automountServiceAccountToken: false
+      initContainers:
+        {{- include "panda-wiki.waitForDeps" (dict "root" . "addrs" (include "panda-wiki.natsMinioAddrs" .)) | nindent 8 }}
+      containers:
+        - name: crawler
+          image: {{ include "panda-wiki.image" (dict "root" . "image" .Values.crawler.image) }}
+          imagePullPolicy: {{ include "panda-wiki.imagePullPolicy" (dict "root" . "image" .Values.crawler.image) }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.crawler.port }}
+          # Variable names mirror the ones the official docker compose file sets.
+          env:
+            - name: GLOG_GLOBAL_LEVEL
+              value: info
+            - name: NAMESPACE
+              value: anydoc
+            - name: MQ_NATS_URL
+              value: {{ include "panda-wiki.natsServer" . | quote }}
+            - name: MQ_NATS_USER
+              value: {{ include "panda-wiki.natsUser" . | quote }}
+            - name: MQ_NATS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "panda-wiki.natsSecretName" . }}
+                  key: {{ include "panda-wiki.natsSecretKey" . }}
+            - name: OSS_MINIO_ENDPOINT
+              value: {{ include "panda-wiki.s3Endpoint" . | quote }}
+            - name: OSS_MINIO_ACCESS_KEY
+              value: {{ include "panda-wiki.s3AccessKey" . | quote }}
+            - name: OSS_MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "panda-wiki.s3SecretName" . }}
+                  key: {{ include "panda-wiki.s3SecretKey" . }}
+          # Closed-source image; the backend reaches it at
+          # http://panda-wiki-crawler:8080, which is what this checks.
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.crawler.resources | nindent 12 }}
+      {{- with .Values.crawler.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.crawler.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.crawler.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

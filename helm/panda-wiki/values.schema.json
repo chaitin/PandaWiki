@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "PandaWiki chart values",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object",
+      "properties": {
+        "imageRegistry": { "type": "string", "minLength": 1 },
+        "imagePullSecrets": { "type": "array" },
+        "timezone": { "type": "string", "minLength": 1 },
+        "storageClass": { "type": "string" }
+      }
+    },
+    "image": {
+      "type": "object",
+      "properties": {
+        "tag": { "type": "string" },
+        "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+      }
+    },
+    "api": {
+      "type": "object",
+      "properties": {
+        "replicaCount": { "type": "integer", "minimum": 1 },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "healthPort": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "probes": { "$ref": "#/definitions/probes" }
+      }
+    },
+    "consumer": {
+      "type": "object",
+      "properties": {
+        "replicaCount": { "type": "integer", "minimum": 1 },
+        "healthPort": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "probes": { "$ref": "#/definitions/probes" },
+        "cron": {
+          "type": "object",
+          "properties": {
+            "distributedLock": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "admin": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 }
+      }
+    },
+    "app": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 }
+      }
+    },
+    "caddy": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "exposure": {
+          "type": "string",
+          "enum": ["hostNetwork", "NodePort", "LoadBalancer", "ClusterIP"]
+        },
+        "resume": { "type": "boolean" },
+        "adminPort": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "servicePorts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+              "nodePort": { "type": "integer", "minimum": 1, "maximum": 65535 }
+            },
+            "required": ["name", "port"]
+          }
+        },
+        "extraPorts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+              "nodePort": { "type": "integer", "minimum": 1, "maximum": 65535 }
+            },
+            "required": ["name", "port"]
+          }
+        }
+      }
+    },
+    "raglite": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "external": {
+          "type": "object",
+          "properties": { "baseURL": { "type": "string" } }
+        }
+      }
+    },
+    "crawler": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 }
+      }
+    },
+    "migration": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "hook": { "type": "string" },
+        "waitTimeoutSeconds": { "type": "integer", "minimum": 1 },
+        "backoffLimit": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "postgres": { "$ref": "#/definitions/middleware" },
+    "redis": { "$ref": "#/definitions/middleware" },
+    "nats": { "$ref": "#/definitions/middleware" },
+    "minio": { "$ref": "#/definitions/middleware" },
+    "qdrant": { "$ref": "#/definitions/middleware" }
+  },
+  "definitions": {
+    "probes": {
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string", "enum": ["tcp", "http"] }
+      }
+    },
+    "middleware": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "persistence": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "size": { "type": "string" }
+          }
+        },
+        "external": { "type": "object" }
+      }
+    }
+  }
+}

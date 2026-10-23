@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "panda-wiki.name" . }}-api
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "api") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "panda-wiki.labels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap-backend.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      {{- include "panda-wiki.imagePullSecrets" . | nindent 6 }}
+      automountServiceAccountToken: false
+      # Has to outlast the in-process drain, which is a fixed 30s in
+      # backend/cmd/api/main.go.
+      terminationGracePeriodSeconds: {{ .Values.api.terminationGracePeriodSeconds }}
+      initContainers:
+        {{- include "panda-wiki.waitForDeps" (dict "root" . "addrs" (include "panda-wiki.postgresNatsRedisMinioAddrs" .)) | nindent 8 }}
+      containers:
+        - name: api
+          image: {{ include "panda-wiki.image" (dict "root" . "image" .Values.api.image) }}
+          imagePullPolicy: {{ include "panda-wiki.imagePullPolicy" (dict "root" . "image" .Values.api.image) }}
+          # The image CMD runs the migration binary before the api. Migrations
+          # belong to the migration job, so the entrypoint is overridden here.
+          command: ["/app/panda-wiki-api"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.port }}
+            {{- if eq .Values.api.probes.mode "http" }}
+            - name: health
+              containerPort: {{ .Values.api.healthPort }}
+            {{- end }}
+          env:
+            {{- include "panda-wiki.backendEnv" (dict "root" . "role" "api") | nindent 12 }}
+            - name: HTTP_PORT
+              value: {{ .Values.api.port | quote }}
+            {{- if eq .Values.api.probes.mode "http" }}
+            - name: HEALTH_PORT
+              value: {{ .Values.api.healthPort | quote }}
+            {{- end }}
+            {{- range .Values.api.extraEnv }}
+            - {{- toYaml . | nindent 14 }}
+            {{- end }}
+          {{- if eq .Values.api.probes.mode "http" }}
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            # Fails while a dependency is unusable, which takes the pod out of
+            # rotation without restarting it.
+            httpGet:
+              path: /readyz
+              port: health
+            periodSeconds: 5
+            timeoutSeconds: 10
+            failureThreshold: 3
+          {{- else }}
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            failureThreshold: 60
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          {{- end }}
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          volumeMounts:
+            {{- include "panda-wiki.backendVolumeMounts" . | nindent 12 }}
+      volumes:
+        {{- include "panda-wiki.backendVolumes" . | nindent 8 }}
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- if .Values.api.podDisruptionBudget.enabled }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "panda-wiki.name" . }}-api
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  minAvailable: {{ .Values.api.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "api") | nindent 6 }}
+{{- end }}
