@@ -20,7 +20,8 @@ type NodeReleaseVectorRequest struct {
 	Action        string `json:"action"` // upsert, delete, summary
 	GroupIds      []int  `json:"group_ids"`
 	RequestID     string `json:"request_id,omitempty"`
-	// Force 跳过逻辑幂等检查，用于模型切换、手动重新学习等必须重跑的场景。
+	// Force 只跳过内容级幂等检查，用于模型切换、手动重新学习等必须重跑的场景；
+	// 同一个 RequestID 的重复投递仍会被请求级幂等拦截。
 	Force bool `json:"force,omitempty"`
 }
 

@@ -17,9 +17,8 @@ import (
 
 const (
 	consumerAckWait = 5 * time.Minute
-	// 回调是单协程串行处理，预取窗口越大，排在后面的消息越容易超过 AckWait 被重投。
-	// 8 条 / 5 分钟允许单条平均耗时约 37 秒，足够覆盖模型限流时的重试。
-	consumerMaxAckPending  = 8
+	// 回调是单协程串行处理，只允许预取一条，避免排队消息尚未开始处理就超过 AckWait。
+	consumerMaxAckPending  = 1
 	consumerMaxDeliver     = 5
 	consumerHandlerTimeout = 10 * time.Minute
 	consumerNakRetryDelay  = time.Minute

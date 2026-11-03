@@ -900,12 +900,16 @@ func (r *NodeRepository) UpdateNodeReleaseDocID(ctx context.Context, id, docID s
 		}).Error
 }
 
-func (r *NodeRepository) UpdateNodeSummary(ctx context.Context, kbID, nodeID, summary, dedupeKey string) error {
+func (r *NodeRepository) UpdateNodeSummary(ctx context.Context, kbID, nodeID, summary, contentKey, requestID string) error {
 	metaExpr := "jsonb_set(COALESCE(meta, '{}'::jsonb), '{summary}', to_jsonb(?::text))"
 	args := []any{summary}
-	if dedupeKey != "" {
+	if contentKey != "" {
+		metaExpr = "jsonb_set(" + metaExpr + ", '{last_summary_content_key}', to_jsonb(?::text))"
+		args = append(args, contentKey)
+	}
+	if requestID != "" {
 		metaExpr = "jsonb_set(" + metaExpr + ", '{last_summary_request_id}', to_jsonb(?::text))"
-		args = append(args, dedupeKey)
+		args = append(args, requestID)
 	}
 	return r.db.WithContext(ctx).
 		Model(&domain.Node{}).
@@ -916,8 +920,18 @@ func (r *NodeRepository) UpdateNodeSummary(ctx context.Context, kbID, nodeID, su
 		}).Error
 }
 
-func (r *NodeRepository) UpdateNodeReleaseVectorRequestID(ctx context.Context, id, dedupeKey string) error {
-	if dedupeKey == "" {
+func (r *NodeRepository) UpdateNodeReleaseVectorState(ctx context.Context, id, contentKey, requestID string) error {
+	metaExpr := "COALESCE(meta, '{}'::jsonb)"
+	args := make([]any, 0, 2)
+	if contentKey != "" {
+		metaExpr = "jsonb_set(" + metaExpr + ", '{last_vector_content_key}', to_jsonb(?::text))"
+		args = append(args, contentKey)
+	}
+	if requestID != "" {
+		metaExpr = "jsonb_set(" + metaExpr + ", '{last_vector_request_id}', to_jsonb(?::text))"
+		args = append(args, requestID)
+	}
+	if len(args) == 0 {
 		return nil
 	}
 	return r.db.WithContext(ctx).
@@ -925,8 +939,21 @@ func (r *NodeRepository) UpdateNodeReleaseVectorRequestID(ctx context.Context, i
 		Omit("updated_at").
 		Where("id = ?", id).
 		Updates(map[string]any{
-			"meta": gorm.Expr("jsonb_set(COALESCE(meta, '{}'::jsonb), '{last_vector_request_id}', to_jsonb(?::text))", dedupeKey),
+			"meta": gorm.Expr(metaExpr, args...),
 		}).Error
+}
+
+func (r *NodeRepository) IsLatestNodeRelease(ctx context.Context, nodeID, nodeReleaseID string) (bool, error) {
+	var latestID string
+	if err := r.db.WithContext(ctx).
+		Model(&domain.NodeRelease{}).
+		Where("node_id = ?", nodeID).
+		Order("updated_at DESC").
+		Limit(1).
+		Pluck("id", &latestID).Error; err != nil {
+		return false, err
+	}
+	return latestID == nodeReleaseID, nil
 }
 
 func (r *NodeRepository) UpdateNodeStatus(ctx context.Context, kbID, nodeID string, nodeStatus domain.NodeStatus) error {
@@ -1022,6 +1049,7 @@ func (r *NodeRepository) GetOldNodeDocIDsByNodeID(ctx context.Context, nodeRelea
 		if err := tx.Model(&domain.NodeRelease{}).
 			Where("node_id = ?", nodeID).
 			Where("id != ?", nodeReleaseID).
+			Where("updated_at <= (SELECT updated_at FROM node_releases WHERE id = ?)", nodeReleaseID).
 			Where("doc_id != ''").
 			Select("doc_id").
 			Find(&docIDs).Error; err != nil {
@@ -1031,6 +1059,7 @@ func (r *NodeRepository) GetOldNodeDocIDsByNodeID(ctx context.Context, nodeRelea
 		if err := tx.Model(&domain.NodeRelease{}).
 			Where("node_id = ?", nodeID).
 			Where("id != ?", nodeReleaseID).
+			Where("updated_at <= (SELECT updated_at FROM node_releases WHERE id = ?)", nodeReleaseID).
 			Omit("updated_at").
 			Update("doc_id", "").Error; err != nil {
 			return err

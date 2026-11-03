@@ -121,29 +121,35 @@ type NodeGroupDetail struct {
 }
 
 type NodeMeta struct {
-	Summary              string `json:"summary"`
-	Emoji                string `json:"emoji"`
-	ContentType          string `json:"content_type"`
-	LastSummaryRequestID string `json:"-"`
-	LastVectorRequestID  string `json:"-"`
+	Summary               string `json:"summary"`
+	Emoji                 string `json:"emoji"`
+	ContentType           string `json:"content_type"`
+	LastSummaryContentKey string `json:"-"`
+	LastSummaryRequestID  string `json:"-"`
+	LastVectorContentKey  string `json:"-"`
+	LastVectorRequestID   string `json:"-"`
 }
 
 // nodeMetaFields 是 NodeMeta 的持久化形态。幂等标记属于内部状态，不进入 API/Swagger。
 type nodeMetaFields struct {
-	Summary              string `json:"summary"`
-	Emoji                string `json:"emoji"`
-	ContentType          string `json:"content_type"`
-	LastSummaryRequestID string `json:"last_summary_request_id,omitempty"`
-	LastVectorRequestID  string `json:"last_vector_request_id,omitempty"`
+	Summary               string `json:"summary"`
+	Emoji                 string `json:"emoji"`
+	ContentType           string `json:"content_type"`
+	LastSummaryContentKey string `json:"last_summary_content_key,omitempty"`
+	LastSummaryRequestID  string `json:"last_summary_request_id,omitempty"`
+	LastVectorContentKey  string `json:"last_vector_content_key,omitempty"`
+	LastVectorRequestID   string `json:"last_vector_request_id,omitempty"`
 }
 
 func (d *NodeMeta) Value() (driver.Value, error) {
 	return json.Marshal(nodeMetaFields{
-		Summary:              d.Summary,
-		Emoji:                d.Emoji,
-		ContentType:          d.ContentType,
-		LastSummaryRequestID: d.LastSummaryRequestID,
-		LastVectorRequestID:  d.LastVectorRequestID,
+		Summary:               d.Summary,
+		Emoji:                 d.Emoji,
+		ContentType:           d.ContentType,
+		LastSummaryContentKey: d.LastSummaryContentKey,
+		LastSummaryRequestID:  d.LastSummaryRequestID,
+		LastVectorContentKey:  d.LastVectorContentKey,
+		LastVectorRequestID:   d.LastVectorRequestID,
 	})
 }
 

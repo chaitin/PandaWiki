@@ -611,42 +611,6 @@ func (u *NodeUsecase) NodePermissionsEdit(ctx context.Context, req v1.NodePermis
 		}
 	}
 
-	nodeReleases, err := u.nodeRepo.GetLatestNodeReleaseByNodeIDs(ctx, req.KbId, req.IDs)
-	if err != nil {
-		return fmt.Errorf("get latest node release failed: %w", err)
-	}
-
-	if len(nodeReleases) > 0 {
-		nodeVectorContentRequests := make([]*domain.NodeReleaseVectorRequest, 0)
-
-		var groupIds []int
-		switch req.Permissions.Answerable {
-		case consts.NodeAccessPermOpen:
-			groupIds = nil
-		case consts.NodeAccessPermPartial:
-			groupIds = *req.AnswerableGroups
-		case consts.NodeAccessPermClosed:
-			groupIds = make([]int, 0)
-		}
-		for _, nodeRelease := range nodeReleases {
-			if nodeRelease.DocID == "" {
-				continue
-			}
-			nodeVectorContentRequests = append(nodeVectorContentRequests, &domain.NodeReleaseVectorRequest{
-				KBID:     req.KbId,
-				DocID:    nodeRelease.DocID,
-				Action:   "update_group_ids",
-				GroupIds: groupIds,
-			})
-		}
-
-		if len(nodeVectorContentRequests) != 0 {
-			if err := u.ragRepo.AsyncUpdateNodeReleaseVector(ctx, nodeVectorContentRequests); err != nil {
-				return err
-			}
-		}
-	}
-
 	if req.AnswerableGroups != nil {
 		if err := u.nodeRepo.UpdateNodeGroupByKbIDAndNodeIds(ctx, req.IDs, *req.AnswerableGroups, consts.NodePermNameAnswerable); err != nil {
 			return err
@@ -662,6 +626,32 @@ func (u *NodeUsecase) NodePermissionsEdit(ctx context.Context, req v1.NodePermis
 	if req.VisitableGroups != nil {
 		if err := u.nodeRepo.UpdateNodeGroupByKbIDAndNodeIds(ctx, req.IDs, *req.VisitableGroups, consts.NodePermNameVisitable); err != nil {
 			return err
+		}
+	}
+
+	nodeReleases, err := u.nodeRepo.GetLatestNodeReleaseByNodeIDs(ctx, req.KbId, req.IDs)
+	if err != nil {
+		return fmt.Errorf("get latest node release failed: %w", err)
+	}
+
+	if len(nodeReleases) > 0 {
+		nodeVectorContentRequests := make([]*domain.NodeReleaseVectorRequest, 0, len(nodeReleases))
+		for _, nodeRelease := range nodeReleases {
+			if nodeRelease.DocID == "" {
+				continue
+			}
+			nodeVectorContentRequests = append(nodeVectorContentRequests, &domain.NodeReleaseVectorRequest{
+				KBID:   req.KbId,
+				NodeID: nodeRelease.NodeID,
+				DocID:  nodeRelease.DocID,
+				Action: "update_group_ids",
+			})
+		}
+
+		if len(nodeVectorContentRequests) != 0 {
+			if err := u.ragRepo.AsyncUpdateNodeReleaseVector(ctx, nodeVectorContentRequests); err != nil {
+				return err
+			}
 		}
 	}
 

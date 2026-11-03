@@ -54,17 +54,11 @@ func (h *RAGMQHandler) HandleNodeContentVectorRequest(ctx context.Context, msg t
 	// 同一个幂等键不会在多实例间被并发处理。
 	switch request.Action {
 	case "update_group_ids":
-		h.logger.Info("update node group request", log.Any("request", request), log.Any("group_id", request.GroupIds))
-		kb, err := h.kbRepo.GetKnowledgeBaseByID(ctx, request.KBID)
-		if err != nil {
-			h.logger.Error("get kb failed", log.Error(err))
-			return err
-		}
-		if err := h.rag.UpdateDocumentGroupIDs(ctx, kb.DatasetID, request.DocID, request.GroupIds); err != nil {
+		h.logger.Info("update node group request", log.Any("request", request), log.String("node_id", request.NodeID))
+		if err := h.syncDocumentGroupIDs(ctx, request); err != nil {
 			h.logger.Error("update node group failed", log.Error(err))
 			return err
 		}
-		h.logger.Info("update node group success", log.Any("doc_id", request.DocID), log.Any("group_ids", request.GroupIds))
 
 	case "upsert":
 		h.logger.Debug("upsert node content vector request", "request", request)
@@ -77,10 +71,27 @@ func (h *RAGMQHandler) HandleNodeContentVectorRequest(ctx context.Context, msg t
 			h.logger.Info("node is folder, skip upsert", log.Any("node_release_id", request.NodeReleaseID))
 			return nil
 		}
+		isLatest, err := h.nodeRepo.IsLatestNodeRelease(ctx, nodeRelease.NodeID, nodeRelease.ID)
+		if err != nil {
+			h.logger.Error("check latest node release failed", log.String("node_id", nodeRelease.NodeID), log.Error(err))
+			return err
+		}
+		if !isLatest {
+			h.logger.Info("node release is superseded, skip upsert",
+				log.String("node_id", nodeRelease.NodeID),
+				log.String("node_release_id", nodeRelease.ID))
+			return nil
+		}
+		if request.RequestID != "" && nodeRelease.Meta.LastVectorRequestID == request.RequestID {
+			h.logger.Debug("vector request already processed, skip",
+				log.String("node_release_id", request.NodeReleaseID),
+				log.String("request_id", request.RequestID))
+			return nil
+		}
 		// 幂等键由发布快照本身派生，而不是每批随机生成的 request_id。
 		// 这样调用方重复发起同一逻辑操作时也能被拦截。
 		dedupeKey := nodeReleaseVectorKey(nodeRelease.ID, nodeRelease.Content)
-		if !request.Force && nodeRelease.Meta.LastVectorRequestID == dedupeKey {
+		if !request.Force && nodeRelease.Meta.LastVectorContentKey == dedupeKey {
 			h.logger.Debug("upsert already processed, skip",
 				log.Any("node_release_id", request.NodeReleaseID),
 				log.String("dedupe_key", dedupeKey))
@@ -130,8 +141,8 @@ func (h *RAGMQHandler) HandleNodeContentVectorRequest(ctx context.Context, msg t
 				return err
 			}
 		}
-		if err := h.nodeRepo.UpdateNodeReleaseVectorRequestID(ctx, request.NodeReleaseID, dedupeKey); err != nil {
-			h.logger.Error("update node release vector request id failed", log.String("node_release_id", request.NodeReleaseID), log.Error(err))
+		if err := h.nodeRepo.UpdateNodeReleaseVectorState(ctx, request.NodeReleaseID, dedupeKey, request.RequestID); err != nil {
+			h.logger.Error("update node release vector state failed", log.String("node_release_id", request.NodeReleaseID), log.Error(err))
 			return err
 		}
 
@@ -162,9 +173,15 @@ func (h *RAGMQHandler) HandleNodeContentVectorRequest(ctx context.Context, msg t
 			h.logger.Info("node is folder, skip summary", log.Any("node_id", request.NodeID))
 			return nil
 		}
+		if request.RequestID != "" && node.Meta.LastSummaryRequestID == request.RequestID {
+			h.logger.Debug("summary request already processed, skip",
+				log.String("node_id", request.NodeID),
+				log.String("request_id", request.RequestID))
+			return nil
+		}
 		// 以节点当前内容作为幂等键：内容不变时重复消息直接跳过，内容变化后允许重新生成。
 		dedupeKey := summaryContentKey(node)
-		if !request.Force && node.Meta.LastSummaryRequestID == dedupeKey {
+		if !request.Force && node.Meta.LastSummaryContentKey == dedupeKey {
 			h.logger.Debug("summary already processed, skip",
 				log.Any("node_id", request.NodeID),
 				log.String("dedupe_key", dedupeKey))
@@ -184,7 +201,7 @@ func (h *RAGMQHandler) HandleNodeContentVectorRequest(ctx context.Context, msg t
 		}
 		// 摘要内容、幂等标记和发布态回退在同一条 UPDATE 中完成，
 		// 避免"标记已写入但状态未回退"时重试被幂等检查跳过。
-		if err := h.nodeRepo.UpdateNodeSummary(ctx, request.KBID, request.NodeID, summary, dedupeKey); err != nil {
+		if err := h.nodeRepo.UpdateNodeSummary(ctx, request.KBID, request.NodeID, summary, dedupeKey, request.RequestID); err != nil {
 			h.logger.Error("update node summary failed", log.Error(err))
 			return err
 		}
@@ -193,6 +210,68 @@ func (h *RAGMQHandler) HandleNodeContentVectorRequest(ctx context.Context, msg t
 	}
 
 	return nil
+}
+
+// syncDocumentGroupIDs 在消费时读取当前权限，避免延迟重投的旧消息覆盖后续权限变更。
+func (h *RAGMQHandler) syncDocumentGroupIDs(ctx context.Context, request domain.NodeReleaseVectorRequest) error {
+	docID := request.DocID
+	groupIDs := request.GroupIds
+	nodeID := request.NodeID
+
+	// 兼容升级前没有 NodeID 的消息：通过 doc_id 反查节点，再读取最新权限。
+	if nodeID == "" && docID != "" {
+		releases, err := h.nodeRepo.GetNodeReleasesByDocIDs(ctx, []string{docID})
+		if err != nil {
+			return fmt.Errorf("get node release by doc id failed: %w", err)
+		}
+		if release, ok := releases[docID]; ok {
+			nodeID = release.NodeID
+		}
+	}
+
+	if nodeID != "" {
+		releases, err := h.nodeRepo.GetLatestNodeReleaseByNodeIDs(ctx, request.KBID, []string{nodeID})
+		if err != nil {
+			return fmt.Errorf("get latest node release failed: %w", err)
+		}
+		if len(releases) == 0 {
+			h.logger.Info("node has no release, skip group update", log.String("node_id", nodeID))
+			return nil
+		}
+		// 最新快照可能尚未完成索引。此时仍要更新请求中旧文档的权限，
+		// 避免新快照索引失败后旧文档继续保留过期权限。
+		docID = groupUpdateDocID(releases[0].DocID, request.DocID)
+		if releases[0].DocID == "" {
+			h.logger.Info("latest node release is not indexed, fallback to requested document",
+				log.String("node_id", nodeID),
+				log.String("doc_id", docID))
+		}
+		groupIDs, err = h.nodeRepo.GetNodeAuthGroupIdsByNodeId(ctx, nodeID, consts.NodePermNameAnswerable)
+		if err != nil {
+			return fmt.Errorf("get current node group ids failed: %w", err)
+		}
+	}
+
+	if docID == "" {
+		h.logger.Info("group update has no document id, skip", log.Any("request", request))
+		return nil
+	}
+	kb, err := h.kbRepo.GetKnowledgeBaseByID(ctx, request.KBID)
+	if err != nil {
+		return fmt.Errorf("get kb failed: %w", err)
+	}
+	if err := h.rag.UpdateDocumentGroupIDs(ctx, kb.DatasetID, docID, groupIDs); err != nil {
+		return fmt.Errorf("update document group ids failed: %w", err)
+	}
+	h.logger.Info("update node group success", log.String("doc_id", docID), log.Any("group_ids", groupIDs))
+	return nil
+}
+
+func groupUpdateDocID(latestDocID, requestedDocID string) string {
+	if latestDocID != "" {
+		return latestDocID
+	}
+	return requestedDocID
 }
 
 // nodeReleaseVectorKey 返回发布快照的确定性幂等键。
