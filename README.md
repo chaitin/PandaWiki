@@ -1,8 +1,8 @@
-<h2 align="center">
-  <a target="_blank" href="https://ragcloud.app.baizhi.cloud/">☁️ 不想部署？立即体验 PandaWiki SaaS 版 →</a>
-</h2>
-
-<p align="center">无需安装，开箱即用，在线创建你的 AI 知识库</p>
+<p align="center">
+  <a target="_blank" href="https://ragcloud.app.baizhi.cloud/?utm_source=github&utm_medium=readme&utm_campaign=saas">
+    <img src="/images/saas-cta.svg" width="800" alt="PandaWiki SaaS 版 - 无需部署，立即在线体验" />
+  </a>
+</p>
 
 <p align="center">
   <img src="/images/banner.png" width="400" />
