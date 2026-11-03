@@ -19,6 +19,9 @@ type NodeReleaseVectorRequest struct {
 	DocID         string `json:"doc_id"` // for delete
 	Action        string `json:"action"` // upsert, delete, summary
 	GroupIds      []int  `json:"group_ids"`
+	RequestID     string `json:"request_id,omitempty"`
+	// Force 跳过逻辑幂等检查，用于模型切换、手动重新学习等必须重跑的场景。
+	Force bool `json:"force,omitempty"`
 }
 
 // AnydocTaskExportEvent represents the task completion event from anydoc service

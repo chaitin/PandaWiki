@@ -900,12 +900,32 @@ func (r *NodeRepository) UpdateNodeReleaseDocID(ctx context.Context, id, docID s
 		}).Error
 }
 
-func (r *NodeRepository) UpdateNodeSummary(ctx context.Context, kbID, nodeID, summary string) error {
+func (r *NodeRepository) UpdateNodeSummary(ctx context.Context, kbID, nodeID, summary, dedupeKey string) error {
+	metaExpr := "jsonb_set(COALESCE(meta, '{}'::jsonb), '{summary}', to_jsonb(?::text))"
+	args := []any{summary}
+	if dedupeKey != "" {
+		metaExpr = "jsonb_set(" + metaExpr + ", '{last_summary_request_id}', to_jsonb(?::text))"
+		args = append(args, dedupeKey)
+	}
 	return r.db.WithContext(ctx).
 		Model(&domain.Node{}).
 		Where("kb_id = ? AND id = ?", kbID, nodeID).
 		Updates(map[string]any{
-			"meta": gorm.Expr("jsonb_set(meta, '{summary}', to_jsonb(?::text))", summary),
+			"meta":   gorm.Expr(metaExpr, args...),
+			"status": gorm.Expr("CASE WHEN status = ? THEN ? ELSE status END", domain.NodeStatusPublished, domain.NodeStatusDraft),
+		}).Error
+}
+
+func (r *NodeRepository) UpdateNodeReleaseVectorRequestID(ctx context.Context, id, dedupeKey string) error {
+	if dedupeKey == "" {
+		return nil
+	}
+	return r.db.WithContext(ctx).
+		Model(&domain.NodeRelease{}).
+		Omit("updated_at").
+		Where("id = ?", id).
+		Updates(map[string]any{
+			"meta": gorm.Expr("jsonb_set(COALESCE(meta, '{}'::jsonb), '{last_vector_request_id}', to_jsonb(?::text))", dedupeKey),
 		}).Error
 }
 

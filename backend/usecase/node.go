@@ -282,6 +282,8 @@ func (u *NodeUsecase) SummaryNode(ctx context.Context, req *domain.NodeSummaryRe
 			KBID:   req.KBID,
 			NodeID: id,
 			Action: "summary",
+			// 用户手动触发生成摘要时即使内容未变也应重新生成。
+			Force: true,
 		})
 	}
 	if err := u.ragRepo.AsyncUpdateNodeReleaseVector(ctx, nodeVectorContentRequests); err != nil {
@@ -775,6 +777,8 @@ func (u *NodeUsecase) NodeRestudy(ctx context.Context, req *v1.NodeRestudyReq) e
 				KBID:          nodeRelease.KBID,
 				NodeReleaseID: nodeRelease.ID,
 				Action:        "upsert",
+				// 重新学习必须绕过幂等检查，否则会被上一次成功记录直接跳过。
+				Force: true,
 			},
 		}); err != nil {
 			u.logger.Error("async update node release vector failed",

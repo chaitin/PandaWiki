@@ -109,7 +109,11 @@ func (p *MQProducer) Produce(ctx context.Context, topic string, key string, valu
 		log.String("key", key),
 		log.Int("value_size", len(value)))
 
-	_, err := p.js.Publish(topic, value)
+	opts := make([]nats.PubOpt, 0, 1)
+	if key != "" {
+		opts = append(opts, nats.MsgId(key))
+	}
+	_, err := p.js.Publish(topic, value, opts...)
 	if err != nil {
 		p.logger.Error("failed to publish message",
 			log.String("topic", topic),
