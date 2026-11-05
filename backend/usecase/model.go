@@ -95,6 +95,8 @@ func (u *ModelUsecase) TriggerUpsertRecords(ctx context.Context) error {
 				KBID:          nodeRelease.KBID,
 				NodeReleaseID: nodeRelease.ID,
 				Action:        "upsert",
+				// 切换 embedding 模型后全量重建，必须绕过幂等检查。
+				Force: true,
 			},
 		}
 		if err := u.ragRepo.AsyncUpdateNodeReleaseVector(ctx, nodeContentVectorRequests); err != nil {

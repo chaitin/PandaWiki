@@ -1,4 +1,10 @@
 <p align="center">
+  <a target="_blank" href="https://ragcloud.app.baizhi.cloud/?utm_source=github&utm_medium=readme&utm_campaign=saas">
+    <img src="/images/saas-cta.svg" width="800" alt="PandaWiki SaaS 版 - 无需部署，立即在线体验" />
+  </a>
+</p>
+
+<p align="center">
   <img src="/images/banner.png" width="400" />
 </p>
 

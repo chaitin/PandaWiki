@@ -57,10 +57,10 @@ func (m *MigrationFixGroupIds) Execute(tx *gorm.DB) error {
 			continue
 		}
 		nodeVectorContentRequests = append(nodeVectorContentRequests, &domain.NodeReleaseVectorRequest{
-			KBID:     nodeRelease.KBID,
-			DocID:    nodeRelease.DocID,
-			Action:   "update_group_ids",
-			GroupIds: []int{},
+			KBID:   nodeRelease.KBID,
+			NodeID: nodeRelease.NodeID,
+			DocID:  nodeRelease.DocID,
+			Action: "update_group_ids",
 		})
 	}
 

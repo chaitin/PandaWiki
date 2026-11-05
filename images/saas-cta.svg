@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="96" viewBox="0 0 960 96" role="img" aria-labelledby="title desc">
+  <title id="title">PandaWiki SaaS 版</title>
+  <desc id="desc">无需部署、免运维、开箱即用，立即在线体验 PandaWiki SaaS 版。</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="960" y2="96" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3448FF" />
+      <stop offset="1" stop-color="#6B5CFF" />
+    </linearGradient>
+    <clipPath id="card">
+      <rect width="960" height="96" rx="20" />
+    </clipPath>
+  </defs>
+  <g clip-path="url(#card)">
+    <rect width="960" height="96" fill="url(#background)" />
+    <circle cx="890" cy="-18" r="118" fill="#FFFFFF" fill-opacity="0.08" />
+    <circle cx="776" cy="116" r="92" fill="#FFFFFF" fill-opacity="0.06" />
+    <circle cx="48" cy="48" r="28" fill="#FFFFFF" />
+    <g transform="translate(28.5 28.2) scale(0.0388)">
+      <path fill="#111111" fill-rule="evenodd" d="M478 1 L531 1 L584 7 L630 17 L665 28 L711 47 L759 73 L801 102 L837 132 L867 162 L903 206 L934 254 L955 294 L972 335 L990 396 L999 445 L1003 494 L1003 530 L998 590 L988 639 L974 685 L957 726 L931 775 L907 811 L868 859 L829 897 L787 930 L753 952 L705 977 L666 993 L616 1008 L576 1016 L528 1021 L528 1021 L479 1021 L430 1016 L374 1004 L339 993 L306 980 L253 953 L206 922 L170 893 L128 851 L98 814 L67 767 L42 719 L27 681 L12 629 L4 586 L0 544 L0 486 L3 452 L13 397 L28 345 L46 300 L69 256 L99 210 L131 170 L174 127 L214 95 L257 67 L296 47 L329 33 L375 18 L432 6 Z M494 125 L457 128 L425 134 L381 147 L352 159 L320 176 L291 195 L260 220 L229 251 L203 283 L181 316 L161 354 L145 394 L136 425 L129 462 L126 490 L126 544 L135 606 L144 639 L158 675 L172 703 L199 744 L227 777 L252 801 L308 842 L346 862 L373 873 L398 881 L445 891 L514 895 L514 895 L558 891 L584 886 L629 873 L661 860 L697 841 L723 824 L774 780 L797 754 L822 719 L853 657 L863 627 L873 584 L878 544 L879 507 L872 443 L855 382 L829 328 L815 307 L801 292 L784 282 L764 279 L744 284 L704 305 L691 309 L664 310 L652 306 L645 301 L639 292 L637 269 L642 253 L659 226 L667 208 L668 190 L661 175 L649 163 L635 154 L596 138 L550 128 Z M620 526 L637 530 L651 544 L661 564 L667 591 L667 626 L657 664 L649 677 L640 686 L626 692 L626 692 L608 690 L590 674 L579 649 L574 613 L578 576 L586 554 L602 533 Z M378 526 L397 531 L410 544 L421 566 L427 595 L426 631 L418 661 L411 674 L401 685 L385 692 L385 692 L369 690 L359 684 L351 675 L339 648 L334 612 L337 579 L350 545 L362 532 Z M201 633 L212 633 L226 637 L285 655 L288 658 L288 658 L285 660 L202 659 L196 656 L193 651 L193 641 Z M281 679 L288 680 L288 682 L211 715 L200 714 L194 706 L194 706 L196 694 L203 689 Z M715 680 L800 689 L808 697 L808 707 L808 707 L799 715 L790 715 L719 685 L715 683 Z M791 633 L801 633 L809 639 L810 651 L804 658 L715 659 L715 659 L716 656 Z" />
+    </g>
+    <text x="92" y="43" fill="#FFFFFF" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="23" font-weight="700" letter-spacing="0.2">PandaWiki SaaS 版 已发布！
+    </text>
+    <text x="92" y="70" fill="#FFFFFF" fill-opacity="0.84" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="14" font-weight="400">无需部署 · 免运维 · 开箱即用，在线创建你的 AI 知识库</text>
+    <rect x="746" y="26" width="174" height="44" rx="22" fill="#FFFFFF" />
+    <text x="814" y="53" fill="#3448FF" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif" font-size="15" font-weight="700" text-anchor="middle">立即体验</text>
+    <path d="M868 44h12m-5-5 5 5-5 5" fill="none" stroke="#3448FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>

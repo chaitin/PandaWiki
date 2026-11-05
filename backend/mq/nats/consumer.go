@@ -2,7 +2,10 @@ package nats
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
+	"time"
 
 	"github.com/nats-io/nats.go"
 
@@ -11,6 +14,39 @@ import (
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/mq/types"
 )
+
+const (
+	consumerAckWait = 5 * time.Minute
+	// 回调是单协程串行处理，只允许预取一条，避免排队消息尚未开始处理就超过 AckWait。
+	consumerMaxAckPending  = 1
+	consumerMaxDeliver     = 5
+	consumerHandlerTimeout = 10 * time.Minute
+	consumerNakRetryDelay  = time.Minute
+
+	defaultAckWait = 30 * time.Second
+)
+
+type consumerPolicy struct {
+	ackWait       time.Duration
+	maxAckPending int
+	maxDeliver    int
+}
+
+// jetStreamPolicies 只为包含模型调用、单条处理很慢的主题收紧 ACK 参数。
+// 其它主题（例如 raglite 文档状态回调）处理很快，且事件丢了不会自动补发，
+// 因此保持服务端原有配置，避免 MaxDeliver 限制导致状态永久停在 RUNNING。
+var jetStreamPolicies = map[string]consumerPolicy{
+	domain.VectorTaskTopic: {
+		ackWait:       consumerAckWait,
+		maxAckPending: consumerMaxAckPending,
+		maxDeliver:    consumerMaxDeliver,
+	},
+}
+
+func jetStreamPolicy(topic string) (consumerPolicy, bool) {
+	policy, ok := jetStreamPolicies[topic]
+	return policy, ok
+}
 
 type MQConsumer struct {
 	conn     *nats.Conn
@@ -104,15 +140,67 @@ func (c *MQConsumer) registerJetStreamHandler(topic string, handler func(ctx con
 		deliverPolicy = nats.DeliverAll()
 	}
 
+	if err := c.updateJetStreamConsumer(topic, consumerName); err != nil {
+		c.logger.Error("failed to update jetstream consumer config",
+			log.String("topic", topic),
+			log.String("consumer", consumerName),
+			log.Error(err))
+		return err
+	}
+
+	ackWait := defaultAckWait
+	subOpts := []nats.SubOpt{
+		deliverPolicy,
+		nats.AckExplicit(),
+		nats.ManualAck(),
+		nats.Durable(consumerName),
+		nats.ConsumerName(consumerName),
+	}
+	if policy, ok := jetStreamPolicy(topic); ok {
+		ackWait = policy.ackWait
+		subOpts = append(subOpts,
+			nats.AckWait(policy.ackWait),
+			nats.MaxAckPending(policy.maxAckPending),
+			nats.MaxDeliver(policy.maxDeliver),
+		)
+	}
+
 	sub, err := c.js.Subscribe(topic, func(msg *nats.Msg) {
 		c.logger.Debug("received message via JetStream",
 			log.String("topic", topic),
 			log.Int("data_size", len(msg.Data)))
 
-		if err := handler(context.Background(), &Message{msg: msg}); err != nil {
+		ackDone := make(chan struct{})
+		go func() {
+			ticker := time.NewTicker(ackWait / 2)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					if err := msg.InProgress(); err != nil {
+						c.logger.Warn("failed to extend jetstream ack deadline",
+							log.String("topic", topic),
+							log.Error(err))
+					}
+				case <-ackDone:
+					return
+				}
+			}
+		}()
+
+		ctx, cancel := context.WithTimeout(context.Background(), consumerHandlerTimeout)
+		defer cancel()
+		err := handler(ctx, &Message{msg: msg})
+		close(ackDone)
+		if err != nil {
 			c.logger.Error("handle message failed",
 				log.String("topic", topic),
 				log.Error(err))
+			if nakErr := msg.NakWithDelay(consumerNakRetryDelay); nakErr != nil {
+				c.logger.Error("failed to nack message",
+					log.String("topic", topic),
+					log.Error(nakErr))
+			}
 			return
 		}
 
@@ -121,7 +209,7 @@ func (c *MQConsumer) registerJetStreamHandler(topic string, handler func(ctx con
 				log.String("topic", topic),
 				log.Error(err))
 		}
-	}, deliverPolicy, nats.AckExplicit(), nats.Durable(consumerName), nats.ConsumerName(consumerName))
+	}, subOpts...)
 	if err != nil {
 		c.logger.Error("failed to subscribe to topic via JetStream",
 			log.String("topic", topic),
@@ -131,6 +219,37 @@ func (c *MQConsumer) registerJetStreamHandler(topic string, handler func(ctx con
 
 	c.logger.Info("successfully subscribed to topic via JetStream", log.String("topic", topic))
 	c.handlers[topic] = sub
+	return nil
+}
+
+// updateJetStreamConsumer 更新已存在的 durable consumer 配置。
+// nats.Subscribe 不会自动修改已存在 consumer 的 ACK 参数，升级后必须显式更新，否则旧配置会继续生效。
+func (c *MQConsumer) updateJetStreamConsumer(topic, consumerName string) error {
+	policy, ok := jetStreamPolicy(topic)
+	if !ok {
+		return nil
+	}
+
+	streamName, err := c.js.StreamNameBySubject(topic)
+	if err != nil {
+		return fmt.Errorf("get stream by subject %s failed: %w", topic, err)
+	}
+	info, err := c.js.ConsumerInfo(streamName, consumerName)
+	if err != nil {
+		if errors.Is(err, nats.ErrConsumerNotFound) {
+			return nil
+		}
+		return fmt.Errorf("get consumer %s failed: %w", consumerName, err)
+	}
+
+	cfg := info.Config
+	cfg.AckPolicy = nats.AckExplicitPolicy
+	cfg.AckWait = policy.ackWait
+	cfg.MaxAckPending = policy.maxAckPending
+	cfg.MaxDeliver = policy.maxDeliver
+	if _, err := c.js.UpdateConsumer(streamName, &cfg); err != nil {
+		return fmt.Errorf("update consumer %s failed: %w", consumerName, err)
+	}
 	return nil
 }
 

@@ -121,13 +121,36 @@ type NodeGroupDetail struct {
 }
 
 type NodeMeta struct {
-	Summary     string `json:"summary"`
-	Emoji       string `json:"emoji"`
-	ContentType string `json:"content_type"`
+	Summary               string `json:"summary"`
+	Emoji                 string `json:"emoji"`
+	ContentType           string `json:"content_type"`
+	LastSummaryContentKey string `json:"-"`
+	LastSummaryRequestID  string `json:"-"`
+	LastVectorContentKey  string `json:"-"`
+	LastVectorRequestID   string `json:"-"`
+}
+
+// nodeMetaFields 是 NodeMeta 的持久化形态。幂等标记属于内部状态，不进入 API/Swagger。
+type nodeMetaFields struct {
+	Summary               string `json:"summary"`
+	Emoji                 string `json:"emoji"`
+	ContentType           string `json:"content_type"`
+	LastSummaryContentKey string `json:"last_summary_content_key,omitempty"`
+	LastSummaryRequestID  string `json:"last_summary_request_id,omitempty"`
+	LastVectorContentKey  string `json:"last_vector_content_key,omitempty"`
+	LastVectorRequestID   string `json:"last_vector_request_id,omitempty"`
 }
 
 func (d *NodeMeta) Value() (driver.Value, error) {
-	return json.Marshal(d)
+	return json.Marshal(nodeMetaFields{
+		Summary:               d.Summary,
+		Emoji:                 d.Emoji,
+		ContentType:           d.ContentType,
+		LastSummaryContentKey: d.LastSummaryContentKey,
+		LastSummaryRequestID:  d.LastSummaryRequestID,
+		LastVectorContentKey:  d.LastVectorContentKey,
+		LastVectorRequestID:   d.LastVectorRequestID,
+	})
 }
 
 func (d *NodeMeta) Scan(value any) error {
@@ -135,7 +158,12 @@ func (d *NodeMeta) Scan(value any) error {
 	if !ok {
 		return errors.New(fmt.Sprint("invalid node meta type:", value))
 	}
-	return json.Unmarshal(bytes, d)
+	var fields nodeMetaFields
+	if err := json.Unmarshal(bytes, &fields); err != nil {
+		return err
+	}
+	*d = NodeMeta(fields)
+	return nil
 }
 
 type CreateNodeReq struct {
