@@ -1,0 +1,40 @@
+{{/*
+Always rendered: the api, consumer and migrate pods mount it unconditionally, so
+gating it would leave them stuck on a missing ConfigMap. Every access goes
+through a defaulted local so a partial or empty backend.config still renders.
+*/}}
+{{- $cfg := .Values.backend.config | default dict }}
+{{- $log := $cfg.log | default dict }}
+{{- $auth := $cfg.auth | default dict }}
+{{- $rag := $cfg.rag | default dict }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "panda-wiki.name" . }}-config
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+data:
+  # Mounted at /app/config.yml, which is on the search path the backend reads.
+  # Only settings without an environment variable need to live here; everything
+  # else is passed as an environment variable so that passwords stay in a Secret.
+  config.yml: |
+    log:
+      level: {{ $log.level | default 0 }}
+    auth:
+      type: {{ $auth.type | default "jwt" }}
+    mq:
+      type: nats
+      nats:
+        user: {{ include "panda-wiki.natsUser" . | quote }}
+    s3:
+      access_key: {{ include "panda-wiki.s3AccessKey" . | quote }}
+    rag:
+      provider: ct
+      ct_rag:
+        {{- with $rag.apiKey }}
+        api_key: {{ . | quote }}
+        {{- end }}
+        base_url: {{ include "panda-wiki.ragBaseURL" . | quote }}
+    {{- with $cfg.extraConfigYaml }}
+    {{ . | nindent 4 }}
+    {{- end }}

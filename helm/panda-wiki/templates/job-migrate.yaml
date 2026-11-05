@@ -1,0 +1,49 @@
+{{- if .Values.migration.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "panda-wiki.name" . }}-migrate
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migration
+  annotations:
+    # Runs before the api is rolled out, so the schema is in place before new
+    # pods start serving, and before a fresh install reports success.
+    "helm.sh/hook": {{ .Values.migration.hook }}
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.migration.backoffLimit }}
+  template:
+    metadata:
+      labels:
+        {{- include "panda-wiki.labels" . | nindent 8 }}
+        app.kubernetes.io/component: migration
+    spec:
+      {{- include "panda-wiki.imagePullSecrets" . | nindent 6 }}
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      initContainers:
+        # The migration binary builds its whole dependency graph on startup,
+        # including NATS, MinIO and Redis, so all of them have to answer before
+        # it is worth running.
+        # The migration binary builds its whole dependency graph on startup,
+        # including NATS, MinIO and Redis, so all of them have to answer before
+        # it is worth running. Shared with the api, consumer, raglite and
+        # crawler, which all fail hard on an unreachable dependency too.
+        {{- include "panda-wiki.waitForDeps" (dict "root" . "addrs" (include "panda-wiki.postgresNatsRedisMinioAddrs" .)) | nindent 8 }}
+      containers:
+        - name: migrate
+          image: {{ include "panda-wiki.image" (dict "root" . "image" .Values.api.image) }}
+          imagePullPolicy: {{ include "panda-wiki.imagePullPolicy" (dict "root" . "image" .Values.api.image) }}
+          # The migration files are read from file://migration, a path relative
+          # to the working directory, so this must stay /app.
+          workingDir: /app
+          command: ["/app/panda-wiki-migrate"]
+          env:
+            {{- include "panda-wiki.backendEnv" (dict "root" . "role" "migrate") | nindent 12 }}
+          volumeMounts:
+            {{- include "panda-wiki.backendVolumeMounts" . | nindent 12 }}
+      volumes:
+        {{- include "panda-wiki.backendVolumes" . | nindent 8 }}
+{{- end }}

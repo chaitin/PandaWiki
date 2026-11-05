@@ -8,7 +8,9 @@ import (
 	"github.com/chaitin/panda-wiki/config"
 	share "github.com/chaitin/panda-wiki/handler/share"
 	v1 "github.com/chaitin/panda-wiki/handler/v1"
+	"github.com/chaitin/panda-wiki/health"
 	"github.com/chaitin/panda-wiki/log"
+	"github.com/chaitin/panda-wiki/mq"
 	"github.com/chaitin/panda-wiki/server/http"
 	"github.com/chaitin/panda-wiki/telemetry"
 )
@@ -22,6 +24,7 @@ func createApp() (*App, error) {
 			telemetry.ProviderSet,
 
 			http.ProviderSet,
+			health.ProviderSet,
 			v1.ProviderSet,
 			share.ProviderSet,
 		),
@@ -36,4 +39,6 @@ type App struct {
 	Config        *config.Config
 	Logger        *log.Logger
 	Telemetry     *telemetry.Client
+	Health        *health.Server
+	MQProducer    mq.MQProducer
 }

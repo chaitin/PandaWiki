@@ -9,18 +9,22 @@ import (
 )
 
 type Config struct {
-	Log           LogConfig    `mapstructure:"log"`
-	HTTP          HTTPConfig   `mapstructure:"http"`
-	AdminPassword string       `mapstructure:"admin_password"`
-	PG            PGConfig     `mapstructure:"pg"`
-	MQ            MQConfig     `mapstructure:"mq"`
-	RAG           RAGConfig    `mapstructure:"rag"`
-	Redis         RedisConfig  `mapstructure:"redis"`
-	Auth          AuthConfig   `mapstructure:"auth"`
-	S3            S3Config     `mapstructure:"s3"`
-	Sentry        SentryConfig `mapstructure:"sentry"`
-	CaddyAPI      string       `mapstructure:"caddy_api"`
-	SubnetPrefix  string       `mapstructure:"subnet_prefix"`
+	Log           LogConfig       `mapstructure:"log"`
+	HTTP          HTTPConfig      `mapstructure:"http"`
+	Health        HealthConfig    `mapstructure:"health"`
+	AdminPassword string          `mapstructure:"admin_password"`
+	PG            PGConfig        `mapstructure:"pg"`
+	MQ            MQConfig        `mapstructure:"mq"`
+	RAG           RAGConfig       `mapstructure:"rag"`
+	Redis         RedisConfig     `mapstructure:"redis"`
+	Auth          AuthConfig      `mapstructure:"auth"`
+	S3            S3Config        `mapstructure:"s3"`
+	Sentry        SentryConfig    `mapstructure:"sentry"`
+	Telemetry     TelemetryConfig `mapstructure:"telemetry"`
+	Setup         SetupConfig     `mapstructure:"setup"`
+	Caddy         CaddyConfig     `mapstructure:"caddy"`
+	CaddyAPI      string          `mapstructure:"caddy_api"`
+	SubnetPrefix  string          `mapstructure:"subnet_prefix"`
 }
 
 type LogConfig struct {
@@ -31,8 +35,46 @@ type HTTPConfig struct {
 	Port int `mapstructure:"port"`
 }
 
+// HealthConfig configures the dedicated liveness/readiness endpoint. It is
+// disabled by default (Port 0) so existing deployments are unaffected.
+type HealthConfig struct {
+	Port int `mapstructure:"port"`
+}
+
 type PGConfig struct {
 	DSN string `mapstructure:"dsn"`
+	// AutoMigrate runs the SQL migrations on every startup. Disable it when
+	// migrations are executed by a separate job.
+	AutoMigrate bool `mapstructure:"auto_migrate"`
+	// CreateRagliteDB creates the raglite database when it is missing.
+	CreateRagliteDB bool `mapstructure:"create_raglite_db"`
+}
+
+type TelemetryConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+}
+
+type SetupConfig struct {
+	// InitCert makes the api generate a self-signed certificate on startup for
+	// the bundled admin nginx to consume through a shared volume. Set to false
+	// when the certificate is provided by other means, or when the root
+	// filesystem is read-only.
+	InitCert bool `mapstructure:"init_cert"`
+}
+
+type CaddyConfig struct {
+	// Upstreams are the reverse_proxy dial targets (host:port, without scheme).
+	// Empty values fall back to addresses derived from SubnetPrefix.
+	Upstreams CaddyUpstreams `mapstructure:"upstreams"`
+	// AdminListen is merged into the top-level "admin" key of the config pushed
+	// to Caddy. Leave empty to keep Caddy's own admin listener untouched.
+	AdminListen string `mapstructure:"admin_listen"`
+}
+
+type CaddyUpstreams struct {
+	API        string `mapstructure:"api"`
+	App        string `mapstructure:"app"`
+	StaticFile string `mapstructure:"static_file"`
 }
 
 type MQConfig struct {
@@ -95,8 +137,14 @@ func NewConfig() (*Config, error) {
 		HTTP: HTTPConfig{
 			Port: 8000,
 		},
+		Health: HealthConfig{
+			// disabled by default; existing deployments keep their behaviour
+			Port: 0,
+		},
 		PG: PGConfig{
-			DSN: "host=panda-wiki-postgres user=panda-wiki password=panda-wiki-secret dbname=panda-wiki port=5432 sslmode=disable TimeZone=Asia/Shanghai",
+			DSN:             "host=panda-wiki-postgres user=panda-wiki password=panda-wiki-secret dbname=panda-wiki port=5432 sslmode=disable TimeZone=Asia/Shanghai",
+			AutoMigrate:     true,
+			CreateRagliteDB: true,
 		},
 		MQ: MQConfig{
 			Type: "nats",
@@ -129,6 +177,12 @@ func NewConfig() (*Config, error) {
 		Sentry: SentryConfig{
 			Enabled: true,
 			DSN:     "https://2a4cff1ae04b624ffc72663f523024ff@sentry.baizhi.cloud/4",
+		},
+		Telemetry: TelemetryConfig{
+			Enabled: true,
+		},
+		Setup: SetupConfig{
+			InitCert: true,
 		},
 		CaddyAPI:     "/app/run/caddy-admin.sock",
 		SubnetPrefix: "169.254.15",
@@ -185,6 +239,12 @@ func overrideWithEnv(c *Config) {
 	if env := os.Getenv("PG_DSN"); env != "" {
 		c.PG.DSN = env
 	}
+	if env := os.Getenv("PG_AUTO_MIGRATE"); env != "" {
+		c.PG.AutoMigrate = env == "true"
+	}
+	if env := os.Getenv("PG_CREATE_RAGLITE_DB"); env != "" {
+		c.PG.CreateRagliteDB = env == "true"
+	}
 	// nats
 	if env := os.Getenv("MQ_NATS_SERVER"); env != "" {
 		c.MQ.NATS.Server = env
@@ -208,9 +268,44 @@ func overrideWithEnv(c *Config) {
 	if env := os.Getenv("SENTRY_DSN"); env != "" {
 		c.Sentry.DSN = env
 	}
+	// telemetry
+	if env := os.Getenv("TELEMETRY_ENABLED"); env != "" {
+		c.Telemetry.Enabled = env == "true"
+	}
+	// setup
+	if env := os.Getenv("INIT_CERT"); env != "" {
+		c.Setup.InitCert = env == "true"
+	}
+	// http
+	if env := os.Getenv("HTTP_PORT"); env != "" {
+		if i, err := strconv.Atoi(env); err == nil {
+			c.HTTP.Port = i
+		} else {
+			fmt.Fprintf(os.Stderr, "Invalid http port: %s with err: %s\n", env, err)
+		}
+	}
+	if env := os.Getenv("HEALTH_PORT"); env != "" {
+		if i, err := strconv.Atoi(env); err == nil {
+			c.Health.Port = i
+		} else {
+			fmt.Fprintf(os.Stderr, "Invalid health port: %s with err: %s\n", env, err)
+		}
+	}
 	// caddy api
 	if env := os.Getenv("CADDY_API"); env != "" {
 		c.CaddyAPI = env
+	}
+	if env := os.Getenv("CADDY_ADMIN_LISTEN"); env != "" {
+		c.Caddy.AdminListen = env
+	}
+	if env := os.Getenv("CADDY_UPSTREAM_API"); env != "" {
+		c.Caddy.Upstreams.API = env
+	}
+	if env := os.Getenv("CADDY_UPSTREAM_APP"); env != "" {
+		c.Caddy.Upstreams.App = env
+	}
+	if env := os.Getenv("CADDY_UPSTREAM_STATIC"); env != "" {
+		c.Caddy.Upstreams.StaticFile = env
 	}
 	// log level
 	if env := os.Getenv("LOG_LEVEL"); env != "" {
