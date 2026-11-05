@@ -98,3 +98,9 @@ type NodeListGroupNavResp struct {
 	IsReleased bool                      `json:"is_released"`
 	List       []domain.NodeListItemResp `json:"list"`
 }
+
+type NodeExportReq struct {
+	ID     string `query:"id" json:"id" validate:"required"`
+	KbId   string `query:"kb_id" json:"kb_id" validate:"required"`
+	Format string `query:"format" json:"format" validate:"required,oneof=md html"`
+}
