@@ -48,10 +48,12 @@ const ThinkingComponent: React.FC<ThinkingComponentProps> = ({
         style={{
           transition: 'height 0.3s',
           overflow: 'hidden',
+          whiteSpace: 'pre-wrap',
           height: showThink ? 'auto' : '60px',
         }}
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
+      >
+        {content}
+      </div>
       {!loading && (
         <IconButton
           size='small'

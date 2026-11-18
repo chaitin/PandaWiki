@@ -42,6 +42,9 @@ const approvedIPDialAttemptTimeout = 3 * time.Second
 
 const remoteDownloadTimeout = 2 * time.Minute
 
+// MaxUploadImageSize matches the public comment and question image limit.
+const MaxUploadImageSize int64 = 10 * 1024 * 1024
+
 func NewFileUsecase(logger *log.Logger, s3Client *s3.MinioClient, config *config.Config, systemSettingRepo *pg.SystemSettingRepo) *FileUsecase {
 	return &FileUsecase{
 		s3Client:          s3Client,
@@ -67,6 +70,18 @@ func (u *FileUsecase) UploadFileGetUrl(ctx context.Context, kbID string, file *m
 }
 
 func (u *FileUsecase) UploadFile(ctx context.Context, kbID string, file *multipart.FileHeader) (string, error) {
+	return u.uploadFile(ctx, kbID, file, false)
+}
+
+// UploadImageFile validates image content and stores its detected MIME type.
+func (u *FileUsecase) UploadImageFile(ctx context.Context, kbID string, file *multipart.FileHeader) (string, error) {
+	if file.Size > MaxUploadImageSize {
+		return "", fmt.Errorf("image size exceeds 10 MiB limit")
+	}
+	return u.uploadFile(ctx, kbID, file, true)
+}
+
+func (u *FileUsecase) uploadFile(ctx context.Context, kbID string, file *multipart.FileHeader, imageOnly bool) (string, error) {
 	src, err := file.Open()
 	if err != nil {
 		return "", fmt.Errorf("failed to open file: %w", err)
@@ -74,9 +89,21 @@ func (u *FileUsecase) UploadFile(ctx context.Context, kbID string, file *multipa
 	defer src.Close()
 
 	ext := strings.ToLower(filepath.Ext(file.Filename))
+	originalExt := ext
+	contentType := file.Header.Get("Content-Type")
+	if imageOnly {
+		if !utils.IsImageFile(file.Filename) {
+			return "", fmt.Errorf("unsupported image extension: %s", ext)
+		}
+		contentType, err = detectUploadImageType(src)
+		if err != nil {
+			return "", err
+		}
+		ext = uploadImageExtension(contentType)
+	}
 
 	// Check denied extensions
-	if err := u.checkDeniedExtension(ctx, ext); err != nil {
+	if err := u.checkDeniedExtension(ctx, originalExt, ext); err != nil {
 		return "", err
 	}
 
@@ -84,7 +111,6 @@ func (u *FileUsecase) UploadFile(ctx context.Context, kbID string, file *multipa
 
 	size := file.Size
 
-	contentType := file.Header.Get("Content-Type")
 	if contentType == "" {
 		contentType = mime.TypeByExtension(ext)
 	}
@@ -107,6 +133,37 @@ func (u *FileUsecase) UploadFile(ctx context.Context, kbID string, file *multipa
 	}
 
 	return resp.Key, nil
+}
+
+func uploadImageExtension(contentType string) string {
+	switch contentType {
+	case "image/jpeg":
+		return ".jpg"
+	case "image/png":
+		return ".png"
+	case "image/webp":
+		return ".webp"
+	default:
+		return ""
+	}
+}
+
+func detectUploadImageType(src io.ReadSeeker) (string, error) {
+	var header [512]byte
+	n, err := io.ReadFull(src, header[:])
+	if err != nil && !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
+		return "", fmt.Errorf("read image header: %w", err)
+	}
+	contentType := http.DetectContentType(header[:n])
+	switch contentType {
+	case "image/jpeg", "image/png", "image/webp":
+	default:
+		return "", fmt.Errorf("unsupported image content type: %s", contentType)
+	}
+	if _, err := src.Seek(0, io.SeekStart); err != nil {
+		return "", fmt.Errorf("rewind image: %w", err)
+	}
+	return contentType, nil
 }
 
 func (u *FileUsecase) UploadFileFromBytes(ctx context.Context, kbID string, filename string, fileBytes []byte) (string, error) {
@@ -378,13 +435,7 @@ func dialApprovedIPs(ips []net.IP) func(context.Context, string, string) (net.Co
 }
 
 // checkDeniedExtension checks if the file extension is in the denied list
-func (u *FileUsecase) checkDeniedExtension(ctx context.Context, ext string) error {
-	// Remove leading dot from extension
-	ext = strings.TrimPrefix(ext, ".")
-	if ext == "" {
-		return nil
-	}
-
+func (u *FileUsecase) checkDeniedExtension(ctx context.Context, extensions ...string) error {
 	// Get denied extensions from system settings
 	setting, err := u.systemSettingRepo.GetSystemSetting(ctx, consts.SystemSettingUpload)
 	if err != nil {
@@ -402,9 +453,15 @@ func (u *FileUsecase) checkDeniedExtension(ctx context.Context, ext string) erro
 	}
 
 	// Check if extension is denied
-	for _, deniedExt := range deniedSetting.DeniedExtensions {
-		if strings.EqualFold(ext, deniedExt) {
-			return fmt.Errorf("file extension '.%s' is not allowed for upload", ext)
+	for _, extension := range extensions {
+		ext := strings.TrimPrefix(extension, ".")
+		if ext == "" {
+			continue
+		}
+		for _, deniedExt := range deniedSetting.DeniedExtensions {
+			if strings.EqualFold(ext, deniedExt) {
+				return fmt.Errorf("file extension '.%s' is not allowed for upload", ext)
+			}
 		}
 	}
 

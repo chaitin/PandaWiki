@@ -70,6 +70,15 @@ func NewShareCommonHandler(
 func (h *ShareCommonHandler) FileUpload(c echo.Context) error {
 	ctx := c.Request().Context()
 
+	// Bound the request before multipart parsing, including chunked requests.
+	// Allow 1 MiB for multipart fields and headers in addition to the image.
+	c.Request().Body = http.MaxBytesReader(c.Response(), c.Request().Body, usecase.MaxUploadImageSize+(1<<20))
+	defer func() {
+		if c.Request().MultipartForm != nil {
+			_ = c.Request().MultipartForm.RemoveAll()
+		}
+	}()
+
 	var req v1.ShareFileUploadReq
 	if err := c.Bind(&req); err != nil {
 		return h.NewResponseWithError(c, "invalid request parameters", err)
@@ -90,6 +99,10 @@ func (h *ShareCommonHandler) FileUpload(c echo.Context) error {
 		return h.NewResponseWithError(c, "failed to get file", err)
 	}
 
+	if file.Size > usecase.MaxUploadImageSize {
+		return h.NewResponseWithError(c, "图片大小不能超过 10 MiB", nil)
+	}
+
 	if !utils.IsImageFile(file.Filename) {
 		return h.NewResponseWithError(c, "只支持图片文件上传", fmt.Errorf("unsupported file type: %s", file.Filename))
 	}
@@ -99,7 +112,7 @@ func (h *ShareCommonHandler) FileUpload(c echo.Context) error {
 		return h.NewResponseWithError(c, "failed to validate captcha token", nil)
 	}
 
-	key, err := h.fileUsecase.UploadFile(ctx, req.KbId, file)
+	key, err := h.fileUsecase.UploadImageFile(ctx, req.KbId, file)
 	if err != nil {
 		return h.NewResponseWithError(c, "upload failed", err)
 	}
