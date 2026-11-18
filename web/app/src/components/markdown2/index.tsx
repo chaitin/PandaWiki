@@ -221,7 +221,7 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
         token.attrSet('target', '_blank');
         token.attrSet('rel', 'noopener noreferrer');
 
-        return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: ${theme.palette.primary.main}; text-decoration: underline;">`;
+        return `<a href="${md.utils.escapeHtml(href)}" target="_blank" rel="noopener noreferrer" style="color: ${theme.palette.primary.main}; text-decoration: underline;">`;
       };
 
       // 处理自定义 HTML 标签
@@ -236,11 +236,11 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
         let isInThinking = false;
         let thinkingContent = '';
 
-        // 检查是否是允许的标签
+        // 必须匹配整个 token，避免属性中的 </think> 等字符串放行 iframe 等标签
         const isAllowedTag = (content: string): boolean => {
           return allowedTags.some(
             tag =>
-              content.includes(`<${tag}>`) || content.includes(`</${tag}>`),
+              content.trim() === `<${tag}>` || content.trim() === `</${tag}>`,
           );
         };
 
@@ -253,7 +253,9 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
           attrs: [string, string][];
         } | null => {
           // 匹配 <img> 标签（支持自闭合和普通标签）
-          const imgMatch = html.match(/<img\s+([^>]*?)\/?>/i);
+          const imgMatch = html
+            .trim()
+            .match(/^<img\s+((?:[^>"']|"[^"]*"|'[^']*')*?)\/?>$/i);
           if (!imgMatch) return null;
 
           const attrsString = imgMatch[1];
@@ -291,14 +293,14 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
           const content = token.content;
 
           // 处理 think 标签开始
-          if (content.includes('<think>')) {
+          if (content.trim() === '<think>') {
             isInThinking = true;
             thinkingContent = '';
             return ''; // 不输出任何内容，开始收集
           }
 
           // 处理 think 标签结束
-          if (content.includes('</think>')) {
+          if (content.trim() === '</think>') {
             if (isInThinking) {
               isInThinking = false;
               const renderedThinking = renderThinking(thinkingContent.trim());
@@ -315,8 +317,8 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
           }
 
           // 处理 error 标签
-          if (content.includes('<error>')) return '<span class="chat-error">';
-          if (content.includes('</error>')) return '</span>';
+          if (content.trim() === '<error>') return '<span class="chat-error">';
+          if (content.trim() === '</error>') return '</span>';
 
           // 处理 img 标签
           if (content.includes('<img')) {
@@ -353,8 +355,8 @@ const MarkDown2: React.FC<MarkDown2Props> = ({
           const token = tokens[idx];
           const content = token.content;
 
-          if (content.includes('<error>')) return '<span class="chat-error">';
-          if (content.includes('</error>')) return '</span>';
+          if (content.trim() === '<error>') return '<span class="chat-error">';
+          if (content.trim() === '</error>') return '</span>';
 
           // 处理 img 标签
           if (content.includes('<img')) {
