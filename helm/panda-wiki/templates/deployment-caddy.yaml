@@ -1,0 +1,157 @@
+{{- if .Values.caddy.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "panda-wiki.name" . }}-caddy
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: caddy
+spec:
+  # The backend pushes the whole routing table into one instance, so extra
+  # replicas would drift out of sync with each other.
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "caddy") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "panda-wiki.labels" . | nindent 8 }}
+        app.kubernetes.io/component: caddy
+    spec:
+      {{- include "panda-wiki.imagePullSecrets" . | nindent 6 }}
+      automountServiceAccountToken: false
+      {{- if eq .Values.caddy.exposure "hostNetwork" }}
+      # Matches the official docker compose deployment: Caddy binds the host
+      # ports directly, which is what lets a knowledge base be published on any
+      # port the admin picks. This pins the pod to one node.
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- end }}
+      containers:
+        - name: caddy
+          image: {{ include "panda-wiki.image" (dict "root" . "image" .Values.caddy.image) }}
+          imagePullPolicy: {{ include "panda-wiki.imagePullPolicy" (dict "root" . "image" .Values.caddy.image) }}
+          # Spelled out so --resume can be appended. The image has no
+          # ENTRYPOINT, so this replaces its CMD entirely.
+          command:
+            - caddy
+            - run
+            - --config
+            - /etc/caddy/Caddyfile
+            - --adapter
+            - caddyfile
+            {{- if .Values.caddy.resume }}
+            - --resume
+            {{- end }}
+          env:
+            # Overrides Caddy's default localhost:2019 so the backend can reach
+            # the admin API from another pod.
+            - name: CADDY_ADMIN
+              value: {{ printf "0.0.0.0:%v" .Values.caddy.adminPort | quote }}
+          ports:
+            - name: admin
+              containerPort: {{ .Values.caddy.adminPort }}
+            {{- if eq .Values.caddy.exposure "hostNetwork" }}
+            # With hostNetwork Caddy binds these on the node, but they are still
+            # declared so the Service below has named target ports to resolve.
+            {{- end }}
+            {{- range .Values.caddy.servicePorts }}
+            - name: {{ .name }}
+              containerPort: {{ .port }}
+            {{- end }}
+            {{- range .Values.caddy.extraPorts }}
+            - name: {{ .name }}
+              containerPort: {{ .port }}
+            {{- end }}
+          # Proves the admin API is serving, which is what the backend needs in
+          # order to publish knowledge bases.
+          startupProbe:
+            httpGet:
+              path: /config/
+              port: admin
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /config/
+              port: admin
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /config/
+              port: admin
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.caddy.resources | nindent 12 }}
+          volumeMounts:
+            - name: caddy-config
+              mountPath: /config
+            - name: caddy-data
+              mountPath: /data
+      volumes:
+        - name: caddy-config
+          {{- if .Values.caddy.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "panda-wiki.name" . }}-caddy-config
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        - name: caddy-data
+          {{- if .Values.caddy.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "panda-wiki.name" . }}-caddy-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+      {{- with .Values.caddy.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.caddy.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.caddy.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- if .Values.caddy.persistence.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "panda-wiki.name" . }}-caddy-config
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: caddy
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- include "panda-wiki.storageClass" . | nindent 2 }}
+  resources:
+    requests:
+      storage: {{ .Values.caddy.persistence.size }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "panda-wiki.name" . }}-caddy-data
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: caddy
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- include "panda-wiki.storageClass" . | nindent 2 }}
+  resources:
+    requests:
+      storage: {{ .Values.caddy.persistence.size }}
+{{- end }}
+{{- end }}

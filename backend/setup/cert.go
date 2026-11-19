@@ -17,7 +17,12 @@ const (
 	certFile = "/app/etc/nginx/ssl/panda-wiki.crt" // Certificate file path
 )
 
-// check init cert
+// CheckInitCert makes sure the self-signed certificate the bundled admin nginx
+// reads through a shared volume exists.
+//
+// Whether to call this at all is the caller's decision, so that the entrypoints
+// which build on this package keep compiling unchanged: see setup.init_cert in
+// cmd/api.
 func CheckInitCert() error {
 	// Check both key and cert files
 	keyExists := false

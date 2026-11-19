@@ -40,7 +40,13 @@ func NewMinioClient(config *config.Config) (*MinioClient, error) {
 			Region: "us-east-1",
 		})
 		if err != nil {
-			return nil, fmt.Errorf("make bucket: %w", err)
+			// Several instances may initialise the bucket at the same time, so
+			// losing that race is not a startup failure as long as the bucket
+			// is there now.
+			existsNow, checkErr := minioClient.BucketExists(context.Background(), bucket)
+			if checkErr != nil || !existsNow {
+				return nil, fmt.Errorf("make bucket: %w", err)
+			}
 		}
 		err = minioClient.SetBucketPolicy(context.Background(), bucket, `{
 			"Version": "2012-10-17",

@@ -1,0 +1,82 @@
+PandaWiki has been deployed as release "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+1. Admin console
+{{- if .Values.ingress.admin.enabled }}
+{{- range .Values.ingress.admin.hosts }}
+   https://{{ .host }}
+{{- end }}
+{{- else }}
+   The admin container serves HTTPS on port {{ .Values.admin.port }}, so reach it
+   through a port-forward (your browser will warn about the self-signed
+   certificate, which is expected):
+
+     kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "panda-wiki.name" . }}-nginx 8443:{{ .Values.admin.service.port }}
+     open https://localhost:8443
+{{- end }}
+
+   Username: admin
+{{- if .Values.secrets.existingSecret }}
+   Password: from your own Secret "{{ .Values.secrets.existingSecret }}" (key admin-password)
+{{- else }}
+   Password:
+     kubectl -n {{ .Release.Namespace }} get secret {{ include "panda-wiki.secretName" . }} -o jsonpath='{.data.admin-password}' | base64 -d; echo
+{{- end }}
+
+   The backend re-applies that password to the admin account on every api start,
+   so this value wins over a password changed in the console.
+
+2. Wiki sites
+{{- if eq .Values.caddy.exposure "hostNetwork" }}
+   Caddy runs with hostNetwork, so knowledge bases are reachable on the node's
+   IP address at the port configured for each knowledge base:
+
+     node IP  ->  {{ .Values.caddy.servicePorts | first | default dict | dig "port" 80 }} / 443 and any custom knowledge base port
+
+   Point your DNS at the node running the caddy pod:
+     kubectl -n {{ .Release.Namespace }} get pod -l app.kubernetes.io/component=caddy -o wide
+{{- else }}
+   Caddy is published through the "{{ include "panda-wiki.name" . }}-caddy" Service
+   (type {{ .Values.caddy.exposure }}). Only the ports listed in
+   caddy.servicePorts and caddy.extraPorts are reachable; a knowledge base on any
+   other port will not be reachable until you add it there — or switch
+   caddy.exposure to hostNetwork.
+{{- end }}
+
+3. Things worth knowing
+
+   * Run one release per namespace. The backend and the admin nginx address each
+     other by fixed service names, so two releases in one namespace collide.
+
+   * The consumer runs a single replica on purpose: its scheduled jobs have no
+     distributed lock. Raising consumer.replicaCount without implementing
+     consumer.cron.distributedLock would repeat every job once per replica.
+
+   * Migrations belong to the "{{ include "panda-wiki.name" . }}-migrate" job,
+     which runs on install and upgrade. The api and consumer pods start with
+     migrations disabled.
+
+{{- if not .Values.caddy.resume }}
+
+   * caddy.resume is off, so a Caddy restart on its own drops the routing table
+     until the api restarts or a knowledge base changes (that is when the backend
+     repushes it). Turn caddy.resume on to reload the autosaved config instead.
+{{- end }}
+
+{{- if not .Values.migration.enabled }}
+
+   * migration.enabled is false and the api and consumer pods run with
+     pg.auto_migrate off, so NOTHING applies the schema. Run the migrations
+     yourself, or set migration.enabled back to true.
+{{- end }}
+
+{{- if not .Values.caddy.enabled }}
+
+   * caddy.enabled is false, so nothing publishes the wiki sites and the api has
+     no gateway to push routing to. Knowledge bases will fail to publish.
+{{- end }}
+
+{{- if .Values.backend.telemetry.enabled }}
+
+   * backend.telemetry.enabled is on: this installation reports usage back to
+     baizhi.cloud. Turn it off for a private deployment.
+{{- end }}

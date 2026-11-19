@@ -7,6 +7,7 @@ import (
 
 	"github.com/chaitin/panda-wiki/config"
 	handler "github.com/chaitin/panda-wiki/handler/mq"
+	"github.com/chaitin/panda-wiki/health"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/mq"
 )
@@ -18,6 +19,7 @@ func createApp() (*App, error) {
 			config.ProviderSet,
 			log.ProviderSet,
 			handler.ProviderSet,
+			health.ProviderSet,
 		),
 	)
 	return &App{}, nil
@@ -28,4 +30,6 @@ type App struct {
 	Config          *config.Config
 	MQHandlers      *handler.MQHandlers
 	StatCronHandler *handler.CronHandler
+	Health          *health.Server
+	Logger          *log.Logger
 }

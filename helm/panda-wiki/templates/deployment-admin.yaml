@@ -1,0 +1,88 @@
+{{- if .Values.admin.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "panda-wiki.name" . }}-nginx
+  labels:
+    {{- include "panda-wiki.labels" . | nindent 4 }}
+    app.kubernetes.io/component: admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "panda-wiki.selectorLabels" (dict "root" . "component" "admin") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "panda-wiki.labels" . | nindent 8 }}
+        app.kubernetes.io/component: admin
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap-admin-nginx.yaml") . | sha256sum }}
+    spec:
+      {{- include "panda-wiki.imagePullSecrets" . | nindent 6 }}
+      automountServiceAccountToken: false
+      containers:
+        - name: nginx
+          image: {{ include "panda-wiki.image" (dict "root" . "image" .Values.admin.image) }}
+          imagePullPolicy: {{ include "panda-wiki.imagePullPolicy" (dict "root" . "image" .Values.admin.image) }}
+          ports:
+            - name: https
+              containerPort: {{ .Values.admin.port }}
+          # server.conf listens with TLS, so the probe has to speak HTTPS. The
+          # self-signed certificate is not verified by the kubelet.
+          startupProbe:
+            httpGet:
+              path: /
+              port: https
+              scheme: HTTPS
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet:
+              path: /
+              port: https
+              scheme: HTTPS
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: https
+              scheme: HTTPS
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.admin.resources | nindent 12 }}
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/server.conf
+              subPath: server.conf
+            {{- if .Values.admin.tls.existingSecret }}
+            - name: tls
+              mountPath: /etc/nginx/ssl
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: {{ include "panda-wiki.name" . }}-nginx
+        {{- if .Values.admin.tls.existingSecret }}
+        - name: tls
+          secret:
+            secretName: {{ .Values.admin.tls.existingSecret }}
+        {{- end }}
+      {{- with .Values.admin.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.admin.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.admin.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

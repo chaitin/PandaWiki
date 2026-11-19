@@ -11,6 +11,7 @@ import (
 	"github.com/chaitin/panda-wiki/handler"
 	"github.com/chaitin/panda-wiki/handler/share"
 	"github.com/chaitin/panda-wiki/handler/v1"
+	"github.com/chaitin/panda-wiki/health"
 	"github.com/chaitin/panda-wiki/log"
 	"github.com/chaitin/panda-wiki/middleware"
 	"github.com/chaitin/panda-wiki/mq"
@@ -196,6 +197,8 @@ func createApp() (*App, error) {
 	if err != nil {
 		return nil, err
 	}
+	checker := health.NewChecker(logger, db, cacheCache, minioClient)
+	server := health.NewServer(configConfig, checker, logger)
 	app := &App{
 		HTTPServer:    httpServer,
 		Handlers:      apiHandlers,
@@ -203,6 +206,8 @@ func createApp() (*App, error) {
 		Config:        configConfig,
 		Logger:        logger,
 		Telemetry:     client,
+		Health:        server,
+		MQProducer:    mqProducer,
 	}
 	return app, nil
 }
@@ -216,4 +221,6 @@ type App struct {
 	Config        *config.Config
 	Logger        *log.Logger
 	Telemetry     *telemetry.Client
+	Health        *health.Server
+	MQProducer    mq.MQProducer
 }
